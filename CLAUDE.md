@@ -14,6 +14,7 @@ There is no application code yet. The repository holds design documents only. Do
 - `docs/02-core-features-and-tech-stack.md` — the source of truth for requirements and stack. Features carry stable IDs `F-01` to `F-50`; non-functional requirements carry `N-01` to `N-09`. Section 5 lists decisions still open.
 - `docs/03-diagrams.md` — 13 Mermaid diagrams (context, role sequence, tender state machine, sealed envelopes, tenant isolation, tenancy model, data model in two parts, module dependencies, deployment, AI pipeline, roadmap, feature map).
 - `docs/04-reference-app-analysis.md` — the main competitor in depth: their modules mapped to our F-xx IDs, their stack (Angular, Node/NestJS, MongoDB), direction, gaps, what to replicate versus beat, and target market rings. Claims marked "not found publicly" are unverified, not confirmed absent.
+- `docs/05-mvp-scope.md` — the pilot MVP: 15 features narrowed from document 02 (each row states the narrowing), an explicit out-of-scope list, two one-day spikes (Arabic PDF, Blazor upload on weak connections) that run before any build, a 20-week plan, and pilot success measures. When scoping work, this document wins over document 02 until the pilot has run.
 
 Reference features and requirements by ID in any new document. When a decision changes, update all three documents in the same commit; they cross-reference each other, and diagram labels must match the stack table in document 02.
 
