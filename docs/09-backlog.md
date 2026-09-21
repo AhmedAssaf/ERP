@@ -20,9 +20,9 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 | Epic | Stories | P0 | P1 | P2 |
 |---|---|---|---|---|
 | E0 Platform foundation | W-01 to W-12 | 9 | 3 | 0 |
-| E1 Tenancy and branding | F-01 to F-05 | 4 | 1 | 0 |
-| E2 Identity, users, roles | F-06 to F-10 | 2 | 2 | 1 |
-| E3 Vendor registration | F-11 to F-14 | 2 | 0 | 2 |
+| E1 Tenancy and branding | F-01 to F-05, F-01b | 4 | 2 | 0 |
+| E2 Identity, users, roles | F-06 to F-10, F-06b | 2 | 2 | 2 |
+| E3 Vendor registration | F-11 to F-14, F-12b | 2 | 1 | 2 |
 | E4 Tender authoring | F-15 to F-21 | 5 | 1 | 1 |
 | E5 Offer submission | F-22 to F-26 | 3 | 2 | 0 |
 | E6 Evaluation chain | F-27 to F-34 | 6 | 2 | 0 |
@@ -126,6 +126,7 @@ Acceptance criteria:
 | F-20 | Amendments with versioning and notification | P1 | M | Backlog | F-16, F-38 |
 | F-21 | Clarifications (MVP: public answers to all invited) | P0 | M | Backlog | F-19 |
 
+- **F-15.** Given the MVP, when an officer creates a tender, then the only type offered is the sealed two-envelope Tender and its stages are Draft, Published, Clarification, Closed, Compliance screening, Technical evaluation, Technical locked, Financial opening, Financial evaluation, Finance approval, Awarded, Cancelled; given the P2 follow-up, when RFQ is chosen, then the technical stages are skipped and the financial stages run directly after Closed.
 - **F-16.** Given a draft tender, when the officer publishes without a submission deadline in the future, then publishing is refused with a specific message; when BoQ lines have a unit and quantity, then the vendor wizard prices exactly those lines.
 - **F-17.** Given criteria weights of 40, 30, 20, when the officer publishes, then it is refused until the weights sum to 100; given a pass mark of 70, when an offer scores 69.5, then it is excluded from financial ranking.
 - **F-19.** Given three invited vendors, when a fourth registered vendor opens the tender URL, then they get 404 and the attempt is audited.
@@ -226,12 +227,15 @@ Acceptance criteria:
 | W-14 | Reference App demo or former-customer call answering the seven questions in document 04 section 10 | P0 | S | Backlog | |
 | W-15 | First customer signed for the pilot with a named tender and date | P0 | L | Backlog | W-13 |
 | W-16 | Pricing page draft: monthly per-tenant price, first tender free | P0 | S | Backlog | W-13 |
-| W-17 | Pilot dry run script with fake vendors, producing the document 05 section 7 table | P0 | M | Backlog | all P0 features |
+| W-17 | Pilot dry run script with fake vendors, producing the document 05 section 7 table | P0 | M | Backlog | F-01, F-02, F-06, F-07, F-11, F-12, F-15, F-16, F-17, F-19, F-21, F-22, F-23, F-24, F-27, F-28, F-29, F-30, F-31, F-33, F-36, F-38, F-39, F-41, F-44 |
 | W-18 | Pilot review and version 1.1 scope | P0 | S | Backlog | W-17 |
 
 - **W-13.** Given three interviews, when written up, then each records current tools, last tender's cycle time, what Reference App or others quoted, and whether the vendor would see their brand; the document 01 "things to verify" list is updated.
+- **W-14.** Given the Reference App demo or ex-customer call, when it is written up, then each of the seven questions in document 04 section 10 has an answer marked confirmed, denied, or still unknown with its source, and document 04 sections 3 and 6 are updated where an answer changed a verdict.
 - **W-15.** Given a signed pilot agreement, when the tender is named, then the plan in document 05 section 6 gets calendar dates.
+- **W-16.** Given the pricing draft, when reviewed, then it states a monthly per-tenant price with what is included, the first-tender-free offer with its conditions, the white-label domain add-on, and how the price was tested against at least two interview answers; no plan requires an implementation project.
 - **W-17.** Given the dry run, when it completes, then every row of the document 05 section 7 table has a measured value and a pass or fail.
+- **W-18.** Given the pilot review, when it is held, then every document 05 section 7 measure has its live-tender value beside the dry-run value, the contracts officer's and finance approver's willingness to pay is recorded verbatim, and the version 1.1 scope is a ranked list of backlog IDs with any new stories added with acceptance criteria.
 
 ## E12 Platform operations console (F-51 to F-54)
 
