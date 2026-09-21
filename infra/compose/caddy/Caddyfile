@@ -1,0 +1,31 @@
+# Local development edge. Any *.localhost name resolves to 127.0.0.1 in modern browsers, so each tenant can be
+# tested on its own hostname without editing the hosts file, e.g. https://alfaisal.localhost and https://najd.localhost.
+# Caddy issues a locally trusted certificate (tls internal) and forwards the original Host header to the app.
+
+{
+	# Local CA only. Remove this block in production.
+	local_certs
+}
+
+*.localhost, localhost {
+	tls internal
+	reverse_proxy host.docker.internal:5273 {
+		# Blazor Server needs WebSockets; Caddy proxies them by default. Keep the client's Host so the app can resolve the tenant.
+		header_up Host {host}
+		header_up X-Forwarded-Proto {scheme}
+	}
+}
+
+# Production shape (documented here, applied in infra/k8s or the production Caddyfile):
+#
+# {
+#     on_demand_tls {
+#         ask http://app:5273/internal/tls/allowed   # app answers 200 only for hostnames that belong to a tenant (F-03)
+#     }
+# }
+# https:// {
+#     tls {
+#         on_demand
+#     }
+#     reverse_proxy app:5273
+# }

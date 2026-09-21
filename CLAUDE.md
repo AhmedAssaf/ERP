@@ -6,7 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 An idea-stage side business: a multi-tenant, white-label tender-to-purchase-order SaaS for Saudi mid-size private companies. Buyers publish RFPs under their own brand, vendors submit sealed technical and financial offers, and offers pass through contracts screening, technical scoring, finance approval, and PO issuance.
 
-There is no application code yet. The repository holds design documents only. Do not scaffold projects, add build tooling, or write code unless the user asks for that step explicitly; the next planned step is a design spec and implementation plan, not code.
+There is no application code yet. The repository holds design documents plus two throwaway spikes under `spikes/` (an Arabic PDF console app and a Blazor Server upload test). The spikes are evidence, not product code; do not build on them. Do not scaffold the product or add build tooling unless the user asks for that step explicitly; the next planned step is a design spec and implementation plan.
+
+Spikes run on the .NET 9 SDK installed here (`dotnet run` in each spike folder). The Blazor spike binds `http://127.0.0.1:5273` and needs `ASPNETCORE_ENVIRONMENT=Development` when run with `--no-launch-profile`. Results and the resulting design decisions are in `docs/06-spike-results.md`.
 
 ## Documents and how they relate
 
@@ -14,18 +16,28 @@ There is no application code yet. The repository holds design documents only. Do
 - `docs/02-core-features-and-tech-stack.md` — the source of truth for requirements and stack. Features carry stable IDs `F-01` to `F-50`; non-functional requirements carry `N-01` to `N-09`. Section 5 lists decisions still open.
 - `docs/03-diagrams.md` — 13 Mermaid diagrams (context, role sequence, tender state machine, sealed envelopes, tenant isolation, tenancy model, data model in two parts, module dependencies, deployment, AI pipeline, roadmap, feature map).
 - `docs/04-reference-app-analysis.md` — the main competitor in depth: their modules mapped to our F-xx IDs, their stack (Angular, Node/NestJS, MongoDB), direction, gaps, what to replicate versus beat, and target market rings. Claims marked "not found publicly" are unverified, not confirmed absent.
+- `docs/06-spike-results.md` — evidence from the two spikes and the decisions taken from them (QuestPDF rules; uploads off the circuit).
+- `docs/07-ways-of-working.md` — process: flow with gates, repo layout, local Compose stack and ports, branching, agent roster, tracking, definition of done, cadence.
+- `docs/08-design-system.md` — Tailwind tokens, typography (IBM Plex Sans Arabic), RTL rules (logical utilities only), white-label mechanics, the MVP component list, build integration.
+- `docs/adr/` — decision records; ADR-0001 chunked uploads, ADR-0002 Tailwind design system.
+- `docs/09-backlog.md` — the single source of work: stories per feature ID (F-xx) and work item (W-xx) with acceptance criteria, priority (P0 MVP, P1, P2), size, status, dependencies. Update a story's status in the same pull request that moves it; create GitHub issues from rows here, not the reverse.
 - `docs/05-mvp-scope.md` — the pilot MVP: 15 features narrowed from document 02 (each row states the narrowing), an explicit out-of-scope list, two one-day spikes (Arabic PDF, Blazor upload on weak connections) that run before any build, a 20-week plan, and pilot success measures. When scoping work, this document wins over document 02 until the pilot has run.
 
 Reference features and requirements by ID in any new document. When a decision changes, update all three documents in the same commit; they cross-reference each other, and diagram labels must match the stack table in document 02.
 
 ## Decisions already made (do not reopen without the user)
 
-- Stack: .NET 10, ASP.NET Core modular monolith, Blazor Web App in Interactive Server mode, MudBlazor (for right-to-left Arabic), EF Core with PostgreSQL row-level security, Keycloak 26 Organizations as the tenant model, Hangfire, QuestPDF, .NET Aspire for local development.
+- Stack: .NET 10, ASP.NET Core modular monolith, Blazor Web App in Interactive Server mode, Tailwind CSS v4 with the in-house `Platform.UI` component library and QuickGrid (ADR-0002, docs/08; MudBlazor was dropped), EF Core with PostgreSQL row-level security, Keycloak 26 Organizations as the tenant model, Hangfire, QuestPDF. Local development runs the dependencies with Docker Compose from `infra/compose` and the app on the host.
+- Uploads: vendor files go over chunked HTTP, never through the Blazor circuit (ADR-0001, docs/06).
 - Edge: Caddy for on-demand TLS and host routing. No API gateway product in version 1. Tenant resolution and rate limiting live in ASP.NET Core middleware. Ocelot is the fallback if a gateway is ever needed.
 - AI: assist-only. AI drafts, a named human decides, every AI output is stored with model and prompt version. Financial AI checks run only after technical scores are locked.
 - Data residency: everything in a Saudi cloud region.
 
 Still open (see document 02 section 5): PO scope for version 1, vendor identity model, hosting provider, first customer.
+
+## Working with the agents and process
+
+`docs/07-ways-of-working.md` is the process document. Four agents live in `.claude/agents/`: `developer` (one plan task, test first), `reviewer` (read-only, ranked findings against the invariants), `qa-engineer` (tests and scenarios, writes only under `tests/`), `devops` (`infra/`, CI, Compose). The loop for any implementation task is developer, then reviewer, then qa-engineer, then a human merge. Decisions that change a stack row, a diagram, or an invariant get an ADR in `docs/adr/` using `0000-template.md`.
 
 ## Conventions
 
@@ -34,6 +46,7 @@ Still open (see document 02 section 5): PO scope for version 1, vendor identity 
 - Quadrant charts need an `%%{init: {"quadrantChart": {...}}}%%` directive with a wider `chartWidth`, or the title is clipped.
 - The user and their team prefer diagrams over prose. Lead with a diagram when explaining a flow, architecture, or data model.
 - Feature and requirement IDs are stable. Never renumber; append new IDs at the end of the relevant group.
+- UI code uses only logical direction utilities (`ms-`, `pe-`, `text-start`, ...); physical ones (`ml-`, `pr-`, `text-left`, ...) fail the lint. Every component is accepted in both directions in the gallery.
 - Design specs, when they start, go in `docs/superpowers/specs/` per the brainstorming workflow.
 
 ## Publishing workflow

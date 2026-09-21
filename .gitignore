@@ -4,3 +4,9 @@ dist/
 *.log
 .DS_Store
 Thumbs.db
+bin/
+obj/
+*.user
+spikes/**/out/
+.env
+infra/compose/.env

@@ -145,7 +145,7 @@ Chosen by you: .NET with Blazor. This section fits the rest of the stack around 
 | Language and runtime | C# on .NET 10 (LTS) | Current long-term-support release. One language for backend, UI, workers, and tests. |
 | Web and API framework | ASP.NET Core, modular monolith | One deployable host with module class libraries (Tenancy, Identity, Vendors, Tenders, Evaluation, Awards, Notifications, Documents, Ai, Audit). Minimal APIs for the few endpoints that need to be public (vendor mobile, PO export, webhooks). Split into services only when a module proves it must scale alone. |
 | UI | Blazor Web App, Interactive Server render mode, static server rendering for public pages | Server mode keeps all logic and secrets on the server, gives fast first paint on Saudi mobile networks, and avoids a separate API layer for the UI. Public tender listing pages render statically for search engines. Move the vendor portal to Interactive Auto later if long sessions on weak connections become a support issue. |
-| Component library | MudBlazor | MIT licence, mature data grid and forms, and built-in right-to-left support through its RTL provider, which covers F-04. Radzen Blazor is the fallback if a specific control is missing. |
+| Design system and components | Tailwind CSS v4 (standalone CLI, no Node) with design tokens as CSS variables, our own Razor component library `Platform.UI`, Microsoft QuickGrid for tables | Tenant branding is one style block of token overrides (F-02); right-to-left is enforced by allowing only logical utilities (F-04); no third-party kit identity to fight. Decided 2026-09-21, ADR-0002, details in `08-design-system.md`. |
 | Localisation | .NET resource files with `IStringLocalizer`, culture from the user profile, `dir="rtl"` set per culture | Standard .NET approach, Arabic and English resources side by side. |
 | Persistence | PostgreSQL 16 with Npgsql and EF Core | EF Core global query filters on `TenantId` in code, plus row-level security policies in the database so F-05 holds even if a query bypasses EF. JSONB columns for tender content and AI outputs, pgvector for AI retrieval. |
 | Migrations | EF Core migrations, applied by a one-shot job at deploy time | Versioned schema in the repository. |
@@ -166,7 +166,7 @@ Chosen by you: .NET with Blazor. This section fits the rest of the stack around 
 | Virus scanning | ClamAV sidecar via nClam | Required before any uploaded file is stored as final. |
 | Validation and mapping | FluentValidation, plain constructors (no AutoMapper) | Keeps rules explicit and testable. |
 | Testing | xUnit, Testcontainers for PostgreSQL and Keycloak, bUnit for Blazor components, Playwright for end-to-end | Real database in tests catches RLS mistakes. |
-| Local development | .NET Aspire app host orchestrating Postgres, Redis, Keycloak, MinIO, ClamAV | One `dotnet run` brings up the whole environment with a dashboard. Docker Compose export for anyone without the .NET SDK. |
+| Local development | Docker Compose stack in `infra/compose` (PostgreSQL with pgvector, Keycloak 26, Redis, MinIO, ClamAV, Mailpit, Caddy) with the app on the host under `dotnet watch` | One command from a clean clone, same images as production, Windows-friendly. .NET Aspire can be layered on later for the dashboard; it is not required. Decided 2026-09-21. |
 | Containers and deployment | Docker images (`dotnet publish` container support), Kubernetes in production | Matches your existing container work. |
 | Hosting | A Saudi-region cloud: Oracle Cloud (Jeddah, Riyadh), Google Cloud (Dammam), STC Cloud, or AWS once its Saudi region is available | Pick the one with managed PostgreSQL, S3-compatible storage, KMS, and Kubernetes in-Kingdom at the best price. Verify at signing time. |
 | Observability | OpenTelemetry for .NET, Serilog structured logs, Prometheus, Grafana, Loki, self-hosted Sentry | You already run Sentry. |
@@ -237,7 +237,6 @@ flowchart TB
 ERP/
   docs/                              idea, features, stack, diagrams, ADRs, design specs
   src/
-    Platform.AppHost/                .NET Aspire orchestration for local development
     Platform.Web/                    ASP.NET Core host: Blazor tenant-app + vendor-portal, minimal APIs
     Platform.Worker/                 Hangfire worker host: parsing, OCR, PDF, AI, notifications, deadlines
     Platform.Shared/                 tenant context, auditing, results, common abstractions
@@ -253,12 +252,13 @@ ERP/
       Ai/                            offer review providers, prompts, audit of AI outputs
       Audit/                         append-only event log, exports
     UI/
-      Platform.UI/                   shared MudBlazor components, theme, RTL, localisation resources
+      Platform.UI/                   Tailwind tokens (app.css), Razor components, component gallery, localisation resources
   tests/
     Platform.UnitTests/
     Platform.IntegrationTests/       Testcontainers: Postgres, Keycloak, MinIO
     Platform.UITests/                bUnit + Playwright
   infra/
+    compose/                         local development stack (docker-compose.yml, .env.example, caddy, keycloak, postgres init)
     k8s/                             production manifests or Helm chart
     keycloak/                        realm export, themes
     caddy/                           Caddyfile, on-demand TLS ask endpoint config
@@ -270,5 +270,5 @@ ERP/
 1. **PO scope:** confirm branded PDF plus structured export (F-36, F-37) for version 1, with ERP push as a later paid integration.
 2. **Vendor identity:** confirm one platform-wide vendor account with per-tenant approval (F-10).
 3. **Hosting provider:** pick the Saudi-region provider. Affects managed PostgreSQL, storage, and KMS choices.
-4. **UI stack and edge:** decided 2026-09-21: Blazor Web App (Interactive Server) with MudBlazor. Caddy at the edge for TLS and routing, no API gateway product in version 1.
+4. **UI stack and edge:** decided 2026-09-21: Blazor Web App (Interactive Server) with Tailwind CSS and the in-house `Platform.UI` components (ADR-0002). Caddy at the edge for TLS and routing, no API gateway product in version 1.
 5. **First customer:** name the company whose workflow becomes the default template.

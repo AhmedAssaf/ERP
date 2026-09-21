@@ -1,0 +1,144 @@
+@page "/"
+@rendermode InteractiveServer
+@using System.Diagnostics
+@using System.Security.Cryptography
+@inject ILogger<Home> Log
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<PageTitle>Upload spike</PageTitle>
+
+<h1>Spike 2: vendor upload on a weak connection</h1>
+<p>Circuit id: <code id="circuit">@circuitId</code> &nbsp; Ticks while connected: <b id="ticks">@ticks</b></p>
+
+<p>
+    Draft text that must survive a reconnect:
+    <input id="draft" @bind="draft" @bind:event="oninput" style="width:320px" />
+    <span id="draft-echo">@draft</span>
+</p>
+
+<InputFile id="file" OnChange="OnFile" />
+<p id="status">@status</p>
+<progress id="progress" max="100" value="@percent" style="width:420px"></progress>
+<p id="result">@result</p>
+
+<hr />
+<h2>Fallback: direct chunked HTTP upload (independent of the circuit)</h2>
+<input type="file" id="file2" @ref="file2" />
+<button id="start2" @onclick="StartChunked">Start chunked upload</button>
+<p id="status2">@status2</p>
+<progress id="progress2" max="100" value="@percent2" style="width:420px"></progress>
+<p id="result2">@result2</p>
+
+@code {
+    string circuitId = Guid.NewGuid().ToString("N")[..8];
+    string draft = "";
+    string status = "Pick a file (up to 100 MB).";
+    string result = "";
+    int ticks;
+    double percent;
+    PeriodicTimer? timer;
+
+    protected override void OnInitialized()
+    {
+        _ = Tick();
+    }
+
+    async Task Tick()
+    {
+        timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+        while (await timer.WaitForNextTickAsync())
+        {
+            ticks++;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    ElementReference file2;
+    string status2 = "Pick a file, then start.";
+    string result2 = "";
+    double percent2;
+    IJSObjectReference? mod;
+    DotNetObjectReference<Home>? self;
+
+    async Task StartChunked()
+    {
+        var sw = Stopwatch.StartNew();
+        status2 = "Chunked upload running (4 MB chunks, retry per chunk)...";
+        result2 = ""; percent2 = 0;
+        try
+        {
+            mod ??= await JS.InvokeAsync<IJSObjectReference>("import", "./upload.js");
+            self ??= DotNetObjectReference.Create(this);
+            var r = await mod.InvokeAsync<System.Text.Json.JsonElement>("chunkedUpload", TimeSpan.FromMinutes(30), file2, self, 4 * 1024 * 1024);
+            percent2 = 100;
+            status2 = "Chunked upload complete.";
+            result2 = $"DONE2 bytes={r.GetProperty("size").GetInt64()} chunks={r.GetProperty("chunks").GetInt32()} sha256={r.GetProperty("sha256").GetString()} retries={r.GetProperty("retries").GetInt32()} seconds={sw.Elapsed.TotalSeconds:F1} draft='{draft}' ticks={ticks}";
+            Log.LogInformation("Chunked upload finished: {Result}", result2);
+        }
+        catch (Exception ex)
+        {
+            status2 = "Chunked upload FAILED.";
+            result2 = $"FAILED2 after {sw.Elapsed.TotalSeconds:F1}s: {ex.GetType().Name}: {ex.Message}";
+            Log.LogError(ex, "Chunked upload failed");
+        }
+    }
+
+    [JSInvokable]
+    public Task OnChunk(int done, int total, int retries)
+    {
+        percent2 = 100.0 * done / total;
+        status2 = $"Chunked upload: {done}/{total} chunks, {retries} retries so far";
+        return InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        timer?.Dispose();
+        self?.Dispose();
+        if (mod is not null) { try { await mod.DisposeAsync(); } catch { } }
+    }
+
+    async Task OnFile(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        var sw = Stopwatch.StartNew();
+        status = $"Uploading {file.Name} ({file.Size / 1024 / 1024} MB)...";
+        result = "";
+        percent = 0;
+        var path = Path.Combine(Path.GetTempPath(), "upload-spike-" + Path.GetRandomFileName());
+        try
+        {
+            await using var input = file.OpenReadStream(maxAllowedSize: 100L * 1024 * 1024);
+            await using var output = File.Create(path);
+            using var sha = SHA256.Create();
+            var buffer = new byte[256 * 1024];
+            long done = 0;
+            int read;
+            var lastUi = 0L;
+            while ((read = await input.ReadAsync(buffer)) > 0)
+            {
+                await output.WriteAsync(buffer.AsMemory(0, read));
+                sha.TransformBlock(buffer, 0, read, null, 0);
+                done += read;
+                percent = 100.0 * done / file.Size;
+                if (done - lastUi > 2 * 1024 * 1024) { lastUi = done; await InvokeAsync(StateHasChanged); }
+            }
+            sha.TransformFinalBlock([], 0, 0);
+            percent = 100;
+            status = "Upload complete.";
+            result = $"DONE bytes={done} sha256={Convert.ToHexString(sha.Hash!)[..16]} seconds={sw.Elapsed.TotalSeconds:F1} draft='{draft}' ticks={ticks}";
+            Log.LogInformation("Upload finished: {Result}", result);
+        }
+        catch (Exception ex)
+        {
+            status = "Upload FAILED.";
+            result = $"FAILED after {sw.Elapsed.TotalSeconds:F1}s: {ex.GetType().Name}: {ex.Message}";
+            Log.LogError(ex, "Upload failed");
+        }
+        finally
+        {
+            try { File.Delete(path); } catch { }
+        }
+    }
+}
