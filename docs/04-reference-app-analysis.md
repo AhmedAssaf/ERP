@@ -355,7 +355,7 @@ Read 2026-09-21 unless dated otherwise.
 
 ## 12. Proposed backlog rows from this sweep
 
-For the user or the project-manager agent to add to `09-backlog.md`. Not added here.
+Added to `09-backlog.md` on 2026-09-22 as F-59, F-36b, and F-39b (all P2); the docs/01 wording change was applied on 2026-09-21.
 
 | ID | Story | Acceptance | Priority | Size | Source of the need |
 |---|---|---|---|---|---|

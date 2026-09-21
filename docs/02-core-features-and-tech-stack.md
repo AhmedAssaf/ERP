@@ -61,6 +61,7 @@ This file lists the features that must exist for the product to be sellable to a
 | F-19 | Visibility per tender | Each tender is Invited or Open, chosen at publishing. Invited: only vendors on the invitation list can see and submit (F-55). Open: the tender appears on the tenant's public listing page under its domain (`tenders.customer.sa/tenders`), any vendor can register through the same link flow as F-55 and submit before the deadline, and the officer may still send invitations. The officer can switch an Open tender's listing off before the deadline, which stops new registrations but keeps existing participants. Visibility never affects the sealed-envelope rules. |
 | F-20 | Amendments | Publishing a change after release creates a new version, notifies all invited or registered vendors, and optionally extends the deadline. Previous versions stay visible. |
 | F-55 | Tender invitation with registration continuation | Added 2026-09-21. Publishing a tender (مناقصة) sends each invitee a branded email with a single-use invitation link. A vendor already registered on the platform lands on the tender after login. A vendor not yet registered is taken through registration (F-11) with the company email pre-filled, and on completion lands on the same tender with access granted; the registration can be paused and resumed from the same link until the submission deadline. The invitation records sent, opened, registered, and submitted states so the officer sees who has not responded. Links expire at the submission deadline and cannot be forwarded to a different email without the officer re-inviting. |
+| F-59 | Pre-qualification questionnaire | Added 2026-09-22 from the Reference App sweep. The contracts officer attaches a questionnaire of pass-or-fail items to a tender. It is the first step of the submission wizard; a failed mandatory item stops the vendor with the reason. Passed answers appear beside the compliance checklist during screening. The questionnaire is frozen after the deadline. |
 | F-21 | Clarifications | Vendors ask questions before the clarification deadline. Contracts officer answers privately or publishes the answer anonymised to all vendors. |
 
 ### 2.5 Offer submission (vendor portal)
@@ -95,6 +96,7 @@ This file lists the features that must exist for the product to be sellable to a
 |---|---|---|
 | F-35 | Award and regret letters | Branded PDFs generated from templates, sent to the winner and the other vendors. |
 | F-36 | Purchase order | Branded PO PDF with tenant numbering pattern, line items from the winning offer, VAT, payment terms, delivery terms, and signatories. Recorded in a PO register. |
+| F-36b | Electronic signature on the PO | Added 2026-09-22 from the Reference App sweep. Named signatories confirm in the portal with MFA; the PO PDF carries their names, timestamps, and a document hash, and the event is audited. A tenant may configure a Saudi e-signature provider, in which case the signed PDF returned by the provider replaces the draft. |
 | F-37 | PO export | PO available as PDF and as a structured JSON or CSV export so the customer can key or import it into their ERP. Direct ERP push is a later paid integration. |
 
 ### 2.8 Notifications
@@ -103,6 +105,7 @@ This file lists the features that must exist for the product to be sellable to a
 |---|---|---|
 | F-38 | Channels | Email always. SMS through a Saudi provider (Unifonic or similar) for vendors. In-app notifications. WhatsApp is a later addition. |
 | F-39 | Events | Invitation, amendment, clarification answered, deadline in 48 hours, submission received, stage advanced, action required from me, award or regret, document expiring. |
+| F-39b | Follow a tender | Added 2026-09-22 from the Reference App sweep. A contracts officer or tenant admin can follow a tender to receive its stage and award notifications and see it in a Following list, without joining the committee and without seeing offers or scores. |
 | F-40 | Digest and preferences | Users can choose immediate or daily digest per event type. |
 
 ### 2.9 Audit, reporting, and documents

@@ -23,11 +23,11 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 | E1 Tenancy and branding | F-01 to F-05, F-01b | 4 | 2 | 0 |
 | E2 Identity, users, roles | F-06 to F-10, F-06b | 2 | 2 | 2 |
 | E3 Vendor registration | F-11 to F-14, F-12b, F-14a | 3 | 1 | 2 |
-| E4 Tender authoring | F-15 to F-21, F-55, F-19b | 6 | 2 | 1 |
+| E4 Tender authoring | F-15 to F-21, F-55, F-19b, F-59 | 6 | 2 | 2 |
 | E5 Offer submission | F-22 to F-26 | 3 | 2 | 0 |
 | E6 Evaluation chain | F-27 to F-34, F-56, F-56b, F-57, F-58 | 7 | 5 | 0 |
-| E7 Award and PO | F-35 to F-37 | 1 | 2 | 0 |
-| E8 Notifications | F-38 to F-40 | 2 | 1 | 0 |
+| E7 Award and PO | F-35 to F-37, F-36b | 1 | 2 | 1 |
+| E8 Notifications | F-38 to F-40, F-39b | 2 | 1 | 1 |
 | E9 Audit and documents | F-41 to F-44 | 2 | 0 | 2 |
 | E10 AI assist | F-45 to F-50 | 0 | 2 | 4 |
 | E11 Pilot and market | W-13 to W-18 | 6 | 0 | 0 |
@@ -130,6 +130,7 @@ Acceptance criteria:
 | F-18 | Templates | P2 | S | Backlog | F-16 |
 | F-19 | Visibility (MVP: invited vendors by email only) | P0 | S | Backlog | F-16, F-11 |
 | F-19b | Open tenders: public listing page under the tenant domain, self-registration onto the tender, listing switch-off | P1 | M | Backlog | F-19, F-55, F-02 |
+| F-59 | Pre-qualification questionnaire attached to a tender; only vendors who pass can submit | P2 | M | Backlog | F-17, F-22, F-28 |
 | F-20 | Amendments with versioning and notification | P1 | M | Backlog | F-16, F-38 |
 | F-21 | Clarifications (MVP: public answers to all invited) | P0 | M | Backlog | F-19 |
 | F-55 | Tender invitation by email with registration continuation and access to the tender | P0 | M | Backlog | F-11, F-14a, F-19, F-38 |
@@ -139,6 +140,7 @@ Acceptance criteria:
 - **F-17.** Given criteria weights of 40, 30, 20, when the officer publishes, then it is refused until the weights sum to 100; given a pass mark of 70, when an offer scores 69.5, then it is excluded from financial ranking.
 - **F-19.** Given three invited vendors, when a fourth registered vendor opens the tender URL, then they get 404 and the attempt is audited.
 - **F-19b.** Given a tender published as Open, when anyone opens the tenant's public listing page, then they see the title, reference, deadline, and a register-and-submit link, and nothing about other participants; when a new vendor follows it, then they go through registration and land on the tender exactly as with an invitation; given the officer switches the listing off, then the page no longer shows the tender, already-registered participants keep access, and the change is audited; given a tender published as Invited, then it never appears on the listing page and its URL returns 404 to non-invitees.
+- **F-59.** Given a tender with a PQQ of pass-or-fail items, when a vendor opens the submission wizard, then the PQQ is the first step and a failed mandatory item stops the wizard with the reason shown; given a passed PQQ, when the officer runs compliance screening, then the PQQ answers appear beside the checklist; given the deadline has passed, when anyone edits the PQQ, then the edit is refused. Source: Reference App app release 25.4.9 PQQ layer (docs/04 section 12).
 - **F-20.** Given a published tender, when the officer changes the scope attachment, then version 2 is created, all invited vendors are notified within one minute, and version 1 stays readable.
 - **F-55.** Given an invitation sent to an unregistered email, when the recipient opens the link, then they see the tender title and the inviting company's brand and are taken into registration with the email pre-filled; when they complete registration, then they land on the tender with access and the officer's list shows them as registered; given they stop halfway, when they reopen the same link a day later, then registration resumes where it stopped. Given an already registered vendor, when they open the link, then after login they land on the tender directly. Given the link is opened after the submission deadline, then it shows an expired message in the vendor's language. Given the link is used with a different email than the one invited, then access is refused and the officer is notified. Given the officer's tender page, then each invitee shows sent, opened, registered, or submitted with timestamps.
 - **F-21.** Given a vendor question before the clarification deadline, when the officer publishes an answer, then every invited vendor sees it without the asker's identity; when a question arrives after the deadline, then it is refused.
@@ -194,8 +196,10 @@ Acceptance criteria:
 | F-35 | Award and regret letters | P1 | S | Backlog | F-33, F-36 |
 | F-36 | Branded PO PDF (QuestPDF, document 06 rules) | P0 | M | Backlog | F-33 |
 | F-37 | PO structured export | P1 | S | Backlog | F-36 |
+| F-36b | Electronic signature on the PO by named signatories, with an optional Saudi e-signature provider | P2 | M | Backlog | F-36, F-06, F-41 |
 
 - **F-36.** Given an awarded tender, when the PO is generated, then it carries the tenant numbering pattern, the winning lines, VAT, payment terms, Arabic and English text with correct shaping, and matches the golden image within tolerance.
+- **F-36b.** Given an approved award, when the named signatories confirm in the portal with MFA, then the PO PDF carries their names, timestamps, and a document hash in the footer and the event is audited; given a Saudi e-signature provider is configured for the tenant, when the PO is generated, then it is routed to that provider and the returned signed PDF replaces the draft. Source: Reference App pricing checklist "E-Signature" (docs/04 section 12).
 - **F-35.** Given an award, when letters are sent, then the winner receives the award letter and every other compliant vendor receives a regret letter, each in the vendor's language.
 - **F-37.** Given a PO, when exported, then the JSON contains every line with quantity, unit price, and VAT, and the CSV opens in Excel with Arabic intact.
 
@@ -206,8 +210,10 @@ Acceptance criteria:
 | F-38 | Email channel through the worker (Mailpit locally) | P0 | S | Backlog | W-08 |
 | F-39 | MVP events: invitation, answer, deadline in 48 h, received, action required, award or regret | P0 | M | Backlog | F-38 |
 | F-40 | SMS channel, in-app, digests and preferences | P1 | M | Backlog | F-39 |
+| F-39b | Follow a tender to receive its stage notifications without being on the committee | P2 | S | Backlog | F-39, F-08 |
 
 - **F-38.** Given an email job, when the provider fails, then the job retries with backoff up to five times and then raises an alert; no notification is ever sent twice for one event.
+- **F-39b.** Given a user with the Contracts officer or Tenant admin role, when they follow a tender, then they receive stage-advanced and award events and see the tender in a Following list; when they are not on the committee, then they never see offers or scores. Source: Reference App app release 6.7.0 "Request Watchers" (docs/04 section 12).
 - **F-39.** Given a deadline 48 hours away, when the scheduled job runs, then every invited vendor without a submission receives the reminder once, in their language, with the tenant's branding.
 
 ## E9 Audit and documents (F-41 to F-44)
