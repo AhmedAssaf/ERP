@@ -13,13 +13,14 @@ Documents live in `docs/`:
 - `docs/07-ways-of-working.md` - process: work flow with gates, repo layout, local stack, branching, the agent roster, tracking, definition of done, cadence.
 - `docs/08-design-system.md` - Tailwind as the UI foundation: tokens, typography, RTL rules, white-label mechanics, MVP components.
 - `docs/09-backlog.md` - the backlog: every feature ID and work item as a story with Given-When-Then acceptance criteria, priority, size, status, dependencies.
+- `docs/10-kickoff.md` - the first four weeks: two parallel tracks, week-by-week exit checks, day-one checklist, how a session runs the foundation slice, decisions and risks.
 - `docs/adr/` - architecture decision records; ADR-0001 moves vendor uploads to chunked HTTP, ADR-0002 adopts Tailwind over MudBlazor.
 
 Local stack: `cd infra/compose && cp .env.example .env && docker compose up -d` (PostgreSQL, Keycloak, Redis, MinIO, ClamAV, Mailpit, Caddy).
 
 ## Getting started
 
-Follow this order; it avoids rework. Every step maps to a row in `docs/09-backlog.md`.
+Follow this order; it avoids rework. Every step maps to a row in `docs/09-backlog.md`. This is the short version; the week-by-week plan with exit checks, the day-one checklist, and the kickoff risks are in `docs/10-kickoff.md`.
 
 1. **Machine.** Install the .NET 10 SDK (the spikes ran on 9.0; the product targets 10). Start Docker Desktop, then `cd infra/compose && cp .env.example .env && docker compose up -d`. On Windows machines where port 443 is reserved, set `CADDY_HTTP_PORT=8081` and `CADDY_HTTPS_PORT=8443` in `.env`. Ports and credentials are in `docs/07-ways-of-working.md` section 4.
 2. **Customer track, in parallel from day one** (W-13, W-14, W-15). Three conversations with procurement or contracts managers, one Reference App demo or ex-customer call using the seven questions in `docs/04` section 10, and a named pilot customer with a named tender. The build plan in `docs/05` cannot be dated without this.

@@ -20,6 +20,7 @@ Spikes run on the .NET 9 SDK installed here (`dotnet run` in each spike folder).
 - `docs/07-ways-of-working.md` — process: flow with gates, repo layout, local Compose stack and ports, branching, agent roster, tracking, definition of done, cadence.
 - `docs/08-design-system.md` — Tailwind tokens, typography (IBM Plex Sans Arabic), RTL rules (logical utilities only), white-label mechanics, the MVP component list, build integration.
 - `docs/adr/` — decision records; ADR-0001 chunked uploads, ADR-0002 Tailwind design system.
+- `docs/10-kickoff.md` — the first four weeks: customer track and technical track in parallel, exit criteria, day-one checklist, the session commands for the foundation slice.
 - `docs/09-backlog.md` — the single source of work: stories per feature ID (F-xx) and work item (W-xx) with acceptance criteria, priority (P0 MVP, P1, P2), size, status, dependencies. Update a story's status in the same pull request that moves it; create GitHub issues from rows here, not the reverse.
 - `docs/05-mvp-scope.md` — the pilot MVP: 15 features narrowed from document 02 (each row states the narrowing), an explicit out-of-scope list, two one-day spikes (Arabic PDF, Blazor upload on weak connections) that run before any build, a 20-week plan, and pilot success measures. When scoping work, this document wins over document 02 until the pilot has run.
 
