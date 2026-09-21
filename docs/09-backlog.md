@@ -25,7 +25,7 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 | E3 Vendor registration | F-11 to F-14, F-12b, F-14a | 3 | 1 | 2 |
 | E4 Tender authoring | F-15 to F-21, F-55, F-19b | 6 | 2 | 1 |
 | E5 Offer submission | F-22 to F-26 | 3 | 2 | 0 |
-| E6 Evaluation chain | F-27 to F-34, F-56, F-56b | 7 | 3 | 0 |
+| E6 Evaluation chain | F-27 to F-34, F-56, F-56b, F-57, F-58 | 7 | 5 | 0 |
 | E7 Award and PO | F-35 to F-37 | 1 | 2 | 0 |
 | E8 Notifications | F-38 to F-40 | 2 | 1 | 0 |
 | E9 Audit and documents | F-41 to F-44 | 2 | 0 | 2 |
@@ -173,6 +173,8 @@ Acceptance criteria:
 | F-32 | Combined ranking and justified override | P1 | M | Backlog | F-31 |
 | F-33 | Finance approval, approve or return with reason (MVP: one approver) | P0 | M | Backlog | F-31 |
 | F-34 | Cancellation with reason and vendor notification | P1 | S | Backlog | F-27, F-38 |
+| F-57 | Information requests to a vendor after submission: draft, officer sends, vendor replies with attachments by a deadline, reply attached to the offer, price immutability | P1 | M | Backlog | F-22, F-28, F-38, F-55 |
+| F-58 | Internal comment threads on offers, steps, and scores with mentions, resolve, and convert to a vendor request | P1 | M | Backlog | F-08, F-29, F-41 |
 
 - **F-56.** Given the default template, when a tender is published, then the tender stores a snapshot of the steps and the officer's committee assignment fills the roles; given the tenant definition is edited afterwards, then the running tender is unchanged; given a definition that places financial opening before score locking, when saved, then it is rejected with the fixed-point rule named; given a step with an all-of rule and two approvers, when one approves, then the step stays open and the audit row names who is pending.
 - **F-56b.** Given the editor, when the admin adds a department step between screening and scoring and saves, then the next published tender has it and existing tenders do not; given a template is chosen, then its steps appear editable; every change is audited.
@@ -181,6 +183,8 @@ Acceptance criteria:
 - **F-29.** Given two evaluators, when only one has submitted scores, then the other cannot see them; when both have submitted, then the weighted average per offer is computed to two decimals.
 - **F-30.** Given locked scores, when an evaluator tries to change one, then it is refused; given unlocked scores, when the officer tries to open financial, then it is refused.
 - **F-31.** Given priced BoQ lines, when the sheet is generated, then totals equal quantity times unit price per line, VAT is 15 percent, an arithmetic mismatch in a vendor's own total is flagged, and the Excel export matches the screen.
+- **F-57.** Given an evaluator drafts a question on an offer during scoring, when the officer sends it, then the vendor receives an email and sees a portal task with the deadline, and the request appears in the tender's request log with who asked; given the vendor replies with text and a file, then the reply is attached to the offer, visible to the committee, and audited; given a reply that includes new prices, when submitted, then the prices are not applied and the officer is warned; given scores are locked, when anyone tries to send a technical request, then it is refused; given the financial stage, when a question is sent, then it is sent only to vendors whose envelopes were opened.
+- **F-58.** Given a comment thread on an offer with a mention of the Finance department, when a finance approver opens the tender, then the mention is listed for them; given a vendor session, when the offer is viewed, then no internal comment is visible in any response; given a comment converted to a request, then a draft F-57 request exists with the comment text and the officer must send it; given a resolved thread, then it stays readable and the audit row names who resolved it.
 - **F-33.** Given a recommendation, when the approver returns it with a reason, then the tender goes back to financial evaluation and the reason is visible to the officer; when approved, then the state becomes Awarded.
 
 ## E7 Award and PO (F-35 to F-37)

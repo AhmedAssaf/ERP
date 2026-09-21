@@ -116,7 +116,7 @@
 <div class="top">
   <div>
     <h1 data-ar="مخططات الحد الأدنى للمنتج">Tender MVP Wireframes</h1>
-    <div class="sub" data-ar="14 شاشة، مساحة عمل الجهة المشترية ثم بوابة المورد. الألوان والخطوط من نظام التصميم (وثيقة 08).">14 screens, tenant workspace then vendor portal. Tokens and type from the design system (document 08).</div>
+    <div class="sub" data-ar="16 شاشة، مساحة عمل الجهة المشترية ثم بوابة المورد. الألوان والخطوط من نظام التصميم (وثيقة 08).">16 screens, tenant workspace then vendor portal. Tokens and type from the design system (document 08).</div>
   </div>
   <div class="seg" role="group" aria-label="Language">
     <button id="lang-en" aria-pressed="true">English</button>
@@ -135,11 +135,13 @@
   <a href="#t7" data-ar="T7 اعتماد المالية">T7 Finance approval</a>
   <a href="#t8" data-ar="T8 الترسية وأمر الشراء">T8 Award and PO</a>
   <a href="#t9" data-ar="T9 محرر سير العمل">T9 Workflow editor</a>
+  <a href="#t10" data-ar="T10 مراجعة العرض والطلبات">T10 Offer review and requests</a>
   <a href="#v1" data-ar="V1 الدعوة">V1 Invitation</a>
   <a href="#v2" data-ar="V2 التسجيل">V2 Registration</a>
   <a href="#v3" data-ar="V3 عرض المناقصة">V3 Tender view</a>
   <a href="#v4" data-ar="V4 تقديم العرض">V4 Submission</a>
   <a href="#v5" data-ar="V5 تم التقديم">V5 Submitted</a>
+  <a href="#v6" data-ar="V6 طلب معلومات">V6 Information request</a>
 </nav>
 <p class="intro" data-ar="مخططات منخفضة الدقة: المربعات الرمادية محتوى، والأزرار والحالات حقيقية. بدّل اللغة لترى الاتجاه من اليمين إلى اليسار. شاشات المورد بعرض الهاتف لأن المورد يقدّم غالباً من هاتفه.">Low-fidelity: grey blocks stand for content, buttons and states are real. Switch the language to see the right-to-left layout. Vendor screens are phone width because vendors mostly submit from a phone.</p>
 
@@ -385,6 +387,36 @@
   </div></div>
 </section>
 
+<section class="screen" id="t10">
+  <div class="cap"><h2 data-ar="T10 مراجعة العرض: التعليقات الداخلية وطلبات المعلومات (الإصدار 1.1)">T10 Offer review: internal comments and information requests (version 1.1)</h2><span class="ids">F-57 F-58 F-29</span></div>
+  <p class="note" data-ar="أي عضو في اللجنة يعلّق داخلياً أو يصيغ سؤالاً للمورد؛ موظف العقود وحده يرسله ليبقى للموردين قناة واحدة. التعليقات الداخلية لا تصل المورد أبداً. لا يمكن لرد المورد تغيير أي سعر.">Any committee member comments internally or drafts a question for the vendor; only the contracts officer sends it, so vendors have one channel. Internal comments never reach the vendor. A vendor reply can never change a price.</p>
+  <div class="frame"><div class="app">
+    <div class="bar"><div class="logo">LOGO</div><span class="brand" data-ar="شركة الفيصل للمقاولات">Al-Faisal Contracting</span><div class="nav"><b data-ar="المناقصات">Tenders</b><span data-ar="الموردون">Vendors</span><span data-ar="سجل الأحداث">Audit log</span></div></div>
+    <div class="body">
+      <div class="row"><div><div class="hint">TND-2026-014 · <span data-ar="التقييم الفني">Technical evaluation</span></div><h3 data-ar="عرض مؤسسة نجد للتجارة والمقاولات">Offer from Najd Trading and Contracting</h3></div><span class="grow"></span><span class="badge eval" data-ar="قيد التقييم">Under evaluation</span><span class="badge seal">🔒 <span data-ar="المالي مختوم">financial sealed</span></span></div>
+      <div class="tabs"><span data-ar="العرض الفني">Technical response</span><span data-ar="الامتثال">Compliance</span><span class="on" data-ar="التعليقات الداخلية (4)">Internal comments (4)</span><span data-ar="طلبات المعلومات (2)">Information requests (2)</span></div>
+      <div class="side">
+        <div style="display:grid;gap:10px">
+          <div class="card"><div class="row"><b data-ar="منى · الهندسة">Mona · Engineering</b><span class="hint">24 Sep 09:12</span><span class="grow"></span><span class="badge" data-ar="معيار: المطابقة للمواصفات">Criterion: specification compliance</span></div><span data-ar="ورقة البيانات المرفقة لوحدة 24000 لا تذكر معامل الأداء SEER. @الهندسة هل نطلب التوضيح؟">The attached datasheet for the 24,000 unit does not state the SEER rating. @Engineering shall we ask?</span></div>
+          <div class="card"><div class="row"><b data-ar="خالد · الهندسة">Khalid · Engineering</b><span class="hint">24 Sep 09:40</span></div><span data-ar="نعم. وأيضاً مدة الضمان في الصفحة 12 تتعارض مع الصفحة 3 (سنتان مقابل ثلاث).">Yes. Also the warranty period on page 12 contradicts page 3 (two years versus three).</span><div class="row"><span class="btn quiet" data-ar="تحويل إلى طلب للمورد">Convert to a vendor request</span></div></div>
+          <div class="card"><div class="row"><b data-ar="أحمد · العقود">Ahmed · Contracts</b><span class="hint">24 Sep 10:05</span><span class="grow"></span><span class="badge ok" data-ar="تم الحل">Resolved</span></div><span data-ar="أُرسل طلب معلومات رقم 2 بالسؤالين. الموعد 26 سبتمبر.">Information request 2 sent with both questions. Due 26 Sep.</span></div>
+          <div class="row"><span class="box grow tall" data-ar="اكتب تعليقاً داخلياً… استخدم @ لذكر شخص أو إدارة">Write an internal comment… use @ to mention a person or a department</span></div>
+          <div class="row"><span class="hint" data-ar="لا يرى المورد هذه التعليقات.">The vendor never sees these comments.</span><span class="grow"></span><span class="btn" data-ar="صياغة طلب للمورد">Draft a vendor request</span><span class="btn primary" data-ar="تعليق">Comment</span></div>
+        </div>
+        <div style="display:grid;gap:10px">
+          <div class="card"><h4 data-ar="طلبات المعلومات لهذا العرض">Information requests for this offer</h4>
+            <div class="list">
+              <div><span class="grow" data-ar="1 · شهادة ضريبة القيمة المضافة غير واضحة">1 · VAT certificate unreadable</span><span class="badge ok" data-ar="تم الرد 22 سبتمبر">replied 22 Sep</span></div>
+              <div><span class="grow" data-ar="2 · معامل SEER ومدة الضمان">2 · SEER rating and warranty period</span><span class="badge eval" data-ar="بانتظار الرد، الموعد 26 سبتمبر">awaiting reply, due 26 Sep</span></div>
+            </div>
+            <span class="hint" data-ar="الأسئلة الفنية فقط قبل قفل الدرجات. الأسئلة المالية بعد فتح الأظرف، ولا تغيّر الأسعار.">Technical questions only before score lock. Financial questions after opening, and prices never change.</span></div>
+          <div class="card"><h4 data-ar="إرسال نفس السؤال للجميع">Send the same question to all</h4><span class="hint" data-ar="لضمان العدالة، يمكن لموظف العقود إرسال سؤال واحد لكل الموردين المؤهلين مرة واحدة.">For fairness, the officer can send one question to every compliant vendor at once.</span><span class="btn" data-ar="سؤال جماعي">Group question</span></div>
+        </div>
+      </div>
+    </div>
+  </div></div>
+</section>
+
 <!-- ============ VENDOR PORTAL (PHONE) ============ -->
 <section class="screen" id="v1">
   <div class="cap"><h2 data-ar="V1 الدعوة">V1 Invitation landing</h2><span class="ids">F-55 F-02</span></div>
@@ -470,6 +502,25 @@
       <p class="msg" data-ar="لن يُقرأ الظرف المالي قبل فتح الأظرف بعد إغلاق المناقصة وقفل التقييم الفني.">The financial envelope is not read until the opening event, after close and after technical scores are locked.</p>
       <span class="btn" style="justify-content:center" data-ar="تعديل وإعادة التقديم قبل 05 أكتوبر 14:00">Edit and resubmit before 05 Oct 14:00</span>
       <span class="btn quiet" style="justify-content:center" data-ar="تنزيل إيصال الاستلام">Download receipt</span>
+    </div>
+  </div></div>
+</section>
+
+<section class="screen" id="v6">
+  <div class="cap"><h2 data-ar="V6 طلب معلومات من الجهة المشترية (الإصدار 1.1)">V6 Information request from the buyer (version 1.1)</h2><span class="ids">F-57 F-24 ADR-0001</span></div>
+  <p class="note" data-ar="المورد يرى السؤال والموعد ويرد بنص ومرفقات. الشاشة تقول بوضوح إن الأسعار لا تتغير عبر هذا الرد.">The vendor sees the question and the deadline and replies with text and attachments. The screen says plainly that prices cannot change through this reply.</p>
+  <div class="frame phone"><div class="app">
+    <div class="bar"><div class="logo">LOGO</div><span class="brand" data-ar="شركة الفيصل للمقاولات">Al-Faisal Contracting</span></div>
+    <div class="body">
+      <span class="hint" data-ar="طلب معلومات 2 · TND-2026-014">Information request 2 · TND-2026-014</span>
+      <h3 data-ar="معامل SEER ومدة الضمان">SEER rating and warranty period</h3>
+      <div class="card"><b data-ar="الرد قبل 26 سبتمبر 2026، 14:00">Reply by 26 Sep 2026, 14:00</b><span class="hint" data-ar="بتوقيت الرياض · باقي يومان">Riyadh time · 2 days left</span></div>
+      <div class="msg" data-ar="1. يرجى تزويدنا بمعامل الأداء SEER لوحدة 24000 من ورقة بيانات المصنّع. 2. الصفحة 12 تذكر ضماناً لسنتين والصفحة 3 ثلاث سنوات؛ يرجى تأكيد المدة.">1. Please provide the SEER rating of the 24,000 unit from the manufacturer datasheet. 2. Page 12 states a two-year warranty and page 3 three years; please confirm the period.</div>
+      <div class="field"><span data-ar="ردكم">Your reply</span><span class="box tall"></span></div>
+      <div class="row"><span class="grow" data-ar="المرفقات">Attachments</span><span class="btn" data-ar="إضافة ملف">Add file</span></div>
+      <div class="list"><div><span class="grow" data-ar="ورقة_بيانات_SEER.pdf">SEER_datasheet.pdf</span><span class="hint" data-ar="تم الرفع">uploaded</span></div></div>
+      <p class="msg" data-ar="هذا الرد يوضّح عرضكم ولا يغيّر الأسعار أو الكميات المقدمة. الظرف المالي يبقى مختوماً.">This reply clarifies your offer and cannot change the prices or quantities submitted. The financial envelope stays sealed.</p>
+      <span class="btn primary" style="justify-content:center" data-ar="إرسال الرد">Send reply</span>
     </div>
   </div></div>
 </section>

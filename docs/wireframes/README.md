@@ -78,6 +78,13 @@ Not in the pilot; designed now so the model is right from the start. Templates p
 ![T9 English](img/t9-en.png)
 ![T9 Arabic](img/t9-ar.png)
 
+### T10 Offer review: internal comments and information requests, version 1.1 (F-57, F-58, F-29)
+
+Committee members comment internally with mentions, convert a comment into a vendor request, and see the request log per offer. Only the contracts officer sends requests; the vendor never sees internal comments; prices cannot change through a reply.
+
+![T10 English](img/t10-en.png)
+![T10 Arabic](img/t10-ar.png)
+
 ## Vendor portal (phone)
 
 ### V1 Invitation landing (F-55, F-02)
@@ -115,9 +122,16 @@ The confirmation states server time and file hashes. Resubmitting before the dea
 ![V5 English](img/v5-en.png)
 ![V5 Arabic](img/v5-ar.png)
 
+### V6 Information request from the buyer, version 1.1 (F-57, F-24, ADR-0001)
+
+The vendor sees the question and deadline, replies with text and attachments over the chunked upload path, and is told plainly that prices cannot change.
+
+![V6 English](img/v6-en.png)
+![V6 Arabic](img/v6-ar.png)
+
 ## Deliberately absent
 
-Custom domain, the workflow editor (T9 is shown for design only), committees beyond the default template, amendments, vendor dashboard, SMS, AI, open tenders with a public listing. All after the pilot (document 05, section 4).
+Custom domain, the workflow editor (T9), vendor information requests and internal comments (T10, V6), all shown for design only; committees beyond the default template, amendments, vendor dashboard, SMS, AI, open tenders with a public listing. All after the pilot (document 05, section 4).
 
 ## Regenerating the images
 

@@ -35,7 +35,7 @@ flowchart LR
         B2[Workflow editor, committees, DoA<br/>F-56b F-08 F-09]:::next
         B3[Amendments F-20,<br/>open tenders F-19b]:::next
         B4[Receipts + vendor dashboard<br/>F-25 F-26]:::next
-        B5[Ranking + cancellation<br/>F-32 F-34]:::next
+        B5[Ranking, cancellation,<br/>vendor requests, comments<br/>F-32 F-34 F-57 F-58]:::next
         B6[Letters + PO export<br/>F-35 F-37]:::next
         B7[SMS + preferences<br/>F-39 F-40]:::next
         B8[AI compliance pre-check<br/>F-45 F-50]:::next
@@ -83,7 +83,7 @@ Also in the MVP because the pilot cannot run without them, though they carry no 
 
 ## 4. Explicitly out of the MVP
 
-Custom domains, SSO, the workflow editor screen (F-56b; the model ships, the pilot uses the seeded default), per-tender committees, delegation of authority limits, amendments, open tenders with a public listing page (F-19b; the pilot is invited-only), receipts with hashes, vendor dashboard, ranking other than lowest price, cancellation, award and regret letters, PO export, SMS, notification preferences, local content fields, the full tenant vendor list with approval states (the address book F-14a is in), templates, public listing, audit export, dashboards, every AI feature, mobile apps, ERP integration, vendor identity across tenants.
+Custom domains, SSO, the workflow editor screen (F-56b; the model ships, the pilot uses the seeded default), per-tender committees, delegation of authority limits, information requests to vendors after submission and internal comment threads (F-57, F-58; during the pilot the officer emails the vendor and the reply is filed by hand), amendments, open tenders with a public listing page (F-19b; the pilot is invited-only), receipts with hashes, vendor dashboard, ranking other than lowest price, cancellation, award and regret letters, PO export, SMS, notification preferences, local content fields, the full tenant vendor list with approval states (the address book F-14a is in), templates, public listing, audit export, dashboards, every AI feature, mobile apps, ERP integration, vendor identity across tenants.
 
 If the pilot customer asks for one of these, the answer is "version 1.1, after your tender closes", unless the tender cannot legally proceed without it.
 
