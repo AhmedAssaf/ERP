@@ -23,7 +23,7 @@ flowchart LR
     subgraph R3["Version 1: full document 02"]
         direction TB
         C1[SSO, vendor identity<br/>across tenants F-10]:::v1
-        C2[Templates, public listing<br/>F-18 F-19]:::v1
+        C2[Templates<br/>F-18]:::v1
         C3[Local content F-13,<br/>vendor list F-14]:::v1
         C4[Audit export, dashboards<br/>F-42 F-43]:::v1
         C5[Remaining AI<br/>F-46 to F-49]:::v1
@@ -33,7 +33,7 @@ flowchart LR
         direction TB
         B1[Custom domain F-03]:::next
         B2[Committees + DoA<br/>F-08 F-09]:::next
-        B3[Amendments F-20]:::next
+        B3[Amendments F-20,<br/>open tenders F-19b]:::next
         B4[Receipts + vendor dashboard<br/>F-25 F-26]:::next
         B5[Ranking + cancellation<br/>F-32 F-34]:::next
         B6[Letters + PO export<br/>F-35 F-37]:::next
@@ -82,7 +82,7 @@ Also in the MVP because the pilot cannot run without them, though they carry no 
 
 ## 4. Explicitly out of the MVP
 
-Custom domains, SSO, per-tender committees, delegation of authority limits, amendments, receipts with hashes, vendor dashboard, ranking other than lowest price, cancellation, award and regret letters, PO export, SMS, notification preferences, local content fields, the full tenant vendor list with approval states (the address book F-14a is in), templates, public listing, audit export, dashboards, every AI feature, mobile apps, ERP integration, vendor identity across tenants.
+Custom domains, SSO, per-tender committees, delegation of authority limits, amendments, open tenders with a public listing page (F-19b; the pilot is invited-only), receipts with hashes, vendor dashboard, ranking other than lowest price, cancellation, award and regret letters, PO export, SMS, notification preferences, local content fields, the full tenant vendor list with approval states (the address book F-14a is in), templates, public listing, audit export, dashboards, every AI feature, mobile apps, ERP integration, vendor identity across tenants.
 
 If the pilot customer asks for one of these, the answer is "version 1.1, after your tender closes", unless the tender cannot legally proceed without it.
 
