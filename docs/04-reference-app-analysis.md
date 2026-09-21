@@ -143,12 +143,12 @@ timeline
 Read it as: the same map as document 01, but only the axis that matters. We attack the empty bottom-left of Reference App's position, not Reference App head-on.
 
 ```mermaid
-flowchart LR
+flowchart TB
     classDef us fill:#1E4E79,color:#fff,stroke:none
     classDef them fill:#E7E6F5,color:#222,stroke:#9B96C9
 
     subgraph Reference App["Reference App's ground (leave it)"]
-        direction TB
+        direction LR
         T1[Full source-to-pay]:::them
         T2[Local content module]:::them
         T3[SAP and Ariba ecosystem]:::them
@@ -157,15 +157,13 @@ flowchart LR
     end
 
     subgraph Ours["Our ground (own it)"]
-        direction TB
+        direction LR
         U1[Formal tendering only:<br/>sealed envelopes, committees, DoA<br/>F-15 to F-34]:::us
         U2[White-label as a setting:<br/>brand, domain, emails, PDFs<br/>F-02, F-03]:::us
         U3[Vendor-first portal:<br/>one account, receipts, reminders<br/>F-10, F-12, F-25, F-26]:::us
         U4[Assist-only AI with audit record<br/>F-45 to F-50]:::us
         U5[Self-serve, monthly price,<br/>live in a day, Saudi region<br/>F-01, N-01]:::us
     end
-
-    Reference App -. "we do not follow" .-> Ours
 ```
 
 **Five plays**
