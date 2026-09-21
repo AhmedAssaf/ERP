@@ -544,4 +544,9 @@ mindmap
       F-48 financial sanity
       F-49 integrity flags
       F-50 AI audit record
+    Platform operations
+      F-51 health board
+      F-52 connections registry
+      F-53 logs and traces
+      F-54 tenants and jobs
 ```

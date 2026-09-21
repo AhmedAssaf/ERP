@@ -120,6 +120,17 @@ This file lists the features that must exist for the product to be sellable to a
 | F-49 | Integrity flags | Near-identical text or identical contact details across offers in the same tender. |
 | F-50 | AI audit record | Every AI output is stored with model name, model version, prompt version, input hash, and the human decision. AI can be turned off per tenant. |
 
+### 2.11 Platform operations console (platform admin only)
+
+Added 2026-09-21. One place for the platform team to see every component, every connection, and the logs, without ever exposing a secret value.
+
+| ID | Feature | Acceptance |
+|---|---|---|
+| F-51 | Component health board | Platform admin sees every component: web host instances, worker, PostgreSQL, Redis, object storage, Keycloak, ClamAV, email provider, SMS provider, AI provider, edge. Each shows status from its health check, version, latency, last check time, and last failure. Reachable only by the platform admin role with MFA, on the platform host, never on a tenant host. |
+| F-52 | Connections and credentials registry | Each external connection lists endpoint, account or username, the secret reference (key name in the KMS or secret store), owner, last rotated date, and a test-connection action. Secret values are never rendered, logged, or returned by any API. Rotation is triggered from the page and executed through the secret store; every view and action is audited. |
+| F-53 | Logs and traces view | Filter recent logs by tenant, correlation id, level, component, and time; open the matching trace; link to Grafana, Loki, and Sentry for deep dives. A 24-hour error summary per component sits at the top. Tenant data in log lines is redacted according to the PDPL rules. |
+| F-54 | Tenants and jobs overview | Per tenant: status, plan, domain and TLS state, user counts, active tenders, storage used, failing background jobs. Actions: suspend or resume tenant, re-issue TLS, re-run or cancel a job. Every action is audited and confirmed in a dialog that names the tenant. |
+
 ## 3. Non-functional requirements
 
 | ID | Requirement | Target |
@@ -133,6 +144,7 @@ This file lists the features that must exist for the product to be sellable to a
 | N-07 | Backups | Daily encrypted backups, 35-day retention, restore tested monthly. |
 | N-08 | Observability | Structured logs, metrics, traces, and alerts on failed notifications and failed submissions. |
 | N-09 | Accessibility | Keyboard navigation and screen reader labels on vendor-facing screens. |
+| N-10 | Secrets handling | No secret value ever appears in a screen, a log line, an API response, or a repository file. Applications receive secrets from the cloud KMS or secret store by reference at start-up; the operations console shows references and rotation dates only. |
 
 ## 4. Tech stack
 

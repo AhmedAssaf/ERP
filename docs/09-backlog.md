@@ -31,6 +31,7 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 | E9 Audit and documents | F-41 to F-44 | 2 | 0 | 2 |
 | E10 AI assist | F-45 to F-50 | 0 | 2 | 4 |
 | E11 Pilot and market | W-13 to W-18 | 6 | 0 | 0 |
+| E12 Platform operations console | F-51 to F-54 | 0 | 3 | 1 |
 
 ## E0 Platform foundation (W-01 to W-12)
 
@@ -231,3 +232,19 @@ Acceptance criteria:
 - **W-13.** Given three interviews, when written up, then each records current tools, last tender's cycle time, what Reference App or others quoted, and whether the vendor would see their brand; the document 01 "things to verify" list is updated.
 - **W-15.** Given a signed pilot agreement, when the tender is named, then the plan in document 05 section 6 gets calendar dates.
 - **W-17.** Given the dry run, when it completes, then every row of the document 05 section 7 table has a measured value and a pass or fail.
+
+## E12 Platform operations console (F-51 to F-54)
+
+Added 2026-09-21 from the request for one admin page covering apps, logs, credentials, and connections. Platform admin only; secrets are shown as references, never values (N-10).
+
+| ID | Story | Pri | Size | Status | Depends on |
+|---|---|---|---|---|---|
+| F-51 | Component health board | P1 | M | Backlog | W-10 |
+| F-52 | Connections and credentials registry with test and rotate | P1 | M | Backlog | F-51, W-11 |
+| F-53 | Logs and traces view with tenant and correlation filters | P1 | M | Backlog | W-10 |
+| F-54 | Tenants and jobs overview with suspend, TLS re-issue, job re-run | P2 | M | Backlog | F-51, F-03, W-08 |
+
+- **F-51.** Given the platform host, when a platform admin with MFA opens the board, then every component in the list shows status, version, latency, and last check within the last 60 seconds; given a tenant admin, when they request the same URL, then they receive 404; given PostgreSQL stopped, then its tile turns to failed within one check interval and the failure text names the component.
+- **F-52.** Given the registry, when any page, API response, or log line is inspected, then no secret value is present, only the reference name; given the test action on the email connection, then the result and latency are shown and audited; given the rotate action, then the secret store receives a new version, the application picks it up without restart, and the last-rotated date updates.
+- **F-53.** Given a correlation id from a failed request, when entered in the filter, then every log line and the trace for that request appear within five seconds; given a log line containing a vendor's email, then the email is redacted in the view.
+- **F-54.** Given a tenant with a failing job, when the admin re-runs it, then the job executes once and the outcome is visible; given suspend, then the tenant's users receive a suspended page in their language and vendors can still read past receipts; every action produces an audit row naming the admin and the tenant.
