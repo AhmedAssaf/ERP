@@ -53,7 +53,7 @@ Still open (see document 02 section 5): PO scope for version 1, vendor identity 
 
 ## Publishing workflow
 
-Documents are mirrored as pages in the user's OneNote desktop notebook, section "ERP". OneNote automation works only from Windows PowerShell 5.1 (`powershell.exe`), not PowerShell 7; the COM `GetHierarchy` call fails under `pwsh`. A page is recreated (delete, then create) when its document changes, because `UpdatePageContent` with a new outline appends rather than replaces. Ask before touching OneNote unless the user has asked for the mirror in the current task.
+Documents are mirrored as pages in the user's OneNote desktop notebook, section "ERP", automatically: a PostToolUse hook in `.claude/settings.local.json` (this machine only) runs `tools/onenote-hook.ps1` after every Bash call, and when the command contained `git push` it launches `tools/mirror-onenote.ps1` detached. The mirror hashes each numbered document plus `docs/wireframes/README.md` and their referenced images, and rebuilds only the pages whose content changed (delete by title, create, fill via `tools/md2onenote.py`; Mermaid blocks are rendered to PNG first). State and log live in `%LOCALAPPDATA%\erp-onenote`. To force a full rebuild: `powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\mirror-onenote.ps1 -Force`. OneNote automation works only from Windows PowerShell 5.1, not PowerShell 7. Do not mirror by hand; push and let the hook run. The user asked for this automation on 2026-09-21.
 
 ## Git
 
