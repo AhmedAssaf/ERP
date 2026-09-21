@@ -89,7 +89,7 @@ Reset everything: `docker compose down -v` then `up -d` again. ClamAV takes up t
 
 ## 6. The agent roster
 
-Four agents live in `.claude/agents/`. They are specialists, not a replacement for judgment; the orchestrating Claude Code session (or you) decides what to hand to whom.
+Six agents live in `.claude/agents/`: four build-time roles and two that answer questions. They are specialists, not a replacement for judgment; the orchestrating Claude Code session (or you) decides what to hand to whom.
 
 | Agent | Does | Never does | Tools |
 |---|---|---|---|
@@ -97,6 +97,8 @@ Four agents live in `.claude/agents/`. They are specialists, not a replacement f
 | `reviewer` | Reads the full changed code and its callers, reports ranked findings against the invariants (isolation, sealed envelopes, locking, audit, deadlines, Arabic parity), runs tests | Edits anything | Read-only plus Bash for tests |
 | `qa-engineer` | Designs and writes tests, runs end-to-end scenarios on the Compose stack, produces pilot evidence | Writes production code, weakens assertions, adds retries | Read, Bash, Write under `tests/` |
 | `devops` | Compose stack, CI, Caddy, Keycloak export, Kubernetes, backups, Saudi-region hosting | Application code | All |
+| `project-manager` | Answers status questions from the backlog, git history, and the plan: done, in progress, blocked, next, open decisions, risks; checks backlog health | Marks anything done without evidence, estimates without a plan | Read-only plus git |
+| `market-analyst` | Competitor and market questions: feature comparison mapped to F-xx, landscape refresh of docs/01 and docs/04 with sources, gap watch on our differentiators, proposed backlog rows | Adds backlog rows itself, states a competitor lacks a feature without a search | Read, web search and fetch, edits docs/01 and docs/04 only |
 
 **The loop for every task:** developer implements, reviewer reviews, developer fixes, qa-engineer covers and runs, human merges. The superpowers subagent-driven-development skill runs exactly this loop when given a plan.
 
@@ -106,6 +108,7 @@ Four agents live in `.claude/agents/`. They are specialists, not a replacement f
 3. qa-engineer runs before a feature ID is marked done, and before every pilot milestone.
 4. devops changes to `infra/` get the same reviewer pass as code.
 5. When an agent reports a conflict with docs/02, the docs win until a human changes them.
+6. "What is the status" goes to project-manager; "what does competitor X have" goes to market-analyst. Both answer from evidence with sources and never change scope.
 
 ## 7. Tracking
 

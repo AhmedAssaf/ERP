@@ -37,7 +37,7 @@ Still open (see document 02 section 5): PO scope for version 1, vendor identity 
 
 ## Working with the agents and process
 
-`docs/07-ways-of-working.md` is the process document. Four agents live in `.claude/agents/`: `developer` (one plan task, test first), `reviewer` (read-only, ranked findings against the invariants), `qa-engineer` (tests and scenarios, writes only under `tests/`), `devops` (`infra/`, CI, Compose). The loop for any implementation task is developer, then reviewer, then qa-engineer, then a human merge. Decisions that change a stack row, a diagram, or an invariant get an ADR in `docs/adr/` using `0000-template.md`.
+`docs/07-ways-of-working.md` is the process document. Six agents live in `.claude/agents/`: `developer` (one plan task, test first), `reviewer` (read-only, ranked findings against the invariants), `qa-engineer` (tests and scenarios, writes only under `tests/`), `devops` (`infra/`, CI, Compose), `project-manager` (status from the backlog and git, read-only), `market-analyst` (competitor questions with sources, updates docs/01 and docs/04 only). Route "what is the status" to project-manager and competitor questions to market-analyst. The loop for any implementation task is developer, then reviewer, then qa-engineer, then a human merge. Decisions that change a stack row, a diagram, or an invariant get an ADR in `docs/adr/` using `0000-template.md`.
 
 ## Conventions
 
