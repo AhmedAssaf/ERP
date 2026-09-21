@@ -2,7 +2,7 @@
 
 Date: 2026-09-21
 Status: proposal, for review before design
-Depends on: `01-idea-competitors-features-ai.md`
+Depends on: `01-idea-competitors-features-ai.md`. Diagrams: `03-diagrams.md`
 
 This file lists the features that must exist for the product to be sellable to a Saudi mid-size private company, then the technology stack to build it with. Feature IDs (F-xx) and non-functional IDs (N-xx) are stable so later design and planning documents can reference them.
 
@@ -136,34 +136,40 @@ This file lists the features that must exist for the product to be sellable to a
 
 ## 4. Tech stack
 
-### 4.1 Recommended stack
+### 4.1 Recommended stack: .NET and Blazor
 
-The choice favours what you already run day to day (Java, Keycloak, API gateways, PlantUML and ADR practice) so that the side business does not also become a new-language learning project.
+Chosen by you: .NET with Blazor. This section fits the rest of the stack around that choice and keeps Keycloak and the gateway, which you already run.
 
 | Layer | Choice | Why |
 |---|---|---|
-| Language and runtime | Java 21 | Your main language. Virtual threads make a single service handle many concurrent uploads and notifications cheaply. |
-| Application framework | Spring Boot 3.x, modular monolith | One deployable with clear module boundaries (tenancy, identity, vendors, tenders, evaluation, awards, notifications, documents, ai, audit). Split into services only when a module proves it needs to scale separately. |
-| Persistence | PostgreSQL 16 | One database, `tenant_id` on every table, row-level security policies so F-05 is enforced in the database. JSONB for tender content and AI outputs. pgvector for AI retrieval over offer chunks. |
-| Migrations | Flyway | Standard in Spring, versioned schema. |
-| Identity | Keycloak 26 | You know it deeply. One realm for the platform. Keycloak Organizations gives one organization per tenant for staff and lets a vendor user belong to many organizations, which is exactly F-10. Tenant SSO (F-06) is an identity provider on the organization. |
-| Authorization | Spring Security with tenant and role checks in code, Open Policy Agent optional later | Start simple. OPA only if per-tenant policy customisation becomes a sales requirement. |
-| API gateway | Apache APISIX | You already use it. Handles per-tenant host routing, TLS termination for custom domains (F-03), rate limiting, and WAF plugins. |
-| Frontend | React 18 with TypeScript, Vite, Ant Design, react-i18next | Ant Design has first-class RTL and Arabic locale support and a proven form and table library, which is most of this product. Two apps sharing one component library: `tenant-app` and `vendor-portal`. |
-| PDF generation | OpenPDF or Thymeleaf to HTML then rendered by a headless Chromium worker | Arabic shaping in PDFs is a known pain. HTML to PDF through Chromium handles Arabic fonts and RTL correctly. |
-| Document storage | S3-compatible object storage (MinIO self-hosted, or the cloud provider's S3 in a Saudi region) | Server-side encryption with per-tender keys for financial envelopes (F-23, F-44). |
-| Document parsing and OCR | Apache Tika for text and tables, Tesseract with Arabic language pack for scanned PDFs | Feeds the AI features and full-text search. |
-| Search | PostgreSQL full-text search with Arabic dictionary | Avoid running Elasticsearch until search becomes a product feature. |
-| Background jobs and messaging | Spring Boot with a Postgres-backed job queue (JobRunr) | Notifications, parsing, AI runs, and scheduled deadline checks without a separate broker. Move to RabbitMQ only if volume demands it. |
-| Cache and locks | Redis | Session data, rate limits, and the distributed lock around deadline closure so only one node closes a tender. |
-| AI | Claude API via the official Java SDK, structured JSON outputs, prompt caching per tender | Strong Arabic and long-document handling. Keep it behind one `OfferReviewProvider` interface so the model or provider can be swapped without touching the domain code. |
-| Email and SMS | Transactional email provider with a Saudi-region or GCC option, Unifonic for SMS | Both have simple APIs and Arabic support. |
-| Virus scanning | ClamAV sidecar | Required before any uploaded file is stored as final. |
-| Containers and deployment | Docker images, Docker Compose for development, Kubernetes (or the cloud provider's managed Kubernetes) for production | Matches your existing container work. |
-| Hosting | A Saudi-region cloud: Oracle Cloud (Jeddah, Riyadh), Google Cloud (Dammam), STC Cloud, or AWS once its Saudi region is available | Pick the one that gives managed PostgreSQL, S3-compatible storage, and Kubernetes in-Kingdom at the best price. Verify at signing time. |
-| Observability | OpenTelemetry, Prometheus, Grafana, Loki, and self-hosted Sentry | You already run Sentry. |
-| CI/CD | GitHub Actions | Repository is already on GitHub. Build, test, scan (Trivy, OWASP dependency check), push image, deploy. |
-| Diagrams and docs | Markdown, Mermaid, PlantUML for detailed design, ADRs in `docs/adr` | Your existing practice. |
+| Language and runtime | C# on .NET 10 (LTS) | Current long-term-support release. One language for backend, UI, workers, and tests. |
+| Web and API framework | ASP.NET Core, modular monolith | One deployable host with module class libraries (Tenancy, Identity, Vendors, Tenders, Evaluation, Awards, Notifications, Documents, Ai, Audit). Minimal APIs for the few endpoints that need to be public (vendor mobile, PO export, webhooks). Split into services only when a module proves it must scale alone. |
+| UI | Blazor Web App, Interactive Server render mode, static server rendering for public pages | Server mode keeps all logic and secrets on the server, gives fast first paint on Saudi mobile networks, and avoids a separate API layer for the UI. Public tender listing pages render statically for search engines. Move the vendor portal to Interactive Auto later if long sessions on weak connections become a support issue. |
+| Component library | MudBlazor | MIT licence, mature data grid and forms, and built-in right-to-left support through its RTL provider, which covers F-04. Radzen Blazor is the fallback if a specific control is missing. |
+| Localisation | .NET resource files with `IStringLocalizer`, culture from the user profile, `dir="rtl"` set per culture | Standard .NET approach, Arabic and English resources side by side. |
+| Persistence | PostgreSQL 16 with Npgsql and EF Core | EF Core global query filters on `TenantId` in code, plus row-level security policies in the database so F-05 holds even if a query bypasses EF. JSONB columns for tender content and AI outputs, pgvector for AI retrieval. |
+| Migrations | EF Core migrations, applied by a one-shot job at deploy time | Versioned schema in the repository. |
+| Identity | Keycloak 26 through the ASP.NET Core OpenID Connect handler | You know Keycloak deeply. One realm, one Keycloak Organization per tenant, vendor users as members of many organizations (F-10), tenant SSO as an identity provider on the organization (F-06). ASP.NET Core Identity with a hosted provider is the alternative if you later want no external identity server. |
+| Authorization | ASP.NET Core policy-based authorization with tenant and role requirements | Policies such as `CanOpenFinancialEnvelope` live in code next to the state machine. Open Policy Agent only if per-tenant custom policy becomes a sales requirement. |
+| API gateway | Apache APISIX (or YARP if you prefer to stay in .NET) | Per-tenant host routing, TLS for custom domains (F-03), rate limiting, WAF plugins. YARP is simpler to operate but has no WAF, so it would need a separate layer. |
+| Workflow | Explicit state machine in code (Stateless library) | Covers F-27 with a readable transition table and guards per role. A workflow engine only if tenants must design their own flows. |
+| Background jobs | Hangfire with PostgreSQL storage | Notifications, parsing, AI runs, PDF rendering, and the scheduled deadline-closure job (with a distributed lock so one node closes a tender). Dashboard included. |
+| Cache and locks | Redis | Blazor circuit state that must survive a node restart, rate-limit counters, and distributed locks. |
+| PDF generation | QuestPDF, with Playwright for .NET (headless Chromium) as fallback | QuestPDF renders Arabic with proper shaping and RTL and is fast. Chromium rendering is the escape hatch for complex layouts. Test Arabic output early either way. |
+| Document storage | S3-compatible object storage (cloud provider's, or MinIO) through the AWS S3 .NET SDK | Server-side encryption, per-tender data keys for financial envelopes wrapped by the cloud KMS (F-23, F-44). |
+| Document parsing and OCR | PdfPig for PDF text, Open XML SDK and ClosedXML for Word and Excel, Tesseract with Arabic language pack for scanned files | Feeds AI features and full-text search. |
+| Search | PostgreSQL full-text search with Arabic dictionary | No Elasticsearch until search is a product feature. |
+| AI | Claude API through Anthropic's .NET SDK behind the `Microsoft.Extensions.AI` abstractions, structured JSON outputs, prompt caching per tender | Strong Arabic and long-document handling. The abstraction layer keeps the model and provider swappable without touching domain code. |
+| Email and SMS | Transactional email provider with a GCC option, Unifonic for SMS | Simple HTTP APIs with Arabic support. |
+| Virus scanning | ClamAV sidecar via nClam | Required before any uploaded file is stored as final. |
+| Validation and mapping | FluentValidation, plain constructors (no AutoMapper) | Keeps rules explicit and testable. |
+| Testing | xUnit, Testcontainers for PostgreSQL and Keycloak, bUnit for Blazor components, Playwright for end-to-end | Real database in tests catches RLS mistakes. |
+| Local development | .NET Aspire app host orchestrating Postgres, Redis, Keycloak, MinIO, ClamAV | One `dotnet run` brings up the whole environment with a dashboard. Docker Compose export for anyone without the .NET SDK. |
+| Containers and deployment | Docker images (`dotnet publish` container support), Kubernetes in production | Matches your existing container work. |
+| Hosting | A Saudi-region cloud: Oracle Cloud (Jeddah, Riyadh), Google Cloud (Dammam), STC Cloud, or AWS once its Saudi region is available | Pick the one with managed PostgreSQL, S3-compatible storage, KMS, and Kubernetes in-Kingdom at the best price. Verify at signing time. |
+| Observability | OpenTelemetry for .NET, Serilog structured logs, Prometheus, Grafana, Loki, self-hosted Sentry | You already run Sentry. |
+| CI/CD | GitHub Actions | Build, test, `dotnet format`, dependency and container scan (Trivy), publish image, deploy. |
+| Diagrams and docs | Markdown, Mermaid, PlantUML for detailed design, ADRs in `docs/adr` | Your existing practice. GitHub renders Mermaid in place. |
 
 ### 4.2 Architecture overview
 
@@ -173,81 +179,87 @@ flowchart TB
         DNS[Tenant custom domains<br/>CNAME to platform] --> GW[APISIX gateway<br/>TLS, host routing, rate limit, WAF]
     end
 
-    GW --> TA[tenant-app<br/>React, RTL]
-    GW --> VP[vendor-portal<br/>React, RTL]
-    GW --> API[Spring Boot modular monolith<br/>REST API]
+    GW --> HOST[ASP.NET Core host<br/>Blazor Server: tenant-app + vendor-portal<br/>Minimal APIs for public endpoints]
     GW --> KC[Keycloak 26<br/>Organizations per tenant]
 
-    TA & VP -. OIDC login .-> KC
-    API -. token validation .-> KC
+    HOST -. OIDC login .-> KC
 
-    subgraph Core["Application modules"]
-        API --> M1[tenancy + branding]
-        API --> M2[vendors]
-        API --> M3[tenders + submissions]
-        API --> M4[evaluation + awards + PO]
-        API --> M5[notifications]
-        API --> M6[documents]
-        API --> M7[ai review]
-        API --> M8[audit log]
+    subgraph Core["Module class libraries"]
+        HOST --> M1[Tenancy + Branding]
+        HOST --> M2[Vendors]
+        HOST --> M3[Tenders + Submissions]
+        HOST --> M4[Evaluation + Awards + PO]
+        HOST --> M5[Notifications]
+        HOST --> M6[Documents]
+        HOST --> M7[Ai]
+        HOST --> M8[Audit]
     end
 
-    Core --> PG[(PostgreSQL 16<br/>RLS by tenant, JSONB, pgvector)]
-    Core --> RD[(Redis<br/>cache, locks)]
+    WRK[Worker host<br/>Hangfire jobs] --> Core
+
+    Core --> PG[(PostgreSQL 16<br/>EF Core + RLS, JSONB, pgvector)]
+    Core --> RD[(Redis<br/>circuit state, locks)]
     M6 --> S3[(S3-compatible storage<br/>encrypted envelopes)]
     M6 --> AV[ClamAV]
-    M6 --> OCR[Tika + Tesseract<br/>parsing workers]
+    M6 --> OCR[PdfPig, Open XML,<br/>Tesseract workers]
     M7 --> LLM[Claude API<br/>structured outputs]
     M5 --> MAIL[Email provider]
     M5 --> SMS[Unifonic SMS]
-    M4 --> PDF[Chromium PDF worker<br/>Arabic-safe rendering]
+    M4 --> PDF[QuestPDF<br/>Arabic-safe rendering]
 
-    Core --> OTEL[OpenTelemetry<br/>Prometheus, Grafana, Loki, Sentry]
+    HOST & WRK --> OTEL[OpenTelemetry<br/>Prometheus, Grafana, Loki, Sentry]
 ```
 
 ### 4.3 Tenancy model
 
-- **Database:** single PostgreSQL instance, shared schema, `tenant_id` column on every tenant-owned table, row-level security policy `tenant_id = current_setting('app.tenant_id')`. The application sets the setting at the start of each request from the validated token. Platform-admin operations use a separate database role that bypasses RLS and is never used by the web request path.
-- **Identity:** one Keycloak realm. Each tenant is a Keycloak Organization with its own domain, branding theme, and optional identity provider. Tenant staff are organization members with roles. Vendor users live in the same realm and are members of every organization that has approved their company, with a `vendor` role. Tokens carry the active organization so the API can set `app.tenant_id`.
-- **Routing:** the gateway maps `Host` to tenant slug and forwards it as a header. The API verifies the header against the token's organization to stop a user on tenant A from calling tenant B's host.
+- **Database:** single PostgreSQL instance, shared schema, `tenant_id` column on every tenant-owned table. Two layers: EF Core global query filters on `TenantId` for everyday safety, and PostgreSQL row-level security policies `tenant_id = current_setting('app.tenant_id')` as the hard boundary. A `DbConnection` interceptor sets the setting at the start of each request or job from the validated token. Platform-admin operations use a separate database role that bypasses RLS and is never used by the web request path.
+- **Identity:** one Keycloak realm. Each tenant is a Keycloak Organization with its own domain, login theme, and optional identity provider. Tenant staff are organization members with roles. Vendor users live in the same realm and are members of every organization that has approved their company, with a `vendor` role. Tokens carry the active organization; the ASP.NET Core authentication pipeline turns it into a `TenantContext` scoped service used by EF Core and authorization policies.
+- **Routing and Blazor circuits:** the gateway maps `Host` to tenant slug and forwards it as a header. Middleware verifies the header against the token's organization before a Blazor circuit is created, so a user on tenant A can never open a circuit against tenant B's host. Each circuit is bound to one tenant for its lifetime.
 - **Storage:** one bucket per environment, object keys prefixed by tenant, with a per-tender data key for financial envelopes held in the database encrypted by a master key in the cloud KMS.
 
 ### 4.4 Alternatives considered
 
 | Option | When it would be better | Why not now |
 |---|---|---|
-| Node.js (NestJS) with Next.js | If a co-founder is a JavaScript developer, or if a single language across frontend and backend matters more than Java depth. | You would be learning the backend framework while building the product. |
-| Quarkus instead of Spring Boot | Lower memory, faster start, same ecosystem Keycloak itself is built on. | Smaller hiring pool and fewer ready-made integrations. Reasonable to revisit if hosting cost becomes the main constraint. |
-| Microservices from day one | Only if separate teams own separate modules. | One person or a small team ships faster with a monolith. The module boundaries above make a later split cheap. |
-| Odoo or ERPNext as the base and customise | Fastest to a demo, includes accounting. | Weak vendor experience, hard to white-label properly, and the customisations become the product with no moat. |
-| Camunda or Temporal for the tender workflow | If tenants need to design their own approval flows visually. | A state machine in code covers F-27 with far less operational weight. Add a workflow engine only when custom flows become a sales requirement. |
+| Java 21 with Spring Boot and React | If the team were Java-first and wanted a separate SPA with its own API. | Two languages and a separate API layer double the surface for a small team. You chose .NET. |
+| Blazor WebAssembly instead of Server | If offline vendor drafting or very high concurrent user counts became requirements. | Larger first download, harder Arabic font handling on the client, secrets and logic exposed to the browser, needs a full API layer. Interactive Auto can be enabled per page later. |
+| Node.js (NestJS) with Next.js | If a co-founder is a JavaScript developer. | Not your stack. |
+| Duende IdentityServer or ASP.NET Core Identity instead of Keycloak | If you want zero external identity components. | Keycloak Organizations already solve multi-tenant membership, and you have deep Keycloak experience. |
+| Microservices from day one | Only if separate teams own separate modules. | A modular monolith ships faster; module boundaries make a later split cheap. |
+| Odoo or ERPNext as the base | Fastest to a demo, includes accounting. | Weak vendor experience, hard to white-label, customisations become the product with no moat. |
+| Elsa or Temporal for the tender workflow | If tenants need to design approval flows visually. | A state machine in code covers F-27 with far less operational weight. |
 
 ### 4.5 Repository layout (proposed)
 
 ```
 ERP/
-  docs/                      idea, features, stack, ADRs, design specs
-  backend/                   Spring Boot modular monolith (Gradle or Maven multi-module)
-    modules/tenancy
-    modules/identity
-    modules/vendors
-    modules/tenders
-    modules/evaluation
-    modules/awards
-    modules/notifications
-    modules/documents
-    modules/ai
-    modules/audit
-    app/                     wiring, configuration, migrations
-  frontend/
-    packages/ui              shared components, theme, i18n
-    apps/tenant-app
-    apps/vendor-portal
+  docs/                              idea, features, stack, diagrams, ADRs, design specs
+  src/
+    Platform.AppHost/                .NET Aspire orchestration for local development
+    Platform.Web/                    ASP.NET Core host: Blazor tenant-app + vendor-portal, minimal APIs
+    Platform.Worker/                 Hangfire worker host: parsing, OCR, PDF, AI, notifications, deadlines
+    Platform.Shared/                 tenant context, auditing, results, common abstractions
+    Modules/
+      Tenancy/                       tenants, branding, domains, approval limits
+      Identity/                      Keycloak integration, roles, committees
+      Vendors/                       vendor companies, users, documents, approvals
+      Tenders/                       tender authoring, versions, clarifications, submissions, envelopes
+      Evaluation/                    state machine, compliance, scoring, comparison, approvals
+      Awards/                        award letters, PO, exports
+      Notifications/                 email, SMS, in-app, preferences
+      Documents/                     storage, scanning, parsing, OCR
+      Ai/                            offer review providers, prompts, audit of AI outputs
+      Audit/                         append-only event log, exports
+    UI/
+      Platform.UI/                   shared MudBlazor components, theme, RTL, localisation resources
+  tests/
+    Platform.UnitTests/
+    Platform.IntegrationTests/       Testcontainers: Postgres, Keycloak, MinIO
+    Platform.UITests/                bUnit + Playwright
   infra/
-    compose/                 local development
-    k8s/                     production manifests or Helm chart
-    keycloak/                realm export, themes
-    apisix/                  routes and plugins
+    k8s/                             production manifests or Helm chart
+    keycloak/                        realm export, themes
+    apisix/                          routes and plugins
   .github/workflows/
 ```
 
@@ -256,5 +268,5 @@ ERP/
 1. **PO scope:** confirm branded PDF plus structured export (F-36, F-37) for version 1, with ERP push as a later paid integration.
 2. **Vendor identity:** confirm one platform-wide vendor account with per-tenant approval (F-10).
 3. **Hosting provider:** pick the Saudi-region provider. Affects managed PostgreSQL, storage, and KMS choices.
-4. **Frontend framework:** confirm React with Ant Design, or state a preference.
+4. **UI stack:** decided 2026-09-21: Blazor Web App (Interactive Server) with MudBlazor. Remaining sub-choice: APISIX or YARP at the edge.
 5. **First customer:** name the company whose workflow becomes the default template.
