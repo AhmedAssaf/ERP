@@ -97,6 +97,8 @@ Built once in `src/UI/Platform.UI`, each as a Razor component with a documented 
 | `EmptyState` | No tenders, no vendors, no offers yet | Says what to do next, with the one button that does it |
 | `AuditList` | Chronological event list with actor, action, time | Used in tender history and the admin log |
 
+Wireframes of the MVP screens built on these tokens are in `docs/wireframes/mvp-wireframes.html`; open the file in a browser and use the language switch to check both directions.
+
 ## 7. Build integration
 
 - The standalone Tailwind CLI (single binary per platform, no Node) runs from an MSBuild target before compile: input `src/UI/Platform.UI/Styles/app.css`, output `wwwroot/app.css`, content globs over `**/*.razor` and `**/*.cs`. The binary is restored by a script into `tools/` and pinned by version.

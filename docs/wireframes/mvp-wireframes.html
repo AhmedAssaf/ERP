@@ -1,0 +1,439 @@
+<title>Tender MVP Wireframes</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --canvas:#F5F7FA; --surface:#FFFFFF; --line:#D9E2EC; --ink:#1F2933; --muted:#52606D;
+    --primary:#1E4E79; --on-primary:#FFFFFF; --sealed:#5B3A8C; --sealed-soft:#EEE8F6;
+    --success:#0F7B4F; --warning:#B45309; --danger:#B42318;
+    --wire:#E4E9EF; --wire-dark:#C5CED9; --frame:#1F2933;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --canvas:#141A21; --surface:#1C242D; --line:#334155; --ink:#E6EBF0; --muted:#9AA8B8;
+      --primary:#7FB1E0; --on-primary:#0B1622; --sealed:#B69BE0; --sealed-soft:#2A2238;
+      --success:#4FCB8B; --warning:#F1A25A; --danger:#F08C84;
+      --wire:#2A3441; --wire-dark:#3B4757; --frame:#0B1017;
+    }
+  }
+  :root[data-theme="dark"]{
+    --canvas:#141A21; --surface:#1C242D; --line:#334155; --ink:#E6EBF0; --muted:#9AA8B8;
+    --primary:#7FB1E0; --on-primary:#0B1622; --sealed:#B69BE0; --sealed-soft:#2A2238;
+    --success:#4FCB8B; --warning:#F1A25A; --danger:#F08C84;
+    --wire:#2A3441; --wire-dark:#3B4757; --frame:#0B1017;
+  }
+  body{background:var(--canvas);color:var(--ink);font-family:"IBM Plex Sans Arabic",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;line-height:1.55;padding-inline:16px;padding-block:0 48px;margin:0}
+  h1,h2,h3{text-wrap:balance;margin:0}
+  .top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--canvas);border-bottom:1px solid var(--line);margin-inline:-16px;padding:12px 16px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+  .top h1{font-size:18px;font-weight:600}
+  .top .sub{color:var(--muted);font-size:13px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .seg button{background:var(--surface);color:var(--ink);border:0;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer}
+  .seg button[aria-pressed="true"]{background:var(--primary);color:var(--on-primary)}
+  .seg button:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+  .toc{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;margin-block:14px 6px}
+  .toc a{color:var(--primary);text-decoration:none;border-bottom:1px solid transparent}
+  .toc a:hover{border-color:var(--primary)}
+  .intro{max-width:70ch;color:var(--muted);font-size:14px;margin-block:8px 24px}
+  section.screen{margin-block:36px}
+  .cap{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;margin-block:0 10px}
+  .cap h2{font-size:17px;font-weight:600}
+  .cap .ids{font-size:12px;color:var(--muted);letter-spacing:.02em}
+  .note{font-size:13px;color:var(--muted);max-width:80ch;margin-block:0 12px}
+  .frame{background:var(--surface);border:2px solid var(--frame);border-radius:10px;overflow:hidden;max-width:1040px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+  .frame.phone{max-width:390px;border-radius:26px;border-width:6px}
+  .frame .app{padding:0}
+  .bar{display:flex;align-items:center;gap:14px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--surface)}
+  .logo{width:34px;height:34px;border-radius:6px;background:var(--wire-dark);flex:none;display:grid;place-items:center;font-size:10px;color:var(--muted)}
+  .brand{font-weight:600}
+  .nav{display:flex;gap:16px;font-size:13px;color:var(--muted);margin-inline-start:auto}
+  .nav b{color:var(--ink)}
+  .body{padding:16px;display:grid;gap:14px}
+  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .grow{flex:1 1 auto}
+  .box{background:var(--wire);border:1px dashed var(--wire-dark);border-radius:6px;min-height:22px;color:var(--muted);font-size:12px;padding:4px 8px}
+  .box.tall{min-height:72px}
+  .btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:6px;padding:6px 12px;font-size:13px;background:var(--surface);color:var(--ink);white-space:nowrap}
+  .btn.primary{background:var(--primary);color:var(--on-primary);border-color:var(--primary);font-weight:500}
+  .btn.quiet{border-color:transparent;color:var(--primary)}
+  .btn.danger{color:var(--danger);border-color:var(--danger)}
+  .badge{display:inline-block;font-size:12px;font-weight:500;border-radius:6px;padding:1px 8px;border:1px solid var(--line);color:var(--muted)}
+  .badge.pub{color:var(--primary);border-color:var(--primary)}
+  .badge.eval{color:var(--warning);border-color:var(--warning)}
+  .badge.seal{color:var(--sealed);border-color:var(--sealed);background:var(--sealed-soft)}
+  .badge.ok{color:var(--success);border-color:var(--success)}
+  .badge.bad{color:var(--danger);border-color:var(--danger)}
+  table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+  th{text-align:start;font-weight:600;color:var(--muted);border-bottom:1px solid var(--line);padding:6px 8px;background:var(--wire)}
+  td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+  td.num,th.num{text-align:end}
+  .tablewrap{overflow-x:auto}
+  .field{display:grid;gap:4px;font-size:12px;color:var(--muted);flex:1 1 180px}
+  .field .box{min-height:32px}
+  .stepper{display:flex;gap:0;border:1px solid var(--line);border-radius:6px;overflow:hidden;font-size:12px}
+  .stepper span{flex:1;padding:6px 8px;text-align:center;color:var(--muted);border-inline-end:1px solid var(--line)}
+  .stepper span:last-child{border:0}
+  .stepper span.on{background:var(--primary);color:var(--on-primary);font-weight:500}
+  .stepper span.done{color:var(--success)}
+  .timeline{display:flex;align-items:center;gap:0;font-size:11px;overflow-x:auto;padding-block:4px}
+  .timeline i{flex:1 0 74px;display:grid;gap:4px;justify-items:center;font-style:normal;color:var(--muted);position:relative}
+  .timeline i::before{content:"";width:12px;height:12px;border-radius:50%;background:var(--wire-dark);border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line)}
+  .timeline i::after{content:"";position:absolute;top:7px;inset-inline-start:50%;width:100%;height:2px;background:var(--line);z-index:-1}
+  .timeline i:last-child::after{display:none}
+  .timeline i.done::before{background:var(--success)}
+  .timeline i.now::before{background:var(--primary);box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 30%,transparent)}
+  .timeline i.now{color:var(--ink);font-weight:600}
+  .timeline i.seal::before{background:var(--sealed)}
+  .tabs{display:flex;gap:18px;border-bottom:1px solid var(--line);font-size:13px;color:var(--muted)}
+  .tabs span{padding-block:6px}
+  .tabs span.on{color:var(--ink);font-weight:600;border-bottom:2px solid var(--primary)}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+  .card{border:1px solid var(--line);border-radius:10px;padding:12px;display:grid;gap:8px;font-size:13px}
+  .card.sealed{border:2px solid var(--sealed);background:var(--sealed-soft)}
+  .card h4{margin:0;font-size:14px;font-weight:600}
+  .lock{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:6px;background:var(--sealed);color:#fff;font-size:12px}
+  .dialog{border:1px solid var(--line);border-radius:10px;padding:14px;background:var(--surface);box-shadow:0 12px 32px rgba(0,0,0,.18);max-width:420px;display:grid;gap:10px;font-size:13px}
+  .dialog h4{margin:0;font-size:15px}
+  .side{display:grid;grid-template-columns:2fr 1fr;gap:14px}
+  @media (max-width:760px){.side{grid-template-columns:1fr}}
+  .list{display:grid;gap:6px;font-size:13px}
+  .list div{display:flex;gap:10px;align-items:baseline;border-bottom:1px solid var(--line);padding-block:5px}
+  .list time{color:var(--muted);font-size:12px;flex:none;width:9ch}
+  .prog{height:8px;border-radius:4px;background:var(--wire);overflow:hidden}
+  .prog b{display:block;height:100%;background:var(--primary);width:64%}
+  .kpi{font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
+  .hint{font-size:12px;color:var(--muted)}
+  .legend{border-top:1px solid var(--line);margin-top:36px;padding-top:16px;font-size:13px;color:var(--muted);max-width:80ch}
+  .legend b{color:var(--ink)}
+  .phone .bar{padding:10px 12px}
+  .phone .body{padding:12px}
+  .phone .nav{display:none}
+  .empty{border:1px dashed var(--wire-dark);border-radius:10px;padding:16px;text-align:center;color:var(--muted);font-size:13px}
+  .msg{background:var(--wire);border-radius:6px;padding:8px 10px;font-size:13px}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="top">
+  <div>
+    <h1 data-ar="مخططات الحد الأدنى للمنتج">Tender MVP Wireframes</h1>
+    <div class="sub" data-ar="12 شاشة، مساحة عمل الجهة المشترية ثم بوابة المورد. الألوان والخطوط من نظام التصميم (وثيقة 08).">12 screens, tenant workspace then vendor portal. Tokens and type from the design system (document 08).</div>
+  </div>
+  <div class="seg" role="group" aria-label="Language">
+    <button id="lang-en" aria-pressed="true">English</button>
+    <button id="lang-ar" aria-pressed="false">العربية</button>
+  </div>
+</div>
+
+<nav class="toc" aria-label="Screens">
+  <a href="#t1" data-ar="T1 المناقصات">T1 Tenders</a>
+  <a href="#t2" data-ar="T2 إنشاء مناقصة">T2 New tender</a>
+  <a href="#t3" data-ar="T3 صفحة المناقصة">T3 Tender page</a>
+  <a href="#t4" data-ar="T4 فحص الامتثال">T4 Compliance</a>
+  <a href="#t5" data-ar="T5 التقييم الفني">T5 Technical scoring</a>
+  <a href="#t6" data-ar="T6 فتح العروض المالية">T6 Financial opening</a>
+  <a href="#t7" data-ar="T7 اعتماد المالية">T7 Finance approval</a>
+  <a href="#t8" data-ar="T8 الترسية وأمر الشراء">T8 Award and PO</a>
+  <a href="#v1" data-ar="V1 الدعوة">V1 Invitation</a>
+  <a href="#v2" data-ar="V2 التسجيل">V2 Registration</a>
+  <a href="#v3" data-ar="V3 عرض المناقصة">V3 Tender view</a>
+  <a href="#v4" data-ar="V4 تقديم العرض">V4 Submission</a>
+  <a href="#v5" data-ar="V5 تم التقديم">V5 Submitted</a>
+</nav>
+<p class="intro" data-ar="مخططات منخفضة الدقة: المربعات الرمادية محتوى، والأزرار والحالات حقيقية. بدّل اللغة لترى الاتجاه من اليمين إلى اليسار. شاشات المورد بعرض الهاتف لأن المورد يقدّم غالباً من هاتفه.">Low-fidelity: grey blocks stand for content, buttons and states are real. Switch the language to see the right-to-left layout. Vendor screens are phone width because vendors mostly submit from a phone.</p>
+
+<!-- ============ TENANT WORKSPACE ============ -->
+<section class="screen" id="t1">
+  <div class="cap"><h2 data-ar="T1 قائمة المناقصات">T1 Tenders list</h2><span class="ids">F-16 F-27 F-14a</span></div>
+  <p class="note" data-ar="أول شاشة يراها موظف العقود. المرحلة تُقرأ من اللون، والصف يقود إلى صفحة المناقصة.">The contracts officer's first screen. Stage reads from the badge colour; a row opens the tender page.</p>
+  <div class="frame"><div class="app">
+    <div class="bar"><div class="logo">LOGO</div><span class="brand" data-ar="شركة الفيصل للمقاولات">Al-Faisal Contracting</span>
+      <div class="nav"><b data-ar="المناقصات">Tenders</b><span data-ar="الموردون">Vendors</span><span data-ar="سجل الأحداث">Audit log</span><span data-ar="الإعدادات">Settings</span><span data-ar="EN">AR</span><span class="box" style="min-width:60px" data-ar="أحمد">Ahmed</span></div></div>
+    <div class="body">
+      <div class="row"><h3 data-ar="المناقصات">Tenders</h3><span class="badge" data-ar="3 مفتوحة">3 open</span><span class="grow"></span><span class="box" style="min-width:200px" data-ar="بحث">Search</span><span class="btn primary" data-ar="مناقصة جديدة">New tender</span></div>
+      <div class="tablewrap"><table>
+        <thead><tr><th data-ar="المرجع">Reference</th><th data-ar="العنوان">Title</th><th data-ar="المرحلة">Stage</th><th data-ar="موعد التقديم">Deadline</th><th class="num" data-ar="المدعوون / المستجيبون">Invited / responded</th><th></th></tr></thead>
+        <tbody>
+          <tr><td>TND-2026-014</td><td data-ar="توريد وتركيب مكيفات، المبنى ب">Supply and install AC units, Building B</td><td><span class="badge pub" data-ar="منشورة">Published</span></td><td>05 Oct 2026 14:00</td><td class="num">8 / 5</td><td><span class="btn quiet" data-ar="فتح">Open</span></td></tr>
+          <tr><td>TND-2026-013</td><td data-ar="أعمال كهربائية، الطابق الثاني">Electrical works, 2nd floor</td><td><span class="badge eval" data-ar="التقييم الفني">Technical evaluation</span></td><td>21 Sep 2026 14:00</td><td class="num">6 / 6</td><td><span class="btn quiet" data-ar="فتح">Open</span></td></tr>
+          <tr><td>TND-2026-012</td><td data-ar="صيانة سنوية للمصاعد">Annual lift maintenance</td><td><span class="badge seal" data-ar="مغلقة: فتح العروض المالية">Sealed: financial opening</span></td><td>14 Sep 2026 14:00</td><td class="num">5 / 4</td><td><span class="btn quiet" data-ar="فتح">Open</span></td></tr>
+          <tr><td>TND-2026-011</td><td data-ar="كابلات نحاسية">Copper cabling</td><td><span class="badge ok" data-ar="تمت الترسية">Awarded</span></td><td>02 Sep 2026 14:00</td><td class="num">4 / 4</td><td><span class="btn quiet" data-ar="فتح">Open</span></td></tr>
+        </tbody></table></div>
+    </div>
+  </div></div>
+</section>
+
+<section class="screen" id="t2">
+  <div class="cap"><h2 data-ar="T2 مناقصة جديدة">T2 New tender</h2><span class="ids">F-15 F-16 F-17 F-14a F-19 F-55</span></div>
+  <p class="note" data-ar="خمس خطوات. الخطوة الأخيرة تختار المدعوين من دفتر الموردين أو تكتب بريداً جديداً، ثم النشر يرسل الدعوات.">Five steps. The last picks invitees from the vendor address book or types a new email; publishing sends the invitations.</p>
+  <div class="frame"><div class="app">
+    <div class="bar"><div class="logo">LOGO</div><span class="brand" data-ar="شركة الفيصل للمقاولات">Al-Faisal Contracting</span><div class="nav"><b data-ar="المناقصات">Tenders</b><span data-ar="الموردون">Vendors</span><span data-ar="سجل الأحداث">Audit log</span></div></div>
+    <div class="body">
+      <div class="row"><h3 data-ar="مناقصة جديدة">New tender</h3><span class="badge" data-ar="مسودة">Draft</span></div>
+      <div class="stepper"><span class="done" data-ar="1 التفاصيل">1 Details</span><span class="done" data-ar="2 جدول الكميات">2 BoQ</span><span class="done" data-ar="3 المعايير والقائمة">3 Criteria and checklist</span><span class="on" data-ar="4 المدعوون">4 Invitees</span><span data-ar="5 المراجعة والنشر">5 Review and publish</span></div>
+      <div class="side">
+        <div style="display:grid;gap:12px">
+          <div class="row"><h4 style="margin:0" data-ar="من دفتر الموردين">From the address book</h4><span class="grow"></span><span class="box" style="min-width:180px" data-ar="بحث بالاسم أو التصنيف">Search name or category</span></div>
+          <div class="tablewrap"><table>
+            <thead><tr><th></th><th data-ar="المورد">Vendor</th><th data-ar="البريد">Email</th><th data-ar="التصنيف">Category</th><th data-ar="مسجّل">Registered</th></tr></thead>
+            <tbody>
+              <tr><td>☑</td><td data-ar="مؤسسة نجد للتجارة والمقاولات">Najd Trading and Contracting</td><td>bids@najd.sa</td><td data-ar="تكييف">HVAC</td><td><span class="badge ok" data-ar="نعم">Yes</span></td></tr>
+              <tr><td>☑</td><td data-ar="شركة الخليج للتبريد">Gulf Cooling Co.</td><td>tenders@gulfcool.sa</td><td data-ar="تكييف">HVAC</td><td><span class="badge" data-ar="لا">No</span></td></tr>
+              <tr><td>☐</td><td data-ar="الرياض للأعمال الكهربائية">Riyadh Electrical Works</td><td>sales@rew.sa</td><td data-ar="كهرباء">Electrical</td><td><span class="badge ok" data-ar="نعم">Yes</span></td></tr>
+            </tbody></table></div>
+          <div class="row"><div class="field grow"><span data-ar="أو أضف بريداً جديداً (يُحفظ في الدفتر)">Or add a new email (saved to the book)</span><span class="box">vendor@company.sa</span></div><span class="btn" data-ar="إضافة">Add</span></div>
+        </div>
+        <div class="card"><h4 data-ar="المدعوون (3)">Invitees (3)</h4>
+          <div class="list"><div><span data-ar="مؤسسة نجد">Najd</span><span class="grow"></span><span class="badge ok" data-ar="مسجّل">registered</span></div><div><span data-ar="الخليج للتبريد">Gulf Cooling</span><span class="grow"></span><span class="badge" data-ar="سيسجّل عبر الرابط">will register via link</span></div><div><span>vendor@company.sa</span><span class="grow"></span><span class="badge" data-ar="جديد">new</span></div></div>
+          <p class="hint" data-ar="الرؤية: بدعوة فقط. كل مدعو يستلم رابطاً لمرة واحدة بهوية شركتكم.">Visibility: invited only. Each invitee gets a single-use link under your brand.</p></div>
+      </div>
+      <div class="row"><span class="btn" data-ar="رجوع">Back</span><span class="grow"></span><span class="btn" data-ar="حفظ المسودة">Save draft</span><span class="btn primary" data-ar="التالي: المراجعة">Next: review</span></div>
+    </div>
+  </div></div>
+</section>
+
+<section class="screen" id="t3">
+  <div class="cap"><h2 data-ar="T3 صفحة المناقصة">T3 Tender page</h2><span class="ids">F-27 F-55 F-21 F-23</span></div>
+  <p class="note" data-ar="الخط الزمني للمراحل هو العنصر الثابت أعلى كل صفحة مناقصة. تبويب المدعوين يُظهر من فتح الرابط ومن سجّل ومن قدّم.">The stage timeline sits at the top of every tender page. The invitees tab shows who opened, registered, and submitted.</p>
+  <div class="frame"><div class="app">
+    <div class="bar"><div class="logo">LOGO</div><span class="brand" data-ar="شركة الفيصل للمقاولات">Al-Faisal Contracting</span><div class="nav"><b data-ar="المناقصات">Tenders</b><span data-ar="الموردون">Vendors</span><span data-ar="سجل الأحداث">Audit log</span></div></div>
+    <div class="body">
+      <div class="row"><div><div class="hint">TND-2026-014</div><h3 data-ar="توريد وتركيب مكيفات، المبنى ب">Supply and install AC units, Building B</h3></div><span class="grow"></span><span class="badge pub" data-ar="منشورة">Published</span><span class="btn" data-ar="الإجابة عن الاستفسارات">Answer questions</span><span class="btn danger" data-ar="إلغاء">Cancel</span></div>
+      <div class="timeline">
+        <i class="done" data-ar="مسودة">Draft</i><i class="now" data-ar="منشورة">Published</i><i data-ar="مغلقة">Closed</i><i data-ar="الامتثال">Compliance</i><i data-ar="التقييم الفني">Technical</i><i class="seal" data-ar="قفل الدرجات">Locked</i><i class="seal" data-ar="فتح المالية">Financial opening</i><i data-ar="اعتماد المالية">Finance approval</i><i data-ar="الترسية">Awarded</i>
+      </div>
+      <div class="row"><span class="kpi">5 / 8</span><span class="hint" data-ar="عروض مقدمة من المدعوين">offers submitted of invited</span><span class="grow"></span><span class="hint" data-ar="يغلق التقديم 05 أكتوبر 2026، 14:00 بتوقيت الرياض">Closes 05 Oct 2026, 14:00 Riyadh</span></div>
+      <div class="tabs"><span data-ar="نظرة عامة">Overview</span><span class="on" data-ar="المدعوون">Invitees</span><span data-ar="الاستفسارات (2)">Clarifications (2)</span><span data-ar="العروض">Offers</span><span data-ar="السجل">History</span></div>
+      <div class="tablewrap"><table>
+        <thead><tr><th data-ar="المورد">Vendor</th><th data-ar="أُرسلت">Sent</th><th data-ar="فُتحت">Opened</th><th data-ar="سجّل">Registered</th><th data-ar="قدّم">Submitted</th><th></th></tr></thead>
+        <tbody>
+          <tr><td data-ar="مؤسسة نجد">Najd</td><td>21 Sep 10:02</td><td>21 Sep 10:40</td><td><span class="badge ok" data-ar="نعم">yes</span></td><td><span class="badge seal" data-ar="مختوم 23 سبتمبر">sealed 23 Sep</span></td><td></td></tr>
+          <tr><td data-ar="الخليج للتبريد">Gulf Cooling</td><td>21 Sep 10:02</td><td>22 Sep 09:15</td><td><span class="badge" data-ar="قيد التسجيل">in progress</span></td><td>—</td><td><span class="btn quiet" data-ar="تذكير">Remind</span></td></tr>
+          <tr><td>vendor@company.sa</td><td>21 Sep 10:02</td><td>—</td><td>—</td><td>—</td><td><span class="btn quiet" data-ar="إعادة الإرسال">Resend</span></td></tr>
+        </tbody></table></div>
+    </div>
+  </div></div>
+</section>
+
+<section class="screen" id="t4">
+  <div class="cap"><h2 data-ar="T4 فحص الامتثال">T4 Compliance screening</h2><span class="ids">F-28 F-23</span></div>
+  <p class="note" data-ar="بعد الإغلاق تُفتح الأظرف الفنية فقط. الظرف المالي يبقى مختوماً بصرياً ووظيفياً.">After close only the technical envelopes open. The financial envelope stays sealed, visibly and functionally.</p>
+  <div class="frame"><div class="app">
+    <div class="bar"><div class="logo">LOGO</div><span class="brand" data-ar="شركة الفيصل للمقاولات">Al-Faisal Contracting</span><div class="nav"><b data-ar="المناقصات">Tenders</b></div></div>
+    <div class="body">
+      <div class="row"><h3 data-ar="فحص الامتثال">Compliance screening</h3><span class="badge eval" data-ar="5 عروض">5 offers</span><span class="grow"></span><span class="badge seal">🔒 <span data-ar="الأظرف المالية مختومة">financial envelopes sealed</span></span></div>
+      <div class="tablewrap"><table>
+        <thead><tr><th data-ar="بند القائمة">Checklist item</th><th data-ar="نجد">Najd</th><th data-ar="الخليج">Gulf</th><th data-ar="الرياض ك.">Riyadh E.</th><th data-ar="سما">Sama</th><th data-ar="البحر">Al-Bahr</th></tr></thead>
+        <tbody>
+          <tr><td data-ar="سجل تجاري ساري">Valid CR</td><td><span class="badge ok" data-ar="ناجح">pass</span></td><td><span class="badge ok" data-ar="ناجح">pass</span></td><td><span class="badge ok" data-ar="ناجح">pass</span></td><td><span class="badge bad" data-ar="فشل">fail</span></td><td><span class="badge ok" data-ar="ناجح">pass</span></td></tr>
+          <tr><td data-ar="شهادة ضريبة القيمة المضافة">VAT certificate</td><td><span class="badge ok" data-ar="ناجح">pass</span></td><td><span class="badge ok" data-ar="ناجح">pass</span></td><td><span class="badge ok" data-ar="ناجح">pass</span></td><td><span class="badge" data-ar="؟">?</span></td><td><span class="badge ok" data-ar="ناجح">pass</span></td></tr>
+          <tr><td data-ar="عرض فني مرفق">Technical response attached</td><td><span class="badge ok" data-ar="ناجح">pass</span></td><td><span class="badge ok" data-ar="ناجح">pass</span></td><td><span class="badge ok" data-ar="ناجح">pass</span></td><td><span class="badge ok" data-ar="ناجح">pass</span></td><td><span class="badge bad" data-ar="فشل">fail</span></td></tr>
+          <tr><td data-ar="النتيجة">Result</td><td><span class="badge ok" data-ar="مؤهل">eligible</span></td><td><span class="badge ok" data-ar="مؤهل">eligible</span></td><td><span class="badge ok" data-ar="مؤهل">eligible</span></td><td><span class="badge bad" data-ar="مستبعد">excluded</span></td><td><span class="badge bad" data-ar="مستبعد">excluded</span></td></tr>
+        </tbody></table></div>
+      <div class="row"><span class="hint" data-ar="المستبعدون يُبلّغون بالبند الذي فشلوا فيه.">Excluded vendors are told which item failed.</span><span class="grow"></span><span class="btn primary" data-ar="تأكيد الفحص وإرسال للتقييم الفني">Confirm screening, send to technical evaluation</span></div>
+    </div>
+  </div></div>
+</section>
+
+<section class="screen" id="t5">
+  <div class="cap"><h2 data-ar="T5 التقييم الفني (المقيّم)">T5 Technical scoring (evaluator)</h2><span class="ids">F-29 F-30 F-17</span></div>
+  <p class="note" data-ar="كل مقيّم يرى درجاته فقط حتى يقدّم الجميع. القفل زر موظف العقود ويظهر بعد اكتمال التقييمات.">Each evaluator sees only their own scores until everyone has submitted. Locking belongs to the officer and appears after all evaluations are in.</p>
+  <div class="frame"><div class="app">
+    <div class="bar"><div class="logo">LOGO</div><span class="brand" data-ar="شركة الفيصل للمقاولات">Al-Faisal Contracting</span><div class="nav"><b data-ar="التقييمات المطلوبة مني">My evaluations</b></div></div>
+    <div class="body">
+      <div class="row"><h3 data-ar="التقييم الفني، TND-2026-014">Technical scoring, TND-2026-014</h3><span class="grow"></span><span class="hint" data-ar="مقيّمون: 2 من 3 قدّموا">Evaluators: 2 of 3 submitted</span></div>
+      <div class="tablewrap"><table>
+        <thead><tr><th data-ar="المعيار (الوزن)">Criterion (weight)</th><th class="num" data-ar="نجد">Najd</th><th class="num" data-ar="الخليج">Gulf</th><th class="num" data-ar="الرياض ك.">Riyadh E.</th></tr></thead>
+        <tbody>
+          <tr><td data-ar="المطابقة للمواصفات (40)">Specification compliance (40)</td><td class="num"><span class="box" style="display:inline-block;width:52px">34</span></td><td class="num"><span class="box" style="display:inline-block;width:52px">30</span></td><td class="num"><span class="box" style="display:inline-block;width:52px"></span></td></tr>
+          <tr><td data-ar="خبرة مشاريع مماثلة (30)">Similar project experience (30)</td><td class="num"><span class="box" style="display:inline-block;width:52px">26</span></td><td class="num"><span class="box" style="display:inline-block;width:52px">22</span></td><td class="num"><span class="box" style="display:inline-block;width:52px"></span></td></tr>
+          <tr><td data-ar="مدة التنفيذ (20)">Delivery period (20)</td><td class="num"><span class="box" style="display:inline-block;width:52px">18</span></td><td class="num"><span class="box" style="display:inline-block;width:52px">14</span></td><td class="num"><span class="box" style="display:inline-block;width:52px"></span></td></tr>
+          <tr><td data-ar="الضمان والصيانة (10)">Warranty and maintenance (10)</td><td class="num"><span class="box" style="display:inline-block;width:52px">8</span></td><td class="num"><span class="box" style="display:inline-block;width:52px">9</span></td><td class="num"><span class="box" style="display:inline-block;width:52px"></span></td></tr>
+          <tr><td><b data-ar="مجموعي (الحد الأدنى 70)">My total (pass mark 70)</b></td><td class="num"><b>86</b></td><td class="num"><b>75</b></td><td class="num">—</td></tr>
+        </tbody></table></div>
+      <div class="row"><span class="hint" data-ar="درجات الزملاء مخفية حتى يقدّم الجميع.">Colleagues' scores stay hidden until all have submitted.</span><span class="grow"></span><span class="btn" data-ar="حفظ كمسودة">Save draft</span><span class="btn primary" data-ar="تقديم درجاتي">Submit my scores</span></div>
+      <div class="dialog"><h4 data-ar="قفل الدرجات الفنية؟">Lock technical scores?</h4><p style="margin:0" data-ar="بعد القفل لا يمكن تغيير أي درجة، ويصبح فتح الأظرف المالية ممكناً. المتوسط الموزون: نجد 84، الخليج 73، الرياض 69 (أقل من 70، يُستبعد من الترتيب المالي).">After locking, no score can change and the financial envelopes can be opened. Weighted averages: Najd 84, Gulf 73, Riyadh 69 (below 70, excluded from financial ranking).</p><div class="row"><span class="grow"></span><span class="btn" data-ar="إلغاء">Cancel</span><span class="btn primary" style="background:var(--sealed);border-color:var(--sealed)" data-ar="قفل الدرجات">Lock scores</span></div></div>
+    </div>
+  </div></div>
+</section>
+
+<section class="screen" id="t6">
+  <div class="cap"><h2 data-ar="T6 فتح العروض المالية وورقة المقارنة">T6 Financial opening and comparison sheet</h2><span class="ids">F-23 F-30 F-31</span></div>
+  <p class="note" data-ar="اللحظة الوحيدة التي تُستخدم فيها حركة في المنتج: الظرف يُفتح بحضور مسجّل. ثم تُبنى ورقة المقارنة تلقائياً.">The one deliberate motion in the product: the envelope opens with the names present recorded. The comparison sheet is then built automatically.</p>
+  <div class="frame"><div class="app">
+    <div class="bar"><div class="logo">LOGO</div><span class="brand" data-ar="شركة الفيصل للمقاولات">Al-Faisal Contracting</span><div class="nav"><b data-ar="المناقصات">Tenders</b></div></div>
+    <div class="body">
+      <div class="row"><h3 data-ar="الأظرف المالية">Financial envelopes</h3><span class="badge seal">🔒 <span data-ar="الدرجات الفنية مقفلة 24 سبتمبر 11:20">technical scores locked 24 Sep 11:20</span></span></div>
+      <div class="cards">
+        <div class="card sealed"><div class="row"><span class="lock">🔒</span><h4 data-ar="مؤسسة نجد">Najd</h4></div><span class="hint" data-ar="مختوم منذ 23 سبتمبر 16:41">Sealed since 23 Sep 16:41</span><span class="hint">SHA-256 f1e6…5d00</span></div>
+        <div class="card sealed"><div class="row"><span class="lock">🔒</span><h4 data-ar="الخليج للتبريد">Gulf Cooling</h4></div><span class="hint" data-ar="مختوم منذ 24 سبتمبر 09:03">Sealed since 24 Sep 09:03</span><span class="hint">SHA-256 9a21…c77e</span></div>
+        <div class="card"><div class="row"><h4 data-ar="الرياض للأعمال الكهربائية">Riyadh Electrical</h4></div><span class="badge bad" data-ar="أقل من الحد الأدنى الفني، لا يُفتح">Below technical pass mark, not opened</span></div>
+      </div>
+      <div class="dialog"><h4 data-ar="فتح الأظرف المالية">Open financial envelopes</h4><p style="margin:0" data-ar="يُسجَّل هذا الإجراء في سجل الأحداث باسمك ومن حضر. لا يمكن التراجع عنه.">This action is written to the audit log with your name and those present. It cannot be undone.</p><div class="field"><span data-ar="الحاضرون">Present</span><span class="box" data-ar="أحمد (العقود)، سارة (المالية)">Ahmed (Contracts), Sara (Finance)</span></div><div class="row"><span class="grow"></span><span class="btn" data-ar="إلغاء">Cancel</span><span class="btn primary" style="background:var(--sealed);border-color:var(--sealed)" data-ar="فتح الأظرف">Open envelopes</span></div></div>
+      <h4 style="margin:0" data-ar="ورقة المقارنة (بعد الفتح)">Comparison sheet (after opening)</h4>
+      <div class="tablewrap"><table>
+        <thead><tr><th data-ar="البند">Line</th><th class="num" data-ar="الكمية">Qty</th><th class="num" data-ar="نجد">Najd</th><th class="num" data-ar="الخليج">Gulf</th></tr></thead>
+        <tbody>
+          <tr><td data-ar="مكيف سبليت 24000 وحدة">Split AC 24,000 BTU</td><td class="num">12</td><td class="num">3,450.00</td><td class="num">3,300.00</td></tr>
+          <tr><td data-ar="أعمال كهربائية">Electrical works</td><td class="num">1</td><td class="num">48,500.00</td><td class="num">51,000.00</td></tr>
+          <tr><td data-ar="كابل نحاسي 4×16">Copper cable 4x16</td><td class="num">850</td><td class="num">42.75</td><td class="num">44.10</td></tr>
+          <tr><td><b data-ar="الإجمالي شامل الضريبة">Total incl. VAT</b></td><td></td><td class="num"><b>167,713.12</b></td><td class="num"><b>171,395.75</b> <span class="badge bad" data-ar="خطأ حسابي">arithmetic error</span></td></tr>
+        </tbody></table></div>
+      <div class="row"><span class="btn" data-ar="تصدير إلى Excel">Export to Excel</span><span class="grow"></span><span class="btn primary" data-ar="إرسال التوصية إلى المالية">Send recommendation to finance</span></div>
+    </div>
+  </div></div>
+</section>
+
+<section class="screen" id="t7">
+  <div class="cap"><h2 data-ar="T7 اعتماد المالية">T7 Finance approval</h2><span class="ids">F-33</span></div>
+  <p class="note" data-ar="شاشة واحدة للمعتمد: التوصية، الترتيب، والقرار. الإعادة تتطلب سبباً.">One screen for the approver: recommendation, ranking, and the decision. A return needs a reason.</p>
+  <div class="frame"><div class="app">
+    <div class="bar"><div class="logo">LOGO</div><span class="brand" data-ar="شركة الفيصل للمقاولات">Al-Faisal Contracting</span><div class="nav"><b data-ar="بانتظار اعتمادي">Awaiting my approval</b></div></div>
+    <div class="body">
+      <div class="side">
+        <div style="display:grid;gap:12px">
+          <h3 data-ar="توصية الترسية، TND-2026-014">Award recommendation, TND-2026-014</h3>
+          <div class="card"><h4 data-ar="الموصى به: مؤسسة نجد للتجارة والمقاولات">Recommended: Najd Trading and Contracting</h4><div class="row"><span class="kpi">167,713.12</span><span class="hint" data-ar="ر.س شامل الضريبة، أقل عرض مؤهل">SAR incl. VAT, lowest compliant offer</span></div><div class="hint" data-ar="فني 84 / 100 · مؤهل في الامتثال · 3 عروض مقارنة">Technical 84 / 100 · compliant · 3 offers compared</div></div>
+          <div class="tablewrap"><table><thead><tr><th>#</th><th data-ar="المورد">Vendor</th><th class="num" data-ar="فني">Technical</th><th class="num" data-ar="الإجمالي">Total</th></tr></thead><tbody>
+            <tr><td>1</td><td data-ar="نجد">Najd</td><td class="num">84</td><td class="num">167,713.12</td></tr>
+            <tr><td>2</td><td data-ar="الخليج">Gulf</td><td class="num">73</td><td class="num">171,395.75</td></tr>
+            <tr><td>—</td><td data-ar="الرياض ك.">Riyadh E.</td><td class="num">69</td><td class="num" data-ar="لم يُفتح">not opened</td></tr></tbody></table></div>
+        </div>
+        <div class="dialog" style="max-width:none"><h4 data-ar="قرارك">Your decision</h4><div class="field"><span data-ar="رمز الميزانية">Budget code</span><span class="box">CAPEX-2026-HVAC</span></div><div class="field"><span data-ar="ملاحظة (إلزامية عند الإعادة)">Note (required on return)</span><span class="box tall"></span></div><div class="row"><span class="btn" data-ar="إعادة مع سبب">Return with reason</span><span class="grow"></span><span class="btn primary" data-ar="اعتماد الترسية">Approve award</span></div></div>
+      </div>
+    </div>
+  </div></div>
+</section>
+
+<section class="screen" id="t8">
+  <div class="cap"><h2 data-ar="T8 الترسية وأمر الشراء">T8 Award and PO</h2><span class="ids">F-36 F-41</span></div>
+  <p class="note" data-ar="أمر الشراء يُولَّد من العرض الفائز بهوية الجهة، ويُحفظ مع المناقصة. سجل الأحداث بجانبه.">The PO is generated from the winning offer under the tenant's brand and stored with the tender. The audit list sits beside it.</p>
+  <div class="frame"><div class="app">
+    <div class="bar"><div class="logo">LOGO</div><span class="brand" data-ar="شركة الفيصل للمقاولات">Al-Faisal Contracting</span><div class="nav"><b data-ar="المناقصات">Tenders</b></div></div>
+    <div class="body">
+      <div class="row"><h3 data-ar="تمت الترسية على مؤسسة نجد">Awarded to Najd</h3><span class="badge ok" data-ar="تمت الترسية">Awarded</span><span class="grow"></span><span class="btn" data-ar="إشعار الموردين">Notify vendors</span><span class="btn primary" data-ar="إصدار أمر الشراء PO-2026-000187">Issue PO PO-2026-000187</span></div>
+      <div class="side">
+        <div class="card" style="min-height:260px"><h4 data-ar="معاينة أمر الشراء (PDF)">PO preview (PDF)</h4><div class="box tall" data-ar="ترويسة الجهة، المورد، البنود الفائزة، الضريبة 15%، شروط الدفع، التوقيعات">Tenant header, vendor, winning lines, VAT 15%, payment terms, signatures</div><div class="row"><span class="hint" data-ar="عربي وإنجليزي، خط IBM Plex Sans Arabic">Arabic and English, IBM Plex Sans Arabic</span></div></div>
+        <div class="card"><h4 data-ar="سجل الأحداث">History</h4><div class="list">
+          <div><time>25 Sep 13:10</time><span data-ar="سارة اعتمدت الترسية">Sara approved the award</span></div>
+          <div><time>24 Sep 11:45</time><span data-ar="أحمد فتح الأظرف المالية بحضور سارة">Ahmed opened financial envelopes, Sara present</span></div>
+          <div><time>24 Sep 11:20</time><span data-ar="أحمد قفل الدرجات الفنية">Ahmed locked technical scores</span></div>
+          <div><time>23 Sep 16:41</time><span data-ar="نجد قدّمت عرضاً مختوماً">Najd submitted a sealed offer</span></div>
+          <div><time>21 Sep 10:02</time><span data-ar="أحمد نشر المناقصة ودعا 8 موردين">Ahmed published and invited 8 vendors</span></div>
+        </div></div>
+      </div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ============ VENDOR PORTAL (PHONE) ============ -->
+<section class="screen" id="v1">
+  <div class="cap"><h2 data-ar="V1 الدعوة">V1 Invitation landing</h2><span class="ids">F-55 F-02</span></div>
+  <p class="note" data-ar="ما يراه المورد بعد الضغط على رابط البريد: هوية الجهة المشترية، لا هويتنا. مسجّل يدخل، جديد يسجّل بالبريد نفسه.">What the vendor sees after tapping the email link: the buyer's brand, not ours. A registered vendor signs in, a new one registers with the same email.</p>
+  <div class="frame phone"><div class="app">
+    <div class="bar"><div class="logo">LOGO</div><span class="brand" data-ar="شركة الفيصل للمقاولات">Al-Faisal Contracting</span></div>
+    <div class="body">
+      <span class="hint" data-ar="دعوة للمشاركة في مناقصة">Invitation to a tender</span>
+      <h3 data-ar="توريد وتركيب مكيفات، المبنى ب">Supply and install AC units, Building B</h3>
+      <div class="hint">TND-2026-014</div>
+      <div class="card"><div class="row"><span class="hint" data-ar="آخر موعد للتقديم">Submission deadline</span></div><b>05 Oct 2026, 14:00</b><span class="hint" data-ar="بتوقيت الرياض · باقي 14 يوماً">Riyadh time · 14 days left</span></div>
+      <p class="msg" data-ar="هذه الدعوة موجهة إلى tenders@gulfcool.sa ولا تعمل مع بريد آخر.">This invitation is for tenders@gulfcool.sa and does not work with another email.</p>
+      <span class="btn primary" style="justify-content:center" data-ar="التسجيل وعرض المناقصة">Register and view the tender</span>
+      <span class="btn" style="justify-content:center" data-ar="لدي حساب، تسجيل الدخول">I have an account, sign in</span>
+      <span class="hint" style="text-align:center" data-ar="AR | EN">EN | AR</span>
+    </div>
+  </div></div>
+</section>
+
+<section class="screen" id="v2">
+  <div class="cap"><h2 data-ar="V2 التسجيل">V2 Registration</h2><span class="ids">F-11 F-12 F-55</span></div>
+  <p class="note" data-ar="خطوتان فقط في الحد الأدنى: بيانات الشركة، ثم وثيقتان بتاريخ انتهاء. يُحفظ التقدم ويمكن الرجوع من الرابط نفسه.">Two steps in the MVP: company details, then two documents with expiry dates. Progress is saved and resumes from the same link.</p>
+  <div class="frame phone"><div class="app">
+    <div class="bar"><div class="logo">LOGO</div><span class="brand" data-ar="شركة الفيصل للمقاولات">Al-Faisal Contracting</span></div>
+    <div class="body">
+      <div class="stepper"><span class="on" data-ar="1 الشركة">1 Company</span><span data-ar="2 الوثائق">2 Documents</span></div>
+      <div class="field"><span data-ar="اسم الشركة بالعربية">Company name in Arabic</span><span class="box"></span></div>
+      <div class="field"><span data-ar="اسم الشركة بالإنجليزية">Company name in English</span><span class="box"></span></div>
+      <div class="row"><div class="field"><span data-ar="رقم السجل التجاري">CR number</span><span class="box">10 <span data-ar="أرقام">digits</span></span></div><div class="field"><span data-ar="الرقم الضريبي">VAT number</span><span class="box">15 <span data-ar="رقماً">digits</span></span></div></div>
+      <div class="field"><span data-ar="البريد (من الدعوة)">Email (from the invitation)</span><span class="box">tenders@gulfcool.sa</span></div>
+      <div class="field"><span data-ar="اسم جهة الاتصال والجوال">Contact name and mobile</span><span class="box"></span></div>
+      <div class="field"><span data-ar="كلمة المرور">Password</span><span class="box"></span></div>
+      <span class="btn primary" style="justify-content:center" data-ar="التالي: الوثائق">Next: documents</span>
+      <div class="card"><h4 data-ar="الخطوة 2 (معاينة)">Step 2 (preview)</h4><div class="row"><span class="grow" data-ar="السجل التجاري">CR certificate</span><span class="btn" data-ar="رفع">Upload</span></div><div class="field"><span data-ar="تاريخ الانتهاء">Expiry date</span><span class="box"></span></div><div class="row"><span class="grow" data-ar="شهادة ضريبة القيمة المضافة">VAT certificate</span><span class="btn" data-ar="رفع">Upload</span></div><span class="hint" data-ar="وثيقة منتهية تمنع التقديم.">An expired document blocks submission.</span></div>
+    </div>
+  </div></div>
+</section>
+
+<section class="screen" id="v3">
+  <div class="cap"><h2 data-ar="V3 عرض المناقصة">V3 Tender view</h2><span class="ids">F-16 F-21 F-24</span></div>
+  <p class="note" data-ar="الموعد أولاً، ثم الوثائق، ثم الاستفسارات، ثم زر البدء.">Deadline first, then documents, then clarifications, then the start button.</p>
+  <div class="frame phone"><div class="app">
+    <div class="bar"><div class="logo">LOGO</div><span class="brand" data-ar="شركة الفيصل للمقاولات">Al-Faisal Contracting</span></div>
+    <div class="body">
+      <div class="hint">TND-2026-014</div>
+      <h3 data-ar="توريد وتركيب مكيفات، المبنى ب">Supply and install AC units, Building B</h3>
+      <div class="card"><b data-ar="يغلق التقديم خلال 14 يوماً">Closes in 14 days</b><span class="hint">05 Oct 2026, 14:00 Riyadh</span><span class="hint" data-ar="آخر موعد للاستفسارات: 28 سبتمبر">Clarifications until 28 Sep</span></div>
+      <h4 style="margin:0" data-ar="الوثائق">Documents</h4>
+      <div class="list"><div><span class="grow" data-ar="نطاق العمل.pdf">Scope of work.pdf</span><span class="btn quiet" data-ar="تنزيل">Download</span></div><div><span class="grow" data-ar="الشروط والأحكام.pdf">Terms.pdf</span><span class="btn quiet" data-ar="تنزيل">Download</span></div><div><span class="grow" data-ar="جدول الكميات (3 بنود)">BoQ (3 lines)</span><span class="btn quiet" data-ar="عرض">View</span></div></div>
+      <h4 style="margin:0" data-ar="الاستفسارات (2)">Clarifications (2)</h4>
+      <div class="msg"><b data-ar="س: هل يشمل التوريد التركيب؟">Q: Does supply include installation?</b><br><span data-ar="ج: نعم، حسب البند 3.2 من نطاق العمل.">A: Yes, per clause 3.2 of the scope.</span></div>
+      <div class="row"><span class="box grow" data-ar="اكتب سؤالك">Write a question</span><span class="btn" data-ar="إرسال">Send</span></div>
+      <span class="btn primary" style="justify-content:center" data-ar="بدء تقديم العرض">Start submission</span>
+    </div>
+  </div></div>
+</section>
+
+<section class="screen" id="v4">
+  <div class="cap"><h2 data-ar="V4 تقديم العرض">V4 Submission wizard</h2><span class="ids">F-22 F-23 F-24 ADR-0001</span></div>
+  <p class="note" data-ar="خمس خطوات على الهاتف. الرفع مجزأ ويستمر حتى مع انقطاع الاتصال. الظرف المالي يظهر بلون الختم ليعرف المورد أنه لن يُقرأ قبل الفتح.">Five steps on a phone. Uploads are chunked and survive a dropped connection. The financial envelope carries the sealed colour so the vendor knows it stays unread until the opening.</p>
+  <div class="frame phone"><div class="app">
+    <div class="bar"><div class="logo">LOGO</div><span class="brand" data-ar="شركة الفيصل للمقاولات">Al-Faisal Contracting</span></div>
+    <div class="body">
+      <div class="stepper"><span class="done" data-ar="1">1</span><span class="done" data-ar="2">2</span><span class="on" data-ar="3">3</span><span data-ar="4">4</span><span data-ar="5">5</span></div>
+      <div class="hint" data-ar="1 الوثائق ✓ · 2 العرض الفني ✓ · 3 الأسعار · 4 الظرف المالي · 5 المراجعة">1 Documents ✓ · 2 Technical ✓ · 3 Prices · 4 Financial envelope · 5 Review</div>
+      <h3 data-ar="3 أسعار البنود">3 Line prices</h3>
+      <div class="card"><b data-ar="مكيف سبليت 24000 وحدة">Split AC 24,000 BTU</b><span class="hint" data-ar="الكمية 12 · الوحدة: وحدة">Qty 12 · unit: each</span><div class="field"><span data-ar="سعر الوحدة (ر.س)">Unit price (SAR)</span><span class="box">3,450.00</span></div><span class="hint" data-ar="الإجمالي 41,400.00">Line total 41,400.00</span></div>
+      <div class="card"><b data-ar="أعمال كهربائية">Electrical works</b><span class="hint" data-ar="الكمية 1 · مقطوعية">Qty 1 · lump sum</span><div class="field"><span data-ar="سعر الوحدة (ر.س)">Unit price (SAR)</span><span class="box"></span></div></div>
+      <div class="card sealed"><div class="row"><span class="lock">🔒</span><b data-ar="الخطوة 4: الظرف المالي (معاينة)">Step 4: financial envelope (preview)</b></div><span class="hint" data-ar="عرض_السعر.pdf · 38 ميجابايت">Price_offer.pdf · 38 MB</span><div class="prog"><b></b></div><span class="hint" data-ar="64% · يستأنف تلقائياً إذا انقطع الاتصال">64% · resumes automatically if the connection drops</span></div>
+      <div class="row"><span class="btn" data-ar="رجوع">Back</span><span class="grow"></span><span class="btn" data-ar="حفظ">Save</span><span class="btn primary" data-ar="التالي">Next</span></div>
+    </div>
+  </div></div>
+</section>
+
+<section class="screen" id="v5">
+  <div class="cap"><h2 data-ar="V5 تم التقديم">V5 Submitted</h2><span class="ids">F-24 F-25 F-41</span></div>
+  <p class="note" data-ar="التأكيد يذكر الوقت بتوقيت الخادم وبصمة الملفات. يمكن إعادة التقديم قبل الموعد ويحل العرض الجديد محل القديم.">The confirmation states server time and the file hashes. Resubmitting before the deadline replaces the earlier offer.</p>
+  <div class="frame phone"><div class="app">
+    <div class="bar"><div class="logo">LOGO</div><span class="brand" data-ar="شركة الفيصل للمقاولات">Al-Faisal Contracting</span></div>
+    <div class="body">
+      <div class="card sealed" style="text-align:center"><span class="lock" style="margin:auto;width:40px;height:40px;font-size:18px">🔒</span><h3 data-ar="تم استلام عرضكم مختوماً">Your offer is received and sealed</h3><span class="hint" data-ar="23 سبتمبر 2026، 16:41 بتوقيت الرياض">23 Sep 2026, 16:41 Riyadh time</span></div>
+      <div class="list"><div><span class="grow" data-ar="العرض الفني.pdf">Technical.pdf</span><span class="hint">a3c9…1f02</span></div><div><span class="grow" data-ar="عرض_السعر.pdf">Price_offer.pdf</span><span class="hint">f1e6…5d00</span></div><div><span class="grow" data-ar="أسعار البنود (3)">Line prices (3)</span><span class="hint" data-ar="مختومة">sealed</span></div></div>
+      <p class="msg" data-ar="لن يُقرأ الظرف المالي قبل فتح الأظرف بعد إغلاق المناقصة وقفل التقييم الفني.">The financial envelope is not read until the opening event, after close and after technical scores are locked.</p>
+      <span class="btn" style="justify-content:center" data-ar="تعديل وإعادة التقديم قبل 05 أكتوبر 14:00">Edit and resubmit before 05 Oct 14:00</span>
+      <span class="btn quiet" style="justify-content:center" data-ar="تنزيل إيصال الاستلام">Download receipt</span>
+    </div>
+  </div></div>
+</section>
+
+<div class="legend">
+  <p><b data-ar="مفتاح المكونات (وثيقة 08، القسم 6):">Component key (document 08, section 6):</b> <span data-ar="شريط التطبيق، الأزرار، الحقول، الخطوات، الخط الزمني للمراحل، الظرف المختوم، الشارات، الحوارات، القوائم، جدول البيانات. اللون البنفسجي محجوز للمختوم والمقفل فقط.">AppShell, Button, fields, Stepper, StageTimeline, SealedEnvelope, StatusBadge, Dialog, AuditList, DataTable. Purple is reserved for sealed and locked states only.</span></p>
+  <p data-ar="ما ليس هنا عمداً: النطاق المخصص، اللجان، التعديلات، لوحة المورد، الرسائل النصية، الذكاء الاصطناعي. كلها بعد التجربة (وثيقة 05، القسم 4).">Deliberately absent: custom domain, committees, amendments, vendor dashboard, SMS, AI. All after the pilot (document 05, section 4).</p>
+</div>
+
+<script>
+(function(){
+  var en = document.getElementById('lang-en'), ar = document.getElementById('lang-ar');
+  var nodes = Array.prototype.slice.call(document.querySelectorAll('[data-ar]'));
+  nodes.forEach(function(n){ n.setAttribute('data-en', n.textContent); });
+  function set(lang){
+    var isAr = lang === 'ar';
+    nodes.forEach(function(n){ n.textContent = n.getAttribute(isAr ? 'data-ar' : 'data-en'); });
+    document.documentElement.setAttribute('dir', isAr ? 'rtl' : 'ltr');
+    document.documentElement.setAttribute('lang', isAr ? 'ar' : 'en');
+    en.setAttribute('aria-pressed', String(!isAr)); ar.setAttribute('aria-pressed', String(isAr));
+    try { localStorage.setItem('wire-lang', lang); } catch (e) {}
+  }
+  en.addEventListener('click', function(){ set('en'); });
+  ar.addEventListener('click', function(){ set('ar'); });
+  var saved = null; try { saved = localStorage.getItem('wire-lang'); } catch (e) {}
+  if (saved === 'ar') set('ar');
+})();
+</script>
