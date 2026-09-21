@@ -71,7 +71,7 @@ quadrantChart
 
 | Group | Player | What they do | Why they win | Where they are weak for our segment |
 |---|---|---|---|---|
-| Saudi-native direct | **Reference App** (Riyadh, 2020) | Cloud source-to-pay: sourcing, RFQ, approvals, PO, Reference App Souq marketplace, Local Content tracker. KPMG distribution partner, NHC sector platform. | Local, credible, funded, understands Saudi compliance and local content. | Moved upmarket to enterprise and consultancies. Pricing and onboarding are enterprise-shaped. No white-label story for the buyer's brand. |
+| Saudi-native direct | **Reference App** (Riyadh, 2020) | Cloud source-to-pay: sourcing, RFQ, approvals, PO, Reference App Souq marketplace, Local Content tracker. KPMG distribution partner, NHC sector platform. | Local, credible, funded, understands Saudi compliance and local content. | Moved upmarket to enterprise and consultancies. Pricing and onboarding are enterprise-shaped (from 50,000 USD with an implementation manager). Lists sealed bids, scoring privacy mode, and white-labeling as plan features since late 2025, but gates the commercial section by permission rather than encryption, allows post-submission price revisions, and states no hosting region (document 04, sweep of 2026-09-21). |
 | Global suites | SAP Ariba, Coupa, Jaggaer, Ivalua, GEP | Full spend management, supplier networks, contracts, invoicing. | Brand safety for large companies and government-linked entities. | Cost, implementation time, need a partner, English-first, overkill for 300 staff. |
 | ERP add-ons | Odoo Purchase + tender modules, Dynamics 365 vendor portal, SAP Business One add-ons | RFQ comparison inside the ERP, basic vendor bid portals. | Already installed, cheap, single system. | Buyer-side thinking, poor vendor UX, weak or no branding, no evaluation chain with separate roles, weak audit trail. |
 | Adjacent, not direct | Etimad | Government tendering portal. | Mandatory for government. | Private companies cannot use it for their own tenders. Sets user expectations though. |
@@ -107,8 +107,8 @@ Things to verify before building:
 
 | Differentiator | Why it matters in Saudi mid-market |
 |---|---|
-| **True white-label** including custom domain and branded vendor emails | Companies want vendors to see *their* brand, not a SaaS logo. Reference App and Odoo do not lead with this. |
-| **Sealed two-envelope submission enforced by software** | Mirrors how Saudi contracts departments already work on paper. Removes the "who saw the price first" argument. |
+| **True white-label** as a tenant setting: custom domain with automatic TLS, branded vendor emails and PDFs, on a monthly plan | Companies want vendors to see *their* brand, not a SaaS logo. Reference App lists white-labeling only inside an enterprise contract from 50,000 USD; Odoo does not offer it. |
+| **Sealed two-envelope submission enforced by cryptography, state machine, and audit** | Mirrors how Saudi contracts departments already work on paper. Reference App hides the commercial section by application permission until technical evaluation ends; we encrypt it with a separate key, require score locking first, and open it at a witnessed, logged event that even the platform admin cannot bypass. Prices are immutable after the deadline, where Reference App allows revision requests. |
 | **Local Content (Iktva-style) and Saudization fields on the vendor profile** | Large customers of our customers increasingly ask for this in their supply chain. Cheap to add, expensive for competitors to retrofit. |
 | **ZATCA-ready vendor data** | Capture VAT number and CR at registration so the PO and later invoice matching are clean. |
 | **AI offer review** (section 5) | Cuts evaluation time and gives small contracts teams a second pair of eyes. |
