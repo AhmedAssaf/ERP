@@ -116,7 +116,7 @@
 <div class="top">
   <div>
     <h1 data-ar="مخططات الحد الأدنى للمنتج">Tender MVP Wireframes</h1>
-    <div class="sub" data-ar="12 شاشة، مساحة عمل الجهة المشترية ثم بوابة المورد. الألوان والخطوط من نظام التصميم (وثيقة 08).">12 screens, tenant workspace then vendor portal. Tokens and type from the design system (document 08).</div>
+    <div class="sub" data-ar="14 شاشة، مساحة عمل الجهة المشترية ثم بوابة المورد. الألوان والخطوط من نظام التصميم (وثيقة 08).">14 screens, tenant workspace then vendor portal. Tokens and type from the design system (document 08).</div>
   </div>
   <div class="seg" role="group" aria-label="Language">
     <button id="lang-en" aria-pressed="true">English</button>
@@ -127,12 +127,14 @@
 <nav class="toc" aria-label="Screens">
   <a href="#t1" data-ar="T1 المناقصات">T1 Tenders</a>
   <a href="#t2" data-ar="T2 إنشاء مناقصة">T2 New tender</a>
+  <a href="#t2a" data-ar="T2a خطوة سير العمل">T2a Workflow step</a>
   <a href="#t3" data-ar="T3 صفحة المناقصة">T3 Tender page</a>
   <a href="#t4" data-ar="T4 فحص الامتثال">T4 Compliance</a>
   <a href="#t5" data-ar="T5 التقييم الفني">T5 Technical scoring</a>
   <a href="#t6" data-ar="T6 فتح العروض المالية">T6 Financial opening</a>
   <a href="#t7" data-ar="T7 اعتماد المالية">T7 Finance approval</a>
   <a href="#t8" data-ar="T8 الترسية وأمر الشراء">T8 Award and PO</a>
+  <a href="#t9" data-ar="T9 محرر سير العمل">T9 Workflow editor</a>
   <a href="#v1" data-ar="V1 الدعوة">V1 Invitation</a>
   <a href="#v2" data-ar="V2 التسجيل">V2 Registration</a>
   <a href="#v3" data-ar="V3 عرض المناقصة">V3 Tender view</a>
@@ -164,12 +166,12 @@
 
 <section class="screen" id="t2">
   <div class="cap"><h2 data-ar="T2 مناقصة جديدة">T2 New tender</h2><span class="ids">F-15 F-16 F-17 F-14a F-19 F-55</span></div>
-  <p class="note" data-ar="خمس خطوات. الخطوة الأخيرة تختار المدعوين من دفتر الموردين أو تكتب بريداً جديداً، ثم النشر يرسل الدعوات.">Five steps. The last picks invitees from the vendor address book or types a new email; publishing sends the invitations.</p>
+  <p class="note" data-ar="ست خطوات. الخطوة 4 هي سير العمل (الشاشة التالية)، والخطوة 5 تختار المدعوين من دفتر الموردين أو تكتب بريداً جديداً، ثم النشر يرسل الدعوات.">Six steps. Step 4 is the workflow (next screen); step 5 picks invitees from the vendor address book or types a new email; publishing sends the invitations.</p>
   <div class="frame"><div class="app">
     <div class="bar"><div class="logo">LOGO</div><span class="brand" data-ar="شركة الفيصل للمقاولات">Al-Faisal Contracting</span><div class="nav"><b data-ar="المناقصات">Tenders</b><span data-ar="الموردون">Vendors</span><span data-ar="سجل الأحداث">Audit log</span></div></div>
     <div class="body">
       <div class="row"><h3 data-ar="مناقصة جديدة">New tender</h3><span class="badge" data-ar="مسودة">Draft</span></div>
-      <div class="stepper"><span class="done" data-ar="1 التفاصيل">1 Details</span><span class="done" data-ar="2 جدول الكميات">2 BoQ</span><span class="done" data-ar="3 المعايير والقائمة">3 Criteria and checklist</span><span class="on" data-ar="4 المدعوون">4 Invitees</span><span data-ar="5 المراجعة والنشر">5 Review and publish</span></div>
+      <div class="stepper"><span class="done" data-ar="1 التفاصيل">1 Details</span><span class="done" data-ar="2 جدول الكميات">2 BoQ</span><span class="done" data-ar="3 المعايير والقائمة">3 Criteria and checklist</span><span class="done" data-ar="4 سير العمل">4 Workflow</span><span class="on" data-ar="5 المدعوون">5 Invitees</span><span data-ar="6 المراجعة والنشر">6 Review and publish</span></div>
       <div class="side">
         <div style="display:grid;gap:12px">
           <div class="row"><h4 style="margin:0" data-ar="من دفتر الموردين">From the address book</h4><span class="grow"></span><span class="box" style="min-width:180px" data-ar="بحث بالاسم أو التصنيف">Search name or category</span></div>
@@ -191,15 +193,39 @@
   </div></div>
 </section>
 
+<section class="screen" id="t2a">
+  <div class="cap"><h2 data-ar="T2a مناقصة جديدة، خطوة سير العمل">T2a New tender, workflow step</h2><span class="ids">F-56 F-08 F-09 F-27</span></div>
+  <p class="note" data-ar="الجهة تختار قالب سير العمل وتعيّن من يعمل في كل خطوة. النقاط الثابتة (الختم، قفل الدرجات، فتح المالية) تظهر مقفلة ولا يمكن تحريكها. عند النشر تُؤخذ نسخة من القالب تبقى مع المناقصة.">The tenant picks a workflow template and assigns who acts at each step. Fixed points (sealing, score lock, financial opening) show as locked rows that cannot move. Publishing snapshots the template with the tender.</p>
+  <div class="frame"><div class="app">
+    <div class="bar"><div class="logo">LOGO</div><span class="brand" data-ar="شركة الفيصل للمقاولات">Al-Faisal Contracting</span><div class="nav"><b data-ar="المناقصات">Tenders</b><span data-ar="الموردون">Vendors</span><span data-ar="سجل الأحداث">Audit log</span></div></div>
+    <div class="body">
+      <div class="row"><h3 data-ar="مناقصة جديدة">New tender</h3><span class="badge" data-ar="مسودة">Draft</span></div>
+      <div class="stepper"><span class="done" data-ar="1 التفاصيل">1 Details</span><span class="done" data-ar="2 جدول الكميات">2 BoQ</span><span class="done" data-ar="3 المعايير والقائمة">3 Criteria and checklist</span><span class="on" data-ar="4 سير العمل">4 Workflow</span><span data-ar="5 المدعوون">5 Invitees</span><span data-ar="6 المراجعة والنشر">6 Review and publish</span></div>
+      <div class="row"><div class="field" style="flex:0 1 340px"><span data-ar="قالب سير العمل">Workflow template</span><span class="box" data-ar="الافتراضي: العقود، التقييم الفني، المالية">Default: Contracts, technical evaluators, finance</span></div><span class="hint" data-ar="القوالب تُعدّل في الإعدادات (الإصدار 1.1).">Templates are edited in Settings (version 1.1).</span></div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>#</th><th data-ar="الخطوة">Step</th><th data-ar="الإدارة">Department</th><th data-ar="من يعمل">Who acts</th><th data-ar="القاعدة">Rule</th><th data-ar="الحد">Threshold</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td data-ar="فحص الامتثال">Compliance screening</td><td data-ar="العقود">Contracts</td><td><span class="box" style="display:inline-block;min-width:180px" data-ar="أحمد (موظف العقود)">Ahmed (Contracts officer)</span></td><td data-ar="أي واحد">any of</td><td>—</td></tr>
+          <tr><td>2</td><td data-ar="التقييم الفني">Technical scoring</td><td data-ar="الهندسة">Engineering</td><td><span class="box" style="display:inline-block;min-width:180px" data-ar="خالد، منى، فهد">Khalid, Mona, Fahad</span></td><td data-ar="الجميع">all of</td><td>—</td></tr>
+          <tr style="background:var(--sealed-soft)"><td>🔒</td><td data-ar="قفل الدرجات ثم فتح الأظرف المالية">Score lock, then financial opening</td><td data-ar="العقود">Contracts</td><td data-ar="موظف العقود بحضور شاهد">Contracts officer with a witness</td><td data-ar="ثابت">fixed</td><td>—</td></tr>
+          <tr><td>3</td><td data-ar="اعتماد الترسية">Award approval</td><td data-ar="المالية">Finance</td><td><span class="box" style="display:inline-block;min-width:180px" data-ar="سارة (المدير المالي)">Sara (CFO)</span></td><td data-ar="أي واحد">any of</td><td data-ar="حتى 1,000,000 ر.س">up to SAR 1,000,000</td></tr>
+          <tr><td>4</td><td data-ar="اعتماد ثانٍ فوق الحد">Second approval above threshold</td><td data-ar="الإدارة العليا">Executive</td><td><span class="box" style="display:inline-block;min-width:180px" data-ar="الرئيس التنفيذي">CEO</span></td><td data-ar="الجميع">all of</td><td data-ar="فوق 1,000,000 ر.س">above SAR 1,000,000</td></tr>
+        </tbody></table></div>
+      <p class="hint" data-ar="لا يمكن للقالب تجاوز النقاط الثابتة أو إعادة ترتيبها. التغيير بعد النشر لا يؤثر على هذه المناقصة.">A template cannot skip or reorder the fixed points. Changes after publishing do not affect this tender.</p>
+      <div class="row"><span class="btn" data-ar="رجوع">Back</span><span class="grow"></span><span class="btn" data-ar="حفظ المسودة">Save draft</span><span class="btn primary" data-ar="التالي: المدعوون">Next: invitees</span></div>
+    </div>
+  </div></div>
+</section>
+
 <section class="screen" id="t3">
-  <div class="cap"><h2 data-ar="T3 صفحة المناقصة">T3 Tender page</h2><span class="ids">F-27 F-55 F-21 F-23</span></div>
-  <p class="note" data-ar="الخط الزمني للمراحل هو العنصر الثابت أعلى كل صفحة مناقصة. تبويب المدعوين يُظهر من فتح الرابط ومن سجّل ومن قدّم.">The stage timeline sits at the top of every tender page. The invitees tab shows who opened, registered, and submitted.</p>
+  <div class="cap"><h2 data-ar="T3 صفحة المناقصة">T3 Tender page</h2><span class="ids">F-27 F-56 F-55 F-21 F-23</span></div>
+  <p class="note" data-ar="الخط الزمني يُبنى من نسخة سير العمل الخاصة بالمناقصة ويُظهر الإدارة عند كل خطوة. تبويب المدعوين يُظهر من فتح الرابط ومن سجّل ومن قدّم.">The timeline is built from the tender's workflow snapshot and names the department at each step. The invitees tab shows who opened, registered, and submitted.</p>
   <div class="frame"><div class="app">
     <div class="bar"><div class="logo">LOGO</div><span class="brand" data-ar="شركة الفيصل للمقاولات">Al-Faisal Contracting</span><div class="nav"><b data-ar="المناقصات">Tenders</b><span data-ar="الموردون">Vendors</span><span data-ar="سجل الأحداث">Audit log</span></div></div>
     <div class="body">
       <div class="row"><div><div class="hint">TND-2026-014</div><h3 data-ar="توريد وتركيب مكيفات، المبنى ب">Supply and install AC units, Building B</h3></div><span class="grow"></span><span class="badge pub" data-ar="منشورة">Published</span><span class="btn" data-ar="الإجابة عن الاستفسارات">Answer questions</span><span class="btn danger" data-ar="إلغاء">Cancel</span></div>
       <div class="timeline">
-        <i class="done" data-ar="مسودة">Draft</i><i class="now" data-ar="منشورة">Published</i><i data-ar="مغلقة">Closed</i><i data-ar="الامتثال">Compliance</i><i data-ar="التقييم الفني">Technical</i><i class="seal" data-ar="قفل الدرجات">Locked</i><i class="seal" data-ar="فتح المالية">Financial opening</i><i data-ar="اعتماد المالية">Finance approval</i><i data-ar="الترسية">Awarded</i>
+        <i class="done" data-ar="مسودة">Draft</i><i class="now" data-ar="منشورة">Published</i><i data-ar="مغلقة">Closed</i><i data-ar="الامتثال · العقود">Compliance · Contracts</i><i data-ar="التقييم الفني · الهندسة">Technical · Engineering</i><i class="seal" data-ar="قفل الدرجات">Locked</i><i class="seal" data-ar="فتح المالية · العقود">Financial opening · Contracts</i><i data-ar="الاعتماد · المالية">Approval · Finance</i><i data-ar="الترسية">Awarded</i>
       </div>
       <div class="row"><span class="kpi">5 / 8</span><span class="hint" data-ar="عروض مقدمة من المدعوين">offers submitted of invited</span><span class="grow"></span><span class="hint" data-ar="يغلق التقديم 05 أكتوبر 2026، 14:00 بتوقيت الرياض">Closes 05 Oct 2026, 14:00 Riyadh</span></div>
       <div class="tabs"><span data-ar="نظرة عامة">Overview</span><span class="on" data-ar="المدعوون">Invitees</span><span data-ar="الاستفسارات (2)">Clarifications (2)</span><span data-ar="العروض">Offers</span><span data-ar="السجل">History</span></div>
@@ -321,6 +347,40 @@
           <div><time>21 Sep 10:02</time><span data-ar="أحمد نشر المناقصة ودعا 8 موردين">Ahmed published and invited 8 vendors</span></div>
         </div></div>
       </div>
+    </div>
+  </div></div>
+</section>
+
+<section class="screen" id="t9">
+  <div class="cap"><h2 data-ar="T9 محرر سير العمل (الإصدار 1.1)">T9 Workflow editor (version 1.1)</h2><span class="ids">F-56b F-09</span></div>
+  <p class="note" data-ar="ليس في التجربة. يُصمَّم الآن ليُبنى النموذج بشكل صحيح من البداية. الصفوف البنفسجية نقاط ثابتة لا تُحذف ولا تُحرَّك، والتحقق يرفض أي ترتيب يخالفها.">Not in the pilot. Designed now so the model is right from the start. Purple rows are fixed points that cannot be removed or moved; validation refuses any order that violates them.</p>
+  <div class="frame"><div class="app">
+    <div class="bar"><div class="logo">LOGO</div><span class="brand" data-ar="شركة الفيصل للمقاولات">Al-Faisal Contracting</span><div class="nav"><span data-ar="المناقصات">Tenders</span><span data-ar="الموردون">Vendors</span><b data-ar="الإعدادات">Settings</b></div></div>
+    <div class="body">
+      <div class="side">
+        <div style="display:grid;gap:12px">
+          <div class="row"><h3 data-ar="قوالب سير العمل">Workflow templates</h3><span class="grow"></span><span class="btn" data-ar="قالب جديد">New template</span></div>
+          <div class="tabs"><span class="on" data-ar="الافتراضي">Default</span><span data-ar="مشاريع رأسمالية فوق مليون">Capex above 1M</span><span data-ar="خدمات بسيطة">Simple services</span></div>
+          <div class="tablewrap"><table>
+            <thead><tr><th></th><th data-ar="الخطوة">Step</th><th data-ar="المرحلة">Stage</th><th data-ar="الإدارة">Department</th><th data-ar="الدور أو الأشخاص">Role or people</th><th data-ar="القاعدة">Rule</th><th data-ar="الحد">Threshold</th><th></th></tr></thead>
+            <tbody>
+              <tr><td>⋮⋮</td><td data-ar="فحص الامتثال">Compliance screening</td><td data-ar="الفحص">screening</td><td data-ar="العقود">Contracts</td><td data-ar="دور: موظف العقود">Role: Contracts officer</td><td data-ar="أي واحد">any of</td><td>—</td><td><span class="btn quiet" data-ar="تعديل">Edit</span></td></tr>
+              <tr><td>⋮⋮</td><td data-ar="مراجعة القسم الطالب">Requesting department review</td><td data-ar="الفحص">screening</td><td data-ar="حسب المناقصة">Per tender</td><td data-ar="يُعيَّن عند النشر">Assigned at publish</td><td data-ar="أي واحد">any of</td><td>—</td><td><span class="btn quiet" data-ar="تعديل">Edit</span></td></tr>
+              <tr><td>⋮⋮</td><td data-ar="التقييم الفني">Technical scoring</td><td data-ar="التقييم">scoring</td><td data-ar="الهندسة">Engineering</td><td data-ar="3 مقيّمين يُعيَّنون عند النشر">3 evaluators assigned at publish</td><td data-ar="الجميع">all of</td><td>—</td><td><span class="btn quiet" data-ar="تعديل">Edit</span></td></tr>
+              <tr style="background:var(--sealed-soft)"><td>🔒</td><td data-ar="قفل الدرجات">Score lock</td><td data-ar="القفل">locking</td><td data-ar="العقود">Contracts</td><td data-ar="ثابت">fixed</td><td>—</td><td>—</td><td></td></tr>
+              <tr style="background:var(--sealed-soft)"><td>🔒</td><td data-ar="فتح الأظرف المالية">Financial opening</td><td data-ar="فتح المالية">financial_opening</td><td data-ar="العقود">Contracts</td><td data-ar="ثابت، بحضور شاهد">fixed, with a witness</td><td>—</td><td>—</td><td></td></tr>
+              <tr><td>⋮⋮</td><td data-ar="مراجعة قانونية">Legal review</td><td data-ar="الاعتماد">approval</td><td data-ar="الشؤون القانونية">Legal</td><td data-ar="دور: المستشار القانوني">Role: Legal counsel</td><td data-ar="أي واحد">any of</td><td data-ar="فوق 500,000">above 500,000</td><td><span class="btn quiet" data-ar="تعديل">Edit</span></td></tr>
+              <tr><td>⋮⋮</td><td data-ar="اعتماد الترسية">Award approval</td><td data-ar="الاعتماد">approval</td><td data-ar="المالية">Finance</td><td data-ar="دور: المدير المالي">Role: CFO</td><td data-ar="أي واحد">any of</td><td>—</td><td><span class="btn quiet" data-ar="تعديل">Edit</span></td></tr>
+              <tr><td>⋮⋮</td><td data-ar="اعتماد ثانٍ">Second approval</td><td data-ar="الاعتماد">approval</td><td data-ar="الإدارة العليا">Executive</td><td data-ar="الرئيس التنفيذي">CEO</td><td data-ar="الجميع">all of</td><td data-ar="فوق 1,000,000">above 1,000,000</td><td><span class="btn quiet" data-ar="تعديل">Edit</span></td></tr>
+            </tbody></table></div>
+          <div class="row"><span class="btn" data-ar="إضافة خطوة">Add step</span><span class="grow"></span><span class="hint" data-ar="آخر تعديل: أحمد، 21 سبتمبر · الإصدار 3 · تستخدمه مناقصتان منشورتان (لا تتأثران)">Last edited by Ahmed, 21 Sep · version 3 · used by 2 published tenders (unaffected)</span></div>
+        </div>
+        <div style="display:grid;gap:12px">
+          <div class="dialog" style="max-width:none;border-color:var(--danger)"><h4 data-ar="لا يمكن الحفظ">Cannot save</h4><p style="margin:0" data-ar="خطوة «اعتماد الترسية» وُضعت قبل «قفل الدرجات». الاعتماد لا يسبق قفل الدرجات وفتح الأظرف المالية.">"Award approval" was placed before "Score lock". Approval cannot come before score locking and financial opening.</p><div class="row"><span class="grow"></span><span class="btn primary" data-ar="فهمت">Understood</span></div></div>
+          <div class="card"><h4 data-ar="الإدارات">Departments</h4><div class="list"><div><span class="grow" data-ar="العقود">Contracts</span><span class="hint">4</span></div><div><span class="grow" data-ar="الهندسة">Engineering</span><span class="hint">6</span></div><div><span class="grow" data-ar="المالية">Finance</span><span class="hint">2</span></div><div><span class="grow" data-ar="الشؤون القانونية">Legal</span><span class="hint">1</span></div><div><span class="grow" data-ar="الإدارة العليا">Executive</span><span class="hint">1</span></div></div><span class="btn" data-ar="إدارة جديدة">New department</span></div>
+        </div>
+      </div>
+      <div class="row"><span class="grow"></span><span class="btn" data-ar="تجاهل التغييرات">Discard changes</span><span class="btn primary" data-ar="حفظ كإصدار 4">Save as version 4</span></div>
     </div>
   </div></div>
 </section>

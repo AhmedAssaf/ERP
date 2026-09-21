@@ -14,7 +14,7 @@ Documents live in `docs/`:
 - `docs/08-design-system.md` - Tailwind as the UI foundation: tokens, typography, RTL rules, white-label mechanics, MVP components.
 - `docs/09-backlog.md` - the backlog: every feature ID and work item as a story with Given-When-Then acceptance criteria, priority, size, status, dependencies.
 - `docs/10-kickoff.md` - the first four weeks: two parallel tracks, week-by-week exit checks, day-one checklist, how a session runs the foundation slice, decisions and risks.
-- `docs/wireframes/` - low-fidelity wireframes for the MVP screens: `mvp-wireframes.html` (open in a browser, Arabic and English switch), `README.md` with notes and rendered images per screen, `render.js` to refresh the images.
+- `docs/wireframes/` - low-fidelity wireframes for the MVP screens (15 frames): `mvp-wireframes.html` (open in a browser, Arabic and English switch), `README.md` with notes and rendered images per screen, `render.js` to refresh the images.
 - `docs/adr/` - architecture decision records; ADR-0001 moves vendor uploads to chunked HTTP, ADR-0002 adopts Tailwind over MudBlazor, ADR-0003 makes the approval workflow tenant-configurable from day one.
 
 Local stack: `cd infra/compose && cp .env.example .env && docker compose up -d` (PostgreSQL, Keycloak, Redis, MinIO, ClamAV, Mailpit, Caddy).

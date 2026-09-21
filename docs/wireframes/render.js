@@ -1,7 +1,17 @@
 // Screenshots every wireframe frame in English and Arabic into docs/wireframes/img/.
 const path = require("path");
 const fs = require("fs");
-const puppeteer = require("puppeteer"); // run: npx --yes -p puppeteer node render.js
+// Resolves puppeteer from a local install or from the npx cache (populated by any earlier `npx @mermaid-js/mermaid-cli` or `npx -p puppeteer` run).
+function loadPuppeteer() {
+  try { return require("puppeteer"); } catch (_) {}
+  const cache = path.join(process.env.LOCALAPPDATA || "", "npm-cache", "_npx");
+  for (const d of fs.existsSync(cache) ? fs.readdirSync(cache) : []) {
+    const candidate = path.join(cache, d, "node_modules", "puppeteer");
+    if (fs.existsSync(candidate)) return require(candidate);
+  }
+  throw new Error("puppeteer not found: run `npm install --no-save puppeteer` in this folder once");
+}
+const puppeteer = loadPuppeteer();
 
 (async () => {
   const outDir = "C:/Repo/ERP/docs/wireframes/img";

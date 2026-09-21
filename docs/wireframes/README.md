@@ -17,14 +17,21 @@ The contracts officer's first screen. Stage reads from the badge colour; a row o
 
 ### T2 New tender (F-15, F-16, F-17, F-14a, F-19, F-55)
 
-Five steps. The invitee step picks vendors from the address book or takes a new email, which is saved to the book. Publishing sends the invitations.
+Six steps. Step 4 is the workflow (T2a); step 5 picks vendors from the address book or takes a new email, which is saved to the book. Publishing sends the invitations.
 
 ![T2 English](img/t2-en.png)
 ![T2 Arabic](img/t2-ar.png)
 
-### T3 Tender page (F-27, F-55, F-21, F-23)
+### T2a New tender, workflow step (F-56, F-08, F-09, F-27)
 
-The stage timeline sits at the top of every tender page. The invitees tab shows who opened the link, who registered, and who submitted, with remind and resend actions.
+Added for ADR-0003. The tenant picks a workflow template and assigns who acts at each step. Fixed points (sealing, score lock, financial opening) show as locked rows that cannot move. Publishing snapshots the template with the tender; the pilot ships only the default template.
+
+![T2a English](img/t2a-en.png)
+![T2a Arabic](img/t2a-ar.png)
+
+### T3 Tender page (F-27, F-56, F-55, F-21, F-23)
+
+The timeline is built from the tender's workflow snapshot and names the department at each step. The invitees tab shows who opened the link, who registered, and who submitted, with remind and resend actions.
 
 ![T3 English](img/t3-en.png)
 ![T3 Arabic](img/t3-ar.png)
@@ -63,6 +70,13 @@ The PO is generated from the winning offer under the tenant's brand and stored w
 
 ![T8 English](img/t8-en.png)
 ![T8 Arabic](img/t8-ar.png)
+
+### T9 Workflow editor, version 1.1 (F-56b, F-09)
+
+Not in the pilot; designed now so the model is right from the start. Templates per tenant with versions; purple rows are fixed points that cannot be removed or moved; validation refuses any order that violates them; published tenders keep their snapshot when a template changes.
+
+![T9 English](img/t9-en.png)
+![T9 Arabic](img/t9-ar.png)
 
 ## Vendor portal (phone)
 
@@ -103,8 +117,8 @@ The confirmation states server time and file hashes. Resubmitting before the dea
 
 ## Deliberately absent
 
-Custom domain, committees, amendments, vendor dashboard, SMS, AI, open tenders with a public listing. All after the pilot (document 05, section 4).
+Custom domain, the workflow editor (T9 is shown for design only), committees beyond the default template, amendments, vendor dashboard, SMS, AI, open tenders with a public listing. All after the pilot (document 05, section 4).
 
 ## Regenerating the images
 
-The images come from the HTML through headless Chromium. After editing `mvp-wireframes.html`, run `npx --yes -p puppeteer node render.js` in this folder to refresh `img/`, then re-mirror the page to OneNote so both stay true.
+The images come from the HTML through headless Chromium. After editing `mvp-wireframes.html`, run `node render.js` in this folder to refresh `img/` (it finds puppeteer in the npx cache; if missing, `npm install --no-save puppeteer` once), then re-mirror the page to OneNote so both stay true.
