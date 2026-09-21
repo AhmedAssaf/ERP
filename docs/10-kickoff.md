@@ -9,7 +9,7 @@ Related: `05-mvp-scope.md` (build plan), `07-ways-of-working.md` (process), `09-
 Kickoff is over when all four are true:
 
 1. A pilot customer is named, with a tender and a target month (W-15).
-2. The foundation slice is merged: skeleton, row-level security, Keycloak organizations, Tailwind build, localisation (W-02, W-03, W-04, W-05, W-07).
+2. The foundation slice is merged: skeleton, row-level security, Keycloak organizations, Tailwind build, localisation, and the workflow definition model with its executor chosen by the Elsa spike (W-02, W-03, W-04, W-05, W-07, W-20, F-56).
 3. CI runs on every pull request (W-09).
 4. The first feature slice has an approved spec and a plan, and its first task is In progress.
 
@@ -31,14 +31,16 @@ gantt
 
     section Technical track
     Machine setup, .NET 10, Compose stack (W-01)    :t0, 2026-10-05, 1d
-    Spec and plan for the foundation slice          :t1, after t0, 3d
+    Elsa executor spike, one-week box (W-20)        :t1a, after t0, 5d
+    Spec and plan for the foundation slice          :t1, after t1a, 3d
     W-02 solution skeleton                          :t2, after t1, 3d
     W-03 row-level security foundation              :t3, after t2, 3d
     W-04 Keycloak realm and OIDC                    :t4, after t2, 3d
     W-05 Tailwind build and lint                    :t5, after t2, 2d
     W-07 localisation and RTL                       :t6, after t5, 2d
     W-09 CI workflow                                :t7, after t2, 3d
-    Foundation merged                               :milestone, t8, after t3 t4 t6 t7, 0d
+    F-56 workflow model and executor                :t7b, after t3, 5d
+    Foundation merged                               :milestone, t8, after t3 t4 t6 t7 t7b, 0d
 
     section First feature slice
     Spec and plan for tenant, branding, staff (F-01, F-02, F-06, F-07) :f1, after t8, 3d
@@ -49,10 +51,10 @@ gantt
 
 | Week | Customer track | Technical track | Exit check |
 |---|---|---|---|
-| 1 | Send interview requests; hold the Reference App call; write the seven answers into document 04 section 10 | Install .NET 10; Compose stack healthy; run the brainstorming session for the foundation slice; spec approved; plan written | Spec file exists in `docs/superpowers/specs/`; plan in `docs/superpowers/plans/` |
-| 2 | Hold interviews 1 and 2; write each up the same day | W-02 skeleton merged; W-03 RLS and W-04 Keycloak in progress through the developer, reviewer, qa-engineer loop | `dotnet test` green with the cross-tenant isolation test; login through Keycloak issues a token with an organization id |
+| 1 | Send interview requests; hold the Reference App call; write the seven answers into document 04 section 10 | Install .NET 10; Compose stack healthy; run the Elsa spike (W-20) in its one-week box and write ADR-0004 | Spec file exists in `docs/superpowers/specs/`; plan in `docs/superpowers/plans/` |
+| 2 | Hold interviews 1 and 2; write each up the same day | Brainstorming and plan for the foundation slice including F-56; W-02 skeleton merged; W-03 RLS and W-04 Keycloak in progress | `dotnet test` green with the cross-tenant isolation test; login through Keycloak issues a token with an organization id |
 | 3 | Hold interview 3; draft the pricing page (W-16); shortlist two pilot candidates | W-05 Tailwind and W-07 localisation merged; W-09 CI green on a pull request; gallery page renders in both directions | Every pull request shows the CI checks; the `ml-4` lint test fails the build on purpose once |
-| 4 | Pilot customer named with a tender and month (W-15); document 05 section 6 gets calendar dates | Foundation merged; brainstorming and plan for the first feature slice; first task started | Kickoff exit criteria in section 1 all true |
+| 4 | Pilot customer named with a tender and month (W-15); document 05 section 6 gets calendar dates | F-56 model and executor merged; foundation merged; brainstorming and plan for the first feature slice | Kickoff exit criteria in section 1 all true |
 
 ## 4. Day-one checklist
 
@@ -61,7 +63,8 @@ gantt
 - [ ] Git identity set for this repository
 - [ ] Read in this order: CLAUDE.md, `docs/05`, `docs/07`, `docs/09` epic E0, `docs/08` sections 2 to 4
 - [ ] Three interview requests sent; one Reference App call booked
-- [ ] A Claude Code session opened in the repository root with `/superpowers:brainstorming` and the sentence "the foundation slice: W-02, W-03, W-04, W-05, W-07 from docs/09"
+- [ ] The Elsa spike (W-20) started: a throwaway project under `spikes/` with the four questions from docs/09 as its checklist
+- [ ] After the spike, a Claude Code session opened in the repository root with `/superpowers:brainstorming` and the sentence "the foundation slice: W-02, W-03, W-04, W-05, W-07, F-56 from docs/09"
 
 ## 5. How a session runs the foundation slice
 

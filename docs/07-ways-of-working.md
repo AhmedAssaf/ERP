@@ -142,4 +142,4 @@ A task is done when all of these are true, and not before:
 
 ## 10. What we deliberately do not do yet
 
-No microservices, no message broker, no workflow engine, no API gateway, no separate API layer for the UI, no native mobile apps, no Kubernetes before the pilot. Each of these has a trigger in `02-core-features-and-tech-stack.md` section 4.4 or `06-spike-results.md`; until the trigger fires, the answer is no.
+No microservices, no message broker, no API gateway, no separate API layer for the UI, no native mobile apps, no Kubernetes before the pilot. The tender workflow is tenant-configurable data from day one (ADR-0003); whether Elsa or our own state machine executes it is decided by spike W-20 during kickoff, not deferred. Each of these has a trigger in `02-core-features-and-tech-stack.md` section 4.4 or `06-spike-results.md`; until the trigger fires, the answer is no.

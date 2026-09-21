@@ -242,6 +242,10 @@ erDiagram
     TENANT ||--o{ TENDER : owns
     TENANT ||--o{ VENDOR_TENANT_APPROVAL : approves
     TENANT ||--o{ AUDIT_EVENT : logs
+    TENANT ||--o{ WORKFLOW_DEFINITION : defines
+    WORKFLOW_DEFINITION ||--o{ WORKFLOW_STEP : "ordered steps"
+    TENDER ||--|| TENDER_WORKFLOW : "snapshot at publish"
+    TENDER_WORKFLOW ||--o{ TENDER_WORKFLOW_STEP : "steps with outcomes"
 
     VENDOR_COMPANY ||--o{ VENDOR_USER : employs
     VENDOR_COMPANY ||--o{ VENDOR_DOCUMENT : uploads
@@ -279,6 +283,16 @@ erDiagram
         datetime submission_deadline
         string financial_method
         int min_technical_score
+    }
+    WORKFLOW_STEP {
+        uuid id PK
+        uuid definition_id FK
+        int order
+        string system_stage "screening | scoring | locking | financial_opening | approval | award"
+        string department
+        string role
+        string rule "any_of | all_of"
+        decimal amount_threshold
     }
 ```
 
@@ -519,6 +533,7 @@ mindmap
       F-26 vendor dashboard
     Evaluation
       F-27 state machine
+      F-56 configurable workflow
       F-28 compliance
       F-29 scoring
       F-30 locking

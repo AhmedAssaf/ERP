@@ -32,7 +32,7 @@ flowchart LR
     subgraph R2["Version 1.1: after pilot feedback"]
         direction TB
         B1[Custom domain F-03]:::next
-        B2[Committees + DoA<br/>F-08 F-09]:::next
+        B2[Workflow editor, committees, DoA<br/>F-56b F-08 F-09]:::next
         B3[Amendments F-20,<br/>open tenders F-19b]:::next
         B4[Receipts + vendor dashboard<br/>F-25 F-26]:::next
         B5[Ranking + cancellation<br/>F-32 F-34]:::next
@@ -41,7 +41,7 @@ flowchart LR
         B8[AI compliance pre-check<br/>F-45 F-50]:::next
     end
 
-    subgraph R1["MVP: pilot tender (15 features)"]
+    subgraph R1["MVP: pilot tender (16 features)"]
         direction TB
         A1[Tenant + logo<br/>F-01 F-02]:::mvp
         A2[Staff accounts + roles<br/>F-06 F-07]:::mvp
@@ -49,7 +49,7 @@ flowchart LR
         A4[Tender authoring<br/>F-15 F-16 F-17]:::mvp
         A5[Address book, invite,<br/>clarifications F-14a F-19 F-55 F-21]:::mvp
         A6[Sealed submission + deadline<br/>F-22 F-23 F-24]:::mvp
-        A7[Screening + scoring + lock<br/>F-28 F-29 F-30]:::mvp
+        A7[Workflow snapshot + screening,<br/>scoring, lock F-56 F-28 F-29 F-30]:::mvp
         A8[Comparison + finance approval<br/>F-31 F-33]:::mvp
         A9[PO PDF<br/>F-36]:::mvp
         A10[Email + audit log<br/>F-38 F-41]:::mvp
@@ -76,23 +76,25 @@ Every row is a feature ID from document 02 with the MVP-sized version of its acc
 | 12 | F-31, F-33 | Auto-built comparison sheet: vendor, BoQ line prices, totals, VAT, arithmetic check. Export to Excel. One finance approver approves or returns with a reason | No internal estimate variance, no local content column, no approval limits |
 | 13 | F-36 | Branded PO PDF with tenant numbering, winning offer lines, VAT, payment terms text. Stored against the tender | No PO register screen, no structured export |
 | 14 | F-38, F-39 | Email only: invitation, question answered, deadline in 48 hours, submission received, action required, award or regret | No SMS, no in-app, no digests |
+| 16 | F-56 | Workflow definition model, per-tender snapshot, and executor with one default template (contracts screening, technical evaluators, finance approver). No editor screen; the template is seeded by script | Editor screen is F-56b in version 1.1; Elsa versus in-house executor decided by spike W-20 (ADR-0003) |
 | 15 | F-41 | Append-only event table: actor, tenant, action, entity, timestamp, IP. Visible to Tenant admin as a filterable list | No signed export |
 
-Also in the MVP because the pilot cannot run without them, though they carry no feature ID: Arabic and English UI with right-to-left (F-04 is treated as a constraint, not a feature), and the tender state machine (F-27) limited to the states the fifteen features need.
+Also in the MVP because the pilot cannot run without them, though they carry no feature ID: Arabic and English UI with right-to-left (F-04 is treated as a constraint, not a feature), and the tender state machine (F-27) limited to the states the sixteen features need.
 
 ## 4. Explicitly out of the MVP
 
-Custom domains, SSO, per-tender committees, delegation of authority limits, amendments, open tenders with a public listing page (F-19b; the pilot is invited-only), receipts with hashes, vendor dashboard, ranking other than lowest price, cancellation, award and regret letters, PO export, SMS, notification preferences, local content fields, the full tenant vendor list with approval states (the address book F-14a is in), templates, public listing, audit export, dashboards, every AI feature, mobile apps, ERP integration, vendor identity across tenants.
+Custom domains, SSO, the workflow editor screen (F-56b; the model ships, the pilot uses the seeded default), per-tender committees, delegation of authority limits, amendments, open tenders with a public listing page (F-19b; the pilot is invited-only), receipts with hashes, vendor dashboard, ranking other than lowest price, cancellation, award and regret letters, PO export, SMS, notification preferences, local content fields, the full tenant vendor list with approval states (the address book F-14a is in), templates, public listing, audit export, dashboards, every AI feature, mobile apps, ERP integration, vendor identity across tenants.
 
 If the pilot customer asks for one of these, the answer is "version 1.1, after your tender closes", unless the tender cannot legally proceed without it.
 
-## 5. The two spikes to run before anything else
+## 5. The spikes to run before anything else
 
-Both are one-day experiments whose failure would change the stack, so they come first.
+The first two are one-day experiments whose failure would change the stack; both ran on 2026-09-21 (document 06). The third is a one-week box added by ADR-0003.
 
 | Spike | Question | Pass condition | If it fails |
 |---|---|---|---|
 | Arabic PDF | Can QuestPDF render a PO with mixed Arabic and English, correct shaping, right-to-left tables, and a Saudi font? | A one-page PO with Arabic vendor name, Arabic terms paragraph, and a numeric BoQ table prints correctly | Switch to Playwright for .NET with headless Chromium rendering HTML |
+| Elsa workflow executor (W-20) | Can Elsa 3 execute a per-tender workflow snapshot while our custom activities make the fixed points (locking before financial opening, sealed envelopes, deadlines) impossible to skip, and can its designer be delivered in Arabic under the tenant's brand? | A definition that reorders a fixed point is rejected; a running tender ignores later definition edits; one custom step implemented in under a day; designer renders right-to-left | Our own state machine executes the same definition model; ADR-0004 records it |
 | Blazor on a vendor's connection | Does a Blazor Server upload wizard survive a 50 MB file on a throttled 3G profile with a 2-second latency spike? | Upload completes, circuit reconnects after the spike, draft state survives | Move the vendor portal pages to static server rendering with plain form posts, keep Blazor Server for the tenant app |
 
 ## 6. Build plan
@@ -108,10 +110,11 @@ gantt
     section Spikes
     Arabic PDF spike                 :s1, 2026-10-05, 2d
     Blazor vendor upload spike       :s2, 2026-10-07, 2d
+    Elsa workflow executor spike (W-20) :s3, 2026-10-09, 5d
 
     section Foundation
-    Aspire host, Postgres, Keycloak, Caddy, CI :f1, after s2, 7d
-    Tenant, branding, RLS, audit table (1, 2, 15) :f2, after f1, 7d
+    Compose stack, Keycloak, Caddy, CI :f1, after s3, 7d
+    Tenant, branding, RLS, audit, workflow model (1, 2, 15, 16) :f2, after f1, 10d
     Staff accounts, roles (3, 4)     :f3, after f2, 5d
 
     section Vendors and tenders
@@ -133,7 +136,7 @@ gantt
     Pilot review, version 1.1 scope  :p5, after p4, 5d
 ```
 
-About 13 weeks from first spike to the live tender at the durations shown, then a 30-day tender window and a review, so about 18 weeks to the pilot verdict. Plan for 16 to 18 weeks to the live tender if a spike fails or the customer is late. Two developers bring the build portion to about 7 weeks.
+About 15 weeks from first spike to the live tender at the durations shown (one week for the workflow spike, one for the workflow model), then a 30-day tender window and a review, so about 18 weeks to the pilot verdict. Plan for 16 to 18 weeks to the live tender if a spike fails or the customer is late. Two developers bring the build portion to about 7 weeks.
 
 ## 7. What the pilot must prove
 

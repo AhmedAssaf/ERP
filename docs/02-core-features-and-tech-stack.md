@@ -36,8 +36,8 @@ This file lists the features that must exist for the product to be sellable to a
 |---|---|---|
 | F-06 | Tenant staff accounts | Tenant admin invites staff by email. Login with email and password plus optional TOTP. SSO via the tenant's Microsoft Entra ID or any OIDC provider is a plan feature. |
 | F-07 | Roles | Built-in roles: Tenant admin, Contracts officer, Technical evaluator, Finance approver, Auditor. A user can hold several roles. |
-| F-08 | Per-tender committee | For each tender, the contracts officer assigns named evaluators and approvers. Only committee members see that tender's offers. |
-| F-09 | Delegation of authority | Tenant admin defines approval limits by amount (for example: under 100k one finance approver, above 1M two approvers plus CFO). The award flow enforces them. |
+| F-08 | Per-tender committee | For each tender, the contracts officer assigns named evaluators and approvers to the steps of the tender's workflow snapshot (F-56). Only committee members see that tender's offers. |
+| F-09 | Delegation of authority | Amount thresholds on approval steps of the workflow definition (F-56), for example under 100k one finance approver, above 1M two approvers plus CFO. The executor enforces them. |
 | F-10 | Vendor identity | One vendor company account works across all tenants on the platform. Each tenant separately approves or blocks the vendor. Vendor staff are invited by the vendor's own admin. |
 
 ### 2.3 Vendor registration and profile
@@ -77,7 +77,8 @@ This file lists the features that must exist for the product to be sellable to a
 
 | ID | Feature | Acceptance |
 |---|---|---|
-| F-27 | Stage state machine | Draft, Published, Clarification, Closed, Compliance screening, Technical evaluation, Financial opening, Financial evaluation, Finance approval, Awarded, Cancelled. Only the role that owns a stage can move it forward. Every transition is logged. |
+| F-27 | Stage state machine | Draft, Published, Clarification, Closed, Compliance screening, Technical evaluation, Financial opening, Financial evaluation, Finance approval, Awarded, Cancelled. The machine executes the tender's workflow snapshot (F-56): between the fixed points it asks the snapshot who acts next. Only the role or person the snapshot names can move a step forward. Every transition is logged. |
+| F-56 | Configurable approval workflow | Added 2026-09-21, ADR-0003. A tenant owns workflow definitions: an ordered list of steps, each with a department, the role or named users who act, an any-of or all-of rule, optional amount thresholds, and the system stage it belongs to. Templates ship for common chains. Publishing a tender snapshots the definition; the running tender uses the snapshot only. Sealed envelopes, score locking, deadlines, and audit are fixed points a definition cannot reorder or skip. MVP ships the model, executor, and default template; the tenant editor screen is F-56b. |
 | F-28 | Compliance screening | Contracts officer marks each checklist item pass, fail, or waived with a reason per offer. Failed offers are excluded with a vendor notification. |
 | F-29 | Technical scoring | Each evaluator scores every criterion for every compliant offer independently. Scores are hidden from other evaluators until all have submitted. Weighted average and pass or fail against the minimum mark are computed. |
 | F-30 | Score locking | Once technical scores are locked, they cannot change. Locking is required before the financial envelope can be opened. |
@@ -168,7 +169,7 @@ Chosen by you: .NET with Blazor. This section fits the rest of the stack around 
 | Edge and TLS | Caddy in front of Kestrel | On-demand TLS issues a certificate the first time a customer's domain is seen, with an approval endpoint the app answers (F-03). Single Go binary, config under 30 lines in git. |
 | Tenant routing and rate limiting | ASP.NET Core middleware | Host header resolves the tenant before any Blazor circuit is created. The built-in .NET rate limiter partitions by tenant and by vendor account. No proxy hop on the Blazor WebSocket path. |
 | API gateway | None in version 1. Add YARP or Ocelot later if a public vendor API or a second service appears | Kong OSS, APISIX, Tyk, Ocelot, and WSO2 were assessed on 2026-09-21. All add a hop and operations for a single-host app; WSO2 alone needs 4 GB RAM. Ocelot (ThreeMammals, .NET) is the natural pick when a gateway becomes necessary. |
-| Workflow | Explicit state machine in code (Stateless library) | Covers F-27 with a readable transition table and guards per role. A workflow engine only if tenants must design their own flows. |
+| Workflow | Tenant-configurable workflow definitions with per-tender snapshots (F-56, ADR-0003); executor chosen by spike W-20 between our own state machine and Elsa 3 | The definition model is engine-agnostic so the executor can change without a migration. Invariants stay in domain code either way. |
 | Background jobs | Hangfire with PostgreSQL storage | Notifications, parsing, AI runs, PDF rendering, and the scheduled deadline-closure job (with a distributed lock so one node closes a tender). Dashboard included. |
 | Cache and locks | Redis | Blazor circuit state that must survive a node restart, rate-limit counters, and distributed locks. |
 | PDF generation | QuestPDF, with Playwright for .NET (headless Chromium) as fallback | QuestPDF renders Arabic with proper shaping and RTL and is fast. Chromium rendering is the escape hatch for complex layouts. Test Arabic output early either way. |
@@ -243,7 +244,7 @@ flowchart TB
 | Duende IdentityServer or ASP.NET Core Identity instead of Keycloak | If you want zero external identity components. | Keycloak Organizations already solve multi-tenant membership, and you have deep Keycloak experience. |
 | Microservices from day one | Only if separate teams own separate modules. | A modular monolith ships faster; module boundaries make a later split cheap. |
 | Odoo or ERPNext as the base | Fastest to a demo, includes accounting. | Weak vendor experience, hard to white-label, customisations become the product with no moat. |
-| Elsa or Temporal for the tender workflow | If tenants need to design approval flows visually. | A state machine in code covers F-27 with far less operational weight. |
+| Elsa or Temporal for the tender workflow | Decided 2026-09-21 (ADR-0003): tenant-configurable workflows are in scope from day one. Elsa 3 is evaluated by spike W-20 before the foundation is built. | Temporal is a separate service in Go; wrong shape for the monolith. Elsa stays a candidate, not a default, until the spike proves the invariants can be enforced and the designer can be Arabic. |
 
 ### 4.5 Repository layout (proposed)
 

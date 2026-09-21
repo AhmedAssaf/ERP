@@ -19,13 +19,13 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 
 | Epic | Stories | P0 | P1 | P2 |
 |---|---|---|---|---|
-| E0 Platform foundation | W-01 to W-12, W-19 | 10 | 3 | 0 |
+| E0 Platform foundation | W-01 to W-12, W-19, W-20 | 11 | 3 | 0 |
 | E1 Tenancy and branding | F-01 to F-05, F-01b | 4 | 2 | 0 |
 | E2 Identity, users, roles | F-06 to F-10, F-06b | 2 | 2 | 2 |
 | E3 Vendor registration | F-11 to F-14, F-12b, F-14a | 3 | 1 | 2 |
 | E4 Tender authoring | F-15 to F-21, F-55, F-19b | 6 | 2 | 1 |
 | E5 Offer submission | F-22 to F-26 | 3 | 2 | 0 |
-| E6 Evaluation chain | F-27 to F-34 | 6 | 2 | 0 |
+| E6 Evaluation chain | F-27 to F-34, F-56, F-56b | 7 | 3 | 0 |
 | E7 Award and PO | F-35 to F-37 | 1 | 2 | 0 |
 | E8 Notifications | F-38 to F-40 | 2 | 1 | 0 |
 | E9 Audit and documents | F-41 to F-44 | 2 | 0 | 2 |
@@ -49,6 +49,7 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 | W-10 | Observability: OpenTelemetry, Serilog, health endpoints, Sentry | P1 | S | Backlog | W-02 |
 | W-11 | Production Caddyfile with on-demand TLS and the tenant allow endpoint; Kubernetes manifests | P1 | M | Backlog | F-03 |
 | W-12 | Backup and restore drill script for PostgreSQL and object storage | P1 | S | Backlog | W-11 |
+| W-20 | Elsa 3 spike, one-week box: custom activities for the fixed points, per-tender snapshot execution, Arabic and white-label designer feasibility; ends in ADR-0004 choosing the executor | P0 | L | Backlog | W-01 |
 | W-19 | Pilot environment on Oracle Cloud Always Free, Jeddah home region: one Arm VM running the Compose stack plus the app, HTTPS via Caddy, nightly volume backup to object storage | P0 | M | Backlog | W-01, W-09 |
 
 Acceptance criteria:
@@ -64,6 +65,7 @@ Acceptance criteria:
 - **W-09.** Given a pull request, when CI runs, then build, tests against real PostgreSQL and Keycloak, format check, container scan, utility lint, and Mermaid render check all report within ten minutes.
 - **W-10.** Given a request, when it fails, then a trace with tenant id and correlation id appears in the collector and an event in Sentry.
 - **W-11.** Given a tenant with a verified custom domain, when the first HTTPS request for that hostname arrives, then Caddy asks the allow endpoint, receives 200, obtains a certificate, and serves the tenant portal; when the hostname is unknown, then the allow endpoint returns 404 and no certificate is issued.
+- **W-20.** Given the one-week box, when it ends, then ADR-0004 records the executor with evidence: whether a definition that skips locking or opens financial early is rejected by the executor, whether a running tender keeps its snapshot after the definition changes, whether the designer renders in Arabic right-to-left under a tenant's colour, and the measured time to implement one custom step; given the box overruns, then the in-house state machine is chosen.
 - **W-19.** Given an Oracle Cloud tenancy with Jeddah as home region, when the provisioning script runs, then an Always Free Arm instance (or the documented paid fallback) hosts the Compose stack and the app, the pilot tenant's hostname serves over HTTPS, all data stays in the Jeddah region, and a nightly backup of the PostgreSQL and MinIO volumes lands in Jeddah object storage; given the instance is destroyed, when the restore script runs on a new one, then the pilot tenant is back within one hour.
 - **W-12.** Given a nightly backup, when the restore script runs against an empty environment, then the platform starts and a chosen tender's files and rows are present with matching hashes.
 
@@ -91,8 +93,8 @@ Acceptance criteria:
 | F-06 | Staff accounts: invite by email, password plus TOTP | P0 | M | Backlog | W-04 |
 | F-06b | Tenant SSO through Entra ID or any OIDC provider | P2 | M | Backlog | F-06 |
 | F-07 | Roles: tenant admin, contracts officer, technical evaluator, finance approver (MVP), auditor (P1) | P0 | S | Backlog | F-06 |
-| F-08 | Per-tender committee assignment | P1 | M | Backlog | F-07, F-16 |
-| F-09 | Delegation of authority limits by amount | P1 | M | Backlog | F-33 |
+| F-08 | Per-tender committee assignment onto snapshot steps | P1 | M | Backlog | F-07, F-56 |
+| F-09 | Delegation of authority thresholds on approval steps | P1 | M | Backlog | F-56, F-33 |
 | F-10 | One vendor account across all tenants with per-tenant approval | P2 | L | Backlog | F-11 |
 
 - **F-06.** Given an invitation, when the invitee sets a password and enrols TOTP, then they can log in; when they enter a wrong TOTP three times, then the account locks for fifteen minutes and the event is audited.
@@ -161,7 +163,9 @@ Acceptance criteria:
 
 | ID | Story | Pri | Size | Status | Depends on |
 |---|---|---|---|---|---|
-| F-27 | Tender state machine (MVP states only) | P0 | M | Backlog | F-16 |
+| F-56 | Configurable workflow: definition model, per-tender snapshot, executor, default template | P0 | L | Backlog | W-03, W-20 |
+| F-56b | Tenant workflow editor screen: steps, departments, roles, approvers, thresholds, templates | P1 | L | Backlog | F-56, W-06 |
+| F-27 | Tender state machine executing the workflow snapshot (MVP states only) | P0 | M | Backlog | F-16, F-56 |
 | F-28 | Compliance screening pass or fail per checklist item | P0 | M | Backlog | F-27, F-23 |
 | F-29 | Technical scoring, blind between evaluators until all submit | P0 | L | Backlog | F-28 |
 | F-30 | Score locking before financial opening | P0 | S | Backlog | F-29 |
@@ -170,6 +174,8 @@ Acceptance criteria:
 | F-33 | Finance approval, approve or return with reason (MVP: one approver) | P0 | M | Backlog | F-31 |
 | F-34 | Cancellation with reason and vendor notification | P1 | S | Backlog | F-27, F-38 |
 
+- **F-56.** Given the default template, when a tender is published, then the tender stores a snapshot of the steps and the officer's committee assignment fills the roles; given the tenant definition is edited afterwards, then the running tender is unchanged; given a definition that places financial opening before score locking, when saved, then it is rejected with the fixed-point rule named; given a step with an all-of rule and two approvers, when one approves, then the step stays open and the audit row names who is pending.
+- **F-56b.** Given the editor, when the admin adds a department step between screening and scoring and saves, then the next published tender has it and existing tenders do not; given a template is chosen, then its steps appear editable; every change is audited.
 - **F-27.** Given each state, when a user whose role does not own the stage attempts a transition, then it is refused; when any transition succeeds, then an audit row with before and after state exists.
 - **F-28.** Given an offer failing a mandatory checklist item, when screening is confirmed, then the offer is excluded, the vendor is notified with the item named, and the offer never appears in scoring.
 - **F-29.** Given two evaluators, when only one has submitted scores, then the other cannot see them; when both have submitted, then the weighted average per offer is computed to two decimals.
@@ -235,7 +241,7 @@ Acceptance criteria:
 | W-14 | Reference App demo or former-customer call answering the seven questions in document 04 section 10 | P0 | S | Backlog | |
 | W-15 | First customer signed for the pilot with a named tender and date | P0 | L | Backlog | W-13 |
 | W-16 | Pricing page draft: monthly per-tenant price, first tender free | P0 | S | Backlog | W-13 |
-| W-17 | Pilot dry run script with fake vendors, producing the document 05 section 7 table | P0 | M | Backlog | F-01, F-02, F-06, F-07, F-11, F-12, F-14a, F-15, F-16, F-17, F-19, F-21, F-55, F-22, F-23, F-24, F-27, F-28, F-29, F-30, F-31, F-33, F-36, F-38, F-39, F-41, F-44 |
+| W-17 | Pilot dry run script with fake vendors, producing the document 05 section 7 table | P0 | M | Backlog | F-01, F-02, F-06, F-07, F-11, F-12, F-14a, F-15, F-16, F-17, F-19, F-21, F-55, F-22, F-23, F-24, F-56, F-27, F-28, F-29, F-30, F-31, F-33, F-36, F-38, F-39, F-41, F-44 |
 | W-18 | Pilot review and version 1.1 scope | P0 | S | Backlog | W-17 |
 
 - **W-13.** Given three interviews, when written up, then each records current tools, last tender's cycle time, what Reference App or others quoted, and whether the vendor would see their brand; the document 01 "things to verify" list is updated.
