@@ -18,7 +18,7 @@ function Log($m) { $line = "{0:yyyy-MM-dd HH:mm:ss} {1}" -f (Get-Date), $m; Add-
 
 # One mirror at a time.
 $mutex = New-Object System.Threading.Mutex($false, 'Global\erp-onenote-mirror')
-if (-not $mutex.WaitOne(0)) { Log 'another mirror run is active; exiting'; exit 0 }
+if (-not $mutex.WaitOne(900000)) { Log 'another mirror run held the lock for 15 minutes; giving up'; exit 1 }
 
 try {
   $manifest = @{}
