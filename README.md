@@ -16,3 +16,14 @@ Documents live in `docs/`:
 - `docs/adr/` - architecture decision records; ADR-0001 moves vendor uploads to chunked HTTP, ADR-0002 adopts Tailwind over MudBlazor.
 
 Local stack: `cd infra/compose && cp .env.example .env && docker compose up -d` (PostgreSQL, Keycloak, Redis, MinIO, ClamAV, Mailpit, Caddy).
+
+## Getting started
+
+Follow this order; it avoids rework. Every step maps to a row in `docs/09-backlog.md`.
+
+1. **Machine.** Install the .NET 10 SDK (the spikes ran on 9.0; the product targets 10). Start Docker Desktop, then `cd infra/compose && cp .env.example .env && docker compose up -d`. On Windows machines where port 443 is reserved, set `CADDY_HTTP_PORT=8081` and `CADDY_HTTPS_PORT=8443` in `.env`. Ports and credentials are in `docs/07-ways-of-working.md` section 4.
+2. **Customer track, in parallel from day one** (W-13, W-14, W-15). Three conversations with procurement or contracts managers, one Reference App demo or ex-customer call using the seven questions in `docs/04` section 10, and a named pilot customer with a named tender. The build plan in `docs/05` cannot be dated without this.
+3. **First technical slice: the foundation** (W-02, W-03, W-04, W-05, W-07). Solution skeleton, row-level security, Keycloak realm with organizations, Tailwind build, localisation. Do these before any feature ID.
+4. **Run each work item through the process.** In a Claude Code session in this folder: `/superpowers:brainstorming` with the slice description to produce a spec in `docs/superpowers/specs/`; then `/superpowers:writing-plans` to break it into tasks in `docs/superpowers/plans/`; then `/superpowers:subagent-driven-development` to execute the plan with the developer, reviewer, and qa-engineer agents, stopping at your merge. Update the backlog row in the same pull request.
+5. **Rhythm.** Monday pick from Ready, one task per branch, pull request per task with the template in `.github/`, Thursday demo on the Compose stack, every second Friday review open decisions and write due ADRs. Ask "what is the status" at any time; the project-manager agent answers from the backlog and git.
+6. **Decide before the foundation spec.** Hosting provider (it shapes the database role model and storage keys) and the pilot login method (MVP assumes password plus TOTP). Both are listed in `docs/02` section 5.
