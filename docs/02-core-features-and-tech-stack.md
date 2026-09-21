@@ -138,7 +138,7 @@ This file lists the features that must exist for the product to be sellable to a
 
 ### 4.1 Recommended stack: .NET and Blazor
 
-Chosen by you: .NET with Blazor. This section fits the rest of the stack around that choice and keeps Keycloak and the gateway, which you already run.
+Chosen by you: .NET with Blazor. This section fits the rest of the stack around that choice and keeps Keycloak, which you already run. Decided 2026-09-21: no API gateway product in version 1. Caddy handles TLS and host routing; tenant resolution and rate limiting live in ASP.NET Core.
 
 | Layer | Choice | Why |
 |---|---|---|
@@ -151,7 +151,9 @@ Chosen by you: .NET with Blazor. This section fits the rest of the stack around 
 | Migrations | EF Core migrations, applied by a one-shot job at deploy time | Versioned schema in the repository. |
 | Identity | Keycloak 26 through the ASP.NET Core OpenID Connect handler | You know Keycloak deeply. One realm, one Keycloak Organization per tenant, vendor users as members of many organizations (F-10), tenant SSO as an identity provider on the organization (F-06). ASP.NET Core Identity with a hosted provider is the alternative if you later want no external identity server. |
 | Authorization | ASP.NET Core policy-based authorization with tenant and role requirements | Policies such as `CanOpenFinancialEnvelope` live in code next to the state machine. Open Policy Agent only if per-tenant custom policy becomes a sales requirement. |
-| API gateway | Apache APISIX (or YARP if you prefer to stay in .NET) | Per-tenant host routing, TLS for custom domains (F-03), rate limiting, WAF plugins. YARP is simpler to operate but has no WAF, so it would need a separate layer. |
+| Edge and TLS | Caddy in front of Kestrel | On-demand TLS issues a certificate the first time a customer's domain is seen, with an approval endpoint the app answers (F-03). Single Go binary, config under 30 lines in git. |
+| Tenant routing and rate limiting | ASP.NET Core middleware | Host header resolves the tenant before any Blazor circuit is created. The built-in .NET rate limiter partitions by tenant and by vendor account. No proxy hop on the Blazor WebSocket path. |
+| API gateway | None in version 1. Add YARP or Ocelot later if a public vendor API or a second service appears | Kong OSS, APISIX, Tyk, Ocelot, and WSO2 were assessed on 2026-09-21. All add a hop and operations for a single-host app; WSO2 alone needs 4 GB RAM. Ocelot (ThreeMammals, .NET) is the natural pick when a gateway becomes necessary. |
 | Workflow | Explicit state machine in code (Stateless library) | Covers F-27 with a readable transition table and guards per role. A workflow engine only if tenants must design their own flows. |
 | Background jobs | Hangfire with PostgreSQL storage | Notifications, parsing, AI runs, PDF rendering, and the scheduled deadline-closure job (with a distributed lock so one node closes a tender). Dashboard included. |
 | Cache and locks | Redis | Blazor circuit state that must survive a node restart, rate-limit counters, and distributed locks. |
@@ -176,7 +178,7 @@ Chosen by you: .NET with Blazor. This section fits the rest of the stack around 
 ```mermaid
 flowchart TB
     subgraph Edge["Edge (Saudi region)"]
-        DNS[Tenant custom domains<br/>CNAME to platform] --> GW[APISIX gateway<br/>TLS, host routing, rate limit, WAF]
+        DNS[Tenant custom domains<br/>CNAME to platform] --> GW[Caddy<br/>on-demand TLS, host routing]
     end
 
     GW --> HOST[ASP.NET Core host<br/>Blazor Server: tenant-app + vendor-portal<br/>Minimal APIs for public endpoints]
@@ -214,7 +216,7 @@ flowchart TB
 
 - **Database:** single PostgreSQL instance, shared schema, `tenant_id` column on every tenant-owned table. Two layers: EF Core global query filters on `TenantId` for everyday safety, and PostgreSQL row-level security policies `tenant_id = current_setting('app.tenant_id')` as the hard boundary. A `DbConnection` interceptor sets the setting at the start of each request or job from the validated token. Platform-admin operations use a separate database role that bypasses RLS and is never used by the web request path.
 - **Identity:** one Keycloak realm. Each tenant is a Keycloak Organization with its own domain, login theme, and optional identity provider. Tenant staff are organization members with roles. Vendor users live in the same realm and are members of every organization that has approved their company, with a `vendor` role. Tokens carry the active organization; the ASP.NET Core authentication pipeline turns it into a `TenantContext` scoped service used by EF Core and authorization policies.
-- **Routing and Blazor circuits:** the gateway maps `Host` to tenant slug and forwards it as a header. Middleware verifies the header against the token's organization before a Blazor circuit is created, so a user on tenant A can never open a circuit against tenant B's host. Each circuit is bound to one tenant for its lifetime.
+- **Routing and Blazor circuits:** Caddy terminates TLS and forwards the original `Host` header unchanged. ASP.NET Core middleware maps the host to a tenant slug and verifies it against the token's organization before a Blazor circuit is created, so a user on tenant A can never open a circuit against tenant B's host. Each circuit is bound to one tenant for its lifetime.
 - **Storage:** one bucket per environment, object keys prefixed by tenant, with a per-tender data key for financial envelopes held in the database encrypted by a master key in the cloud KMS.
 
 ### 4.4 Alternatives considered
@@ -259,7 +261,7 @@ ERP/
   infra/
     k8s/                             production manifests or Helm chart
     keycloak/                        realm export, themes
-    apisix/                          routes and plugins
+    caddy/                           Caddyfile, on-demand TLS ask endpoint config
   .github/workflows/
 ```
 
@@ -268,5 +270,5 @@ ERP/
 1. **PO scope:** confirm branded PDF plus structured export (F-36, F-37) for version 1, with ERP push as a later paid integration.
 2. **Vendor identity:** confirm one platform-wide vendor account with per-tenant approval (F-10).
 3. **Hosting provider:** pick the Saudi-region provider. Affects managed PostgreSQL, storage, and KMS choices.
-4. **UI stack:** decided 2026-09-21: Blazor Web App (Interactive Server) with MudBlazor. Remaining sub-choice: APISIX or YARP at the edge.
+4. **UI stack and edge:** decided 2026-09-21: Blazor Web App (Interactive Server) with MudBlazor. Caddy at the edge for TLS and routing, no API gateway product in version 1.
 5. **First customer:** name the company whose workflow becomes the default template.

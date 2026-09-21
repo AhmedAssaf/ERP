@@ -164,28 +164,29 @@ sequenceDiagram
 
 ## 5. Login and tenant isolation: one request end to end
 
-Read it as: the same user can never reach another tenant's data because the host, the token, and the database row policy must all agree.
+Read it as: the same user can never reach another tenant's data because the host, the token, and the database row policy must all agree. Caddy only terminates TLS; the tenant decision is made inside the app.
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor U as User (staff or vendor)
     participant B as Browser (tenders.customer.sa)
-    participant GW as APISIX gateway
+    participant GW as Caddy (TLS)
     participant KC as Keycloak (org per tenant)
     participant API as Platform API
     participant DB as PostgreSQL (RLS)
 
     U->>B: Open tenders.customer.sa
     B->>GW: GET /
-    GW->>GW: Host -> tenant slug "customer"
-    GW->>B: Redirect to Keycloak login (org = customer)
+    GW->>API: Forward with original Host header
+    API->>API: Host -> tenant slug "customer"
+    API->>B: Redirect to Keycloak login (org = customer)
     B->>KC: Login (password + TOTP, or customer's Entra ID)
     KC-->>B: Token with org = customer, roles
     B->>GW: GET /api/tenders (Bearer token)
-    GW->>API: Forward + header X-Tenant: customer
+    GW->>API: Forward (TLS terminated)
     API->>KC: Validate token signature and expiry
-    API->>API: Assert token.org == X-Tenant, else 403
+    API->>API: Assert token.org == host tenant, else 403
     API->>DB: SET app.tenant_id = customer
     API->>DB: SELECT ... FROM tenders
     DB->>DB: RLS policy: tenant_id = current_setting('app.tenant_id')
@@ -389,7 +390,7 @@ flowchart TB
     subgraph KSA["Saudi cloud region (data residency N-01)"]
         LB[Load balancer + TLS]
         subgraph K8S["Kubernetes cluster"]
-            GW[APISIX<br/>2 replicas]
+            GW[Caddy<br/>on-demand TLS, 2 replicas]
             KC[Keycloak<br/>2 replicas]
             API[ASP.NET Core host<br/>Blazor + APIs, 3 replicas]
             WEB[Static web apps<br/>tenant-app, vendor-portal]
