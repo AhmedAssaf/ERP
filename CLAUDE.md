@@ -34,7 +34,7 @@ Reference features and requirements by ID in any new document. When a decision c
 - AI: assist-only. AI drafts, a named human decides, every AI output is stored with model and prompt version. Financial AI checks run only after technical scores are locked.
 - Data residency: everything in a Saudi cloud region.
 
-Still open (see document 02 section 5): PO scope for version 1, vendor identity model, hosting provider, first customer.
+Still open (see document 02 section 5): PO scope for version 1, vendor identity model, first customer. Hosting is deferred with an interim answer: local Compose for development, Oracle Cloud Always Free in Jeddah for the pilot, re-evaluate when Azure Saudi Arabia East (November 2026) and AWS Saudi (December 2026) open.
 
 ## Working with the agents and process
 

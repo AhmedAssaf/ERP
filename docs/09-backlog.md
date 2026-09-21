@@ -19,7 +19,7 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 
 | Epic | Stories | P0 | P1 | P2 |
 |---|---|---|---|---|
-| E0 Platform foundation | W-01 to W-12 | 9 | 3 | 0 |
+| E0 Platform foundation | W-01 to W-12, W-19 | 10 | 3 | 0 |
 | E1 Tenancy and branding | F-01 to F-05, F-01b | 4 | 2 | 0 |
 | E2 Identity, users, roles | F-06 to F-10, F-06b | 2 | 2 | 2 |
 | E3 Vendor registration | F-11 to F-14, F-12b | 2 | 1 | 2 |
@@ -49,6 +49,7 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 | W-10 | Observability: OpenTelemetry, Serilog, health endpoints, Sentry | P1 | S | Backlog | W-02 |
 | W-11 | Production Caddyfile with on-demand TLS and the tenant allow endpoint; Kubernetes manifests | P1 | M | Backlog | F-03 |
 | W-12 | Backup and restore drill script for PostgreSQL and object storage | P1 | S | Backlog | W-11 |
+| W-19 | Pilot environment on Oracle Cloud Always Free, Jeddah home region: one Arm VM running the Compose stack plus the app, HTTPS via Caddy, nightly volume backup to object storage | P0 | M | Backlog | W-01, W-09 |
 
 Acceptance criteria:
 
@@ -63,6 +64,7 @@ Acceptance criteria:
 - **W-09.** Given a pull request, when CI runs, then build, tests against real PostgreSQL and Keycloak, format check, container scan, utility lint, and Mermaid render check all report within ten minutes.
 - **W-10.** Given a request, when it fails, then a trace with tenant id and correlation id appears in the collector and an event in Sentry.
 - **W-11.** Given a tenant with a verified custom domain, when the first HTTPS request for that hostname arrives, then Caddy asks the allow endpoint, receives 200, obtains a certificate, and serves the tenant portal; when the hostname is unknown, then the allow endpoint returns 404 and no certificate is issued.
+- **W-19.** Given an Oracle Cloud tenancy with Jeddah as home region, when the provisioning script runs, then an Always Free Arm instance (or the documented paid fallback) hosts the Compose stack and the app, the pilot tenant's hostname serves over HTTPS, all data stays in the Jeddah region, and a nightly backup of the PostgreSQL and MinIO volumes lands in Jeddah object storage; given the instance is destroyed, when the restore script runs on a new one, then the pilot tenant is back within one hour.
 - **W-12.** Given a nightly backup, when the restore script runs against an empty environment, then the platform starts and a chosen tender's files and rows are present with matching hashes.
 
 ## E1 Tenancy and branding (F-01 to F-05)

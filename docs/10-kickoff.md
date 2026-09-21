@@ -75,8 +75,8 @@ gantt
 
 | Decision | Needed by | Default if undecided |
 |---|---|---|
-| Hosting provider in a Saudi region (document 02 section 5) | Before W-03 is planned, because the database role model and storage key handling follow the provider | Design against a generic managed PostgreSQL and S3-compatible storage; pick the provider before the pilot deploy |
-| Pilot login method | Before W-04 | Password plus TOTP through Keycloak, no SSO |
+| Hosting provider in a Saudi region (document 02 section 5) | Decided as interim on 2026-09-21: local Compose for development, Oracle Cloud Always Free in Jeddah for the pilot, revisit when Azure and AWS Saudi regions open in Q4 2026 | Design against generic managed PostgreSQL and S3-compatible storage |
+| Pilot login method (how the customer's staff sign in: Keycloak password plus authenticator code, or their Microsoft Entra ID single sign-on) | Before W-04; only matters if the pilot customer refuses password login | Password plus TOTP through Keycloak, no SSO |
 | PO scope for version 1 | Before the award slice, not during kickoff | Branded PDF only (document 05 assumption) |
 | Vendor identity model | Before the vendor slice, not during kickoff | One account per vendor on the pilot tenant (document 05 assumption) |
 
