@@ -62,8 +62,8 @@ sequenceDiagram
 
     RD->>CO: Raise need + budget code
     CO->>CO: Draft tender, criteria, checklist (F-15 to F-19)
-    CO->>V: Publish / invite (F-19)
-    V->>V: Register, upload documents (F-11, F-12)
+    CO->>V: Publish, invite from address book (F-14a, F-19, F-55)
+    V->>V: Open link, register if new, land on tender (F-55, F-11, F-12)
     V->>CO: Clarification questions (F-21)
     CO-->>V: Answers (anonymised to all)
     V->>CO: Sealed technical + financial offer (F-22, F-23)
@@ -501,6 +501,7 @@ mindmap
       F-12 documents with expiry
       F-13 local content
       F-14 tenant vendor list
+      F-14a vendor address book
     Tenders
       F-15 types
       F-16 content + BoQ
@@ -509,6 +510,7 @@ mindmap
       F-19 visibility
       F-20 amendments
       F-21 clarifications
+      F-55 invitation with registration
     Submission
       F-22 wizard
       F-23 sealed envelopes

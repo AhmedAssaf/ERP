@@ -6,6 +6,8 @@ Related: `02-core-features-and-tech-stack.md` (feature IDs), `04-reference-app-a
 
 ## 1. The goal
 
+Glossary: tender = مناقصة; the vendor portal and emails use the Arabic term.
+
 One Saudi private company runs one real tender on the platform, from publishing to a signed PO, with at least five vendors submitting, and the contracts officer says they would run the next one on it too. Everything in this document exists to make that sentence true. Anything that does not is out.
 
 ## 2. How the MVP relates to version 1
@@ -45,7 +47,7 @@ flowchart LR
         A2[Staff accounts + roles<br/>F-06 F-07]:::mvp
         A3[Vendor registration + docs<br/>F-11 F-12]:::mvp
         A4[Tender authoring<br/>F-15 F-16 F-17]:::mvp
-        A5[Invite + clarifications<br/>F-19 F-21]:::mvp
+        A5[Address book, invite,<br/>clarifications F-14a F-19 F-55 F-21]:::mvp
         A6[Sealed submission + deadline<br/>F-22 F-23 F-24]:::mvp
         A7[Screening + scoring + lock<br/>F-28 F-29 F-30]:::mvp
         A8[Comparison + finance approval<br/>F-31 F-33]:::mvp
@@ -68,7 +70,7 @@ Every row is a feature ID from document 02 with the MVP-sized version of its acc
 | 6 | F-12 | CR and VAT certificate with expiry dates. Expired document blocks submission | Two document types instead of seven. No 30-day reminder |
 | 7 | F-15, F-16 | One tender type: sealed two-envelope Tender. Title, reference, description, scope attachment, terms attachment, BoQ lines, submission deadline, clarification deadline | No RFQ or RFP type, no bid bond field, no validity period |
 | 8 | F-17 | Compliance checklist items, technical criteria with weights summing to 100, minimum pass mark, financial method fixed to lowest compliant price | No weighted technical-financial split |
-| 9 | F-19, F-21 | Invited vendors only, by email. Vendors ask questions; officer answers publicly to all invited vendors | No open tenders, no private answers |
+| 9 | F-14a, F-19, F-55, F-21 | Officer picks invitees from the tenant's vendor address book or types new emails. Each invitee gets a branded single-use link: registered vendors land on the tender after login, unregistered ones register with the email pre-filled and land on the tender, resumable until the deadline. Officer sees sent, opened, registered, submitted per invitee. Vendors ask questions; officer answers publicly to all invited vendors | No open tenders, no private answers, no vendor categories beyond a text tag |
 | 10 | F-22, F-23, F-24 | Wizard: documents check, technical upload, BoQ prices, financial upload, submit. Technical and financial stored with separate keys; financial unreadable until opening. Server-time deadline, late refused, resubmission allowed before deadline | No draft autosave beyond the browser session. Resubmission replaces rather than versions |
 | 11 | F-28, F-29, F-30 | Officer marks checklist pass or fail per offer. Evaluators score each criterion, hidden from each other until all submit. Officer locks scores | No "waived" state |
 | 12 | F-31, F-33 | Auto-built comparison sheet: vendor, BoQ line prices, totals, VAT, arithmetic check. Export to Excel. One finance approver approves or returns with a reason | No internal estimate variance, no local content column, no approval limits |
@@ -80,7 +82,7 @@ Also in the MVP because the pilot cannot run without them, though they carry no 
 
 ## 4. Explicitly out of the MVP
 
-Custom domains, SSO, per-tender committees, delegation of authority limits, amendments, receipts with hashes, vendor dashboard, ranking other than lowest price, cancellation, award and regret letters, PO export, SMS, notification preferences, local content fields, tenant vendor list, templates, public listing, audit export, dashboards, every AI feature, mobile apps, ERP integration, vendor identity across tenants.
+Custom domains, SSO, per-tender committees, delegation of authority limits, amendments, receipts with hashes, vendor dashboard, ranking other than lowest price, cancellation, award and regret letters, PO export, SMS, notification preferences, local content fields, the full tenant vendor list with approval states (the address book F-14a is in), templates, public listing, audit export, dashboards, every AI feature, mobile apps, ERP integration, vendor identity across tenants.
 
 If the pilot customer asks for one of these, the answer is "version 1.1, after your tender closes", unless the tender cannot legally proceed without it.
 

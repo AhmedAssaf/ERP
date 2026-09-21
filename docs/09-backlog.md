@@ -22,8 +22,8 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 | E0 Platform foundation | W-01 to W-12, W-19 | 10 | 3 | 0 |
 | E1 Tenancy and branding | F-01 to F-05, F-01b | 4 | 2 | 0 |
 | E2 Identity, users, roles | F-06 to F-10, F-06b | 2 | 2 | 2 |
-| E3 Vendor registration | F-11 to F-14, F-12b | 2 | 1 | 2 |
-| E4 Tender authoring | F-15 to F-21 | 5 | 1 | 1 |
+| E3 Vendor registration | F-11 to F-14, F-12b, F-14a | 3 | 1 | 2 |
+| E4 Tender authoring | F-15 to F-21, F-55 | 6 | 1 | 1 |
 | E5 Offer submission | F-22 to F-26 | 3 | 2 | 0 |
 | E6 Evaluation chain | F-27 to F-34 | 6 | 2 | 0 |
 | E7 Award and PO | F-35 to F-37 | 1 | 2 | 0 |
@@ -109,10 +109,12 @@ Acceptance criteria:
 | F-12 | Vendor documents with expiry (MVP: CR and VAT certificate; expired blocks submission) | P0 | M | Backlog | F-11, ADR-0001 |
 | F-12b | Full document set, 30-day expiry reminders | P1 | S | Backlog | F-12, F-38 |
 | F-13 | Local content and Saudization fields | P2 | S | Backlog | F-11 |
+| F-14a | Tenant vendor address book: name, email, category, registered or not; pick invitees from it | P0 | S | Backlog | W-03 |
 | F-14 | Tenant vendor list: pending, approved, blocked, invite, tag | P2 | M | Backlog | F-11 |
 
 - **F-11.** Given the registration form, when a vendor submits with an unverified email, then the account is inactive until the link is clicked; when the CR number is not ten digits, then the form shows a specific error in the vendor's language.
 - **F-12.** Given a CR certificate with an expiry date in the past, when the vendor opens the submission wizard, then the wizard blocks at step one and names the expired document; given an upload, then it goes through the chunked path and is virus-scanned before it is listed.
+- **F-14a.** Given the address book, when the officer publishes a tender and picks three entries plus one new email, then all four receive invitations and the new email is saved to the book; given a vendor that later registers with a listed email, then the entry shows as registered without the officer doing anything.
 - **F-13.** Given local content percentage and Saudi headcount fields, when an offer is compared, then the comparison sheet shows both columns.
 - **F-14.** Given a blocked vendor, when they open an invitation from that tenant, then they see "not eligible" and cannot submit; given a category tag, when the officer filters, then only tagged vendors appear.
 
@@ -127,12 +129,14 @@ Acceptance criteria:
 | F-19 | Visibility (MVP: invited vendors by email only) | P0 | S | Backlog | F-16, F-11 |
 | F-20 | Amendments with versioning and notification | P1 | M | Backlog | F-16, F-38 |
 | F-21 | Clarifications (MVP: public answers to all invited) | P0 | M | Backlog | F-19 |
+| F-55 | Tender invitation by email with registration continuation and access to the tender | P0 | M | Backlog | F-11, F-14a, F-19, F-38 |
 
 - **F-15.** Given the MVP, when an officer creates a tender, then the only type offered is the sealed two-envelope Tender and its stages are Draft, Published, Clarification, Closed, Compliance screening, Technical evaluation, Technical locked, Financial opening, Financial evaluation, Finance approval, Awarded, Cancelled; given the P2 follow-up, when RFQ is chosen, then the technical stages are skipped and the financial stages run directly after Closed.
 - **F-16.** Given a draft tender, when the officer publishes without a submission deadline in the future, then publishing is refused with a specific message; when BoQ lines have a unit and quantity, then the vendor wizard prices exactly those lines.
 - **F-17.** Given criteria weights of 40, 30, 20, when the officer publishes, then it is refused until the weights sum to 100; given a pass mark of 70, when an offer scores 69.5, then it is excluded from financial ranking.
 - **F-19.** Given three invited vendors, when a fourth registered vendor opens the tender URL, then they get 404 and the attempt is audited.
 - **F-20.** Given a published tender, when the officer changes the scope attachment, then version 2 is created, all invited vendors are notified within one minute, and version 1 stays readable.
+- **F-55.** Given an invitation sent to an unregistered email, when the recipient opens the link, then they see the tender title and the inviting company's brand and are taken into registration with the email pre-filled; when they complete registration, then they land on the tender with access and the officer's list shows them as registered; given they stop halfway, when they reopen the same link a day later, then registration resumes where it stopped. Given an already registered vendor, when they open the link, then after login they land on the tender directly. Given the link is opened after the submission deadline, then it shows an expired message in the vendor's language. Given the link is used with a different email than the one invited, then access is refused and the officer is notified. Given the officer's tender page, then each invitee shows sent, opened, registered, or submitted with timestamps.
 - **F-21.** Given a vendor question before the clarification deadline, when the officer publishes an answer, then every invited vendor sees it without the asker's identity; when a question arrives after the deadline, then it is refused.
 
 ## E5 Offer submission (F-22 to F-26)
@@ -229,7 +233,7 @@ Acceptance criteria:
 | W-14 | Reference App demo or former-customer call answering the seven questions in document 04 section 10 | P0 | S | Backlog | |
 | W-15 | First customer signed for the pilot with a named tender and date | P0 | L | Backlog | W-13 |
 | W-16 | Pricing page draft: monthly per-tenant price, first tender free | P0 | S | Backlog | W-13 |
-| W-17 | Pilot dry run script with fake vendors, producing the document 05 section 7 table | P0 | M | Backlog | F-01, F-02, F-06, F-07, F-11, F-12, F-15, F-16, F-17, F-19, F-21, F-22, F-23, F-24, F-27, F-28, F-29, F-30, F-31, F-33, F-36, F-38, F-39, F-41, F-44 |
+| W-17 | Pilot dry run script with fake vendors, producing the document 05 section 7 table | P0 | M | Backlog | F-01, F-02, F-06, F-07, F-11, F-12, F-14a, F-15, F-16, F-17, F-19, F-21, F-55, F-22, F-23, F-24, F-27, F-28, F-29, F-30, F-31, F-33, F-36, F-38, F-39, F-41, F-44 |
 | W-18 | Pilot review and version 1.1 scope | P0 | S | Backlog | W-17 |
 
 - **W-13.** Given three interviews, when written up, then each records current tools, last tender's cycle time, what Reference App or others quoted, and whether the vendor would see their brand; the document 01 "things to verify" list is updated.

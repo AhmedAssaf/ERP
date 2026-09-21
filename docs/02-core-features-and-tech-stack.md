@@ -48,6 +48,7 @@ This file lists the features that must exist for the product to be sellable to a
 | F-12 | Vendor documents with expiry | CR, VAT certificate, GOSI certificate, Zakat certificate, Chamber of Commerce, Saudization (Nitaqat) status, ISO certificates. Each has an expiry date; expired documents block submission and trigger a reminder 30 days before. |
 | F-13 | Local content fields | Local content percentage, Saudi employees count and percentage, and supporting evidence. Shown in comparison sheets. |
 | F-14 | Tenant vendor list | Tenant sees pending, approved, and blocked vendors, can invite by email, and can tag by category. |
+| F-14a | Tenant vendor address book (MVP subset of F-14) | Contracts officer keeps a list of vendors by company name, contact email, and category, whether or not the vendor has registered yet. Publishing a tender lets the officer pick invitees from this list or type new emails, which are added to the list. |
 
 ### 2.4 Tender authoring and publishing
 
@@ -59,6 +60,7 @@ This file lists the features that must exist for the product to be sellable to a
 | F-18 | Templates | Any tender can be saved as a tenant template and reused. |
 | F-19 | Visibility | Open (any approved vendor on the tenant can submit) or invited (only listed vendors). Optional public listing page under the tenant's domain. |
 | F-20 | Amendments | Publishing a change after release creates a new version, notifies all invited or registered vendors, and optionally extends the deadline. Previous versions stay visible. |
+| F-55 | Tender invitation with registration continuation | Added 2026-09-21. Publishing a tender (مناقصة) sends each invitee a branded email with a single-use invitation link. A vendor already registered on the platform lands on the tender after login. A vendor not yet registered is taken through registration (F-11) with the company email pre-filled, and on completion lands on the same tender with access granted; the registration can be paused and resumed from the same link until the submission deadline. The invitation records sent, opened, registered, and submitted states so the officer sees who has not responded. Links expire at the submission deadline and cannot be forwarded to a different email without the officer re-inviting. |
 | F-21 | Clarifications | Vendors ask questions before the clarification deadline. Contracts officer answers privately or publishes the answer anonymised to all vendors. |
 
 ### 2.5 Offer submission (vendor portal)
