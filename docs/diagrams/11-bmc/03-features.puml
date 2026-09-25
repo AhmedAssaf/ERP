@@ -1,0 +1,30 @@
+@startwbs
+!include _style.iuml
+<style>
+wbsDiagram {
+  node { Padding 7; RoundCorner 10; MaximumWidth 230; FontSize 12 }
+  :depth(0) { BackgroundColor #1F3A5F; FontColor white; FontSize 15 }
+  .must { BackgroundColor #82E0AA }
+  .need { BackgroundColor #AED6F1 }
+  .later { BackgroundColor #E5E7E9; FontColor #616A6B }
+  .add { BackgroundColor #F9E79F; LineColor #B7950B; LineThickness 2 }
+}
+</style>
+title Features that really matter
+* What the buyer pays for:\nproof of a fair process
+** MUST: the product <<must>>
+*** 1. Sealed envelope, server deadline, score lock\nF-23 F-24 F-30 <<must>>
+*** 2. Vendor invite and phone-friendly submission\nF-55 F-22 F-11 F-12 <<must>>
+*** 3. Comparison sheet with arithmetic check\nF-31 <<must>>
+*** 4. Immutable event log\nF-41 <<must>>
+*** 5. Audit bundle PDF per tender\nF-42, add to the MVP <<add>>
+** NEEDED to run a tender <<need>>
+*** Approval chain, one default template\nF-28 F-29 F-33 F-56 <<need>>
+*** Arabic-first screens and emails\nF-04 F-38 F-39 <<need>>
+*** Branded portal and PO PDF\nF-02 F-36 <<need>>
+** LATER: only when a paying customer asks <<later>>
+*** AI offer review F-45 to F-50 <<later>>
+*** Custom domain F-03, SSO F-06 <<later>>
+*** Workflow editor screen F-56b <<later>>
+*** ERP connectors, e-signature F-36b, PQQ F-59 <<later>>
+@endwbs

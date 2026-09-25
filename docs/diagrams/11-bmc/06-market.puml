@@ -1,0 +1,18 @@
+@startuml
+!include _style.iuml
+!pragma layout smetana
+skinparam rectangle {
+  FontColor #1B2631
+  BorderColor #1F618D
+}
+title Market size (estimates from Monshaat and GASTAT counts, SAR 30,000 per tenant a year)
+rectangle "**TAM**: all medium and large private firms\nabout 22,700 firms = about SAR 680M a year" as T #EBF5FB {
+  rectangle "100 to 1,000 staff: about 9,500 firms" as B #D6EAF8 {
+    rectangle "Construction, manufacturing, health, FM: about 5,200" as C #AED6F1 {
+      rectangle "**SAM**: run a formal tender at least monthly\nabout 2,600 firms = about SAR 78M a year" as S #85C1E9 {
+        rectangle "**SOM, year 5 base**\n110 tenants = SAR 3.3M ARR\nabout 4 % of SAM" as O #1F618D;text:white
+      }
+    }
+  }
+}
+@enduml

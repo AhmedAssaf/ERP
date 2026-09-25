@@ -1,0 +1,29 @@
+@startuml
+!include _style.iuml
+skinparam activity {
+  BackgroundColor #EBF5FB
+  BorderColor #2E86C1
+  DiamondBackgroundColor #FEF9E7
+}
+title Is it worth your time? Decide with three cheap gates
+start
+:Now: canvas done. Do not write product code yet; <<#D6EAF8>>
+:Weeks 1 to 4: 3 interviews (W-13), show the price (W-16); <<#D6EAF8>>
+if (Gate 1: 2 of 3 would pay SAR 1,500+ a month\nand one names a real tender?) then (yes)
+  :Build the MVP (docs/05) and run the pilot tender; <<#AED6F1>>
+  if (Gate 2, about week 20: 5 of 8 vendors submit\nand the pilot signs a paid plan?) then (yes)
+    :Sell: about one tenant a month; <<#85C1E9>>
+    if (Gate 3, month 18: 10 paying tenants?) then (yes)
+      :**Commit**: hire, follow the base case
+      SAR 455k a year profit and SAR 10M to 20M value by year 5; <<#58D68D>>
+    else (fewer than 10)
+      :Stop, or sell the module to an ERP partner; <<#F8C471>>
+    endif
+  else (no)
+    :Stop or pivot. Lost: about SAR 70k and 5 months; <<#F5B7B1>>
+  endif
+else (no)
+  :Stop. Lost: 4 weeks of evenings, about SAR 0; <<#F5B7B1>>
+endif
+stop
+@enduml

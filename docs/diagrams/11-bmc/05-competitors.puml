@@ -1,0 +1,14 @@
+@startuml
+!include _style.iuml
+title Competitors: what a mid-size buyer can choose today
+legend top left
+|= Option |= Price a year (SAR) |= Sealed two-envelope tender |= Saudi hosting |= Why the buyer picks us |
+|<#FADBD8> **Email, WhatsApp, Excel**\nthe real competitor | 0 |<#F5B7B1> No: prices seen early, changed late | n/a | Proof of a fair process, days saved |
+|<#FDEBD0> **Reference App** (Saudi) | from 187,500\nplus a 1 to 3 month project |<#FCF3CF> Permission-gated mode;\nprice revisions allowed | Not stated | One-sixth of the price, live in a day,\nsealed by encryption, prices immutable |
+|<#FDEBD0> **SAP Ariba, Coupa, Jaggaer** | six figures USD plus a partner |<#D5F5E3> Yes, inside a large suite | Varies | Overkill for 300 staff, English-first |
+|<#EBF5FB> **Precoro, Tradogram, Kissflow** | about 22,000 to 45,000 |<#FCF3CF> RFQ-style, not verified | Not stated | Arabic-first, sealed envelopes, Saudi data |
+|<#EBF5FB> **Odoo purchase** | 760 to 1,440 per user | No formal tender module | Via partner | A partner, not a rival: we sit next to it |
+|<#E8F8F5> **Etimad** | free | Yes | Yes | Government only; its discipline is our pitch |
+|<#D5F5E3> **Us** | **18,000 to 90,000** |<#82E0AA> **Encrypted, witnessed opening,\nprices immutable** |<#82E0AA> **Yes** | |
+endlegend
+@enduml

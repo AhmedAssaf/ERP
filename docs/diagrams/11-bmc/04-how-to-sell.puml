@@ -1,0 +1,37 @@
+@startuml
+!include _style.iuml
+skinparam activity {
+  BackgroundColor #EBF5FB
+  BorderColor #2E86C1
+  DiamondBackgroundColor #FEF9E7
+}
+title How to sell: one founder, about 8 hours a week, one new tenant a month
+start
+:Target list: 100 firms under audit pressure
+contractors, factories, hospital groups (100 to 1,000 staff); <<#D6EAF8>>
+:40 contacts a month
+warm intros first, Arabic LinkedIn second; <<#D6EAF8>>
+:12 conversations with the contracts or procurement manager; <<#AED6F1>>
+:5 demos of 30 minutes
+their logo preloaded, show the sealed opening and audit bundle; <<#85C1E9>>
+:2 free first tenders, done with you; <<#5DADE2>>
+if (5 of 8 vendors submit and\napproval within 5 working days?) then (yes)
+  :Review with the finance approver
+  annual plan, two months free; <<#82E0AA>>
+  :**1 paying tenant**; <<#58D68D>>
+  :Ask for 2 referrals and invite vendors that also buy; <<#D5F5E3>>
+else (no)
+  :Find out why, fix it, run the next tender; <<#F5B7B1>>
+endif
+stop
+legend right
+  **Pitch:** your tenders under your brand, prices sealed until the
+  technical scores are locked, audit-ready, for a monthly price.
+  ....
+  **Objections**
+  Excel works : who saw the prices first, and can you prove it?
+  We have an ERP : we feed it a clean PO; it has no sealed vendor portal
+  Is data safe? : hosted in Saudi Arabia, price files encrypted, every access logged
+  Reference App does this : from SAR 187,500 a year; we start at SAR 1,500 a month
+endlegend
+@enduml

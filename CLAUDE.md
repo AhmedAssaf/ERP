@@ -23,6 +23,7 @@ Spikes run on the .NET 9 SDK installed here (`dotnet run` in each spike folder).
 - `docs/10-kickoff.md` — the first four weeks: customer track and technical track in parallel, exit criteria, day-one checklist, the session commands for the foundation slice.
 - `docs/09-backlog.md` — the single source of work: stories per feature ID (F-xx) and work item (W-xx) with acceptance criteria, priority (P0 MVP, P1, P2), size, status, dependencies. Update a story's status in the same pull request that moves it; create GitHub issues from rows here, not the reverse.
 - `docs/05-mvp-scope.md` — the pilot MVP: 15 features narrowed from document 02 (each row states the narrowing), an explicit out-of-scope list, two one-day spikes (Arabic PDF, Blazor upload on weak connections) that run before any build, a 20-week plan, and pilot success measures. When scoping work, this document wins over document 02 until the pilot has run.
+- `docs/11-business-model-canvas.md` — the business model canvas (added 2026-09-26): problem, features that matter, market sizing, competitors, sales playbook, five-year income and expenses, company value, and go or no-go gates. Diagram-first and short, by the user's request.
 
 Reference features and requirements by ID in any new document. When a decision changes, update all three documents in the same commit; they cross-reference each other, and diagram labels must match the stack table in document 02.
 
@@ -45,6 +46,7 @@ Still open (see document 02 section 5): PO scope for version 1, vendor identity 
 
 - Documents are numbered `docs/NN-topic.md` and listed in `README.md`; add a line there for every new document.
 - Diagrams are Mermaid fenced blocks so GitHub renders them. Validate any new or edited diagram by rendering it with `npx @mermaid-js/mermaid-cli -i file.mmd -o file.png` before committing; broken syntax renders as an error on GitHub.
+- Exception, at the user's request (2026-09-26): document 11 uses PlantUML, not Mermaid. Sources live in `docs/diagrams/11-bmc/*.puml` with the rendered PNGs committed beside them; render with `java -jar ~/bin/plantuml.jar -charset UTF-8 -tpng`. No Graphviz is installed, so use mindmap, WBS, activity, legend tables, or `!pragma layout smetana`.
 - Quadrant charts need an `%%{init: {"quadrantChart": {...}}}%%` directive with a wider `chartWidth`, or the title is clipped.
 - The user and their team prefer diagrams over prose. Lead with a diagram when explaining a flow, architecture, or data model.
 - Feature and requirement IDs are stable. Never renumber; append new IDs at the end of the relevant group.

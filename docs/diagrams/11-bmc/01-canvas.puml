@@ -1,0 +1,60 @@
+@startmindmap
+!include _style.iuml
+<style>
+mindmapDiagram {
+  node { Padding 8; Margin 6; RoundCorner 12; MaximumWidth 300; LineColor #5D6D7E }
+  :depth(0) { BackgroundColor #1F3A5F; FontColor white; FontSize 17; FontStyle bold }
+  :depth(2) { BackgroundColor #FBFCFC; FontSize 12 }
+  .seg { BackgroundColor #F9E79F }
+  .val { BackgroundColor #F5B7B1 }
+  .chan { BackgroundColor #AED6F1 }
+  .rel { BackgroundColor #A3E4D7 }
+  .rev { BackgroundColor #82E0AA }
+  .part { BackgroundColor #D7BDE2 }
+  .act { BackgroundColor #FAD7A0 }
+  .res { BackgroundColor #D5DBDB }
+  .cost { BackgroundColor #F1948A }
+}
+</style>
+title Business Model Canvas: tender-to-PO SaaS for Saudi mid-size companies
+* Tender-to-PO SaaS\nsealed, branded, audit-ready
+** 1. Customer Segments <<seg>>
+*** Payer: Saudi private firms, 100 to 1,000 staff
+*** Beachhead: construction and manufacturing
+*** First: firms under audit pressure (pre-IPO, internal audit, government contractors)
+*** Free side: their vendors (117,000 registered contractors)
+** 2. Value Propositions <<val>>
+*** Prove the tender was fair
+*** Prices sealed until technical scores are locked; no change after the deadline
+*** One audit bundle for the board and the auditor
+*** Live in a day, monthly price, data in Saudi Arabia
+** 3. Channels <<chan>>
+*** Founder-led Arabic demos
+*** Vendor loop: each tender brings 5 to 8 vendors
+*** Odoo and SAP B1 partners, audit firms, Monshaat
+** 4. Customer Relationships <<rel>>
+*** Free first tender, done with you
+*** Arabic WhatsApp support
+*** Lock-in: audit archive, vendor book, templates
+** 5. Revenue Streams <<rev>>
+*** SAR 1,500 / 3,500 / 7,500 a month per tenant
+*** About SAR 30,000 per tenant a year; vendors free
+*** Add-ons: CR check, PO e-signature, AI pack
+left side
+** 8. Key Partners <<part>>
+*** Saudi-region cloud
+*** Wathq, e-signature, SMS providers
+*** ERP partners, audit firms, Monshaat
+** 7. Key Activities <<act>>
+*** Build and run the platform
+*** Sell, and onboard vendors per tender
+*** PDPL compliance
+** 6. Key Resources <<res>>
+*** Sealed-envelope engine and audit log
+*** White-label, Arabic-first UI
+*** Vendor network, one Saudi hire
+** 9. Cost Structure <<cost>>
+*** Salaries, under Saudization rules
+*** Hosting, AI, SMS: about SAR 220 per tenant a month
+*** Lean fixed cost with 2 hires: SAR 450k to 650k a year
+@endmindmap

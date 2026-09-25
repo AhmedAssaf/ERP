@@ -1,0 +1,33 @@
+@startmindmap
+!include _style.iuml
+<style>
+mindmapDiagram {
+  node { Padding 8; Margin 6; RoundCorner 12; MaximumWidth 280 }
+  :depth(0) { BackgroundColor #922B21; FontColor white; FontSize 16; FontStyle bold }
+  .strong { BackgroundColor #F1948A }
+  .medium { BackgroundColor #F8C471 }
+  .weak { BackgroundColor #D5DBDB }
+  .who { BackgroundColor #AED6F1 }
+  .catch { BackgroundColor #FFFFFF; LineColor #922B21; LineThickness 2 }
+}
+</style>
+title The problem: a mid-size company cannot prove its tender was fair
+* Tender run on email,\nWhatsApp and Excel
+** Prices seen early or changed after the deadline <<strong>>
+*** Overpaying, favouritism claims, disputes <<strong>>
+** No trail for the auditor, board or CMA <<strong>>
+*** Audit findings; a blocker before listing <<strong>>
+** Evaluation drags for weeks across departments <<medium>>
+** Vendor documents chased on WhatsApp, expired CRs <<medium>>
+left side
+** Who feels it most <<who>>
+*** Listed and pre-IPO firms <<who>>
+*** Groups with internal audit <<who>>
+*** Government and giga-project contractors <<who>>
+*** Firms burned by a disputed award <<who>>
+** Vendors do not see our brand: nice, not a reason to buy <<weak>>
+** The catch: no law forces private firms to tender. We sell governance, not compliance <<catch>>
+legend right
+  <back:#F1948A> strong </back> <back:#F8C471> medium </back> <back:#D5DBDB> weak </back>  pain strength, a hypothesis until the W-13 interviews
+endlegend
+@endmindmap
