@@ -1,0 +1,41 @@
+@startuml
+!include _style.iuml
+!pragma layout smetana
+left to right direction
+skinparam rectangle {
+  BorderColor #1F618D
+  FontColor #1B2631
+}
+skinparam arrow {
+  Color #1F618D
+  FontSize 12
+}
+title Payment model: the buying company pays, vendors never pay
+
+rectangle "**Buying company**\n(the tenant)" as B #F9E79F
+rectangle "**Vendors**\n(invited to tenders)" as V #E5E7E9
+rectangle "**Us**\nabout SAR 30,000\nper tenant a year" as U #82E0AA
+rectangle "**Partners**\nOdoo, SAP B1, audit firms" as P #D7BDE2
+rectangle "**Pass-through costs**\nWathq SAR 9-12 per check\nAI USD 1-3 per tender\ngateway about 2 % + SAR 1" as C #F5B7B1
+
+B --> U : subscription per tenant\nannual invoice, bank transfer\n(2 months free) or monthly card/mada
+B --> U : add-ons per use
+V ..> U : free: register and submit
+U --> P : 20 % of year-1 revenue\nfor a referred customer
+U --> C : cost per use
+
+legend bottom
+|= Tier |= SAR a month |= Open tenders |= Users |= Adds |
+|<#FCF3CF> Starter | 1,500 | 2 | 10 | Branded portal, sealed envelopes, audit log |
+|<#FAD7A0> Growth | 3,500 | 6 | 30 | Custom domain, approval chain, SSO, no "powered by" |
+|<#F8C471> Pro | 7,500 | Unlimited | Unlimited | PO export, priority support, AI review |
+....
+|= Add-on |= Charged |= Price |
+| Vendor CR check (Wathq) | per check | SAR 15 |
+| PO e-signature | per signed PO | SAR 10 |
+| AI offer review (Starter, Growth) | per tender | SAR 150 |
+| ERP export connection | one-time | SAR 15,000 to 40,000 |
+....
+First tender free on every tier. Prices exclude 15 % VAT. Flat price per company, not per user.
+endlegend
+@enduml

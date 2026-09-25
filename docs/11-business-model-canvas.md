@@ -1,6 +1,6 @@
 # Business Model Canvas: WaslaBid, Tender-to-PO for the Saudi Mid-Market
 
-Date: 2026-09-26. Status: hypothesis, before the pilot. Numbers are estimates unless section 11 marks them verified.
+Date: 2026-09-26. Status: hypothesis, before the pilot. Numbers are estimates unless section 12 marks them verified.
 
 Diagrams are PlantUML; the sources are in `docs/diagrams/11-bmc/`. To re-render: `java -jar ~/bin/plantuml.jar -charset UTF-8 -tpng docs/diagrams/11-bmc/0*.puml`.
 
@@ -8,7 +8,8 @@ Diagrams are PlantUML; the sources are in `docs/diagrams/11-bmc/`. To re-render:
 
 - **Problem.** A mid-size Saudi company that runs tenders on email and Excel cannot prove the tender was fair. The people who feel this most are firms under audit or governance pressure (section 2).
 - **Features.** Sealed envelopes, vendor submission, the comparison sheet, the audit log, and an audit bundle. Everything else waits for a paying customer (section 3).
-- **Worth it?** Yes, as a staged bet. In the base case you put in about SAR 185k over three years, it breaks even in year 4, makes SAR 455k a year by year 5, and the company could be worth SAR 10M to 20M. **Run the three customer interviews before writing product code** (section 9).
+- **Payment.** The buying company pays a flat monthly subscription (SAR 1,500 to 7,500), mostly as an annual invoice; the first tender is free; vendors never pay (section 8).
+- **Worth it?** Yes, as a staged bet. In the base case you put in about SAR 185k over three years, it breaks even in year 4, makes SAR 455k a year by year 5, and the company could be worth SAR 10M to 20M. **Run the three customer interviews before writing product code** (section 10).
 
 ## 2. The problem
 
@@ -46,13 +47,19 @@ The real competitor is Excel. The Reference App (document 04) is priced for ente
 
 Sell to the contracts manager, then close with the finance manager, who signs. Vendors never pay. Each tender brings 5 to 8 vendors onto the platform, and some of them run tenders of their own.
 
-## 8. Income, expenses, profit, value
+## 8. Payment model
+
+![Payment model](diagrams/11-bmc/09-payment.png)
+
+The buying company pays a flat subscription per company, not per user, so adding more evaluators costs nothing. Most customers pay an annual invoice by bank transfer, which brings cash in early; Starter customers can pay monthly by card or mada. Vendors never pay: every free vendor is a possible future buyer.
+
+## 9. Income, expenses, profit, value
 
 ![Income and expenses](diagrams/11-bmc/07-money.png)
 
-Price: SAR 1,500, 3,500, or 7,500 a month per tenant, with the first tender free and two months free on annual billing. Churn is assumed at 18 % a year. The founder is unpaid in every scenario.
+Prices come from section 8, averaging about SAR 30,000 a year per tenant. Churn is assumed at 18 % a year. The founder is unpaid in every scenario.
 
-## 9. Is it worth your time?
+## 10. Is it worth your time?
 
 ![Decision gates](diagrams/11-bmc/08-verdict.png)
 
@@ -63,7 +70,7 @@ Price: SAR 1,500, 3,500, or 7,500 a month per tenant, with the first tender free
 | You build it yourself: architect, Keycloak, multi-tenant | Sales is the hard part: Arabic, in person, 3 to 6 month cycle |
 | Gate 1 costs about SAR 0 | Pessimistic case: lose about SAR 135k over 5 years |
 
-## 10. Riskiest assumptions
+## 11. Riskiest assumptions
 
 | # | Assumption | Test |
 |---|---|---|
@@ -73,7 +80,7 @@ Price: SAR 1,500, 3,500, or 7,500 a month per tenant, with the first tender free
 | 4 | SAR 1,500 to 7,500 a month is acceptable | Show the price page in the interviews (W-16) |
 | 5 | A sales cycle of 3 to 6 months | Track days from first meeting to signature |
 
-## 11. Key numbers and sources
+## 12. Key numbers and sources
 
 V = verified by the source. E = our estimate.
 
