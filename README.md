@@ -18,6 +18,7 @@ Documents live in `docs/`:
 - `docs/10-kickoff.md` - the first four weeks: two parallel tracks, week-by-week exit checks, day-one checklist, how a session runs the foundation slice, decisions and risks.
 - `docs/11-business-model-canvas.md` - business model canvas with market research: the problem, the features that matter, market size, competitors, how to sell, five-year income and expenses, and the go or no-go gates. PlantUML diagrams in `docs/diagrams/11-bmc/`.
 - `docs/wireframes/` - low-fidelity wireframes for the MVP and version 1.1 screens (17 frames): `mvp-wireframes.html` (open in a browser, Arabic and English switch), `README.md` with notes and rendered images per screen, `render.js` to refresh the images.
+- `docs/brand/` - the WaslaBid logo: SVG lockups (English, bilingual, Arabic, reversed, one-colour, icon), colours, usage rules, and `build.py` to regenerate them.
 - `docs/adr/` - architecture decision records; ADR-0001 moves vendor uploads to chunked HTTP, ADR-0002 adopts Tailwind over MudBlazor, ADR-0003 makes the approval workflow tenant-configurable from day one.
 
 Local stack: `cd infra/compose && cp .env.example .env && docker compose up -d` (PostgreSQL, Keycloak, Redis, MinIO, ClamAV, Mailpit, Caddy).
