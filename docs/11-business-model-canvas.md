@@ -57,7 +57,7 @@ The buying company pays a flat subscription per company, not per user, so adding
 
 ![Income and expenses](diagrams/11-bmc/07-money.png)
 
-Prices come from section 8, averaging about SAR 30,000 a year per tenant. Churn is assumed at 18 % a year. The founder is unpaid in every scenario.
+Prices come from section 8, averaging about SAR 30,000 a year per tenant. Churn is assumed at 18 % a year. The founder is unpaid in every scenario. The month-by-month version, with the build year, a lean plan, and an Excel model, is in document 13.
 
 ## 10. Is it worth your time?
 

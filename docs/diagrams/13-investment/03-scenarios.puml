@@ -1,0 +1,23 @@
+@startuml
+!include ../11-bmc/_style.iuml
+title Your cumulative cash, three scenarios (SAR, from the Excel model, founder unpaid)
+legend top left
+|= End of |= Lean: hire only from revenue |= Growth: docs/11 pace, hire ahead |= Stress: growth hires, lean sales |
+| Year 0 (month 12) |<#F5B7B1> (55,315) |<#F5B7B1> (55,315) |<#F5B7B1> (55,315) |
+| Year 1 (month 24) |<#F5B7B1> (17,043) |<#F5B7B1> (55,915) |<#F5B7B1> (17,043) |
+| Year 2 (month 36) |<#ABEBC6> 183,064 |<#F5B7B1> (84,035) |<#F5B7B1> (47,086) |
+| Year 3 (month 48) |<#ABEBC6> 381,844 |<#F5B7B1> (84,789) |<#F1948A> (334,686) |
+| Year 4 (month 60) |<#82E0AA> 562,922 |<#ABEBC6> 72,810 |<#F1948A> (990,828) |
+| Year 5 (month 72) |<#82E0AA> <b>822,589</b> |<#82E0AA> <b>615,110</b> |<#E74C3C> <color:white><b>(1,876,911)</b></color> |
+....
+|= Measure |= Lean |= Growth |= Stress |
+| Most cash in | <b>58,535</b> (month 15) | <b>162,703</b> (month 42) | 1.88M and rising |
+| Monthly profit from | month 16 (3rd tenant) | month 19 | month 16, lost again at the first hire |
+| All money back | <b>month 26</b> | <b>month 59</b> | never, unless you stop |
+| Tenants at month 72 | 44 | 111 | 44 |
+| Monthly revenue at month 72 | 109,260 | 277,387 | 109,260 |
+....
+Lean wins on cash; Growth wins on size (2.5x the revenue). Stress is what happens if you hire on the Growth
+schedule and the sales do not come: the gates in docs/11 and docs/12 exist to stop you before this.
+endlegend
+@enduml

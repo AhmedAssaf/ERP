@@ -1,0 +1,22 @@
+@startgantt
+!include ../11-bmc/_style.iuml
+title The road to the first paying customer (evenings, about 15 hours a week; dates indicative)
+printscale monthly zoom 3
+Project starts 2026-10-05
+[Customer interviews W-13, price W-16] as [I] requires 8 weeks
+[I] is colored in #AED6F1
+[Build the MVP (docs/05)] as [B] requires 32 weeks
+[B] starts at [I]'s end
+[B] is colored in #85C1E9
+[Register company, legal terms, accountant] as [C] requires 3 weeks
+[C] starts 2027-05-31
+[C] is colored in #F8C471
+[Security review] as [S] requires 3 weeks
+[S] starts 2027-07-05
+[S] is colored in #F8C471
+[Free pilot tender] as [P] requires 5 weeks
+[P] starts at [B]'s end
+[P] is colored in #82E0AA
+[Gate 0: go or stop] happens at [I]'s end
+[First paying customer, about month 12] happens at [P]'s end
+@endgantt

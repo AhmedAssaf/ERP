@@ -1,0 +1,43 @@
+@startuml
+!include ../11-bmc/_style.iuml
+skinparam activity {
+  BackgroundColor #EBF5FB
+  BorderColor #2E86C1
+  DiamondBackgroundColor #FEF9E7
+}
+title Should you take an angel investor?
+start
+if (Do you need the money to reach the first customer?\n(about SAR 55,000, minimum SAR 33,000)) then (no, self-fund)
+  if (Does someone bring buyers, not just cash?\n(ex-procurement director, contractor-group owner)) then (yes)
+    :Strategic advisor: 0.5 to 2 % equity,
+    earned over 2 years, little or no cash; <<#82E0AA>>
+  else (no)
+    :No angel now; <<#D5DBDB>>
+  endif
+  if (3 to 5 paying customers, and you want to hire\nor go full-time before revenue covers it?) then (yes)
+    :Raise an angel round, SAR 300k to 500k,
+    convertible note with a Saudi lawyer; <<#AED6F1>>
+  else (no)
+    :Stay self-funded, lean plan; <<#D5DBDB>>
+  endif
+  if (Year-3 decision: become a licensed lender? (docs/12)) then (yes)
+    :Institutional round (VC and fintech investors),
+    SAR 5M+ capital, not angels; <<#F8C471>>
+  else (no)
+  endif
+else (yes)
+  :Cut to the SAR 33,000 minimum first,
+  then look for a co-founder who invests; <<#F8C471>>
+endif
+stop
+legend right
+  <b>What angel money costs (example, not market data)</b>
+  Raise SAR 300,000 at a SAR 3M pre-money value
+  so you give away <b>9.1 %</b>.
+  At a SAR 15M exit that stake is worth <b>SAR 1.36M</b>
+  That is <b>4.5x</b> what the angel paid.
+  ....
+  Worth more than an angel now:
+  a <b>Saudi sales co-founder</b> (20 to 40 %, earned over 4 years).
+endlegend
+@enduml
