@@ -1,4 +1,4 @@
-# MVP Scope: One Pilot Tender, End to End
+# WaslaBid MVP Scope: One Pilot Tender, End to End
 
 Date: 2026-09-21
 Status: proposal. Defines the smallest product that can run one real tender for one real customer.

@@ -1,4 +1,4 @@
-# Diagrams: The Platform in Pictures
+# Diagrams: WaslaBid in Pictures
 
 Date: 2026-09-21
 Status: companion to `01-idea-competitors-features-ai.md` and `02-core-features-and-tech-stack.md`
@@ -23,7 +23,7 @@ flowchart LR
     VU([Vendor user]):::person
     PA([Platform admin, us]):::person
 
-    P[["Tender-to-PO Platform<br/>white-label, multi-tenant"]]:::system
+    P[["WaslaBid<br/>tender-to-PO, white-label, multi-tenant"]]:::system
 
     KC[(Keycloak<br/>identity)]:::ext
     LLM[(Claude API<br/>offer review)]:::ext

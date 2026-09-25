@@ -1,4 +1,4 @@
-# Core Features and Tech Stack
+# WaslaBid: Core Features and Tech Stack
 
 Date: 2026-09-21
 Status: proposal, for review before design
@@ -292,3 +292,4 @@ ERP/
 3. **Hosting provider:** deferred 2026-09-21. Development runs on the local Compose stack at no cost. The pilot targets Oracle Cloud Always Free with Jeddah as home region (2 Arm cores, 12 GB since June 2026; capacity not guaranteed, small paid instance of about 20 USD a month as fallback), which is the only free in-Kingdom option today. Re-evaluate when Azure Saudi Arabia East (November 2026) and the AWS Saudi region (December 2026) open. Design against generic managed PostgreSQL and S3-compatible storage until then.
 4. **UI stack and edge:** decided 2026-09-21: Blazor Web App (Interactive Server) with Tailwind CSS and the in-house `Platform.UI` components (ADR-0002). Caddy at the edge for TLS and routing, no API gateway product in version 1.
 5. **First customer:** name the company whose workflow becomes the default template.
+6. **Product name:** decided 2026-09-26: WaslaBid (وصلة بد). Details and remaining trademark and domain checks in document 01 section 1.1.

@@ -1,4 +1,4 @@
-# Business Model Canvas: Tender-to-PO for the Saudi Mid-Market
+# Business Model Canvas: WaslaBid, Tender-to-PO for the Saudi Mid-Market
 
 Date: 2026-09-26. Status: hypothesis, before the pilot. Numbers are estimates unless section 11 marks them verified.
 

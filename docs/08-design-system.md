@@ -75,7 +75,7 @@ The tenant record holds primary colour, logo, favicon, and portal name. The host
 <style>:root{--color-primary:#8A1538;--color-on-primary:#ffffff}</style>
 ```
 
-Nothing else changes. Because every component reads tokens rather than hard-coded colours, the whole portal, the emails rendered from the same tokens, and the QuestPDF documents (which read the same values from the tenant record) agree. The design system itself has no logo and no colour of its own on tenant-facing screens; the only place our brand appears is the platform admin area.
+Nothing else changes. Because every component reads tokens rather than hard-coded colours, the whole portal, the emails rendered from the same tokens, and the QuestPDF documents (which read the same values from the tenant record) agree. The design system itself has no logo and no colour of its own on tenant-facing screens; the only place our brand (WaslaBid) appears is the platform admin area.
 
 ## 6. Components for the MVP
 

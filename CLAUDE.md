@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repository is
 
-An idea-stage side business: a multi-tenant, white-label tender-to-purchase-order SaaS for Saudi mid-size private companies. Buyers publish RFPs under their own brand, vendors submit sealed technical and financial offers, and offers pass through contracts screening, technical scoring, finance approval, and PO issuance.
+An idea-stage side business named **WaslaBid** (وصلة بد; chosen 2026-09-26, see docs/01 section 1.1): a multi-tenant, white-label tender-to-purchase-order SaaS for Saudi mid-size private companies. Buyers publish RFPs under their own brand, vendors submit sealed technical and financial offers, and offers pass through contracts screening, technical scoring, finance approval, and PO issuance.
 
 There is no application code yet. The repository holds design documents plus two throwaway spikes under `spikes/` (an Arabic PDF console app and a Blazor Server upload test). The spikes are evidence, not product code; do not build on them. Do not scaffold the product or add build tooling unless the user asks for that step explicitly; the next planned step is a design spec and implementation plan.
 
@@ -35,6 +35,7 @@ Reference features and requirements by ID in any new document. When a decision c
 - Edge: Caddy for on-demand TLS and host routing. No API gateway product in version 1. Tenant resolution and rate limiting live in ASP.NET Core middleware. Ocelot is the fallback if a gateway is ever needed.
 - AI: assist-only. AI drafts, a named human decides, every AI output is stored with model and prompt version. Financial AI checks run only after technical scores are locked.
 - Data residency: everything in a Saudi cloud region.
+- Product name: WaslaBid, written as one word with a capital B; Arabic logo form وصلة بد. It is the vendor-of-record brand (marketing site, platform admin area, contracts, invoices); tenant-facing screens still carry only the tenant's brand (F-02, docs/08). Code names such as `Platform.UI` stay unchanged. Trademark (SAIP) and domain registration are still to be confirmed.
 
 Still open (see document 02 section 5): PO scope for version 1, vendor identity model, first customer. Hosting is deferred with an interim answer: local Compose for development, Oracle Cloud Always Free in Jeddah for the pilot, re-evaluate when Azure Saudi Arabia East (November 2026) and AWS Saudi (December 2026) open.
 

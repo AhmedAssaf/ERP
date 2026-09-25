@@ -1,4 +1,6 @@
-# ERP: Tender-to-PO Platform for the Saudi Mid-Market
+# WaslaBid (وصلة بد): Tender-to-PO Platform for the Saudi Mid-Market
+
+Product name: **WaslaBid**, Arabic logo form وصلة بد with the descriptor "منصة وصلة للمناقصات". Chosen 2026-09-26; the reasoning and the checks still to run are in `docs/01-idea-competitors-features-ai.md` section 1.1. The repository keeps its name `ERP`.
 
 Idea-stage repository for a multi-tenant, white-label tendering and procurement platform: buyers publish RFPs under their own brand, vendors submit sealed offers, and offers move through contracts, requesting department, and finance approval to a purchase order.
 

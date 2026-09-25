@@ -1,4 +1,4 @@
-# Tender-to-PO Platform for Saudi Mid-Market: Idea, Competitors, Features, AI
+# WaslaBid: Tender-to-PO Platform for Saudi Mid-Market: Idea, Competitors, Features, AI
 
 Date: 2026-09-21
 Status: idea stage, pre-design
@@ -10,6 +10,25 @@ A multi-tenant, white-label SaaS where a Saudi private company (the tenant) publ
 Target customer: private companies in Saudi Arabia with roughly 100 to 2,000 staff that today run tenders by email, WhatsApp, and Excel.
 
 Business model: subscription per tenant (tiered by active tenders and users), optional white-label domain fee, optional paid ERP integration per customer.
+
+### 1.1 Product name
+
+Decided 2026-09-26: **WaslaBid**. Arabic logo form **وصلة بد**, with the descriptor line **منصة وصلة للمناقصات** (the Wasla tender platform).
+
+| Part | Meaning | Why |
+|---|---|---|
+| Wasla (وصلة) | Link, connection | The platform is the link between a buyer and its vendors. |
+| Bid | Tender offer | Says the category in English and separates the name from other Saudi "Wasla" businesses. |
+
+Rules:
+
+- Write it as one word with a capital B: WaslaBid, never "Wasla Bid" or "Waslabid". Never shorten it to "Wasla" in marketing; that word alone is crowded (a Saudi cloud POS called Wasla POS, WaslaCo in Jeddah, a digital agency on `wsla.sa`, a regional browser app).
+- It is our brand as the vendor of record: marketing site, platform admin area, contracts, and invoices. Tenant-facing screens, emails, and PDFs still carry only the tenant's brand (F-02, `08-design-system.md` section 5).
+- Code and project names (`Platform.UI`, the `ERP` repository) do not change.
+
+Rejected on the way: Hasm (حسم), because it is also the name of a designated Egyptian militant group and Gulf retail slang for a discount; plain Wasla, because of the crowding above.
+
+Still to do before public use: SAIP trademark search for WaslaBid and وصلة بد (classes 9 and 42), and register `waslabid.com` and `waslabid.sa` (no DNS records found for either on 2026-09-26, which suggests but does not prove they are free).
 
 ## 2. Tender lifecycle (the product's core flow)
 
