@@ -9,7 +9,7 @@ Related: `05-mvp-scope.md` (build plan), `07-ways-of-working.md` (process), `09-
 Kickoff is over when all four are true:
 
 1. A pilot customer is named, with a tender and a target month (W-15).
-2. The foundation slice is merged: skeleton, row-level security, Keycloak organizations, Tailwind build, localisation, and the workflow definition model with its executor chosen by the Elsa spike (W-02, W-03, W-04, W-05, W-07, W-20, F-56).
+2. The foundation slice is merged: skeleton, row-level security, Keycloak organizations, Tailwind build, localisation, and the workflow definition model with its own state-machine executor (ADR-0004, chosen by the Elsa spike) (W-02, W-03, W-04, W-05, W-07, W-20, F-56).
 3. CI runs on every pull request (W-09).
 4. The first feature slice has an approved spec and a plan, and its first task is In progress.
 
@@ -63,7 +63,7 @@ gantt
 - [ ] Git identity set for this repository
 - [ ] Read in this order: CLAUDE.md, `docs/05`, `docs/07`, `docs/09` epic E0, `docs/08` sections 2 to 4
 - [ ] Three interview requests sent; one Reference App call booked
-- [ ] The Elsa spike (W-20) started: a throwaway project under `spikes/` with the four questions from docs/09 as its checklist
+- [x] The Elsa spike (W-20) started (run 2026-09-26, results in docs/06 section 6, decision ADR-0004): a throwaway project under `spikes/` with the four questions from docs/09 as its checklist
 - [ ] After the spike, a Claude Code session opened in the repository root with `/superpowers:brainstorming` and the sentence "the foundation slice: W-02, W-03, W-04, W-05, W-07, F-56 from docs/09"
 
 ## 5. How a session runs the foundation slice

@@ -3,7 +3,7 @@
 Date: 2026-09-21
 Status: Accepted
 Deciders: Ahmed Assaf
-Related: F-08, F-09, F-27, F-33, F-56, W-20; `docs/02` section 2.6 and 4.4; `docs/03` section 7
+Related: F-08, F-09, F-27, F-33, F-56, W-20 (executor decided by ADR-0004 on 2026-09-26: our own state machine); `docs/02` section 2.6 and 4.4; `docs/03` section 7
 
 ## Context
 

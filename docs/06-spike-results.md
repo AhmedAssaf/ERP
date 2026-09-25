@@ -1,7 +1,7 @@
 # Spike Results: Arabic PDF and Vendor Upload on a Weak Connection
 
 Date: 2026-09-21
-Status: both spikes from `05-mvp-scope.md` section 5 executed. Code is in `spikes/`.
+Status: both spikes from `05-mvp-scope.md` section 5 executed; the Elsa workflow spike (W-20) added 2026-09-26 as section 6. Code is in `spikes/`.
 Environment: Windows 11, .NET SDK 9.0.121 (the .NET 10 SDK is not installed on this machine yet; nothing in either spike depends on 10), QuestPDF 2026.9.0, Chrome with DevTools network emulation.
 
 ## 1. Verdicts
@@ -10,6 +10,7 @@ Environment: Windows 11, .NET SDK 9.0.121 (the .NET 10 SDK is not installed on t
 |---|---|---|---|
 | Arabic PDF | Can QuestPDF render a branded PO with mixed Arabic and English, correct shaping, right-to-left tables, and a Saudi-style font? | **Pass** | Keep QuestPDF. One rule for the PDF module: wrap every English-only run in a left-to-right container. |
 | Blazor upload | Does a Blazor Server upload survive a 50 MB file on throttled 3G with a connectivity gap? | **Pass with a design change** | Latency spikes are fine. A dropped WebSocket kills the in-flight InputFile stream and, a minute later, the circuit. Vendor file uploads must go over direct chunked HTTP, not through the circuit. The chunked fallback was built and tested in the same spike. |
+| Elsa executor (W-20) | Can Elsa 3 run a tenant's approval chain from a per-tender snapshot with the fixed points guaranteed, and can its designer serve tenants in Arabic, right to left, under their brand? | **Executor pass, designer fail** | Per the rule in ADR-0003 point 5, our own state machine executes the snapshot. Elsa Studio is not a tenant-facing editor. Proposed as ADR-0004. |
 
 ## 2. Spike 1: Arabic PDF with QuestPDF
 
@@ -87,3 +88,52 @@ Properties that matter for F-22 to F-24:
 ## 5. Update to document 05
 
 Section 5 of `05-mvp-scope.md` listed the fallback for spike 2 as "move the vendor portal pages to static server rendering with plain form posts". The spike shows a narrower fix is enough: keep Blazor Server, move only the file transfer to chunked HTTP. Row 10 of the MVP feature list (F-22 to F-24) should be read with that change.
+
+## 6. Spike 3: Elsa 3 as the workflow executor (W-20)
+
+Date: 2026-09-26. Elsa 3.8.4 on .NET 9. Two throwaway projects:
+
+- `spikes/ElsaWorkflowSpike/`: console app, `dotnet run`. Elsa is used as a library only: no Elsa database. The workflow JSON (snapshot) and the execution state are strings on an in-memory `Tender` row, and every step runs in a freshly built container to simulate a process restart. Prints seven PASS/FAIL checks.
+- `spikes/ElsaStudioSpike/`: Elsa Server and Elsa Studio in one Blazor Server process. Run with `ASPNETCORE_ENVIRONMENT=Development dotnet run --no-launch-profile` and open `http://127.0.0.1:5281/`. Screenshots are in `spikes/ElsaStudioSpike/screenshots/`.
+
+```mermaid
+flowchart LR
+    D["Tenant definition<br/>(ordered steps)"] -->|validate at publish| S["Per-tender snapshot<br/>(JSON on the tender row)"]
+    S --> E["Executor<br/>ApprovalStep bookmarks"]
+    E --> L["LockScores"] --> O["OpenFinancial"]
+    O -. guard in the Tender aggregate .-> G{"Scores locked?"}
+    G -- no --> F["Refused and audited"]
+```
+
+### 6.1 The four questions from W-20
+
+| # | Question | Result | Evidence |
+|---|---|---|---|
+| 1 | Is a definition that skips locking or opens financial early rejected? | **Pass**, but by our code, not by Elsa | A publish-time validator rejects Sequence and Flowchart definitions where any path reaches `OpenFinancial` without `LockScores` (checks Q1b, Q1d). A bad definition forced past validation still cannot open early, because the guard lives in the `Tender` aggregate; the instance faults with the F-30 message (Q1c). Elsa itself has no concept of an invariant. |
+| 2 | Does a running tender keep its snapshot after the definition changes? | **Pass** | The tender resumes from the Elsa workflow JSON stored at publishing; after the tenant edits the definition the old approver still decides and the new step never appears. A tender published after the edit gets the new chain (Q2). |
+| 3 | Does the designer render in Arabic, right to left, under a tenant's colour? | **Fail** | See 6.2. |
+| 4 | Time to implement one custom step | About 60 lines | `ApprovalStep` (any-of or all-of, named approvers, bookmark and resume) compiled and passed on the first build. The Studio host needed two undocumented stub services before it would start. A human developer's time was not measured; the spike was written in one session. |
+
+Other measurements: a five-step snapshot is 2,169 characters of JSON; the finished execution state is 978 characters; one decision (fresh container, load, resume, save) takes 27 ms, 8 ms of which is building the container.
+
+### 6.2 Elsa Studio in Arabic and right to left
+
+| Aspect | Observed |
+|---|---|
+| Tenant colour | Works: a custom `IThemeProvider` set the primary and app bar colour. |
+| Arabic strings | Partial: Elsa ships an `ar` resource file, but about a quarter of the visible strings are translated; headings, table columns, hints and every activity property stay English. Our own activity names and inputs would need their own translation. |
+| Right to left | Not supported: Studio has no RTL setting. Forcing `dir="rtl"` mirrors some panels, but the navigation drawer stays on the left, pager arrows do not flip, tab labels are clipped ("IABLES"), and English hints show the same trailing-period bidi defect found in spike 1. The flow canvas does not mirror. |
+| Stack | Studio brings MudBlazor, Radzen, CodeBeam extensions and Monaco. ADR-0002 dropped MudBlazor for Tailwind and `Platform.UI`. |
+| Branding | The shell shows "Elsa Studio 3.8" and its logo; a branding provider exists but was not tested. |
+
+### 6.3 Findings that apply whichever executor is chosen
+
+1. **Throwing inside a step faults the whole instance.** The first run threw on a decision from a non-approver, and the tender went to Faulted. Authorisation failures must be refused and audited while the step keeps waiting; only real invariant breaches may fault.
+2. **The fixed points belong in the domain.** The guard that mattered was in the `Tender` aggregate, not in the workflow. This confirms ADR-0003 point 3.
+3. **Payload types do not survive serialisation.** Elsa bookmark payloads come back as `ExpandoObject`, not the record type. Our own model should store step state as explicit columns or versioned JSON.
+4. **A snapshot in Elsa's JSON format ties running tenders to Elsa's serializer.** Tenders run for weeks or months; an Elsa upgrade must still read every snapshot in flight. A snapshot in our own definition format does not carry that risk.
+5. **Keeping state in our row works.** Elsa ran without its own database, so PostgreSQL stays the single source of truth. That was the main risk named for Temporal in ADR-0003, and it is avoidable with Elsa too.
+
+### 6.4 Decision proposed
+
+ADR-0003 point 5 says Elsa executes the snapshot only if both the fixed points hold and the designer can be delivered in Arabic under the tenant's brand. The first holds, the second does not, so our own state machine executes the snapshot. Proposed as ADR-0004. The F-56b editor in version 1.1 is built in `Platform.UI` as an ordered step list, not as a flowchart canvas.

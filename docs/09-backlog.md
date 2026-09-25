@@ -49,7 +49,7 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 | W-10 | Observability: OpenTelemetry, Serilog, health endpoints, Sentry | P1 | S | Backlog | W-02 |
 | W-11 | Production Caddyfile with on-demand TLS and the tenant allow endpoint; Kubernetes manifests | P1 | M | Backlog | F-03 |
 | W-12 | Backup and restore drill script for PostgreSQL and object storage | P1 | S | Backlog | W-11 |
-| W-20 | Elsa 3 spike, one-week box: custom activities for the fixed points, per-tender snapshot execution, Arabic and white-label designer feasibility; ends in ADR-0004 choosing the executor | P0 | L | Backlog | W-01 |
+| W-20 | Elsa 3 spike, one-week box: custom activities for the fixed points, per-tender snapshot execution, Arabic and white-label designer feasibility; ends in ADR-0004 choosing the executor | P0 | L | Done | W-01 |
 | W-19 | Pilot environment on Oracle Cloud Always Free, Jeddah home region: one Arm VM running the Compose stack plus the app, HTTPS via Caddy, nightly volume backup to object storage | P0 | M | Backlog | W-01, W-09 |
 
 Acceptance criteria:

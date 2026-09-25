@@ -11,7 +11,7 @@ Documents live in `docs/`:
 - `docs/03-diagrams.md` - the platform in pictures: context, roles, state machine, sealed envelopes, tenancy, data model, deployment, AI pipeline, roadmap.
 - `docs/04-reference-app-analysis.md` - Reference App deep-dive: features mapped to ours, technology, direction, gaps, clone-or-compete, target markets.
 - `docs/05-mvp-scope.md` - the pilot MVP: 15 features narrowed from document 02, what is out, two spikes, build plan, pilot success measures.
-- `docs/06-spike-results.md` - results of the two pre-build spikes: Arabic PDF passes with one rule; Blazor uploads move to chunked HTTP. Code in `spikes/`.
+- `docs/06-spike-results.md` - results of the pre-build spikes: Arabic PDF passes with one rule; Blazor uploads move to chunked HTTP; Elsa executor spike (W-20) leads to our own state machine. Code in `spikes/`.
 - `docs/07-ways-of-working.md` - process: work flow with gates, repo layout, local stack, branching, the agent roster, tracking, definition of done, cadence.
 - `docs/08-design-system.md` - Tailwind as the UI foundation: tokens, typography, RTL rules, white-label mechanics, MVP components.
 - `docs/09-backlog.md` - the backlog: every feature ID and work item as a story with Given-When-Then acceptance criteria, priority, size, status, dependencies.
@@ -20,7 +20,7 @@ Documents live in `docs/`:
 - `docs/12-startup-thesis.md` - can WaslaBid be venture-scale? The supplier-network and embedded-finance thesis tested against Saudi regulation, players, and numbers; three company paths and the gates of the recommended one. PlantUML diagrams in `docs/diagrams/12-startup/`.
 - `docs/wireframes/` - low-fidelity wireframes for the MVP and version 1.1 screens (17 frames): `mvp-wireframes.html` (open in a browser, Arabic and English switch), `README.md` with notes and rendered images per screen, `render.js` to refresh the images.
 - `docs/brand/` - the WaslaBid logo: SVG lockups (English, bilingual, Arabic, reversed, one-colour, icon), colours, usage rules, and `build.py` to regenerate them.
-- `docs/adr/` - architecture decision records; ADR-0001 moves vendor uploads to chunked HTTP, ADR-0002 adopts Tailwind over MudBlazor, ADR-0003 makes the approval workflow tenant-configurable from day one.
+- `docs/adr/` - architecture decision records; ADR-0001 moves vendor uploads to chunked HTTP, ADR-0002 adopts Tailwind over MudBlazor, ADR-0003 makes the approval workflow tenant-configurable from day one, ADR-0004 executes it with our own state machine instead of Elsa.
 
 Local stack: `cd infra/compose && cp .env.example .env && docker compose up -d` (PostgreSQL, Keycloak, Redis, MinIO, ClamAV, Mailpit, Caddy).
 
