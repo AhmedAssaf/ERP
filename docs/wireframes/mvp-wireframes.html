@@ -1,4 +1,4 @@
-<title>Tender MVP Wireframes</title>
+<title>WaslaBid MVP Wireframes</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
 <style>
   :root{
@@ -45,6 +45,11 @@
   .bar{display:flex;align-items:center;gap:14px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--surface)}
   .logo{width:34px;height:34px;border-radius:6px;background:var(--wire-dark);flex:none;display:grid;place-items:center;font-size:10px;color:var(--muted)}
   .brand{font-weight:600}
+  .top .titlerow{display:flex;align-items:center;gap:10px}
+  .top .titlerow img{width:40px;height:40px;flex:none}
+  .wordmark{font-weight:600;color:var(--ink)} .wordmark b{font-weight:700;color:#12A588}
+  .powered{display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 12px;border-top:1px solid var(--line);font-size:11px;color:var(--muted)}
+  .powered img{width:16px;height:16px}
   .nav{display:flex;gap:16px;font-size:13px;color:var(--muted);margin-inline-start:auto}
   .nav b{color:var(--ink)}
   .body{padding:16px;display:grid;gap:14px}
@@ -115,7 +120,7 @@
 
 <div class="top">
   <div>
-    <h1 data-ar="مخططات الحد الأدنى للمنتج">Tender MVP Wireframes</h1>
+    <div class="titlerow"><img src="../brand/waslabid-icon.svg" alt=""><h1><span class="wordmark">Wasla<b>Bid</b></span> · <span data-ar="مخططات الحد الأدنى للمنتج">MVP Wireframes</span></h1></div>
     <div class="sub" data-ar="16 شاشة، مساحة عمل الجهة المشترية ثم بوابة المورد. الألوان والخطوط من نظام التصميم (وثيقة 08).">16 screens, tenant workspace then vendor portal. Tokens and type from the design system (document 08).</div>
   </div>
   <div class="seg" role="group" aria-label="Language">
@@ -420,7 +425,7 @@
 <!-- ============ VENDOR PORTAL (PHONE) ============ -->
 <section class="screen" id="v1">
   <div class="cap"><h2 data-ar="V1 الدعوة">V1 Invitation landing</h2><span class="ids">F-55 F-02</span></div>
-  <p class="note" data-ar="ما يراه المورد بعد الضغط على رابط البريد: هوية الجهة المشترية، لا هويتنا. مسجّل يدخل، جديد يسجّل بالبريد نفسه.">What the vendor sees after tapping the email link: the buyer's brand, not ours. A registered vendor signs in, a new one registers with the same email.</p>
+  <p class="note" data-ar="ما يراه المورد بعد الضغط على رابط البريد: هوية الجهة المشترية، لا هويتنا، سوى سطر صغير «بدعم من وصلة بد» في الأسفل في الباقة الأساسية. مسجّل يدخل، جديد يسجّل بالبريد نفسه.">What the vendor sees after tapping the email link: the buyer's brand, not ours, apart from a small "Powered by WaslaBid" line at the foot on the Starter tier (document 11, section 8). A registered vendor signs in, a new one registers with the same email.</p>
   <div class="frame phone"><div class="app">
     <div class="bar"><div class="logo">LOGO</div><span class="brand" data-ar="شركة الفيصل للمقاولات">Al-Faisal Contracting</span></div>
     <div class="body">
@@ -433,6 +438,7 @@
       <span class="btn" style="justify-content:center" data-ar="لدي حساب، تسجيل الدخول">I have an account, sign in</span>
       <span class="hint" style="text-align:center" data-ar="AR | EN">EN | AR</span>
     </div>
+    <div class="powered"><img src="../brand/waslabid-icon.svg" alt=""><span data-ar="بدعم من وصلة بد">Powered by WaslaBid</span></div>
   </div></div>
 </section>
 
@@ -452,6 +458,7 @@
       <span class="btn primary" style="justify-content:center" data-ar="التالي: الوثائق">Next: documents</span>
       <div class="card"><h4 data-ar="الخطوة 2 (معاينة)">Step 2 (preview)</h4><div class="row"><span class="grow" data-ar="السجل التجاري">CR certificate</span><span class="btn" data-ar="رفع">Upload</span></div><div class="field"><span data-ar="تاريخ الانتهاء">Expiry date</span><span class="box"></span></div><div class="row"><span class="grow" data-ar="شهادة ضريبة القيمة المضافة">VAT certificate</span><span class="btn" data-ar="رفع">Upload</span></div><span class="hint" data-ar="وثيقة منتهية تمنع التقديم.">An expired document blocks submission.</span></div>
     </div>
+    <div class="powered"><img src="../brand/waslabid-icon.svg" alt=""><span data-ar="بدعم من وصلة بد">Powered by WaslaBid</span></div>
   </div></div>
 </section>
 
@@ -471,6 +478,7 @@
       <div class="row"><span class="box grow" data-ar="اكتب سؤالك">Write a question</span><span class="btn" data-ar="إرسال">Send</span></div>
       <span class="btn primary" style="justify-content:center" data-ar="بدء تقديم العرض">Start submission</span>
     </div>
+    <div class="powered"><img src="../brand/waslabid-icon.svg" alt=""><span data-ar="بدعم من وصلة بد">Powered by WaslaBid</span></div>
   </div></div>
 </section>
 
@@ -488,6 +496,7 @@
       <div class="card sealed"><div class="row"><span class="lock">🔒</span><b data-ar="الخطوة 4: الظرف المالي (معاينة)">Step 4: financial envelope (preview)</b></div><span class="hint" data-ar="عرض_السعر.pdf · 38 ميجابايت">Price_offer.pdf · 38 MB</span><div class="prog"><b></b></div><span class="hint" data-ar="64% · يستأنف تلقائياً إذا انقطع الاتصال">64% · resumes automatically if the connection drops</span></div>
       <div class="row"><span class="btn" data-ar="رجوع">Back</span><span class="grow"></span><span class="btn" data-ar="حفظ">Save</span><span class="btn primary" data-ar="التالي">Next</span></div>
     </div>
+    <div class="powered"><img src="../brand/waslabid-icon.svg" alt=""><span data-ar="بدعم من وصلة بد">Powered by WaslaBid</span></div>
   </div></div>
 </section>
 
@@ -503,6 +512,7 @@
       <span class="btn" style="justify-content:center" data-ar="تعديل وإعادة التقديم قبل 05 أكتوبر 14:00">Edit and resubmit before 05 Oct 14:00</span>
       <span class="btn quiet" style="justify-content:center" data-ar="تنزيل إيصال الاستلام">Download receipt</span>
     </div>
+    <div class="powered"><img src="../brand/waslabid-icon.svg" alt=""><span data-ar="بدعم من وصلة بد">Powered by WaslaBid</span></div>
   </div></div>
 </section>
 
@@ -522,6 +532,7 @@
       <p class="msg" data-ar="هذا الرد يوضّح عرضكم ولا يغيّر الأسعار أو الكميات المقدمة. الظرف المالي يبقى مختوماً.">This reply clarifies your offer and cannot change the prices or quantities submitted. The financial envelope stays sealed.</p>
       <span class="btn primary" style="justify-content:center" data-ar="إرسال الرد">Send reply</span>
     </div>
+    <div class="powered"><img src="../brand/waslabid-icon.svg" alt=""><span data-ar="بدعم من وصلة بد">Powered by WaslaBid</span></div>
   </div></div>
 </section>
 

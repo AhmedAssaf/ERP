@@ -89,7 +89,7 @@ Committee members comment internally with mentions, convert a comment into a ven
 
 ### V1 Invitation landing (F-55, F-02)
 
-What the vendor sees after tapping the email link: the buyer's brand, not ours. A registered vendor signs in; a new one registers with the invited email.
+What the vendor sees after tapping the email link: the buyer's brand, not ours, apart from a small "Powered by WaslaBid" line at the foot on the Starter tier (document 11, section 8; it appears on every vendor screen). A registered vendor signs in; a new one registers with the invited email.
 
 ![V1 English](img/v1-en.png)
 ![V1 Arabic](img/v1-ar.png)
