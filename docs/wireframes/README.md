@@ -10,6 +10,11 @@ Copy rules, set 2026-09-26 at the user's request:
 
 - **No abbreviations on screen.** Labels, buttons, and messages are written in full in both languages: "purchase order", "bill of quantities", "commercial registration", "value added tax", "Saudi riyals", full month names, full vendor names. Identifiers such as `TND-2026-014` stay, always with a label ("Tender number TND-2026-014").
 - **Full sentences for hints and messages; buttons name the action and its object** ("Open tender", "Send reminder", "Approve the award").
+- **One main task per screen.** Each screen opens with a question or instruction as its title ("Who do you want to invite to this tender?"), a one-line explanation, and ends in an action bar with a single blue main button.
+- **Real-looking controls.** Inputs, dropdowns, checkboxes, and file pickers look like the product, each with a visible label and a hint; grey blocks remain only for document previews.
+- **Bigger, calmer layout.** 16 pixel body text, 24 pixel titles, generous spacing, fewer table columns.
+- **Confirmations as their own step.** A pop-up is shown below its screen on a dimmed backdrop, with a caption saying what triggers it, instead of sitting inside the page.
+- **Numbered guide notes.** Orange numbered markers on each screen, explained in the orange box beside or below it. They are reader notes, not part of the product. The images in `img/` include the pop-up steps and the guide box.
 - **Fixed button colours, independent of the tenant's brand:** blue for continue, submit, or approve; red for close, cancel, reject, or discard; white for neutral actions such as save or go back; link style for open or download. A key at the top of the wireframes page shows them.
 
 ## Tenant workspace

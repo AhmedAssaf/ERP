@@ -1,4 +1,4 @@
-// Screenshots every wireframe frame in English and Arabic into docs/wireframes/img/.
+// Screenshots every wireframe screen (frames, pop-up states, and guide notes) in English and Arabic into docs/wireframes/img/.
 const path = require("path");
 const fs = require("fs");
 // Resolves puppeteer from a local install or from the npx cache (populated by any earlier `npx @mermaid-js/mermaid-cli` or `npx -p puppeteer` run).
@@ -18,7 +18,7 @@ const puppeteer = loadPuppeteer();
   fs.mkdirSync(outDir, { recursive: true });
   const browser = await puppeteer.launch({ headless: true });
   const page = await browser.newPage();
-  await page.setViewport({ width: 1120, height: 900, deviceScaleFactor: 1.5 });
+  await page.setViewport({ width: 1140, height: 900, deviceScaleFactor: 1.5 });
   await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "light" }]);
   await page.goto("file:///C:/Repo/ERP/docs/wireframes/mvp-wireframes.html", { waitUntil: "networkidle0" });
   await page.evaluate(() => document.fonts.ready);
@@ -30,7 +30,7 @@ const puppeteer = loadPuppeteer();
     await page.click(lang === "en" ? "#lang-en" : "#lang-ar");
     await new Promise(r => setTimeout(r, 300));
     for (const id of ids) {
-      const el = await page.$(`#${id} .frame`);
+      const el = await page.$(`#${id} .shot`);
       const file = path.join(outDir, `${id}-${lang}.png`);
       await el.screenshot({ path: file });
       out.push(file);
