@@ -9,6 +9,6 @@ legend top left
 |<#EBF5FB> **Precoro, Tradogram, Kissflow** | about 22,000 to 45,000 |<#FCF3CF> RFQ-style, not verified | Not stated | Arabic-first, sealed envelopes, Saudi data |
 |<#EBF5FB> **Odoo purchase** | 760 to 1,440 per user | No formal tender module | Via partner | A partner, not a rival: we sit next to it |
 |<#E8F8F5> **Etimad** | free | Yes | Yes | Government only; its discipline is our pitch |
-|<#D5F5E3> **Us** | **18,000 to 90,000** |<#82E0AA> **Encrypted, witnessed opening,\nprices immutable** |<#82E0AA> **Yes** | |
+|<#D5F5E3> **WaslaBid** | **18,000 to 90,000** |<#82E0AA> <b>Encrypted, witnessed opening,</b>\n<b>prices immutable</b> |<#82E0AA> **Yes** | |
 endlegend
 @enduml

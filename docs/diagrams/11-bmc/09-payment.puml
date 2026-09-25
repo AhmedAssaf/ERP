@@ -14,7 +14,7 @@ title Payment model: the buying company pays, vendors never pay
 
 rectangle "**Buying company**\n(the tenant)" as B #F9E79F
 rectangle "**Vendors**\n(invited to tenders)" as V #E5E7E9
-rectangle "**Us**\nabout SAR 30,000\nper tenant a year" as U #82E0AA
+rectangle "**WaslaBid**\nabout SAR 30,000\nper tenant a year" as U #82E0AA
 rectangle "**Partners**\nOdoo, SAP B1, audit firms" as P #D7BDE2
 rectangle "**Pass-through costs**\nWathq SAR 9-12 per check\nAI USD 1-3 per tender\ngateway about 2 % + SAR 1" as C #F5B7B1
 
