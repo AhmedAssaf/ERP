@@ -16,7 +16,7 @@ Tailwind CSS v4 is the styling foundation, built with the standalone Tailwind CL
 
 ### 3.1 Colour
 
-The base is a cool neutral built from one hue so tenant colours sit on it without clashing. The tenant primary is the only strong colour on any screen; everything else is neutral or a state colour.
+The base is a cool neutral built from one hue so tenant colours sit on it without clashing. The tenant primary is the only brand colour on any screen; everything else is neutral, a state colour, or one of the two fixed action colours (blue to go ahead, red to stop).
 
 | Token | Role | Default | Notes |
 |---|---|---|---|
@@ -30,7 +30,8 @@ The base is a cool neutral built from one hue so tenant colours sit on it withou
 | `--color-sealed` | Sealed envelope, locked scores | `#5B3A8C` | The signature colour of the product. Used only for sealed and locked states. |
 | `--color-success` | Awarded, approved, passed | `#0F7B4F` | |
 | `--color-warning` | Deadline near, document expiring | `#B45309` | |
-| `--color-danger` | Rejected, late, failed | `#B42318` | |
+| `--color-danger` | Rejected, late, failed; close, cancel, reject, and discard buttons | `#B42318` | Fixed, never overridden by the tenant. |
+| `--color-action` | Continue, submit, and approve buttons | `#1D5FD1` | Added 2026-09-26. Fixed, never overridden by the tenant, so blue always means go and red always means stop, whatever the tenant's brand colour is. |
 
 Tender stage colours are fixed and do not change per tenant, so an officer moving between companies still reads a stage at a glance: Draft neutral, Published primary, Closed ink, Evaluation warning, Sealed and Locked sealed, Awarded success, Cancelled danger.
 
@@ -84,7 +85,7 @@ Built once in `src/UI/Platform.UI`, each as a Razor component with a documented 
 | Component | Purpose | Notes |
 |---|---|---|
 | `AppShell` | Header with tenant logo, primary navigation, culture switch, user menu | Two variants: tenant workspace, vendor portal |
-| `Button` | Primary, secondary, danger, quiet | Loading state built in; label is the verb of the action |
+| `Button` | Primary (blue, `--color-action`), secondary (white), danger (red, filled), quiet (link) | Loading state built in; label is the verb and its object. Primary for continue, submit, approve; danger for close, cancel, reject, discard |
 | `TextField`, `NumberField`, `DateField`, `Select`, `Textarea` | Form inputs with label, help, error | Validation messages in both languages; error text is specific, never "invalid" |
 | `FileUpload` | Chunked upload with progress and retry state | Wraps the chunked HTTP path from ADR-0001; never `InputFile` |
 | `Stepper` | Vendor submission wizard | Shows saved state per step; works on a 360px screen |
@@ -113,7 +114,7 @@ Keyboard reachable everything, visible focus ring in the tenant primary, 4.5:1 t
 
 ## 9. Voice in the interface
 
-Sentence case in both languages. Buttons name the action: "Publish tender", "Lock scores", "Open financial envelopes". The confirmation dialog says what cannot be undone. Errors say what happened and what to do: "Submission closed at 14:00 Riyadh time. The deadline has passed; contact the contracts officer." Empty states invite the next step. Arabic copy is written by a native speaker, not translated word for word, and both languages ship in the same pull request (docs/07 principle 5).
+Sentence case in both languages. No abbreviations on screen in either language (added 2026-09-26): write "purchase order", "bill of quantities", "commercial registration", "value added tax", "Saudi riyals", and full month names; identifiers such as tender numbers keep their format but always carry a label. Hints and messages are full sentences. Buttons name the action: "Publish tender", "Lock scores", "Open financial envelopes". The confirmation dialog says what cannot be undone. Errors say what happened and what to do: "Submission closed at 14:00 Riyadh time. The deadline has passed; contact the contracts officer." Empty states invite the next step. Arabic copy is written by a native speaker, not translated word for word, and both languages ship in the same pull request (docs/07 principle 5).
 
 ## 10. What changes elsewhere
 

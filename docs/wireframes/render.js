@@ -22,6 +22,8 @@ const puppeteer = loadPuppeteer();
   await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "light" }]);
   await page.goto("file:///C:/Repo/ERP/docs/wireframes/mvp-wireframes.html", { waitUntil: "networkidle0" });
   await page.evaluate(() => document.fonts.ready);
+  // The sticky page header would cover tall frames in element screenshots.
+  await page.addStyleTag({ content: ".top{position:static!important}" });
   const ids = await page.$$eval("section.screen", s => s.map(x => x.id));
   const out = [];
   for (const lang of ["en", "ar"]) {

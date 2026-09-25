@@ -6,6 +6,12 @@ Related: `05-mvp-scope.md` (scope), `08-design-system.md` (tokens and components
 
 Low-fidelity on purpose: grey blocks stand for content, while buttons, badges, stages, and the sealed-envelope treatment are real. Tenant screens are desktop width; vendor screens are phone width because vendors mostly submit from a phone. Purple appears only on sealed and locked states.
 
+Copy rules, set 2026-09-26 at the user's request:
+
+- **No abbreviations on screen.** Labels, buttons, and messages are written in full in both languages: "purchase order", "bill of quantities", "commercial registration", "value added tax", "Saudi riyals", full month names, full vendor names. Identifiers such as `TND-2026-014` stay, always with a label ("Tender number TND-2026-014").
+- **Full sentences for hints and messages; buttons name the action and its object** ("Open tender", "Send reminder", "Approve the award").
+- **Fixed button colours, independent of the tenant's brand:** blue for continue, submit, or approve; red for close, cancel, reject, or discard; white for neutral actions such as save or go back; link style for open or download. A key at the top of the wireframes page shows them.
+
 ## Tenant workspace
 
 ### T1 Tenders list (F-16, F-27, F-14a)
@@ -64,9 +70,9 @@ One screen for the approver: recommendation, ranking, budget code, decision. A r
 ![T7 English](img/t7-en.png)
 ![T7 Arabic](img/t7-ar.png)
 
-### T8 Award and PO (F-36, F-41)
+### T8 Award and purchase order (F-36, F-41)
 
-The PO is generated from the winning offer under the tenant's brand and stored with the tender. The audit list sits beside it.
+The purchase order is generated from the winning offer under the tenant's brand and stored with the tender. The audit list sits beside it.
 
 ![T8 English](img/t8-en.png)
 ![T8 Arabic](img/t8-ar.png)
@@ -96,7 +102,7 @@ What the vendor sees after tapping the email link: the buyer's brand, not ours, 
 
 ### V2 Registration (F-11, F-12, F-55)
 
-Two steps in the MVP: company details, then two documents with expiry dates. Progress is saved and resumes from the same link.
+Two steps in the first version: company details, then two documents with expiry dates. Progress is saved and resumes from the same link.
 
 ![V2 English](img/v2-en.png)
 ![V2 Arabic](img/v2-ar.png)
@@ -131,7 +137,7 @@ The vendor sees the question and deadline, replies with text and attachments ove
 
 ## Deliberately absent
 
-Custom domain, the workflow editor (T9), vendor information requests and internal comments (T10, V6), all shown for design only; committees beyond the default template, amendments, vendor dashboard, SMS, AI, open tenders with a public listing. All after the pilot (document 05, section 4).
+Custom domain, the workflow editor (T9), vendor information requests and internal comments (T10, V6), all shown for design only; committees beyond the default template, amendments, vendor dashboard, text messages, artificial intelligence, open tenders with a public listing. All after the pilot (document 05, section 4).
 
 ## Regenerating the images
 
