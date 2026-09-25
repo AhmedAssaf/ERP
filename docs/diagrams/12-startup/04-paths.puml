@@ -1,0 +1,15 @@
+@startuml
+!include ../11-bmc/_style.iuml
+title Three ways to build WaslaBid as a company
+legend top left
+|= |= A. Capital-light SaaS |= B. Tender-data lender |=<#D5F5E3> C. SaaS first, lender option (recommended) |
+| **What it is** | Document 11 as planned | Licensed debt-crowdfunding or SME finance company that finances verified private awards | Run A; build the two cheap data foundations; decide on B at year 3 with real volume |
+| **Capital needed** | About SAR 185k over 3 years | SAR 5M+ licence capital, plus a warehouse credit line | SAR 185k now; B money only if the gate passes |
+| **Licence** | None | SAMA finance company licence | None until the year-3 decision |
+| **Team** | Founder plus 1 to 2 Saudi hires | Full-time founders, credit and compliance team | Founder part-time until gate 1, full-time after 10 tenants |
+| **5-year value** | SAR 10M to 20M | Venture-scale if SAR 2B to 4B is financed a year | A's value, plus the option on B |
+| **Main risk** | Slow sales | Credit losses; competes with Lendo and Tameed | Volume never reaches the year-3 gate |
+| **Exit** | Strategic sale: Reference App, ERP vendor, lender | Fintech IPO or sale | Either |
+|<#FCF3CF> **Verdict** |<#FCF3CF> Safe, small |<#FCF3CF> Big, but not a first step |<#82E0AA> Keeps the upside at the cost of A |
+endlegend
+@enduml

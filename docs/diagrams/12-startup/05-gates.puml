@@ -1,0 +1,37 @@
+@startuml
+!include ../11-bmc/_style.iuml
+skinparam activity {
+  BackgroundColor #EBF5FB
+  BorderColor #2E86C1
+  DiamondBackgroundColor #FEF9E7
+}
+title Path C: stages and the gates between them
+start
+:Stage 0, weeks 1 to 8: 3 to 5 interviews (W-13, W-16)
+also ask: would your suppliers finance against your approved POs?; <<#D6EAF8>>
+if (Gate 0: 3+ firms would pay SAR 1,500 to 7,500 a month?) then (yes)
+  :Stage 1, to month 18: tender SaaS pilot, then 10 to 20 tenants
+  build with a global vendor identity and signed award events; <<#AED6F1>>
+  if (Gate 1: 20 paying tenants and 1,000+ vendors?) then (yes)
+    :Stage 2, months 18 to 30: verified supplier profile across buyers
+    (CR via Wathq, VAT, certificates); vendors still free; <<#85C1E9>>
+    if (Gate 2: 30 %+ of vendors serve 2+ buyers?) then (yes)
+      :Stage 3, months 24 to 36: one referral partner (Tameed, Manafa or Fina)
+      legal opinion first; partner files the SAMA non-objection; <<#5DADE2>>
+      if (Gate 3: SAR 50M+ financed a year, and SAR 500M+ volume visible?) then (yes)
+        :**Year-3 decision**: raise and become a licensed lender (path B)
+        or partner-own one; <<#58D68D>>
+      else (no)
+        :Stay SaaS plus referral; plan a strategic sale; <<#F8C471>>
+      endif
+    else (no)
+      :Stay SaaS; grow tenants, not the network; <<#F8C471>>
+    endif
+  else (no)
+    :Stop or sell to an ERP partner; <<#F5B7B1>>
+  endif
+else (no)
+  :Stop. Lost: about 8 weeks, about SAR 0; <<#F5B7B1>>
+endif
+stop
+@enduml

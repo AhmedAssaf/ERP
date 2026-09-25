@@ -1,0 +1,31 @@
+@startwbs
+!include ../11-bmc/_style.iuml
+<style>
+wbsDiagram {
+  node { Padding 8; RoundCorner 10; MaximumWidth 250; FontSize 12 }
+  :depth(0) { BackgroundColor #1F3A5F; FontColor white; FontSize 15 }
+  .green { BackgroundColor #82E0AA }
+  .amber { BackgroundColor #F8C471 }
+  .red { BackgroundColor #F1948A }
+  .note { BackgroundColor #FBFCFC; FontSize 11 }
+}
+</style>
+title The startup thesis, tested stage by stage (research of 2026-09-26)
+* WaslaBid as a venture-scale startup?
+** 1. Tender SaaS wedge <<green>>
+*** Real gap; SAR 10M to 20M company by year 5 (document 11) <<note>>
+** 2. Cross-tenant supplier network <<amber>>
+*** Unproven with about 100 buyers; vendors must stay free to keep the loop <<note>>
+** 3. Referral finance: PO, invoice, guarantees <<red>>
+*** Legal via a licensed partner, but only about SAR 1M to 2M a year <<note>>
+*** Rails exist (Etimad, BwaTech, Wthaq); lenders are funded <<note>>
+*** Reference App already partnered with Lendo (June 2026) <<note>>
+** 4. Local content evidence <<red>>
+*** Reference App inside SAP Ariba since July 2026 <<note>>
+*** Private buyers have no legal duty <<note>>
+** Alternative: become the lender <<amber>>
+*** Venture-scale, but a different company: SAMA licence, SAR 5M+ capital, credit team <<note>>
+legend right
+  <back:#82E0AA> holds </back>  <back:#F8C471> unproven </back>  <back:#F1948A> weak for us </back>
+endlegend
+@endwbs

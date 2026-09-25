@@ -1,0 +1,34 @@
+@startmindmap
+!include ../11-bmc/_style.iuml
+<style>
+mindmapDiagram {
+  node { Padding 7; Margin 5; RoundCorner 12; MaximumWidth 300; FontSize 12 }
+  :depth(0) { BackgroundColor #1F3A5F; FontColor white; FontSize 15 }
+  .lend { BackgroundColor #AED6F1 }
+  .rail { BackgroundColor #D5DBDB }
+  .rival { BackgroundColor #F1948A }
+  .fail { BackgroundColor #FBFCFC; LineColor #922B21 }
+  .win { BackgroundColor #82E0AA }
+}
+</style>
+title Who already occupies the finance layer
+* Supplier finance\nin Saudi Arabia
+** Licensed lenders <<lend>>
+*** Lendo: invoice and PO finance, fees up to 3 %, USD 690M facility <<lend>>
+*** Tameed: government PO finance, SAR 3.2B+ invested <<lend>>
+*** Manafa: bid and performance guarantees, 2 to 4 % a year <<lend>>
+*** Fina (Sary): finance inside a B2B marketplace, USD 75M raised <<lend>>
+*** Aajil: B2B BNPL for construction materials <<lend>>
+** Guarantee rails <<rail>>
+*** Etimad: e-guarantees for government tenders <<rail>>
+*** BwaTech: digital letters of guarantee, about 15 banks <<rail>>
+*** Wthaq (Tabadul, PIF): issue and verify guarantees <<rail>>
+left side
+** Reference App <<rival>>
+*** Lendo financing MOU, June 2026 <<rival>>
+*** Supplier marketplace since 2022 <<rival>>
+*** Local content engine inside SAP Ariba, July 2026 <<rival>>
+** Global lessons
+*** Worked on huge volume: SAP bought Taulia; Coupa sold for USD 8B <<win>>
+*** Failed without volume: Tradeshift and HSBC venture lost USD 21M on USD 1.1M revenue; Hokodo shut down 2025 <<fail>>
+@endmindmap

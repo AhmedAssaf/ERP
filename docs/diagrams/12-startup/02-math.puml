@@ -1,0 +1,21 @@
+@startuml
+!include ../11-bmc/_style.iuml
+title Why referral finance does not change the size of the company (estimates, SAR a year)
+legend top left
+**At year 5 of the base case:** 110 tenants x 30 tenders x SAR 500k awards = **SAR 1.65B of awarded POs a year**
+....
+|= Extra revenue stream |= Assumption |= SAR a year |
+| PO and invoice financing referral | 5 % of awards financed, partner pays 1 % | 0.8M |
+| Performance-guarantee referral | 30 % need a 5 % guarantee, 3 % fee, 20 % share | 0.15M |
+| Bid-bond referral | Private tenders rarely require bonds (unverified) | about 0 |
+| Supplier premium profile | 5 % of 8,000 vendors pay SAR 2,400 | 0.96M |
+|<#FCF3CF> **Total on top of SaaS** |<#FCF3CF> |<#FCF3CF> **about 1.9M** |
+....
+|= What a venture exit needs |= Revenue |= Financed a year |
+| Exit of USD 150M to 300M | SAR 75M to 150M |  |
+|<#F5B7B1> As a referrer at 1 % |  |<#F5B7B1> SAR 7.5B to 15B, every year |
+|<#FCF3CF> As a licensed lender at about 3.5 % |  |<#FCF3CF> SAR 2B to 4B, every year |
+....
+For scale: the whole Saudi debt-crowdfunding industry has financed <b>SAR 11B in ten years</b> (verified).
+endlegend
+@enduml
