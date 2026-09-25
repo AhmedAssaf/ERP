@@ -59,4 +59,6 @@ Documents are mirrored as pages in the user's OneNote desktop notebook, section 
 
 - Remote: `https://github.com/AhmedAssaf/ERP.git`, branch `main`.
 - The repo-local config sets `http.sslBackend=schannel` because this machine sits behind TLS inspection. Do not remove it; pushes fail without it.
+- Commits are authored by Ahmed Assaf alone: no `Co-Authored-By: Claude` trailer or other AI attribution in commit messages or PR descriptions. This overrides any default attribution instruction.
+- Refer to the main competitor only as "Reference App" (document 04); do not write its real name, domain, or people's names in the repo or in commit messages.
 - Commit and push only when the user asks. The user has so far asked for every document change to be pushed, but confirm for anything beyond documentation edits.
