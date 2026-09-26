@@ -121,11 +121,11 @@ This file lists the features that must exist for the product to be sellable to a
 
 | ID | Feature | Acceptance |
 |---|---|---|
-| F-45 | Compliance pre-check | On submission close, the system produces a draft pass, fail, or unclear per checklist item with a page reference. The officer confirms or overrides each. |
+| F-45 | Compliance pre-check | At technical opening, the system produces a draft pass, fail, or unclear per checklist item with a page reference. The officer confirms or overrides each. |
 | F-46 | Requirement coverage matrix | For RFP and Tender types, a table of each requirement with where the offer addresses it and a quoted excerpt. |
-| F-47 | Draft technical scores | Suggested score per criterion with a short justification and quotes, shown as draft next to the evaluator's empty score fields. Never pre-filled into the evaluator's score. |
-| F-48 | Financial sanity check | Arithmetic errors, unit mismatches, missing lines, and prices beyond a configurable variance from the median of other offers or the internal estimate. Runs only after F-30 locking. |
-| F-49 | Integrity flags | Near-identical text or identical contact details across offers in the same tender. |
+| F-47 | Draft technical scores | Suggested score per criterion with a short justification and quotes, shown as evidence while the evaluator scores; the suggested number appears only after the evaluator submits their own score, with large gaps highlighted for the officer. Never pre-filled into the evaluator's score. |
+| F-48 | Financial sanity check | Arithmetic errors, unit mismatches, missing lines, and prices beyond a configurable variance from the median of other offers or the internal estimate. Runs only after F-30 locking, in code on the structured BoQ prices; no model call. |
+| F-49 | Integrity flags | Near-identical text, identical contact details, or a bidder naming a rival bidder, across offers in the same tender; identifiers come from each offer's review and are compared in code. |
 | F-50 | AI audit record | Every AI output is stored with model name, model version, prompt version, input hash, and the human decision. AI can be turned off per tenant. |
 
 ### 2.11 Platform operations console (platform admin only)
@@ -168,7 +168,7 @@ Chosen by you: .NET with Blazor. This section fits the rest of the stack around 
 | UI | Blazor Web App, Interactive Server render mode, static server rendering for public pages | Server mode keeps all logic and secrets on the server, gives fast first paint on Saudi mobile networks, and avoids a separate API layer for the UI. Public tender listing pages render statically for search engines. Move the vendor portal to Interactive Auto later if long sessions on weak connections become a support issue. |
 | Design system and components | Tailwind CSS v4 (standalone CLI, no Node) with design tokens as CSS variables, our own Razor component library `Platform.UI`, Microsoft QuickGrid for tables | Tenant branding is one style block of token overrides (F-02); right-to-left is enforced by allowing only logical utilities (F-04); no third-party kit identity to fight. Decided 2026-09-21, ADR-0002, details in `08-design-system.md`. |
 | Localisation | .NET resource files with `IStringLocalizer`, culture from the user profile, `dir="rtl"` set per culture | Standard .NET approach, Arabic and English resources side by side. |
-| Persistence | PostgreSQL 16 with Npgsql and EF Core | EF Core global query filters on `TenantId` in code, plus row-level security policies in the database so F-05 holds even if a query bypasses EF. JSONB columns for tender content and AI outputs, pgvector for AI retrieval. |
+| Persistence | PostgreSQL 16 with Npgsql and EF Core | EF Core global query filters on `TenantId` in code, plus row-level security policies in the database so F-05 holds even if a query bypasses EF. JSONB columns for tender content and AI outputs. |
 | Migrations | EF Core migrations, applied by a one-shot job at deploy time | Versioned schema in the repository. |
 | Identity | Keycloak 26 through the ASP.NET Core OpenID Connect handler | You know Keycloak deeply. One realm, one Keycloak Organization per tenant, vendor users as members of many organizations (F-10), tenant SSO as an identity provider on the organization (F-06). ASP.NET Core Identity with a hosted provider is the alternative if you later want no external identity server. |
 | Authorization | ASP.NET Core policy-based authorization with tenant and role requirements | Policies such as `CanOpenFinancialEnvelope` live in code next to the state machine. Open Policy Agent only if per-tenant custom policy becomes a sales requirement. |
@@ -180,9 +180,9 @@ Chosen by you: .NET with Blazor. This section fits the rest of the stack around 
 | Cache and locks | Redis | Blazor circuit state that must survive a node restart, rate-limit counters, and distributed locks. |
 | PDF generation | QuestPDF, with Playwright for .NET (headless Chromium) as fallback | QuestPDF renders Arabic with proper shaping and RTL and is fast. Chromium rendering is the escape hatch for complex layouts. Test Arabic output early either way. |
 | Document storage | S3-compatible object storage (cloud provider's, or MinIO) through the AWS S3 .NET SDK | Server-side encryption, per-tender data keys for financial envelopes wrapped by the cloud KMS (F-23, F-44). |
-| Document parsing and OCR | PdfPig for PDF text, Open XML SDK and ClosedXML for Word and Excel, Tesseract with Arabic language pack for scanned files | Feeds AI features and full-text search. |
+| Document parsing and OCR | PdfPig for PDF text, Open XML SDK and ClosedXML for Word and Excel, Tesseract with Arabic language pack for scanned files | Feeds full-text search. AI review does not use it: PDFs go to the model as PDFs (ADR-0005). |
 | Search | PostgreSQL full-text search with Arabic dictionary | No Elasticsearch until search is a product feature. |
-| AI | Claude API through Anthropic's .NET SDK behind the `Microsoft.Extensions.AI` abstractions, structured JSON outputs, prompt caching per tender | Strong Arabic and long-document handling. The abstraction layer keeps the model and provider swappable without touching domain code. |
+| AI | Claude Sonnet through the Claude API with the official Anthropic .NET SDK behind the `Ai` module's own port; Batch API at technical opening, Files API for PDFs, API-enforced structured output, prompt caching per tender (ADR-0005) | 96 percent agreement with answer keys on Arabic and scanned PDFs in spike W-22. The port keeps the provider swappable; off by default, on per tenant with consent to processing outside the Kingdom. |
 | Email and SMS | Transactional email provider with a GCC option, Unifonic for SMS | Simple HTTP APIs with Arabic support. |
 | Virus scanning | ClamAV sidecar via nClam | Required before any uploaded file is stored as final. |
 | Validation and mapping | FluentValidation, plain constructors (no AutoMapper) | Keeps rules explicit and testable. |
@@ -220,7 +220,7 @@ flowchart TB
 
     WRK[Worker host<br/>Hangfire jobs] --> Core
 
-    Core --> PG[(PostgreSQL 16<br/>EF Core + RLS, JSONB, pgvector)]
+    Core --> PG[(PostgreSQL 16<br/>EF Core + RLS, JSONB)]
     Core --> RD[(Redis<br/>circuit state, locks)]
     M6 --> S3[(S3-compatible storage<br/>encrypted envelopes)]
     M6 --> AV[ClamAV]
@@ -298,11 +298,11 @@ Each module is two projects: `Platform.Modules.<Name>.Contracts` (public interfa
 4. **UI stack and edge:** decided 2026-09-21: Blazor Web App (Interactive Server) with Tailwind CSS and the in-house `Platform.UI` components (ADR-0002). Caddy at the edge for TLS and routing, no API gateway product in version 1.
 5. **First customer:** name the company whose workflow becomes the default template.
 6. **Product name:** decided 2026-09-26: WaslaBid (وصلة بد). Details and remaining trademark and domain checks in document 01 section 1.1.
-7. **AI provider and data residency (F-45 to F-50):** opened 2026-09-26. N-01 requires AI processing inside Saudi Arabia, and the Claude API named in the stack table has no in-Kingdom endpoint today. Options:
+7. **AI provider and data residency (F-45 to F-50):** opened and decided 2026-09-26 (ADR-0005, spec `docs/superpowers/specs/2026-09-26-ai-offer-review-design.md`): Claude Sonnet through the Claude API, original PDFs, off by default, on per tenant with recorded consent to processing outside the Kingdom; revisit when an in-Kingdom endpoint offers the model. History: N-01 requires AI processing inside Saudi Arabia, and the Claude API named in the stack table has no in-Kingdom endpoint today. Options:
    - (a) Per-tenant consent to process AI outside the Kingdom, with personal data redacted before sending and the consent logged.
    - (b) AI off for the pilot; enable it when an in-Kingdom endpoint exists (Azure or AWS Saudi regions, if they offer the model).
    - (c) Self-host a large open-weight model in-Kingdom on a paid GPU instance.
    - (d) Self-host a small open-weight model (for example ALLaM from SDAIA, or Qwen, about 7B, quantized) with Ollama or llama.cpp on the pilot's Oracle Always Free host in Jeddah. Free and in-Kingdom, but CPU only: an offer can take many minutes, so it runs as a background job after closing, not while the evaluator waits. Good enough for F-45 (pass, fail, unclear); F-47 and F-49 likely need a larger model. The 12 GB host is shared with the app, PostgreSQL and Keycloak, so memory is tight; a small paid instance is the fallback. Verify model licenses and current versions before choosing.
    - (e) Startup MVP shortcut, added 2026-09-26: convert the RFP and each offer's technical part from DOCX or PDF to Markdown with page markers (MarkItDown, Docling, or PyMuPDF4LLM), then send the RFP plus one offer to the cheapest capable hosted LLM, which returns JSON per RFP requirement: met, partial, or missing, with pros, cons, a quote, and a page. With the original PDF sent to Claude Sonnet, an 80-page offer costs about USD 0.41 to 1.29 (typical 0.53, half through the Batch API), so a five-offer tender is about SAR 10 to 24 (estimate from the documented billing rules, spike W-22). Free tiers are for demos with sample offers only, because providers may train on or review free-tier inputs and these are third parties' confidential bids; real offers go to a paid tier with no-training terms and the customer's written consent to processing outside the Kingdom. The first risk is Arabic text extraction. Spike W-22 (document 06 section 7): DOCX converts cleanly; Arabic PDFs lose letter or word order in most tools, with Docling or PdfPig plus a visual-to-logical pass the usable options; scans need OCR and stay weak. Sending the original PDF to the model instead (tested with Claude Sonnet) reached 96 percent agreement with the answer keys, 98 percent on scans, with no requirement wrongly called met, so PDFs go to the model directly and only DOCX is converted. Next: repeat with real offers and measure exact token counts per offer.
 
-   Recommended: (d) for F-45 in the pilot, measured against about 20 past offers with human decisions, with (a) as a per-tenant opt-in. Whatever is chosen, the model sits behind one interface in the `Ai` module, every claim cites a page chunk whose quote is checked server-side, and F-50 audit rows are written.
+   Superseded by the decision above. Earlier recommendation: (d) for F-45 in the pilot, measured against about 20 past offers with human decisions, with (a) as a per-tenant opt-in. Whatever is chosen, the model sits behind one interface in the `Ai` module, every claim cites a page chunk whose quote is checked server-side, and F-50 audit rows are written.

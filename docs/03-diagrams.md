@@ -68,16 +68,14 @@ sequenceDiagram
     CO-->>V: Answers (anonymised to all)
     V->>CO: Sealed technical + financial offer (F-22, F-23)
     Note over CO: Deadline closes submissions (F-24)
-    CO->>AI: Run compliance pre-check (F-45)
+    Note over AI: At technical opening, one review per offer (F-45 to F-47)
     AI-->>CO: Draft pass / fail per checklist item
     CO->>CO: Confirm compliance screening (F-28)
     CO->>RD: Compliant offers for scoring
-    RD->>AI: Request coverage matrix + draft scores (F-46, F-47)
-    AI-->>RD: Drafts with evidence quotes
+    AI-->>RD: Coverage and evidence per criterion (F-46, F-47)
     RD->>CO: Locked technical scores (F-29, F-30)
     CO->>CO: Open financial envelopes, logged (F-23)
-    CO->>AI: Financial sanity check (F-48)
-    AI-->>CO: Arithmetic errors, outliers, missing lines
+    CO->>CO: Price checks in code, no AI (F-48)
     CO->>CO: Comparison sheet + ranking (F-31, F-32)
     CO->>FA: Recommendation + justification
     alt Within delegation of authority
@@ -344,7 +342,7 @@ erDiagram
     AI_REVIEW {
         uuid id PK
         uuid offer_id FK
-        string kind "compliance | coverage | scores | financial | integrity"
+        string kind "offer review: checklist, requirements, criteria"
         string model
         string prompt_version
         string input_hash
@@ -439,24 +437,25 @@ flowchart TB
 
 ## 10. AI offer review: what happens to one offer
 
-Read it as: left to right, one offer goes in, five kinds of draft come out, and nothing is final until the person in the diamond acts.
+Read it as: left to right, one offer goes in once, at technical opening; one model call returns every draft; nothing is final until the person in the diamond acts. Design: `docs/superpowers/specs/2026-09-26-ai-offer-review-design.md`, ADR-0005.
 
 ```mermaid
 flowchart LR
     classDef ai fill:#FFF4CE,stroke:#C9A227,color:#222
     classDef human fill:#1E4E79,color:#fff,stroke:none
 
-    IN[Offer files<br/>PDF, DOCX, XLSX<br/>AR or EN] --> PARSE[Parse + OCR<br/>PdfPig, Open XML, Tesseract]
-    PARSE --> CHUNK[Page-anchored chunks<br/>+ embeddings in pgvector]
-    RFP[RFP text, criteria,<br/>checklist, BoQ] --> CTX[Cached tender context]
-    CHUNK & CTX --> P1[Compliance pre-check]:::ai
-    CHUNK & CTX --> P2[Coverage matrix]:::ai
-    CHUNK & CTX --> P3[Draft scores + quotes]:::ai
-    LOCK{{Technical locked?}} --> P4[Financial sanity]:::ai
-    ALL[All offers in tender] --> P5[Integrity flags]:::ai
-    P1 & P2 & P3 & P4 & P5 --> UI[Side-by-side view<br/>draft vs offer page]
-    UI --> H{Human confirms,<br/>edits, or overrides}:::human
-    H --> STORE[(AI_REVIEW row:<br/>model, prompt version,<br/>input hash, decision)]
+    OPEN{{Technical envelopes opened<br/>AI on, consent recorded?}} --> ROW[One review row per offer<br/>unique, claimed before calling]
+    IN[Technical files only<br/>PDF as PDF, DOCX as text] --> ROW
+    REQ[Checklist, requirements,<br/>criteria from the tender] --> ROW
+    ROW --> CALL[One Claude Sonnet call<br/>Batch API, schema-enforced JSON]:::ai
+    CALL --> D1[Checklist verdicts F-45]:::ai
+    CALL --> D2[Requirement coverage F-46]:::ai
+    CALL --> D3[Criterion evidence + score F-47]:::ai
+    CALL --> ID[Identifiers] --> IC[Integrity comparison in code F-49]
+    LOCK{{Scores locked, financial opened}} --> PC[Price checks in code F-48]
+    D1 & D2 & D3 & IC & PC --> UI[Side-by-side view<br/>draft vs offer page]
+    UI --> H{Human confirms<br/>or overrides}:::human
+    H --> STORE[(ai schema: review, items,<br/>decision, model, prompt version,<br/>input hash, immutable)]
 ```
 
 ## 11. Roadmap: from idea to first paying customer
