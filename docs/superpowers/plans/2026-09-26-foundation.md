@@ -5487,7 +5487,7 @@ dotnet user-secrets set "ConnectionStrings:Platform" "Host=localhost;Port=5432;D
 docker compose -f infra/compose/docker-compose.yml --env-file infra/compose/.env restart caddy
 dotnet run --project src/Platform.Migrator -- --seed-dev
 ```
-Expected: `Applied 4 scripts: platform/0001_platform.sql, audit/0001_audit.sql, tenancy/0001_tenancy.sql, workflow/0001_workflow.sql` and `Seeded development tenants acme and beta with the default approval chain.`
+Expected: `Applied 7 scripts: platform/0001_platform.sql, platform/0002_platform_hygiene.sql, audit/0001_audit.sql, tenancy/0001_tenancy.sql, tenancy/0002_tenancy_logo_url.sql, tenancy/0003_tenancy_alias_lowercase.sql, workflow/0001_workflow.sql` and `Seeded development tenants acme and beta with the default approval chain.`
 
 - [ ] **Step 3: Run the app and check the edge**
 

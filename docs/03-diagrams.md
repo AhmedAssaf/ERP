@@ -389,7 +389,8 @@ flowchart TB
     EVA --> WF
     AWD --> EVA & TDR & DOC & NOT & AUD
     AI --> TDR & EVA & DOC & AUD
-    WF --> TEN & IDN & AUD
+    WF --> AUD
+    IDN --> AUD
 ```
 
 ## 9. Deployment in a Saudi region

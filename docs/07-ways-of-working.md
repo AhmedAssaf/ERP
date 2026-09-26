@@ -79,6 +79,33 @@ The .NET app runs on the host with `dotnet watch` on port 5273 so hot reload wor
 
 Reset everything: `docker compose down -v` then `up -d` again. ClamAV takes up to three minutes on first start while it downloads signatures; its health check allows for that.
 
+### Run the app locally
+
+With the Compose stack up and the two `WASLABID_*` values filled in `infra/compose/.env`, run these once from the repository root (Git Bash). The commands read the values from `.env` into shell variables and never print them (N-10); user secrets live outside the repository.
+
+```bash
+env_value() { grep "^$1=" infra/compose/.env | cut -d= -f2- | tr -d '\r'; }
+PGPW=$(env_value POSTGRES_PASSWORD)
+WEB_SECRET=$(env_value WASLABID_WEB_CLIENT_SECRET)
+# erp_app's password is the development value from infra/compose/postgres/init/01-databases.sql.
+APP_DB="Host=localhost;Port=5432;Database=platform;Username=erp_app;Password=erp_app_dev_password"
+
+dotnet user-secrets set "ConnectionStrings:Owner" "Host=localhost;Port=5432;Database=platform;Username=erp;Password=$PGPW" --project src/Platform.Migrator > /dev/null
+dotnet user-secrets set "ConnectionStrings:Platform" "$APP_DB" --project src/Platform.Migrator > /dev/null
+dotnet user-secrets set "ConnectionStrings:Platform" "$APP_DB" --project src/Platform.Web > /dev/null
+dotnet user-secrets set "Oidc:ClientSecret" "$WEB_SECRET" --project src/Platform.Web > /dev/null
+unset PGPW WEB_SECRET
+```
+
+Then migrate, seed the development tenants `acme` and `beta`, and start the app:
+
+```bash
+dotnet run --project src/Platform.Migrator -- --seed-dev
+dotnet run --project src/Platform.Web
+```
+
+Open `https://acme.localhost:8443` (or the port in `CADDY_HTTPS_PORT`). Login only works through Caddy: it terminates TLS, which the OIDC correlation cookies need, and forwards the host with its port so the redirect URI is right. Plain `http://localhost:5273` cannot complete an OIDC login. Keycloak answers on `http://localhost:8080`; sign in as `acme.admin` or `beta.admin` with `WASLABID_DEV_USER_PASSWORD` from `.env`.
+
 ## 5. Branches, commits, pull requests
 
 - **Trunk-based.** `main` is always deployable. Branches live for days, not weeks.

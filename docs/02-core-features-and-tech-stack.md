@@ -280,9 +280,10 @@ ERP/
     Platform.IntegrationTests/       Testcontainers: Postgres, Keycloak, MinIO
     Platform.UITests/                bUnit + Playwright
   infra/
-    compose/                         local development stack (docker-compose.yml, .env.example, caddy, keycloak, postgres init)
+    compose/                         local development stack (docker-compose.yml, .env.example, caddy, postgres init)
+      keycloak/import/               development realm export (waslabid-realm.json)
     k8s/                             production manifests or Helm chart
-    keycloak/                        realm export, themes
+    keycloak/                        production realm export and themes (later)
     caddy/                           Caddyfile, on-demand TLS ask endpoint config
   .github/workflows/
 ```

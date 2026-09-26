@@ -19,7 +19,7 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 
 | Epic | Stories | P0 | P1 | P2 |
 |---|---|---|---|---|
-| E0 Platform foundation | W-01 to W-12, W-19 to W-22 | 12 | 4 | 0 |
+| E0 Platform foundation | W-01 to W-12, W-19 to W-27 | 13 | 7 | 1 |
 | E1 Tenancy and branding | F-01 to F-05, F-01b | 4 | 2 | 0 |
 | E2 Identity, users, roles | F-06 to F-10, F-06b | 2 | 2 | 2 |
 | E3 Vendor registration | F-11 to F-14, F-12b, F-14a | 3 | 1 | 2 |
@@ -33,26 +33,31 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 | E11 Pilot and market | W-13 to W-18 | 6 | 0 | 0 |
 | E12 Platform operations console | F-51 to F-54, F-60 | 3 | 2 | 0 |
 
-## E0 Platform foundation (W-01 to W-12)
+## E0 Platform foundation (W-01 to W-12, W-19 to W-27)
 
 | ID | Story | Pri | Size | Status | Depends on |
 |---|---|---|---|---|---|
 | W-01 | Local Compose stack | P0 | S | Done 2026-09-21: all services healthy on Docker Desktop 29 (Keycloak in 50 s, ClamAV within its start period), bucket created, Caddy answering on the override port; second `up -d` clean | |
 | W-02 | Solution skeleton: host, worker, modules, tests, UI project per document 02 section 4.5 | P0 | M | Done 2026-09-26: host, 4 modules, 2 test projects; worker with W-08, Platform.UI with W-05 (spec section 1) | W-01 |
 | W-03 | PostgreSQL row-level security foundation: `TenantId` convention, EF interceptor setting `app.tenant_id`, app role, policy migration helper | P0 | M | Done | W-02 |
-| W-04 | Keycloak realm export with Organizations, web client, worker client; OIDC wiring in the host | P0 | M | Done 2026-09-26 except the browser login end to end, which Task 16 of the foundation plan proves; worker client with W-08; tenants match the organization alias, not the id (spec section 7) | W-01, W-02 |
+| W-04 | Keycloak realm export with Organizations, web client, worker client; OIDC wiring in the host | P0 | M | Done 2026-09-26; worker client with W-08; tenants match the organization alias, not the id (spec section 7) | W-01, W-02 |
 | W-05 | Tailwind build: standalone CLI in MSBuild, `@theme` tokens, fonts self-hosted, physical-utility lint | P0 | S | Done | W-02 |
 | W-06 | `Platform.UI` components for the MVP (document 08 section 6) with the gallery page in both directions | P0 | L | Backlog | W-05 |
 | W-07 | Localisation: `IStringLocalizer` setup, `ar-SA` and `en-US` resources, culture switch, `dir` on `<html>` | P0 | S | Done | W-02 |
-| W-08 | Hangfire with PostgreSQL storage, dashboard behind admin role, deadline job skeleton | P0 | S | Backlog | W-02, W-03 |
+| W-08 | Hangfire with PostgreSQL storage, dashboard behind admin role, deadline job skeleton; worker client in the Keycloak realm (moved from W-04) | P0 | S | Backlog | W-02, W-03 |
 | W-09 | CI workflow: build, test with Testcontainers, format, Trivy, lint, Mermaid render check for docs | P0 | M | Backlog | W-02 |
 | W-10 | Observability: OpenTelemetry, Serilog, health endpoints, Sentry | P1 | S | Backlog | W-02 |
 | W-11 | Production Caddyfile with on-demand TLS and the tenant allow endpoint; Kubernetes manifests | P1 | M | Backlog | F-03 |
 | W-12 | Backup and restore drill script for PostgreSQL and object storage | P1 | S | Backlog | W-11 |
 | W-20 | Elsa 3 spike, one-week box: custom activities for the fixed points, per-tender snapshot execution, Arabic and white-label designer feasibility; ends in ADR-0004 choosing the executor | P0 | L | Done | W-01 |
-| W-19 | Pilot environment on Oracle Cloud Always Free, Jeddah home region: one Arm VM running the Compose stack plus the app, HTTPS via Caddy, nightly volume backup to object storage | P0 | M | Backlog | W-01, W-09 |
+| W-19 | Pilot environment on Oracle Cloud Always Free, Jeddah home region: one Arm VM running the Compose stack plus the app, HTTPS via Caddy, nightly volume backup to object storage | P0 | M | Backlog | W-01, W-09, W-24, W-25, W-26 |
 | W-21 | Revalidate the login against Keycloak membership: `OnValidatePrincipal` or a revalidating authentication state provider, so a user removed from an organization loses access within minutes, including open Blazor circuits | P0 | S | Backlog | W-04 |
 | W-22 | Offer-to-Markdown spike, one-day box: convert Arabic and English DOCX, text PDF, and scanned PDF offers to Markdown with page markers using MarkItDown, PyMuPDF4LLM, Docling and PdfPig; score each against ground truth; feeds option (e) of document 02 section 5 item 7 | P1 | S | In progress 2026-09-26: generated samples done (document 06 section 7); real offers pending | |
+| W-23 | Same-tenant check enforced in middleware after authentication so no policy kind can skip it, with a test per policy kind | P1 | S | Backlog | W-04 |
+| W-24 | Production edge readiness: trust forwarded headers from Caddy's network outside Development, and persist Data Protection keys so login cookies survive restarts and multiple instances | P0 | S | Backlog | W-04 |
+| W-25 | Tailwind standalone binaries for linux-arm64, osx-arm64 and osx-x64, each with its SHA-256 | P1 | S | Backlog | W-05 |
+| W-26 | Move the waslabid-tests client into a test-only realm import used by Testcontainers | P1 | S | Backlog | W-04 |
+| W-27 | Throttle repeated identity.cross_tenant_denied audit rows per user and host | P2 | S | Backlog | F-41 |
 
 Acceptance criteria:
 
@@ -69,6 +74,7 @@ Acceptance criteria:
 - **W-11.** Given a tenant with a verified custom domain, when the first HTTPS request for that hostname arrives, then Caddy asks the allow endpoint, receives 200, obtains a certificate, and serves the tenant portal; when the hostname is unknown, then the allow endpoint returns 404 and no certificate is issued.
 - **W-20.** Given the one-week box, when it ends, then ADR-0004 records the executor with evidence: whether a definition that skips locking or opens financial early is rejected by the executor, whether a running tender keeps its snapshot after the definition changes, whether the designer renders in Arabic right-to-left under a tenant's colour, and the measured time to implement one custom step; given the box overruns, then the in-house state machine is chosen.
 - **W-19.** Given an Oracle Cloud tenancy with Jeddah as home region, when the provisioning script runs, then an Always Free Arm instance (or the documented paid fallback) hosts the Compose stack and the app, the pilot tenant's hostname serves over HTTPS, all data stays in the Jeddah region, and a nightly backup of the PostgreSQL and MinIO volumes lands in Jeddah object storage; given the instance is destroyed, when the restore script runs on a new one, then the pilot tenant is back within one hour.
+- **W-21.** Given a signed-in acme user, when their organization membership is removed in Keycloak, then within 5 minutes their next HTTP request is challenged and their open Blazor circuit is closed or shows the sign-in page; given the removal, then an audit row names the user and the tenant. Until W-21 lands, the login cookie has a fixed 30-minute lifetime.
 - **W-22.** Given sample offers with known text (Arabic and English DOCX, a Word-exported PDF, and a scanned image PDF), when each converter runs, then a score table records per file and tool the character accuracy against the source text, whether Arabic comes out reversed, whether page markers are kept, and the time taken; given two or three real Arabic offers from a prospect, when converted, then a human reads the Markdown and records whether an evaluator could work from it; the result names one converter for option (e) or states that none is good enough.
 - **W-12.** Given a nightly backup, when the restore script runs against an empty environment, then the platform starts and a chosen tender's files and rows are present with matching hashes.
 
@@ -228,7 +234,7 @@ Acceptance criteria:
 | F-43 | Dashboards: cycle time, savings, participation | P2 | M | Backlog | F-33 |
 | F-44 | Document storage: encryption, virus scan, size and type limits | P0 | M | Backlog | W-01, ADR-0001 |
 
-- **F-41.** Given any write or login, when it happens, then one audit row exists; given the app role, when it attempts UPDATE or DELETE on the audit table, then the database refuses.
+- **F-41.** Given any write or login, when it happens, then one audit row exists; given the app role, when it attempts UPDATE or DELETE on the audit table, then the database refuses; the audit row commits in the same transaction as the change or through an outbox, and carries the client IP.
 - **F-44.** Given an upload containing the EICAR test signature, when it completes, then it is rejected before it is listed and the vendor sees a specific message; given a 101 MB file, then the chunk endpoint refuses with the limit stated.
 
 ## E10 AI assist (F-45 to F-50)
