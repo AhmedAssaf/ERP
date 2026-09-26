@@ -14,6 +14,7 @@ public static class WorkflowModule
         ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
         services.AddModuleDbContext<WorkflowDbContext>(connectionString);
         services.AddScoped<IWorkflowDefinitions, WorkflowDefinitions>();
+        services.AddScoped<IWorkflowService, WorkflowService>();
         return services;
     }
 

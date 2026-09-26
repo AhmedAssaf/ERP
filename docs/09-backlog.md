@@ -166,7 +166,7 @@ Acceptance criteria:
 
 | ID | Story | Pri | Size | Status | Depends on |
 |---|---|---|---|---|---|
-| F-56 | Configurable workflow: definition model, per-tender snapshot, executor, default template | P0 | L | Backlog | W-03, W-20 |
+| F-56 | Configurable workflow: definition model, per-tender snapshot, executor, default template | P0 | L | Done | W-03, W-20 |
 | F-56b | Tenant workflow editor screen: steps, departments, roles, approvers, thresholds, templates | P1 | L | Backlog | F-56, W-06 |
 | F-27 | Tender state machine executing the workflow snapshot (MVP states only) | P0 | M | Backlog | F-16, F-56 |
 | F-28 | Compliance screening pass or fail per checklist item | P0 | M | Backlog | F-27, F-23 |
