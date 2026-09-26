@@ -182,12 +182,13 @@ sequenceDiagram
     API->>API: Host -> tenant slug "customer"
     API->>B: Redirect to Keycloak login (org = customer)
     B->>KC: Login (password + TOTP, or customer's Entra ID)
-    KC-->>B: Token with org = customer, roles
+    KC-->>B: Token with org = customer (no tenant roles)
     B->>GW: GET /api/tenders (Bearer token)
     GW->>API: Forward (TLS terminated)
     API->>KC: Validate token signature and expiry
     API->>API: Assert token.org == host tenant, else 403
     API->>DB: SET app.tenant_id = customer
+    API->>DB: Roles of token.sub from identity.members (F-07)
     API->>DB: SELECT ... FROM tenders
     DB->>DB: RLS policy: tenant_id = current_setting('app.tenant_id')
     DB-->>API: Only customer's rows

@@ -8,8 +8,11 @@ using Microsoft.Extensions.Options;
 
 namespace Platform.IntegrationTests.Infrastructure;
 
-/// <summary>A signed-in user for web tests, sent as a header and turned into the claims Keycloak issues.</summary>
-internal sealed record TestUser(string Subject, IReadOnlyList<string> Organizations, string? Locale = null)
+/// <summary>
+/// A signed-in user for web tests, sent as a header and turned into the claims Keycloak issues. <paramref name="TokenRoles"/>
+/// become <c>role</c> claims on the token's own identity, as a token that tried to carry tenant roles would.
+/// </summary>
+internal sealed record TestUser(string Subject, IReadOnlyList<string> Organizations, string? Locale = null, IReadOnlyList<string>? TokenRoles = null)
 {
     public const string Header = "X-Test-User";
 
@@ -38,7 +41,9 @@ internal sealed class TestAuthHandler(IOptionsMonitor<AuthenticationSchemeOption
             claims.Add(new Claim("locale", user.Locale));
         }
 
-        var identity = new ClaimsIdentity(claims, SchemeName, "preferred_username", null);
+        claims.AddRange((user.TokenRoles ?? []).Select(r => new Claim("role", r)));
+
+        var identity = new ClaimsIdentity(claims, SchemeName, "preferred_username", "role");
         return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(identity), SchemeName)));
     }
 }

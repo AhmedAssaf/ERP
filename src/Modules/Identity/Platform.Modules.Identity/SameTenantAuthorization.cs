@@ -8,8 +8,12 @@ namespace Platform.Modules.Identity;
 
 internal sealed class SameTenantRequirement : IAuthorizationRequirement;
 
-/// <summary>The signed-in user must be a member of the Keycloak organization of the host's tenant (W-04).</summary>
-internal sealed class SameTenantHandler(ITenantAccessor tenants, IAuditWriter audit, IHttpContextAccessor httpContextAccessor)
+/// <summary>
+/// The signed-in user must be a member of the Keycloak organization of the host's tenant (W-04). A denial is audited as
+/// <c>identity.cross_tenant_denied</c> once per user, host and path per minute (W-27, <see cref="DenialAuditThrottle"/>).
+/// </summary>
+internal sealed class SameTenantHandler(
+    ITenantAccessor tenants, IAuditWriter audit, DenialAuditThrottle throttle, IHttpContextAccessor httpContextAccessor)
     : AuthorizationHandler<SameTenantRequirement>
 {
     protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, SameTenantRequirement requirement)
@@ -26,16 +30,15 @@ internal sealed class SameTenantHandler(ITenantAccessor tenants, IAuditWriter au
             return;
         }
 
+        var request = DenialRequest.From(context, httpContextAccessor, tenant);
+        var userId = context.User.FindFirst(IdentityClaims.Subject)?.Value;
+        if (!throttle.ShouldAudit(new DenialKey(tenant.TenantId, "identity.cross_tenant_denied", userId, request.Host, request.Path)))
+        {
+            return;
+        }
+
         // The row lands in the attacked tenant's audit log, so it names the attempted host only, never the intruder's
         // other organizations.
-        var httpContext = httpContextAccessor.HttpContext;
-        var host = httpContext?.Request.Host.Host;
-        await audit.WriteAsync(
-            new AuditEntry(
-                context.User.FindFirst(IdentityClaims.Subject)?.Value,
-                "identity.cross_tenant_denied",
-                "host",
-                string.IsNullOrEmpty(host) ? tenant.Slug : host),
-            httpContext?.RequestAborted ?? CancellationToken.None);
+        await audit.WriteAsync(new AuditEntry(userId, "identity.cross_tenant_denied", "host", request.Host), request.Aborted);
     }
 }

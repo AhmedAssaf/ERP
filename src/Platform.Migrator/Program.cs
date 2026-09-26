@@ -37,7 +37,8 @@ internal static class EntryPoint
 
             await DevSeed.SeedTenantsAsync(owner);
             await DevSeed.SeedWorkflowsAsync(app);
-            Console.WriteLine("Seeded development tenants acme and beta with the default approval chain.");
+            await DevSeed.SeedMembersAsync(app);
+            Console.WriteLine("Seeded development tenants acme and beta with the default approval chain and a tenant admin each.");
         }
 
         return 0;

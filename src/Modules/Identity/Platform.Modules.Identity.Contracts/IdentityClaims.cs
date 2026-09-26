@@ -13,4 +13,15 @@ public static class IdentityClaims
 
     /// <summary>Realm roles, as the platform realm's client mapper emits them in the id token (one claim per role).</summary>
     public const string Roles = "roles";
+
+    public const string Email = "email";
+
+    /// <summary>"true" when Keycloak verified the address; member rows are bound by email only then.</summary>
+    public const string EmailVerified = "email_verified";
+
+    /// <summary>
+    /// A tenant role from <c>identity.members</c> (F-07). The members claims transformation adds these on its own identity
+    /// for the host tenant only; the tenant policies read them from that identity alone.
+    /// </summary>
+    public const string Role = "role";
 }

@@ -1,7 +1,11 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Npgsql;
 using Platform.Modules.Identity.Contracts;
+using Platform.Modules.Identity.Members;
+using Platform.Shared.Data;
 
 namespace Platform.Modules.Identity;
 
@@ -30,13 +34,53 @@ public static class IdentityModule
         .AddRequirements(new MinimumAcrRequirement(PlatformMinimumAcr))
         .Build();
 
-    public static IServiceCollection AddIdentityModule(this IServiceCollection services)
+    /// <summary>
+    /// The four tenant role policies (F-07, spec 4.1) by name (<see cref="TenantPolicies"/>): signed in, a member of the
+    /// host tenant's organization, and holding the role in the host tenant according to <c>identity.members</c>.
+    /// </summary>
+    public static IReadOnlyDictionary<string, AuthorizationPolicy> TenantRolePolicies { get; } = new Dictionary<string, AuthorizationPolicy>
+    {
+        [TenantPolicies.TenantAdmin] = RolePolicy(TenantRoles.TenantAdmin),
+        [TenantPolicies.ContractsOfficer] = RolePolicy(TenantRoles.ContractsOfficer),
+        [TenantPolicies.TechnicalEvaluator] = RolePolicy(TenantRoles.TechnicalEvaluator),
+        [TenantPolicies.FinanceApprover] = RolePolicy(TenantRoles.FinanceApprover),
+    };
+
+    public static IServiceCollection AddIdentityModule(this IServiceCollection services, string connectionString)
     {
         ArgumentNullException.ThrowIfNull(services);
-        services.AddScoped<IAuthorizationHandler, SameTenantHandler>();
+        ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
         services.TryAddSingleton(TimeProvider.System);
+        services.AddHttpContextAccessor();
+        services.AddModuleDbContext<MembersDbContext>(connectionString);
+        services.AddScoped<MemberDirectory>();
+        services.AddScoped<IMemberDirectory>(sp => sp.GetRequiredService<MemberDirectory>());
+        services.AddScoped<IClaimsTransformation, MembersClaimsTransformation>();
+        services.TryAddSingleton<DenialAuditThrottle>();
+        services.AddScoped<IAuthorizationHandler, SameTenantHandler>();
+        services.AddScoped<IAuthorizationHandler, TenantRoleHandler>();
         services.TryAddSingleton<IOrganizationMemberSource, UnavailableOrganizationMembers>();
         services.TryAddSingleton<IOrganizationMembers, CachingOrganizationMembers>();
         return services;
     }
+
+    /// <summary>Registers <see cref="TenantRolePolicies"/> under their names.</summary>
+    public static AuthorizationOptions AddTenantRolePolicies(this AuthorizationOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        foreach (var (name, policy) in TenantRolePolicies)
+        {
+            options.AddPolicy(name, policy);
+        }
+
+        return options;
+    }
+
+    public static Task<IReadOnlyList<string>> MigrateAsync(NpgsqlConnection connection, CancellationToken cancellationToken = default) =>
+        SqlMigrator.ApplyAsync(connection, "identity", typeof(IdentityModule).Assembly, cancellationToken);
+
+    private static AuthorizationPolicy RolePolicy(string role) => new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .AddRequirements(new SameTenantRequirement(), new TenantRoleRequirement(role))
+        .Build();
 }

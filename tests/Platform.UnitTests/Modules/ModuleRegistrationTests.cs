@@ -20,7 +20,7 @@ public class ModuleRegistrationTests
 
     [Fact]
     public void Identity_module_registers_into_the_collection() =>
-        new ServiceCollection().AddIdentityModule().ShouldNotBeEmpty();
+        new ServiceCollection().AddIdentityModule(AnyConnectionString).ShouldNotBeEmpty();
 
     [Fact]
     public void Workflow_module_registers_into_the_collection() =>

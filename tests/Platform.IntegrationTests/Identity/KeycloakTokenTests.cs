@@ -30,5 +30,8 @@ public class KeycloakTokenTests(DatabaseFixture db, KeycloakFixture keycloak) : 
         OrganizationClaims.BelongsTo(user, acme).ShouldBeTrue();
         OrganizationClaims.BelongsTo(user, beta).ShouldBeFalse();
         user.FindFirst("locale")?.Value.ShouldBe("ar");
+        // The seeded member row is bound by verified email on first sign-in (F-07 dev seed), so the id token must carry both.
+        user.FindFirst("email")?.Value.ShouldBe("admin@acme.waslabid.test");
+        user.FindFirst("email_verified")?.Value.ShouldBe("true");
     }
 }

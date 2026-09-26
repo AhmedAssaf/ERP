@@ -43,7 +43,7 @@ builder.Services.AddHealthChecks();
 builder.Services.AddPlatformShared();
 builder.Services.AddAuditModule(platformDb);
 builder.Services.AddTenancyModule(platformDb);
-builder.Services.AddIdentityModule();
+builder.Services.AddIdentityModule(platformDb);
 builder.Services.AddWorkflowModule(platformDb);
 builder.Services.AddOperationsModule(platformDb);
 // The web host only enqueues and reads jobs (D-6): Hangfire storage without a server, plus the dashboard (task 7).
@@ -92,6 +92,8 @@ builder.Services
         options.Scope.Add("openid");
         options.Scope.Add("profile");
         options.Scope.Add("organization");
+        // email and email_verified: a member row seeded by email is bound to the user on first sign-in (F-07 dev seed).
+        options.Scope.Add("email");
         options.TokenValidationParameters.NameClaimType = IdentityClaims.Username;
         options.Events.OnRedirectToIdentityProviderForSignOut = SignOutEndpoints.NameClientOnEndSession;
     })
@@ -103,6 +105,8 @@ builder.Services.AddAuthorization(options =>
     options.FallbackPolicy = IdentityModule.SameTenantPolicy;
     options.DefaultPolicy = IdentityModule.SameTenantPolicy;
     options.AddPolicy(PlatformAuthentication.PolicyName, PlatformAuthentication.AdminPolicy);
+    // F-07: TenantAdmin, ContractsOfficer, TechnicalEvaluator, FinanceApprover (same tenant plus the role in identity.members).
+    options.AddTenantRolePolicies();
 });
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, HostAwareAuthorizationPolicyProvider>();
 builder.Services.AddCascadingAuthenticationState();
