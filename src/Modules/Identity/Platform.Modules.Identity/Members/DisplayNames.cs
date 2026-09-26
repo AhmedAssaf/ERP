@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using Platform.Shared.Text;
 
 namespace Platform.Modules.Identity.Members;
 
@@ -17,14 +18,14 @@ internal static class DisplayNames
     /// <summary>True when <paramref name="name"/>, already trimmed, is an acceptable display name.</summary>
     public static bool IsValid(string? name)
     {
-        if (string.IsNullOrWhiteSpace(name) || name.Length > MaxLength)
+        if (string.IsNullOrWhiteSpace(name) || name.Length > MaxLength || TextSafety.HasInvisibleOrBidiControl(name))
         {
             return false;
         }
 
         foreach (var rune in name.EnumerateRunes())
         {
-            if (IsInvisibleOrBidi(rune.Value) || !IsAllowed(rune))
+            if (!IsAllowed(rune))
             {
                 return false;
             }
@@ -32,9 +33,6 @@ internal static class DisplayNames
 
         return true;
     }
-
-    private static bool IsInvisibleOrBidi(int c) =>
-        c is (>= 0x200B and <= 0x200F) or (>= 0x202A and <= 0x202E) or (>= 0x2066 and <= 0x2069) or 0xFEFF;
 
     // Letters and marks by rune, so a letter outside the Basic Multilingual Plane counts as one letter, not two surrogates.
     private static bool IsAllowed(Rune rune) =>

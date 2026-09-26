@@ -33,12 +33,35 @@ public sealed class StaffInputTests(DatabaseFixture db)
     [InlineData("sara@@acme.example.sa")]
     [InlineData("sara@acme..example.sa")]
     [InlineData("sara@acme.example.sa (comment)")]
+    [InlineData("sara@localhost")]
+    [InlineData("sara@[127.0.0.1]")]
+    [InlineData("\"sara\"@acme.sa")]
+    [InlineData("sara@acme.sa.")]
+    [InlineData("sara@-acme.sa")]
     public async Task A_malformed_email_is_refused_before_keycloak_is_called(string email)
     {
         var (result, calls) = await InviteAsync(email, "Sara Ahmed", [TenantRoles.ContractsOfficer]);
 
         calls.ShouldBe(0, "the address reached the Keycloak Admin API");
         result.ShouldNotBeNull().Error!.Code.ShouldBe("identity.invalid_email");
+    }
+
+    [Theory]
+    [InlineData("sara", "acme.example.sa")]
+    [InlineData("sara.ahmed", "acme.example.sa")]
+    [InlineData("s+tag", "acme.example.sa")]
+    [InlineData("sara", "acme.co.uk")]
+    [InlineData("SARA", "ACME.EXAMPLE.SA")]
+    public async Task A_normal_email_address_reaches_keycloak(string localPart, string domain)
+    {
+        // Each case gets its own address (a guid suffix) so it never collides with a member another test already wrote.
+        var email = $"{localPart}.{Guid.NewGuid():N}@{domain}";
+
+        // The recorder answers every call with 503, so a call reaching it proves only that normalization let the
+        // address through, not that the invitation itself succeeds.
+        var (_, calls) = await InviteAsync(email, "Sara Ahmed", [TenantRoles.ContractsOfficer]);
+
+        calls.ShouldBeGreaterThan(0, "a normal address did not reach the Keycloak Admin API");
     }
 
     [Fact]

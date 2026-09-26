@@ -251,6 +251,29 @@ public sealed partial class StaffInvitationTests(DatabaseFixture db, KeycloakFix
     }
 
     [Fact]
+    public async Task A_400_that_is_not_about_the_name_is_reported_as_the_generic_failure()
+    {
+        // The lookup that finds no existing user still gets a token; the create-user request is then refused with 401
+        // as if Keycloak had just revoked it, and renewing the token for the retry fails with 400 (the service
+        // account's credentials stopped working, say) before the create-user request, the one that carries the name,
+        // is ever retried.
+        await using var host = Host(services => services.AddHttpClient<KeycloakAdminClient>()
+            .AddHttpMessageHandler(() => new RefuseTokenRenewal()));
+        var email = Unique("renewal");
+
+        Result<Invitation> result;
+        await using (var scope = host.ScopeFor(TestTenants.Acme))
+        {
+            result = await scope.ServiceProvider.GetRequiredService<IStaffService>()
+                .InviteAsync(email, "Renewal Failure", [TenantRoles.ContractsOfficer], Admin, Ct);
+        }
+
+        result.IsSuccess.ShouldBeFalse();
+        result.Error.Code.ShouldBe("identity.invitation_failed");
+        (await MemberRows.FindByEmailAsync(db.AppConnectionString, TestTenants.Acme.TenantId, email, Ct)).ShouldBeNull();
+    }
+
+    [Fact]
     public async Task When_the_member_row_cannot_be_saved_the_new_organization_membership_is_removed()
     {
         var email = Unique("compensate");
@@ -530,6 +553,38 @@ public sealed partial class StaffInvitationTests(DatabaseFixture db, KeycloakFix
             request.Method == HttpMethod.Post && request.RequestUri!.AbsolutePath.EndsWith("/users", StringComparison.Ordinal)
                 ? Task.FromResult(new HttpResponseMessage(HttpStatusCode.BadRequest))
                 : base.SendAsync(request, cancellationToken);
+    }
+
+    /// <summary>
+    /// The first token request succeeds and the lookup finds no user; the create-user request is then answered 401, and
+    /// the token request the client sends to renew it for a retry is answered 400. The create-user request itself is
+    /// never sent a second time, so its body (with the name) is never the thing Keycloak refused.
+    /// </summary>
+    private sealed class RefuseTokenRenewal : DelegatingHandler
+    {
+        private int _tokenCalls;
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            if (request.RequestUri!.AbsolutePath.Contains("openid-connect/token", StringComparison.Ordinal))
+            {
+                return Task.FromResult(Interlocked.Increment(ref _tokenCalls) == 1
+                    ? new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new { access_token = "token", expires_in = 300 }) }
+                    : new HttpResponseMessage(HttpStatusCode.BadRequest));
+            }
+
+            if (request.Method == HttpMethod.Get && request.RequestUri!.AbsolutePath.EndsWith("/users", StringComparison.Ordinal))
+            {
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(Array.Empty<object>()) });
+            }
+
+            if (request.Method == HttpMethod.Post && request.RequestUri!.AbsolutePath.EndsWith("/users", StringComparison.Ordinal))
+            {
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Unauthorized));
+            }
+
+            return base.SendAsync(request, cancellationToken);
+        }
     }
 
     private static string Unique(string name) => $"{name}.{Guid.NewGuid():N}@invited.waslabid.test";

@@ -54,6 +54,77 @@ public sealed class KeycloakAdminClientTests
         request.ShouldContain("[\"UPDATE_PASSWORD\",\"CONFIGURE_TOTP\"]");
     }
 
+    /// <summary>
+    /// QA pass, F-06: <see cref="KeycloakAdminException.DuringUserCreation"/> is true only when it is the create-user
+    /// request itself that Keycloak refused with 400, so <c>StaffService</c> can tell that apart from a 400 raised
+    /// while renewing the service account's own token mid-call (its credentials stop working, say), which is not about
+    /// the person's name at all.
+    /// </summary>
+    [Fact]
+    public async Task A_400_creating_the_user_is_marked_as_during_user_creation()
+    {
+        var client = TokenThenCreateUserClient(
+            token: _ => Ok("""{"access_token":"token","expires_in":300,"token_type":"Bearer"}"""),
+            createUser: _ => new HttpResponseMessage(HttpStatusCode.BadRequest));
+
+        var ex = await Should.ThrowAsync<KeycloakAdminException>(
+            () => client.CreateUserAsync(new NewKeycloakUser("sara@acme.example.sa", "Sara", "Ahmed", "en"), Ct));
+
+        ex.Status.ShouldBe(HttpStatusCode.BadRequest);
+        ex.DuringUserCreation.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task A_400_renewing_the_token_mid_call_is_not_marked_as_during_user_creation()
+    {
+        // The create-user attempt is answered 401 as if Keycloak had just revoked the cached token; the client asks
+        // for a new one, and that second token request is refused with 400 before the create-user request is ever
+        // retried, so its body (with the name) is never the thing Keycloak refused.
+        var tokenCalls = 0;
+        var client = TokenThenCreateUserClient(
+            token: _ => ++tokenCalls == 1
+                ? Ok("""{"access_token":"token","expires_in":300,"token_type":"Bearer"}""")
+                : new HttpResponseMessage(HttpStatusCode.BadRequest),
+            createUser: _ => new HttpResponseMessage(HttpStatusCode.Unauthorized));
+
+        var ex = await Should.ThrowAsync<KeycloakAdminException>(
+            () => client.CreateUserAsync(new NewKeycloakUser("sara@acme.example.sa", "Sara", "Ahmed", "en"), Ct));
+
+        ex.Status.ShouldBe(HttpStatusCode.BadRequest);
+        ex.DuringUserCreation.ShouldBeFalse();
+    }
+
+    private static KeycloakAdminClient TokenThenCreateUserClient(
+        Func<HttpRequestMessage, HttpResponseMessage> token, Func<HttpRequestMessage, HttpResponseMessage> createUser)
+    {
+        var http = new HttpClient(new TokenAndCreateUserHandler(token, createUser)) { BaseAddress = new Uri("http://keycloak.test/") };
+        var options = Options.Create(new KeycloakAdminOptions { BaseUrl = "http://keycloak.test", ClientSecret = "secret" });
+        return new KeycloakAdminClient(http, new KeycloakAdminState(new ManualClock()), options);
+    }
+
+    private static HttpResponseMessage Ok(string json) => new(HttpStatusCode.OK) { Content = new StringContent(json, Encoding.UTF8, "application/json") };
+
+    /// <summary>Answers the token endpoint and the create-user endpoint from separate callbacks; everything else is 204.</summary>
+    private sealed class TokenAndCreateUserHandler(
+        Func<HttpRequestMessage, HttpResponseMessage> token, Func<HttpRequestMessage, HttpResponseMessage> createUser) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var path = request.RequestUri!.AbsolutePath;
+            if (path.EndsWith("/protocol/openid-connect/token", StringComparison.Ordinal))
+            {
+                return Task.FromResult(token(request));
+            }
+
+            if (request.Method == HttpMethod.Post && path.EndsWith("/users", StringComparison.Ordinal))
+            {
+                return Task.FromResult(createUser(request));
+            }
+
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent));
+        }
+    }
+
     private static KeycloakAdminClient Client(ScriptedHandler handler, KeycloakAdminState state) =>
         new(
             new HttpClient(handler) { BaseAddress = new Uri("http://keycloak.test/") },

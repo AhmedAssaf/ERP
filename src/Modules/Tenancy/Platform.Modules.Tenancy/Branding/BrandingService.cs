@@ -9,6 +9,7 @@ using Platform.Shared.Branding;
 using Platform.Shared.Results;
 using Platform.Shared.Storage;
 using Platform.Shared.Tenancy;
+using Platform.Shared.Text;
 
 namespace Platform.Modules.Tenancy.Branding;
 
@@ -39,8 +40,11 @@ internal sealed partial class BrandingService(
         var tenant = RequireTenant();
 
         var name = portalName?.Trim() ?? string.Empty;
-        if (name.Length == 0 || name.Length > MaxPortalName || name.Any(char.IsControl))
+        if (name.Length == 0 || name.Length > MaxPortalName || name.Any(char.IsControl) || TextSafety.HasInvisibleOrBidiControl(name))
         {
+            // The portal name is shown to every vendor on the tenant's pages and goes into invitation emails (F-02,
+            // F-06); a bidi-override or zero-width character could make it display as something else, so it is refused
+            // for the same reason a staff display name is (Platform.Shared.Text.TextSafety).
             return Result.Failure<BrandingSaved>(Error.Validation(
                 BrandingErrors.InvalidPortalName, $"Enter a portal name of 1 to {MaxPortalName} characters."));
         }

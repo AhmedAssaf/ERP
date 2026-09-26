@@ -18,10 +18,17 @@ internal sealed record KeycloakUser(
 /// <summary>A user to create: the email is also the username; the locale is Keycloak's (<c>ar</c> or <c>en</c>).</summary>
 internal sealed record NewKeycloakUser(string Email, string FirstName, string LastName, string Locale);
 
-/// <summary>Keycloak answered an Admin API call with an unexpected status. The message names the call, never a secret.</summary>
-internal sealed class KeycloakAdminException(string message, HttpStatusCode? status = null) : Exception(message)
+/// <summary>
+/// Keycloak answered an Admin API call with an unexpected status. The message names the call, never a secret.
+/// <see cref="DuringUserCreation"/> is true only for the create-user request itself, the one call whose body carries the
+/// person's name, so a 400 from an earlier step of that same call (fetching the service account's token, say) is never
+/// mistaken for the user profile refusing the name.
+/// </summary>
+internal sealed class KeycloakAdminException(string message, HttpStatusCode? status = null, bool duringUserCreation = false) : Exception(message)
 {
     public HttpStatusCode? Status { get; } = status;
+
+    public bool DuringUserCreation { get; } = duringUserCreation;
 }
 
 /// <summary>
@@ -133,7 +140,7 @@ internal sealed class KeycloakAdminClient(HttpClient http, KeycloakAdminState st
         using var response = await SendAsync(HttpMethod.Post, $"{Realm}/users", body, cancellationToken);
         if (response.StatusCode != HttpStatusCode.Created || response.Headers.Location is not { } location)
         {
-            throw new KeycloakAdminException($"Keycloak did not create the user ({(int)response.StatusCode}).", response.StatusCode);
+            throw new KeycloakAdminException($"Keycloak did not create the user ({(int)response.StatusCode}).", response.StatusCode, duringUserCreation: true);
         }
 
         return location.Segments[^1].TrimEnd('/');

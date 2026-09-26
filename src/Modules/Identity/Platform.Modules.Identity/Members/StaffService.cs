@@ -1,6 +1,6 @@
 using System.Globalization;
 using System.Net;
-using System.Net.Mail;
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -11,6 +11,7 @@ using Platform.Modules.Identity.Keycloak;
 using Platform.Shared.Email;
 using Platform.Shared.Results;
 using Platform.Shared.Tenancy;
+using Platform.Shared.Text;
 
 namespace Platform.Modules.Identity.Members;
 
@@ -100,10 +101,17 @@ internal sealed partial class StaffService(
             {
                 userId = await keycloak.CreateUserAsync(NewUser(address, name, tenant), cancellationToken);
             }
+            catch (KeycloakAdminException ex) when (ex.Status == HttpStatusCode.BadRequest && ex.DuringUserCreation)
+            {
+                // Keycloak's user profile refused a value our own check let through; the name is the only free text
+                // the create-user request carries, so this is what it refused.
+                return InvalidName();
+            }
             catch (KeycloakAdminException ex) when (ex.Status == HttpStatusCode.BadRequest)
             {
-                // Keycloak's user profile refused a value our own check let through; the name is the only free text.
-                return InvalidName();
+                // A 400 from an earlier step of the same call (the service account's token request, say) is not the
+                // user profile refusing the name; report the generic failure instead of blaming a value that was fine.
+                return Result.Failure<Invitation>(Error.Refused("identity.invitation_failed", "The invitation could not be saved. Try again in a moment."));
             }
         }
 
@@ -263,17 +271,59 @@ internal sealed partial class StaffService(
             "identity.invalid_display_name",
             $"Enter the person's full name, up to {DisplayNames.MaxLength} characters, using letters, spaces, apostrophes, hyphens and periods."));
 
+    /// <summary>
+    /// A work email address, stricter than <see cref="System.Net.Mail.MailAddress"/>: ASCII only, an unquoted local
+    /// part, a domain of at least two letter/digit/hyphen labels (no label starting or ending with a hyphen, no
+    /// trailing dot, no dotted-quad IP literal), and at most 254 characters overall. The address is shown next to the
+    /// name on <c>/admin/staff</c> and in emails, so the bidi-override and zero-width characters the name refuses must
+    /// not enter here either, though an ASCII-only address can never carry them.
+    /// </summary>
     private static string? NormalizeEmail(string? email)
     {
         var trimmed = email?.Trim();
-        if (string.IsNullOrEmpty(trimmed) || trimmed.Length > 254
-            || !MailAddress.TryCreate(trimmed, out var parsed) || !string.Equals(parsed.Address, trimmed, StringComparison.Ordinal))
+        if (string.IsNullOrEmpty(trimmed) || trimmed.Length > 254 || TextSafety.HasInvisibleOrBidiControl(trimmed))
         {
+            return null;
+        }
+
+        foreach (var c in trimmed)
+        {
+            if (c > '\u007F')
+            {
+                return null;
+            }
+        }
+
+        var at = trimmed.IndexOf('@');
+        if (at <= 0 || at != trimmed.LastIndexOf('@') || at == trimmed.Length - 1)
+        {
+            return null;
+        }
+
+        var localPart = trimmed[..at];
+        var domain = trimmed[(at + 1)..];
+        if (localPart[0] == '"' || !LocalPart().IsMatch(localPart))
+        {
+            return null;
+        }
+
+        var labels = domain.Split('.');
+        if (labels.Length < 2 || labels.Any(label => !DomainLabel().IsMatch(label))
+            || labels.All(label => label.All(char.IsAsciiDigit)))
+        {
+            // Fewer than two labels (no dot, "localhost"), an empty label (a trailing or doubled dot), a label
+            // starting or ending with a hyphen, or every label numeric (a dotted-quad IP literal) is refused.
             return null;
         }
 
         return trimmed.ToLowerInvariant();
     }
+
+    [GeneratedRegex(@"^[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+(\.[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+)*$", RegexOptions.CultureInvariant)]
+    private static partial Regex LocalPart();
+
+    [GeneratedRegex(@"^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?$", RegexOptions.CultureInvariant)]
+    private static partial Regex DomainLabel();
 
     // Keycloak keeps first and last name apart; the last word is the last name ("Sara Al Ahmed" -> "Sara Al", "Ahmed").
     private static NewKeycloakUser NewUser(string email, string name, TenantContext tenant)
