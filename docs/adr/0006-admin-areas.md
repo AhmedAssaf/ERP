@@ -1,4 +1,4 @@
-# ADR-0005: Separate the platform console from tenant administration, and phase the operations console
+# ADR-0006: Separate the platform console from tenant administration, and phase the operations console
 
 Date: 2026-09-26
 Status: Accepted

@@ -177,14 +177,14 @@ flowchart TD
 
 ### 5.4 Technical approach
 
-- **Parsing:** convert each attachment to text and tables. Use OCR for scanned Arabic PDFs. Store page-anchored chunks so every AI claim can link back to a page.
+- **Parsing:** superseded by spike W-22 and ADR-0005: PDFs go to the model as PDFs (96 percent agreement, against 65 percent after conversion), DOCX as extracted text; every claim cites a file and page.
 - **Model:** a large language model called through an API with structured (JSON schema) outputs so scores and flags land in database columns, not free text. Claude models handle Arabic and long documents well; keep the vendor swappable behind one interface.
-- **Grounding:** every prompt receives only that tender's RFP, criteria, checklist, and the one offer being reviewed. Retrieval over page chunks for long offers. No training on customer data.
-- **Determinism and audit:** low temperature, prompt and model version stored on each result, results are immutable once a human has acted on them.
+- **Grounding:** every prompt receives only that tender's requirements, criteria, checklist, and the one offer being reviewed. No retrieval step; the whole offer fits the context window. No training on customer data.
+- **Determinism and audit:** fixed prompt version and stored input hash (current models accept no temperature setting), prompt and model version stored on each result, results are immutable once a human has acted on them.
 - **Fairness:** run the same prompt over every offer in a tender in one batch so all vendors get the same treatment. Never send one vendor's prices to the model while scoring another vendor's technical part.
 - **Sealed envelope respected:** the financial AI runs only after technical scoring is locked, exactly like the human process.
 - **Data residency and PDPL:** process in a Saudi region or via a provider with an in-Kingdom option; redact personal data of vendor staff before sending to the model where it is not needed. The provider choice, including a free self-hosted open-weight model in Jeddah, is open decision 7 in document 02 section 5.
-- **Cost control:** cache the RFP context per tender, run capability 1 and 2 on submission, run 3 to 5 on demand when the evaluator opens the offer.
+- **Cost control:** one review per offer at technical opening through the Batch API, tender context cached, per-tenant monthly budget; price checks and integrity comparison are code. Design: `docs/superpowers/specs/2026-09-26-ai-offer-review-design.md`.
 
 ### 5.5 What AI should not do in version 1
 

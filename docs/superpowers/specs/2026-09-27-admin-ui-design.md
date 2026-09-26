@@ -1,7 +1,7 @@
 # Admin UI slice design: platform console and tenant administration
 
 Date: 2026-09-27
-Status: Decisions D-1 to D-14 confirmed by the user on 2026-09-26, unchanged, in a one-by-one review; new decisions D-15 to D-20 from the same review are in section 1.1 and ADR-0005. First written overnight on the user's instruction ("I need admin UI"; "use best practice recommendation standards")
+Status: Decisions D-1 to D-14 confirmed by the user on 2026-09-26, unchanged, in a one-by-one review; new decisions D-15 to D-20 from the same review are in section 1.1 and ADR-0006. First written overnight on the user's instruction ("I need admin UI"; "use best practice recommendation standards")
 Builds on: the foundation slice (`2026-09-26-foundation-design.md`, branch `foundation`)
 Backlog rows: W-06 (components, admin subset), W-08 (Hangfire and worker), W-10 (health endpoints only), F-02, F-06, F-07, F-51, F-54, F-60, all with the MVP narrowing in `docs/05-mvp-scope.md` rows 2, 3, 4, 17, 18, 19
 

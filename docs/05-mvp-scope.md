@@ -63,7 +63,7 @@ Every row is a feature ID from document 02 with the MVP-sized version of its acc
 
 | # | ID | MVP version | Narrowed from document 02 |
 |---|---|---|---|
-| 1 | F-01, F-01b | Platform admin creates a tenant from a screen on the platform host: name, CR number, plan, default language, admin email (changed 2026-09-26, ADR-0005; the script stays for development seeding) | No self-serve sign-up |
+| 1 | F-01, F-01b | Platform admin creates a tenant from a screen on the platform host: name, CR number, plan, default language, admin email (changed 2026-09-26, ADR-0006; the script stays for development seeding) | No self-serve sign-up |
 | 2 | F-02 | Logo, one primary colour, portal name. Applied to both portals, emails, and the PO | No favicon, no accent colour |
 | 3 | F-06 | Tenant admin invites staff by email. Password login with TOTP through Keycloak | No SSO |
 | 4 | F-07 | Roles: Tenant admin, Contracts officer, Technical evaluator, Finance approver | No Auditor role. Auditor reads the log as Tenant admin |
@@ -82,8 +82,8 @@ Every row is a feature ID from document 02 with the MVP-sized version of its acc
 | 17 | F-51 | Platform admin page on the platform host, MFA required: status, latency, last check, and last failure for web host, worker, PostgreSQL, object storage, Keycloak, ClamAV, and the email provider | No version column, no SMS or AI provider tiles (neither is in the MVP), no edge tile |
 | 18 | F-54 | Tenant list: status, user count, active tenders, storage used, failing jobs. One action: re-run a failed job, confirmed and audited | No suspend or resume, no TLS re-issue (no custom domains in the MVP) |
 | 19 | F-60 | Email to the platform admin, once per incident plus a recovery notice, when a health check fails, a job fails three times, a deadline-closure job has not run five minutes after a deadline, or disk passes 80 percent. Incidents of the last 30 days listed on the F-51 page. Thresholds in configuration | No SMS, no TLS alerts, no threshold screen |
-| 20 | F-52 | Connections registry on the platform host: endpoint, account, secret reference, owner, last rotated, and a test action, audited. Added 2026-09-26 (ADR-0005) | No rotate action; rotation is done in the secret store by hand |
-| 21 | F-53 | 24-hour error summary per component on the F-51 page, read from Loki, with a link to Grafana for search and traces. Added 2026-09-26 (ADR-0005) | No log search or trace view in the console; Grafana over Loki and Tempo serves them until after three to five paying customers |
+| 20 | F-52 | Connections registry on the platform host: endpoint, account, secret reference, owner, last rotated, and a test action, audited. Added 2026-09-26 (ADR-0006) | No rotate action; rotation is done in the secret store by hand |
+| 21 | F-53 | 24-hour error summary per component on the F-51 page, read from Loki, with a link to Grafana for search and traces. Added 2026-09-26 (ADR-0006) | No log search or trace view in the console; Grafana over Loki and Tempo serves them until after three to five paying customers |
 
 Also in the MVP because the pilot cannot run without them, though they carry no feature ID: Arabic and English UI with right-to-left (F-04 is treated as a constraint, not a feature), and the tender state machine (F-27) limited to the states the twenty-one features need.
 

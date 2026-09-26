@@ -149,3 +149,58 @@ Findings:
 - **Disagreement between runs is a useful confidence signal.** The 18 requirements where runs disagreed sit almost entirely in the two hard partial offers and the scans; the three compliant offers were unanimous and right. A product can run three times and show "the model is unsure" wherever the runs split, pointing the human at exactly the verdicts to check.
 - **The remaining errors on text documents are consistent, not random:** all three runs accepted monthly Excel reports as an electronic reporting system, and two of three read "3 years manufacturer plus 2 from us" as meeting a five-year manufacturer warranty. Repetition cannot fix these; a stronger model or a sharper requirement text might.
 - Malformed JSON in 3 of 27 runs confirms that structured output must be enforced by the API, not requested in the prompt.
+
+### Stronger model: Claude Sonnet, prompt v3, one run per offer
+
+`python score_llm.py llm-v3-sonnet`, same inputs and isolation as the Haiku runs.
+
+| Measure | Haiku, 3 single runs | Haiku, majority of 3 | Sonnet, 1 run |
+|---|---|---|---|
+| All | 75 to 77% | 77% | 73% |
+| DOCX and Word PDF | 89 to 93% | 93% | 90% |
+| Scanned PDF | 44 to 51% | 46% | 39% |
+| Wrongly called "met" | 2 to 3 | 2 | **0** |
+| Malformed JSON | 0 to 2 of 9 | | 0 of 9 |
+
+Findings:
+
+- **Sonnet fixed every error Haiku repeated:** monthly Excel reports are not an electronic tracking system (partial), client-paid transport is a shifted obligation (partial), and "3 years manufacturer plus 2 from us" is short of a five-year manufacturer warranty (partial). Its notes state the reasoning in each case.
+- **It never called a requirement "met" wrongly.** Its remaining differences lean strict (`partial` read as `not_met`, readable scans read as `unclear`), which is the safe direction for an assistant whose drafts a human confirms.
+- It also marked two T2 offers' commercial registration as not proven because the offers do not state that the registration covers cleaning, which the RFP's M-01 requires. That is a fair reading the answer key missed.
+- Lower overall score comes from scans, where Sonnet is more willing to say `not_met` or `unclear` on damaged text; on DOCX and Word PDF it matches Haiku's majority.
+- Cost: Sonnet's list price is about twice Haiku's, so one Sonnet run costs less than three Haiku runs.
+
+Recommendation for the pilot: one Sonnet run per offer with schema-enforced output, and a human confirming every verdict. Use Haiku only where cost matters more than the wrong-"met" rate.
+
+### The PDF sent directly to Sonnet
+
+The six PDF offers (three Word PDFs, three scans) given to Sonnet as the original PDF instead of Markdown; the model sees each page as an image as well as any text layer. RFP as Markdown, prompt v3, one isolated run each; `python score_llm.py llm-v3-sonnet-pdf`.
+
+| Same 6 offers | Sonnet, converted Markdown | Sonnet, original PDF |
+|---|---|---|
+| Word PDF | 37/41 (90%) | 39/41 (95%) |
+| Scanned PDF | 16/41 (39%) | **40/41 (98%)** |
+| All | 53/82 (65%) | **79/82 (96%)** |
+| Wrongly called "met" | 0 | 0 |
+
+- **Scans stop being a problem.** Every single-offer red flag the OCR lost came back: the expired commercial registration, installation subcontracted to a rival bidder named in the offer, the social insurance certificate in a sister company's name, the missing VAT certificate, unnamed references, and every vague commitment.
+- Cross-offer flags (the shared phone number, paragraphs copied between bidders) cannot come from a per-offer review; they belong to the separate integrity step (F-49), which compares offers and the bidder list.
+- The conversion pipeline (Docling, OCR, PdfPig) is not needed for PDFs. DOCX can still go as Markdown, which converts perfectly.
+- Caveats: one run per offer; run through Claude Code's PDF reader, which is close to but not the same as the API's PDF document input; a page sent as an image costs more tokens than its text, so measure cost on real offers.
+
+### Cost per offer with PDF input
+
+`python measure_cost.py` estimates from the documented billing rules; `python measure_cost.py --measure` gives exact input tokens from the free `count_tokens` endpoint once `ANTHROPIC_API_KEY` is set (no key on this machine yet, so the table below is an estimate).
+
+Documented rules: each PDF page is billed as its text (typically 1,500 to 3,000 tokens) plus the page as an image (at most 4,784 tokens on current models); the page render resolution is not documented, and an AWS example quotes about 7,000 tokens for a 3-page PDF. Output about 3,000 tokens; prompt and RFP about 6,000.
+
+| Offer size | Input tokens (low to high) | Sonnet | Sonnet, Batch API | Haiku |
+|---|---|---|---|---|
+| 20 pages | 52,000 to 162,000 | USD 0.13 to 0.35 | 0.07 to 0.18 | 0.07 to 0.18 |
+| 50 pages | 121,000 to 395,000 | USD 0.27 to 0.82 | 0.14 to 0.41 | 0.14 to 0.41 |
+| 80 pages | 190,000 to 629,000 | USD 0.41 to 1.29 (typical 0.53) | 0.21 to 0.64 | 0.21 to 0.64 |
+
+- A tender with five 80-page offers costs about USD 2.65 (SAR 10) with Sonnet at typical density and at most about USD 6.45 (SAR 24); half that through the Batch API, which suits a review that runs after the deadline, not while someone waits.
+- Against the SAR 1,500 to 7,500 monthly subscription in document 11, AI review is a low single-digit percentage even at several tenders a month.
+- PDF input costs about 1.5 to 3.5 times the Markdown route (80 pages as Markdown: about USD 0.36 with Sonnet), and buys the jump from 65 to 96 percent agreement.
+- The earlier figure of about USD 0.05 an offer assumed Haiku on 40,000 tokens of Markdown; it is superseded for PDF input.

@@ -88,7 +88,7 @@ Acceptance criteria:
 | ID | Story | Pri | Size | Status | Depends on |
 |---|---|---|---|---|---|
 | F-01 | Tenant provisioning (MVP: by script) | P0 | S | Backlog | W-03, W-04 |
-| F-01b | Tenant provisioning admin screen on the platform host (moved into the MVP 2026-09-26, ADR-0005) | P0 | S | Backlog | F-01, F-51 |
+| F-01b | Tenant provisioning admin screen on the platform host (moved into the MVP 2026-09-26, ADR-0006) | P0 | S | Backlog | F-01, F-51 |
 | F-02 | White-label branding: logo, primary colour, portal name | P0 | M | Done 2026-09-27 as narrowed (docs/05 row 2): `/admin/branding` sets the portal name, primary colour (under 4.5:1 on white stored darkened and shown) and a PNG or JPEG logo re-encoded to PNG in object storage; the tenant header and theme use them. Emails, PDFs and the vendor portal pick up the branding in their own slices | W-05, W-06 |
 | F-03 | Custom domain mapping with automatic TLS | P1 | M | Backlog | W-11 |
 | F-04 | Arabic and English with right-to-left everywhere | P0 | (constraint) | Backlog | W-07 |
@@ -247,6 +247,8 @@ Acceptance criteria:
 
 ## E10 AI assist (F-45 to F-50)
 
+Design: `docs/superpowers/specs/2026-09-26-ai-offer-review-design.md` and ADR-0005 (2026-09-26): one Claude Sonnet review per offer at technical opening on the original PDF, off by default and on per tenant with consent; F-48 and F-49 comparisons are code. Build phases in spec section 8. Implementation plan: `docs/superpowers/plans/2026-09-26-ai-offer-review.md`.
+
 | ID | Story | Pri | Size | Status | Depends on |
 |---|---|---|---|---|---|
 | F-45 | Compliance pre-check drafts | P1 | L | Backlog | F-28, F-50 |
@@ -285,10 +287,10 @@ Added 2026-09-21 from the request for one admin page covering apps, logs, creden
 | ID | Story | Pri | Size | Status | Depends on |
 |---|---|---|---|---|---|
 | F-51 | Component health board (MVP narrowing in document 05 row 17) | P0 | M | Done 2026-09-26 as narrowed (docs/05 row 17): seven tiles (web, worker, PostgreSQL, MinIO, Keycloak, ClamAV, SMTP) with status, latency, last check and last failure at `https://platform.localhost:8443/platform`, OTP required; no version column. Evidence below and the browser pass through Caddy 2026-09-26 (admin plan Task 11) | W-10 |
-| F-52 | Connections and credentials registry with test and rotate (MVP: registry and test, no rotate, document 05 row 20; moved into the MVP 2026-09-26, ADR-0005) | P0 | M | Backlog | F-51, W-11 |
-| F-53 | Logs and traces view with tenant and correlation filters (MVP: 24-hour error summary from Loki with a Grafana link, document 05 row 21; the full view after three to five paying customers, ADR-0005) | P0 | M | Backlog | W-10 |
+| F-52 | Connections and credentials registry with test and rotate (MVP: registry and test, no rotate, document 05 row 20; moved into the MVP 2026-09-26, ADR-0006) | P0 | M | Backlog | F-51, W-11 |
+| F-53 | Logs and traces view with tenant and correlation filters (MVP: 24-hour error summary from Loki with a Grafana link, document 05 row 21; the full view after three to five paying customers, ADR-0006) | P0 | M | Backlog | W-10 |
 | F-54 | Tenants and jobs overview with suspend, TLS re-issue, job re-run (MVP: list and job re-run only, document 05 row 18) | P0 | M | Done 2026-09-26 as narrowed (docs/05 row 18): tenant list with user count, active tenders (a dash until the Tenders module, spec D-12), storage used and failing jobs; re-run a failed job, confirmed and audited. The re-run was proven by tests, not in the browser pass | F-51, W-08; F-03 for the TLS action |
-| F-61 | Consented support access: tenant-granted, read-only, time-boxed session, bannered, offers and envelopes hidden, every view in the tenant audit log (ADR-0005) | P1 | M | Backlog | F-51, F-41, F-07 |
+| F-61 | Consented support access: tenant-granted, read-only, time-boxed session, bannered, offers and envelopes hidden, every view in the tenant audit log (ADR-0006) | P1 | M | Backlog | F-51, F-41, F-07 |
 | F-60 | Alerts and notifications: email and SMS on health, job, deadline, TLS, scanner, AI provider, and capacity incidents, with recovery notice and alert history (MVP: email only, document 05 row 19) | P0 | M | Done 2026-09-26 as narrowed (docs/05 row 19) except the deadline-closure alert, which waits for the Tenders module (F-24): email once per incident plus a recovery notice for failed health checks, a job failing three times, and disk above 80 percent; incidents of the last 30 days on the F-51 page | F-51, F-38, W-08, W-10 |
 
 - **F-51.** Given the platform host, when a platform admin with MFA opens the board, then every component in the list shows status, version, latency, and last check within the last 60 seconds; given a tenant admin, when they request the same URL, then they receive 404; given PostgreSQL stopped, then its tile turns to failed within one check interval and the failure text names the component.
