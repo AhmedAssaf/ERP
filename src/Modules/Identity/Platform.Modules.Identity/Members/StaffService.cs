@@ -23,6 +23,7 @@ internal sealed partial class StaffService(
     KeycloakAdminClient keycloak,
     IOptions<KeycloakAdminOptions> options,
     ITenantAccessor tenants,
+    MemberRolesCache cache,
     IAuditWriter audit,
     TimeProvider clock,
     ILogger<StaffService> logger) : IStaffService
@@ -97,6 +98,7 @@ internal sealed partial class StaffService(
             return MemberExists();
         }
 
+        cache.Invalidate(tenant.TenantId, userId);
         var sent = await SendSetupEmailAsync(userId, tenant, cancellationToken);
         await audit.WriteAsync(
             new AuditEntry(actorId, "identity.member_invited", "member", userId, new Dictionary<string, string?>

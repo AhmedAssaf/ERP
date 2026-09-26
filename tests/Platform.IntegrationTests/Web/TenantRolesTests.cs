@@ -134,6 +134,24 @@ public sealed class TenantRolesTests(DatabaseFixture db)
         (await MemberRows.AuditCountAsync(db.OwnerConnectionString, TestTenants.Acme.TenantId, intruder.Subject, "identity.role_denied", Ct)).ShouldBe(0);
     }
 
+    [Fact]
+    public async Task A_static_asset_request_through_the_host_does_not_read_the_member_table()
+    {
+        var invitee = new TestUser(Unique("asset"), ["acme"]);
+        var email = $"{invitee.Subject}@acme.test";
+        await MemberRows.InsertAsync(db.AppConnectionString, TestTenants.Acme.TenantId, invitee.Subject, email, [TenantRoles.TenantAdmin], "invited", Ct);
+        await using var factory = Factory();
+
+        using (await GetAsync(factory, "acme.localhost", "/_content/Platform.UI/css/app.css", invitee))
+        {
+        }
+
+        // A member lookup activates an invited member, so an unchanged status proves the table was not read.
+        (await MemberRows.FindByEmailAsync(db.AppConnectionString, TestTenants.Acme.TenantId, email, Ct))!.Status.ShouldBe("invited");
+        (await GetTextAsync(factory, "acme.localhost", RoleEndpoints.RolesPath, invitee)).ShouldBe(TenantRoles.TenantAdmin);
+        (await MemberRows.FindByEmailAsync(db.AppConnectionString, TestTenants.Acme.TenantId, email, Ct))!.Status.ShouldBe("active");
+    }
+
     private Task<int> DeniedAsync(TestUser user) =>
         MemberRows.AuditCountAsync(db.OwnerConnectionString, TestTenants.Acme.TenantId, user.Subject, "identity.role_denied", Ct);
 

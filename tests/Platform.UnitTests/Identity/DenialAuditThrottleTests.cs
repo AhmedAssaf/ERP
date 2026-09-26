@@ -46,7 +46,7 @@ public sealed class DenialAuditThrottleTests
     {
         var clock = new ManualClock();
         var throttle = new DenialAuditThrottle(clock);
-        for (var i = 0; i <= DenialAuditThrottle.PruneAbove; i++)
+        for (var i = 0; i <= DenialAuditThrottle.Capacity; i++)
         {
             throttle.ShouldAudit(new DenialKey(Tenant, "identity.role_denied", $"u{i}", "acme.localhost", "/admin"));
         }
@@ -55,6 +55,52 @@ public sealed class DenialAuditThrottleTests
         throttle.ShouldAudit(new DenialKey(Tenant, "identity.role_denied", "late", "acme.localhost", "/admin")).ShouldBeTrue();
 
         throttle.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void Distinct_denials_within_one_window_stay_under_the_cap_and_every_call_stays_fast()
+    {
+        var throttle = new DenialAuditThrottle(new ManualClock());
+        var slowest = TimeSpan.Zero;
+        var total = System.Diagnostics.Stopwatch.StartNew();
+        for (var i = 0; i < 50_000; i++)
+        {
+            var call = System.Diagnostics.Stopwatch.StartNew();
+            throttle.ShouldAudit(new DenialKey(Tenant, "identity.role_denied", $"u{i}", "acme.localhost", "/admin")).ShouldBeTrue();
+            call.Stop();
+            if (call.Elapsed > slowest)
+            {
+                slowest = call.Elapsed;
+            }
+
+            throttle.Count.ShouldBeLessThanOrEqualTo(DenialAuditThrottle.Capacity);
+        }
+
+        total.Stop();
+        DenialAuditThrottle.Capacity.ShouldBe(10_000);
+        // No call scans the map: a full scan of 10,000 entries on each of 40,000 calls would take far longer than this.
+        total.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(2));
+        slowest.ShouldBeLessThan(TimeSpan.FromMilliseconds(100));
+    }
+
+    [Fact]
+    public void When_full_the_oldest_denial_is_evicted_first()
+    {
+        var clock = new ManualClock();
+        var throttle = new DenialAuditThrottle(clock);
+        DenialKey Key(int i) => new(Tenant, "identity.role_denied", $"u{i}", "acme.localhost", "/admin");
+        for (var i = 0; i < DenialAuditThrottle.Capacity; i++)
+        {
+            throttle.ShouldAudit(Key(i));
+            clock.Advance(TimeSpan.FromMilliseconds(1));
+        }
+
+        throttle.ShouldAudit(Key(DenialAuditThrottle.Capacity)).ShouldBeTrue();
+
+        throttle.Count.ShouldBe(DenialAuditThrottle.Capacity);
+        // u0 was evicted, so it is audited again; u1 is still remembered.
+        throttle.ShouldAudit(Key(1)).ShouldBeFalse();
+        throttle.ShouldAudit(Key(0)).ShouldBeTrue();
     }
 
     private sealed class ManualClock : TimeProvider

@@ -11,7 +11,8 @@ namespace Platform.Modules.Identity.Members;
 /// tenant the request or circuit resolved; the query filter mirrors it.
 /// </summary>
 internal sealed class MemberDirectory(
-    IDbContextFactory<MembersDbContext> contexts, ITenantAccessor tenants, IAuditWriter audit, TimeProvider clock) : IMemberDirectory
+    IDbContextFactory<MembersDbContext> contexts, ITenantAccessor tenants, IAuditWriter audit, MemberRolesCache cache, TimeProvider clock)
+    : IMemberDirectory
 {
     public async Task<IReadOnlyList<string>> GetRolesAsync(string userId, CancellationToken cancellationToken = default)
     {
@@ -79,6 +80,7 @@ internal sealed class MemberDirectory(
         member.Roles = wanted;
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+        cache.Invalidate(member.TenantId, userId);
         await audit.WriteAsync(new AuditEntry(actorId, "identity.roles_changed", "member", userId, Data(before, wanted)), cancellationToken);
         return Result.Success(ToMember(member));
     }
@@ -86,9 +88,9 @@ internal sealed class MemberDirectory(
     /// <summary>
     /// The member's roles at sign-in (spec 4.1), for the members claims transformation. The row is found by the Keycloak
     /// <c>sub</c>; failing that, a row without a user id is bound to it when <paramref name="verifiedEmail"/> matches (the
-    /// development seed). An invited member becomes active here. Returns no roles when there is no row.
+    /// development seed). An invited member becomes active here. Returns null when there is no row.
     /// </summary>
-    internal async Task<IReadOnlyList<string>> SignInAsync(string userId, string? verifiedEmail, CancellationToken cancellationToken)
+    internal async Task<IReadOnlyList<string>?> SignInAsync(string userId, string? verifiedEmail, CancellationToken cancellationToken)
     {
         RequireTenant();
         await using var db = await contexts.CreateDbContextAsync(cancellationToken);
@@ -114,7 +116,7 @@ internal sealed class MemberDirectory(
 
         if (member is null)
         {
-            return [];
+            return null;
         }
 
         if (member.Status == MemberStatuses.Invited)

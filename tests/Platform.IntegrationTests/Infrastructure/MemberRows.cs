@@ -37,6 +37,17 @@ internal static class MemberRows
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
+    /// <summary>Overwrites a member's roles in the table directly, behind the directory's back (and its cache's).</summary>
+    public static async Task OverwriteRolesAsync(
+        string appConnectionString, Guid tenantId, string userId, string[] roles, CancellationToken cancellationToken)
+    {
+        await using var connection = await OpenForTenantAsync(appConnectionString, tenantId, cancellationToken);
+        await using var command = new NpgsqlCommand("update identity.members set roles = @roles where user_id = @user", connection);
+        command.Parameters.AddWithValue("user", userId);
+        command.Parameters.AddWithValue("roles", roles);
+        (await command.ExecuteNonQueryAsync(cancellationToken)).ShouldBe(1);
+    }
+
     public static async Task<MemberRow?> FindByEmailAsync(
         string appConnectionString, Guid tenantId, string email, CancellationToken cancellationToken)
     {

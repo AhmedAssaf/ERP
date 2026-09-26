@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http;
 using Platform.Modules.Identity.Contracts;
 using Platform.Shared.Tenancy;
 
@@ -10,10 +11,13 @@ namespace Platform.Modules.Identity.Members;
 /// an identity of its own (<see cref="AuthenticationType"/>), after the same-tenant check (spec 4.1). The tenant policies
 /// read roles from that identity only, and any identity of that type already on the principal is replaced, so a role can
 /// only come from our table, never from a token or a cookie. A user in the organization with no member row gets no role.
-/// No tenant (the platform host) or no signed-in user: the principal is returned unchanged. Scoped: the lookup runs once
-/// per request or circuit, however often authentication is evaluated.
+/// No tenant (the platform host), no signed-in user, or a static request (<see cref="StaticRequests"/>): the principal is
+/// returned unchanged. The roles of a member row are reused for <see cref="MemberRolesCache.CacheFor"/> across requests
+/// (<see cref="MemberRolesCache"/>, invalidated when the directory or the staff service changes the member); within one
+/// request or circuit the lookup runs once however often authentication is evaluated.
 /// </summary>
-internal sealed class MembersClaimsTransformation(ITenantAccessor tenants, MemberDirectory members) : IClaimsTransformation
+internal sealed class MembersClaimsTransformation(
+    ITenantAccessor tenants, MemberDirectory members, MemberRolesCache cache, IHttpContextAccessor http) : IClaimsTransformation
 {
     public const string AuthenticationType = "waslabid-members";
 
@@ -24,7 +28,8 @@ internal sealed class MembersClaimsTransformation(ITenantAccessor tenants, Membe
         ArgumentNullException.ThrowIfNull(principal);
         var tenant = tenants.Current;
         var userId = principal.FindFirst(IdentityClaims.Subject)?.Value;
-        if (tenant is null || principal.Identity?.IsAuthenticated != true || string.IsNullOrWhiteSpace(userId))
+        if (tenant is null || principal.Identity?.IsAuthenticated != true || string.IsNullOrWhiteSpace(userId)
+            || (http.HttpContext is { } context && StaticRequests.IsStatic(context.Request.Path)))
         {
             return principal;
         }
@@ -45,9 +50,20 @@ internal sealed class MembersClaimsTransformation(ITenantAccessor tenants, Membe
             return done.Roles;
         }
 
-        var verified = string.Equals(principal.FindFirst(IdentityClaims.EmailVerified)?.Value, "true", StringComparison.OrdinalIgnoreCase);
-        var email = verified ? principal.FindFirst(IdentityClaims.Email)?.Value : null;
-        var roles = await members.SignInAsync(userId, email, CancellationToken.None);
+        if (!cache.TryGet(tenantId, userId, out var roles))
+        {
+            var generation = cache.Generation;
+            var verified = string.Equals(principal.FindFirst(IdentityClaims.EmailVerified)?.Value, "true", StringComparison.OrdinalIgnoreCase);
+            var email = verified ? principal.FindFirst(IdentityClaims.Email)?.Value : null;
+            var found = await members.SignInAsync(userId, email, CancellationToken.None);
+            if (found is not null)
+            {
+                cache.Set(tenantId, userId, found, generation);
+            }
+
+            roles = found ?? [];
+        }
+
         _resolved = (userId, tenantId, roles);
         return roles;
     }

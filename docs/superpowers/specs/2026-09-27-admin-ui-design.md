@@ -76,10 +76,11 @@ Out (later slices): tenant provisioning screen (F-01b), suspend and TLS actions 
 
 ### 4.1 Roles (F-07)
 - Roles: `tenant-admin`, `contracts-officer`, `technical-evaluator`, `finance-approver`.
-- `identity.members` (D-3) with RLS; `IMemberDirectory` in Identity contracts: `GetRolesAsync(userId)`, `ListAsync()`, `SetRolesAsync(userId, roles)`.
-- A claims transformation adds `role` claims from `identity.members` for the current tenant after the same-tenant check; policies `TenantAdmin`, `ContractsOfficer`, `TechnicalEvaluator`, `FinanceApprover` require the role and the same-tenant requirement. A user in the organization with no member row has no role and sees only the home page.
+- `identity.members` (D-3) with RLS; `IMemberDirectory` in Identity contracts: `GetRolesAsync(userId)`, `ListAsync()`, `SetRolesAsync(userId, roles, actorId)` (the actor is audited with the change).
+- The member row has its own id; `user_id` (the Keycloak `sub`) is unique per tenant and nullable. A row created without a known Keycloak id (the development seed) is bound lazily on that user's first sign-in, by verified email only (`email_verified` true); an unverified address binds nothing. Once bound, the row belongs to that `sub`.
+- A claims transformation adds `role` claims from `identity.members` for the current tenant after the same-tenant check (skipped for static assets and `/health`; a member's roles are cached per tenant and user for 30 seconds per process, invalidated when the directory or the staff service changes that member); policies `TenantAdmin`, `ContractsOfficer`, `TechnicalEvaluator`, `FinanceApprover` require the role and the same-tenant requirement. A user in the organization with no member row has no role and sees only the home page.
 - The last tenant admin cannot remove their own admin role (refused, audited).
-- Denials are audited once per user, host and path per minute (throttled, closes W-27's concern for this path).
+- Denials are audited once per user, host and path per minute (throttled, closes W-27's concern for this path); the throttle remembers at most 10,000 denials and evicts the oldest first.
 
 ### 4.2 Staff (F-06)
 - `/admin/staff`: list members (name, email, roles, status: invited or active), invite by email with roles, change roles, resend invitation.
