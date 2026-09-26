@@ -8,13 +8,15 @@ internal sealed class TenantMiddleware(RequestDelegate next)
 {
     public async Task InvokeAsync(HttpContext context, ITenantDirectory directory, TenantAccessor accessor)
     {
-        if (context.Request.Path.StartsWithSegments("/health"))
+        // Only the exact health path skips tenant resolution; /health/anything is an ordinary tenant path.
+        if (context.Request.Path.Equals("/health", StringComparison.OrdinalIgnoreCase))
         {
             await next(context);
             return;
         }
 
-        var tenant = await directory.FindByHostAsync(context.Request.Host.Host, context.RequestAborted);
+        var host = context.Request.Host.Host;
+        var tenant = string.IsNullOrWhiteSpace(host) ? null : await directory.FindByHostAsync(host, context.RequestAborted);
         if (tenant is null)
         {
             context.Response.StatusCode = StatusCodes.Status404NotFound;

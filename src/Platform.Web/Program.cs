@@ -22,6 +22,7 @@ builder.Services.AddAuditModule(platformDb);
 builder.Services.AddTenancyModule(platformDb);
 builder.Services.AddIdentityModule();
 builder.Services.AddWorkflowModule(platformDb);
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<CircuitHandler, TenantCircuitHandler>();
 
 var app = builder.Build();
