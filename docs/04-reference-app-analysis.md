@@ -335,6 +335,8 @@ Refreshed 2026-09-21. Items 1, 2, and 8 changed after the sweep.
 10. Regret letters and the audit export: what a losing vendor receives, and what an internal auditor can download (F-35, F-42).
 11. Added 2026-09-26. Is Reference App Souq still operated, and is a tender listing across buyers planned for it or for the marketplace role (F-62, ADR-0007).
 
+Checked 2026-09-26: items 1 to 11 are all still open; they need a demo or a call. The follow-up questions from ADR-0007 about Monafasat (sealing, fees, hosting, buyers, white-label, approval chain), HRDF Forsah (buyer eligibility, API), and SAP Business Network Discovery (Arabic, Saudi buyers) were researched instead; the answers and any remaining "not found publicly" points are in document 01 section 3.2.
+
 ## 11. Sources
 
 Read 2026-09-21 unless dated otherwise.
