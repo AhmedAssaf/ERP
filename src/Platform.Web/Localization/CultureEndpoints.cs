@@ -20,6 +20,10 @@ internal static class CultureEndpoints
                 CookieRequestCultureProvider.MakeCookieValue(new RequestCulture(normalized)),
                 new CookieOptions
                 {
+                    // Explicit: without it the cookie would still default to "/", but leaving it implicit invites a
+                    // regression (e.g. a future relative Path) that would scope the cookie to /culture and it would
+                    // never be sent back on "/".
+                    Path = "/",
                     Expires = DateTimeOffset.UtcNow.AddYears(1),
                     IsEssential = true,
                     HttpOnly = true,

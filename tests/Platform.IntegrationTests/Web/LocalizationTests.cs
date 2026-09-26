@@ -64,6 +64,31 @@ public class LocalizationTests(DatabaseFixture db)
         response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
         response.Headers.Location!.OriginalString.ShouldBe("/");
         response.Headers.GetValues("Set-Cookie").ShouldContain(c => c.StartsWith(".AspNetCore.Culture=c%3Den-US", StringComparison.Ordinal));
+        // Scoped to the whole site, not just /culture, or the browser never sends it back on "/".
+        response.Headers.GetValues("Set-Cookie").ShouldContain(c =>
+            c.Contains("path=/;", StringComparison.OrdinalIgnoreCase)
+            && !c.Contains("path=/culture", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task Culture_switch_round_trips_to_the_home_page()
+    {
+        await using var factory = new PlatformWebFactory(db.AppConnectionString);
+        using var client = factory.ClientFor("acme.localhost");
+
+        using var setRequest = new HttpRequestMessage(HttpMethod.Get, "/culture/set?culture=en-US&returnUrl=%2F").As(TestUser.AcmeAdmin);
+        using var setResponse = await client.SendAsync(setRequest, Ct);
+        var cookie = setResponse.Headers.GetValues("Set-Cookie")
+            .Single(c => c.StartsWith(".AspNetCore.Culture=", StringComparison.Ordinal));
+        var cookieNameValue = cookie[..cookie.IndexOf(';', StringComparison.Ordinal)];
+
+        using var homeRequest = new HttpRequestMessage(HttpMethod.Get, "/").As(TestUser.AcmeAdmin);
+        homeRequest.Headers.Add("Cookie", cookieNameValue);
+        using var homeResponse = await client.SendAsync(homeRequest, Ct);
+
+        homeResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var html = WebUtility.HtmlDecode(await homeResponse.Content.ReadAsStringAsync(Ct));
+        html.ShouldContain("<html lang=\"en\" dir=\"ltr\">");
     }
 
     [Theory]
