@@ -11,6 +11,11 @@ internal sealed class WorkflowDefinitions(IDbContextFactory<WorkflowDbContext> c
     public async Task<Result<Guid>> SaveAsync(SaveDefinition command, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(command);
+        if (string.IsNullOrWhiteSpace(command.Name))
+        {
+            return Result.Failure<Guid>(Error.Validation("workflow.name_missing", "A workflow definition needs a name."));
+        }
+
         if (DefinitionValidator.Check(command.Steps) is { } invalid)
         {
             return Result.Failure<Guid>(invalid);
@@ -69,7 +74,20 @@ internal sealed class WorkflowDefinitions(IDbContextFactory<WorkflowDbContext> c
             Threshold = step.Threshold,
         }));
 
-        await db.SaveChangesAsync(cancellationToken);
+        // On a conflict the transaction is rolled back when it is disposed.
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Result.Failure<Guid>(Concurrent());
+        }
+        catch (DbUpdateException exception) when (SaveErrors.IsUniqueViolation(exception))
+        {
+            return Result.Failure<Guid>(Concurrent());
+        }
+
         await transaction.CommitAsync(cancellationToken);
         return Result.Success(row.Id);
     }
@@ -80,4 +98,7 @@ internal sealed class WorkflowDefinitions(IDbContextFactory<WorkflowDbContext> c
         await using var db = await contexts.CreateDbContextAsync(cancellationToken);
         return await db.Definitions.Where(d => d.IsDefault).Select(d => (Guid?)d.Id).SingleOrDefaultAsync(cancellationToken);
     }
+
+    private static Error Concurrent() =>
+        Error.Conflict("workflow.concurrent_update", "Another change to the workflow definitions was saved at the same moment. Reload and try again.");
 }

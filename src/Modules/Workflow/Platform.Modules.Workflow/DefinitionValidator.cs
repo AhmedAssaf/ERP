@@ -41,6 +41,8 @@ internal static class DefinitionValidator
         {
             var previous = steps[i - 1].Stage;
             var current = steps[i].Stage;
+            // Two adjacent fixed points out of order are already reported as opening_before_lock; without this exemption
+            // the same mistake would also yield a stage_order error.
             var bothFixed = previous.IsSystem() && current.IsSystem();
             if (current < previous && !bothFixed)
             {
@@ -51,9 +53,25 @@ internal static class DefinitionValidator
         for (var i = 0; i < steps.Count; i++)
         {
             var step = steps[i];
+            if (!Enum.IsDefined(step.Stage))
+            {
+                errors.Add(Error.Validation("workflow.unknown_stage", $"Step {i + 1} has an unknown stage ({(int)step.Stage})."));
+            }
+
+            if (!Enum.IsDefined(step.Rule))
+            {
+                errors.Add(Error.Validation("workflow.unknown_rule", $"Step {i + 1} has an unknown approval rule ({(int)step.Rule})."));
+            }
+
             if (string.IsNullOrWhiteSpace(step.Department))
             {
                 errors.Add(Error.Validation("workflow.department_missing", $"Step {i + 1} needs a department."));
+            }
+
+            if (step.ActorRoles is null)
+            {
+                errors.Add(Error.Validation("workflow.actor_roles_missing", $"Step {i + 1} has no actor role list."));
+                continue;
             }
 
             if (step.Stage.IsSystem() && step.ActorRoles.Count > 0)

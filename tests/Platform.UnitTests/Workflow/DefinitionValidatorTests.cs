@@ -59,6 +59,33 @@ public class DefinitionValidatorTests
     }
 
     [Fact]
+    public void An_undefined_stage_is_rejected()
+    {
+        var errors = DefinitionValidator.Validate(
+            [Human((Stage)99, "contracts"), System(Stage.LockScores), System(Stage.FinancialOpening)]);
+
+        errors.Select(e => e.Code).ShouldContain("workflow.unknown_stage");
+    }
+
+    [Fact]
+    public void An_undefined_rule_is_rejected()
+    {
+        var errors = DefinitionValidator.Validate(
+            [Human(Stage.Screening, "contracts", (StepRule)7), System(Stage.LockScores), System(Stage.FinancialOpening)]);
+
+        errors.Select(e => e.Code).ShouldBe(["workflow.unknown_rule"]);
+    }
+
+    [Fact]
+    public void Missing_actor_roles_are_a_validation_error_not_an_exception()
+    {
+        var errors = DefinitionValidator.Validate(
+            [new StepDefinition(Stage.Screening, "Contracts", StepRule.AnyOf, null!), System(Stage.LockScores), System(Stage.FinancialOpening)]);
+
+        errors.Select(e => e.Code).ShouldBe(["workflow.actor_roles_missing"]);
+    }
+
+    [Fact]
     public void Check_combines_every_broken_rule_into_one_error()
     {
         var error = DefinitionValidator.Check([]);

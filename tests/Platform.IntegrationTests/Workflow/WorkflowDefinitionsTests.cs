@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 using Platform.IntegrationTests.Infrastructure;
 using Platform.Modules.Workflow.Contracts;
 using Platform.Modules.Workflow.Persistence;
@@ -74,6 +75,78 @@ public sealed class WorkflowDefinitionsTests(DatabaseFixture db) : IAsyncLifetim
         result.IsSuccess.ShouldBeFalse();
         result.Error.Kind.ShouldBe(ErrorKind.Validation);
         result.Error.Message.ShouldContain("Financial opening must follow score locking (F-30).");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task A_definition_without_a_name_is_rejected(string name)
+    {
+        await using var scope = _host.ScopeFor(TestTenants.Beta);
+
+        var result = await Definitions(scope).SaveAsync(new SaveDefinition(null, name, false, DefaultTemplate.Steps), Ct);
+
+        result.Error!.Kind.ShouldBe(ErrorKind.Validation);
+        result.Error.Code.ShouldBe("workflow.name_missing");
+    }
+
+    [Fact]
+    public async Task A_default_racing_another_default_is_a_conflict_not_an_exception()
+    {
+        // Another save holds an uncommitted default for the tenant: our save cannot see it, clears nothing, and then
+        // blocks on the one-default unique index until the other save commits.
+        await using var owner = new NpgsqlConnection(db.OwnerConnectionString);
+        await owner.OpenAsync(Ct);
+        var otherId = Guid.CreateVersion7();
+        await using (var clear = new NpgsqlCommand("update workflow.workflow_definition set is_default = false where tenant_id = @tenant", owner))
+        {
+            clear.Parameters.AddWithValue("tenant", TestTenants.Beta.TenantId);
+            await clear.ExecuteNonQueryAsync(Ct);
+        }
+
+        await using var other = await owner.BeginTransactionAsync(Ct);
+        await using (var insert = new NpgsqlCommand(
+            "insert into workflow.workflow_definition (id, tenant_id, name, version, is_default, created_at) values (@id, @tenant, 'Other', 1, true, now())",
+            owner,
+            other))
+        {
+            insert.Parameters.AddWithValue("id", otherId);
+            insert.Parameters.AddWithValue("tenant", TestTenants.Beta.TenantId);
+            await insert.ExecuteNonQueryAsync(Ct);
+        }
+
+        async Task<Result<Guid>> SaveInOwnScope()
+        {
+            await using var scope = _host.ScopeFor(TestTenants.Beta);
+            return await Definitions(scope).SaveAsync(new SaveDefinition(null, "Racing default", true, DefaultTemplate.Steps), Ct);
+        }
+
+        var save = SaveInOwnScope();
+        await WaitUntilBlockedOrFinishedAsync(save);
+        await other.CommitAsync(Ct);
+        var result = await save;
+
+        result.IsSuccess.ShouldBeFalse();
+        result.Error!.Kind.ShouldBe(ErrorKind.Conflict);
+        await using (var cleanup = new NpgsqlCommand("delete from workflow.workflow_definition where id = @id", owner))
+        {
+            cleanup.Parameters.AddWithValue("id", otherId);
+            await cleanup.ExecuteNonQueryAsync(Ct);
+        }
+    }
+
+    private async Task WaitUntilBlockedOrFinishedAsync(Task save)
+    {
+        await using var watcher = new NpgsqlConnection(db.OwnerConnectionString);
+        await watcher.OpenAsync(Ct);
+        await using var waiting = new NpgsqlCommand(
+            "select count(*) from pg_stat_activity where datname = current_database() and cardinality(pg_blocking_pids(pid)) > 0", watcher);
+        var deadline = DateTime.UtcNow.AddSeconds(20);
+        while (!save.IsCompleted && (long)(await waiting.ExecuteScalarAsync(Ct))! < 1)
+        {
+            DateTime.UtcNow.ShouldBeLessThan(deadline, "the save neither blocked on the default index nor finished");
+            await Task.Delay(50, Ct);
+        }
     }
 
     [Fact]

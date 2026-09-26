@@ -1,6 +1,4 @@
 using System.Globalization;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using Platform.Modules.Audit.Contracts;
 using Platform.Modules.Workflow.Contracts;
@@ -20,8 +18,6 @@ internal sealed class WorkflowService(
     IAuditWriter audit,
     TimeProvider clock) : IWorkflowService
 {
-    private static readonly JsonSerializerOptions SnapshotJson = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
-
     public async Task<Result<WorkflowStatus>> StartAsync(
         Guid tenderId,
         Guid definitionId,
@@ -49,7 +45,7 @@ internal sealed class WorkflowService(
 
         if (await db.TenderWorkflows.AnyAsync(w => w.TenderId == tenderId, cancellationToken))
         {
-            return Result.Failure<WorkflowStatus>(Error.Conflict("workflow.already_started", "A workflow is already running for this tender."));
+            return Result.Failure<WorkflowStatus>(AlreadyStarted());
         }
 
         var now = clock.GetUtcNow();
@@ -60,8 +56,7 @@ internal sealed class WorkflowService(
             TenderId = tenderId,
             DefinitionId = definition.Id,
             SnapshotVersion = SnapshotDocument.CurrentVersion,
-            Snapshot = JsonSerializer.Serialize(
-                new SnapshotDocument(SnapshotDocument.CurrentVersion, definition.Id, definition.Version, definition.Name, steps), SnapshotJson),
+            Snapshot = SnapshotDocument.Serialize(definition.Id, definition.Version, definition.Name, steps),
             State = WorkflowState.Running,
             CreatedAt = now,
             UpdatedAt = now,
@@ -97,7 +92,17 @@ internal sealed class WorkflowService(
         }
 
         db.TenderWorkflows.Add(workflow);
-        await db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception) when (SaveErrors.IsUniqueViolation(exception))
+        {
+            // Another start for this tender committed between the existence check and this save.
+            return Result.Failure<WorkflowStatus>(AlreadyStarted());
+        }
+
+        // The change and its audit row are two transactions; the outbox that makes them atomic is F-41.
         await audit.WriteAsync(
             new AuditEntry(null, "workflow.started", "tender", Format(tenderId), new Dictionary<string, string?>
             {
@@ -122,32 +127,36 @@ internal sealed class WorkflowService(
 
         if (workflow.State != WorkflowState.Running)
         {
-            return NotRunning(workflow);
+            return await RefuseAsync(tenderId, userId, NotRunning(workflow), null, null, cancellationToken);
         }
 
         var step = OpenStep(workflow);
         if (step.Stage.IsSystem())
         {
-            return Result.Failure<WorkflowStatus>(Error.Refused(
-                "workflow.system_step", $"The current step ({Name(step.Stage)}) is completed by the system, not by a decision."));
+            return await RefuseAsync(
+                tenderId,
+                userId,
+                Error.Refused("workflow.system_step", $"The current step ({Name(step.Stage)}) is completed by the system, not by a decision."),
+                step.Stage,
+                step.Position,
+                cancellationToken);
         }
 
         if (!step.AssignedUsers.Contains(userId, StringComparer.Ordinal))
         {
-            await audit.WriteAsync(
-                new AuditEntry(userId, "workflow.decision_refused", "tender", Format(tenderId), new Dictionary<string, string?>
-                {
-                    ["step"] = Format(step.Position),
-                    ["reason"] = "not_assigned",
-                }),
+            return await RefuseAsync(
+                tenderId,
+                userId,
+                Error.Refused("workflow.not_assigned", $"You are not assigned to step {step.Position} ({step.Department})."),
+                step.Stage,
+                step.Position,
                 cancellationToken);
-            return Result.Failure<WorkflowStatus>(Error.Refused(
-                "workflow.not_assigned", $"You are not assigned to step {step.Position} ({step.Department})."));
         }
 
         if (step.Decisions.Any(d => d.UserId == userId))
         {
-            return Result.Failure<WorkflowStatus>(Error.Conflict("workflow.already_decided", "You have already decided on this step."));
+            return await RefuseAsync(
+                tenderId, userId, Error.Conflict("workflow.already_decided", "You have already decided on this step."), step.Stage, step.Position, cancellationToken);
         }
 
         var now = clock.GetUtcNow();
@@ -173,27 +182,34 @@ internal sealed class WorkflowService(
             return Result.Failure<WorkflowStatus>(conflict);
         }
 
+        var status = ToStatus(workflow);
         await audit.WriteAsync(
             new AuditEntry(userId, "workflow.decided", "tender", Format(tenderId), new Dictionary<string, string?>
             {
                 ["step"] = Format(step.Position),
                 ["decision"] = Name(decision),
                 ["stepState"] = Name(step.Status),
+                ["pending"] = string.Join(",", status.PendingUsers),
             }),
             // the change is committed; do not let a cancelled request skip its audit row
             CancellationToken.None);
-        return Result.Success(ToStatus(workflow));
+        return Result.Success(status);
     }
 
     public async Task<Result<WorkflowStatus>> CompleteSystemStageAsync(Guid tenderId, Stage stage, CancellationToken cancellationToken = default)
     {
+        RequireTenant();
         if (!stage.IsSystem())
         {
-            return Result.Failure<WorkflowStatus>(Error.Validation(
-                "workflow.not_system_stage", $"{Name(stage)} is decided by people, not completed by the system."));
+            return await RefuseAsync(
+                tenderId,
+                null,
+                Error.Validation("workflow.not_system_stage", $"{Name(stage)} is decided by people, not completed by the system."),
+                stage,
+                null,
+                cancellationToken);
         }
 
-        RequireTenant();
         await using var db = await contexts.CreateDbContextAsync(cancellationToken);
         var workflow = await LoadAsync(db, tenderId, cancellationToken);
         if (workflow is null)
@@ -203,7 +219,7 @@ internal sealed class WorkflowService(
 
         if (workflow.State != WorkflowState.Running)
         {
-            return NotRunning(workflow);
+            return await RefuseAsync(tenderId, null, NotRunning(workflow), stage, null, cancellationToken);
         }
 
         var step = OpenStep(workflow);
@@ -212,7 +228,7 @@ internal sealed class WorkflowService(
             var message = stage == Stage.FinancialOpening && step.Stage <= Stage.LockScores
                 ? "Financial opening must follow score locking (F-30)."
                 : $"{Name(stage)} is not the current step; the workflow is at {Name(step.Stage)}.";
-            return Result.Failure<WorkflowStatus>(Error.Invariant("workflow.stage_not_current", message));
+            return await RefuseAsync(tenderId, null, Error.Invariant("workflow.stage_not_current", message), stage, step.Position, cancellationToken);
         }
 
         step.Status = StepState.Done;
@@ -259,8 +275,38 @@ internal sealed class WorkflowService(
         }
         catch (DbUpdateConcurrencyException)
         {
-            return Error.Conflict("workflow.concurrent_update", "Another action was saved at the same moment. Reload and try again.");
+            return ConcurrentUpdate();
         }
+        catch (DbUpdateException exception) when (SaveErrors.IsUniqueViolation(exception))
+        {
+            // e.g. the same user's decision on the same step saved twice at once (step_id, user_id is unique)
+            return ConcurrentUpdate();
+        }
+    }
+
+    private static Error ConcurrentUpdate() =>
+        Error.Conflict("workflow.concurrent_update", "Another action was saved at the same moment. Reload and try again.");
+
+    private static Error AlreadyStarted() =>
+        Error.Conflict("workflow.already_started", "A workflow is already running for this tender.");
+
+    /// <summary>Audits a refused action (spec 4.4) before anything is saved, then returns the refusal.</summary>
+    private async Task<Result<WorkflowStatus>> RefuseAsync(
+        Guid tenderId, string? actorId, Error error, Stage? stage, int? step, CancellationToken cancellationToken)
+    {
+        var data = new Dictionary<string, string?> { ["reason"] = error.Code };
+        if (step is { } position)
+        {
+            data["step"] = Format(position);
+        }
+
+        if (stage is { } named)
+        {
+            data["stage"] = Name(named);
+        }
+
+        await audit.WriteAsync(new AuditEntry(actorId, "workflow.refused", "tender", Format(tenderId), data), cancellationToken);
+        return Result.Failure<WorkflowStatus>(error);
     }
 
     private static TenderStepRow OpenStep(TenderWorkflowRow workflow) =>
@@ -301,9 +347,8 @@ internal sealed class WorkflowService(
     private static Result<WorkflowStatus> NotFound() =>
         Result.Failure<WorkflowStatus>(Error.NotFound("workflow.not_found", "No workflow exists for this tender."));
 
-    private static Result<WorkflowStatus> NotRunning(TenderWorkflowRow workflow) =>
-        Result.Failure<WorkflowStatus>(Error.Invariant(
-            "workflow.not_running", $"The workflow is {Name(workflow.State)}; no further actions are accepted."));
+    private static Error NotRunning(TenderWorkflowRow workflow) =>
+        Error.Invariant("workflow.not_running", $"The workflow is {Name(workflow.State)}; no further actions are accepted.");
 
     private static string Format(Guid value) => value.ToString("D", CultureInfo.InvariantCulture);
 
