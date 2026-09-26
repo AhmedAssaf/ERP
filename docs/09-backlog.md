@@ -239,7 +239,7 @@ Acceptance criteria:
 
 ## E10 AI assist (F-45 to F-50)
 
-Design: `docs/superpowers/specs/2026-09-26-ai-offer-review-design.md` and ADR-0005 (2026-09-26): one Claude Sonnet review per offer at technical opening on the original PDF, off by default and on per tenant with consent; F-48 and F-49 comparisons are code. Build phases in spec section 8.
+Design: `docs/superpowers/specs/2026-09-26-ai-offer-review-design.md` and ADR-0005 (2026-09-26): one Claude Sonnet review per offer at technical opening on the original PDF, off by default and on per tenant with consent; F-48 and F-49 comparisons are code. Build phases in spec section 8. Implementation plan: `docs/superpowers/plans/2026-09-26-ai-offer-review.md`.
 
 | ID | Story | Pri | Size | Status | Depends on |
 |---|---|---|---|---|---|

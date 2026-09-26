@@ -3,6 +3,7 @@
 Date: 2026-09-26
 Status: Approved in session 2026-09-26 (sections 1 to 3 approved one by one; sections 4 to 8 written on the user's instruction to apply recommended practice and finish)
 Scope: backlog rows F-45, F-46, F-47, F-48, F-49, F-50 in `docs/09-backlog.md` (epic E10)
+Plan: `docs/superpowers/plans/2026-09-26-ai-offer-review.md` (15 tasks)
 Evidence: spike W-22 (`docs/06-spike-results.md` section 7, `spikes/OfferToMarkdownSpike/`)
 Decisions it builds on: docs/01 section 5 (assist only), ADR-0003 and ADR-0004 (workflow fixed points), ADR-0005 (provider access, written with this spec), docs/02 section 5 item 7 (residency)
 
@@ -51,7 +52,7 @@ stateDiagram-v2
 4. Each row stores the SHA-256 of the canonical input (file hashes, requirement texts, prompt version, model, request settings). A rerun whose input hash equals a completed row's reuses that result without a call.
 5. Only `errored` and `expired` items, output that fails validation, and refusals are retried, at most twice in total, then `Abandoned` with the officer notified.
 6. A deliberate rerun (officer request, or a new prompt version) creates run n+1 with a reason and an audit entry; earlier runs stay. The offer's current review is the latest `Completed` run.
-7. Guard rails: per-tenant monthly budget (section 5); an F-60 alert if an offer ever has two completed runs for the same prompt version and run number.
+7. Guard rails: per-tenant monthly budget (section 5); the unique key makes two automatic reviews of one offer impossible, so the F-60 alert watches for `Abandoned` reviews instead.
 
 ## 2. Data flow
 
@@ -72,11 +73,10 @@ sequenceDiagram
     AI->>AI: insert one Pending review per offer
     AI->>TEN: checklist M-xx, requirements T-xx, criteria and weights
     AI->>DOC: technical files per offer (never financial)
-    AI->>API: upload files (Files API), submit one batch, custom_id = review id
+    AI->>API: submit one batch, custom_id = review id, PDFs inside as base64
     API-->>AI: results, collected by a polling job
     AI->>AI: validate every item, verify quotes where a text layer exists
     AI->>AI: F-49 compare identifiers and text across offers and bidders
-    AI->>API: delete the uploaded files
     AI-->>EV: ReviewsReady(tender)
     EV->>EV: F-28 officer confirms or overrides each draft verdict
     EV->>EV: F-29 evaluator scores with AI evidence, then sees AI score and the gap
@@ -86,7 +86,7 @@ sequenceDiagram
 
 1. Requirements come from the tender as authored (F-16, F-17), sent as structured text with their stable ids, not from the RFP document.
 2. Only technical files are sent. The financial envelope never reaches the model, so the sealed-envelope rule and "no prices while scoring technical" hold by construction.
-3. PDF files go as `document` blocks by Files API `file_id`, which keeps requests under 32 MB; DOCX goes as text extracted with the Open XML SDK (100% of facts kept in the spike); other types (XLSX, images) are listed to the model by name and marked "not reviewed" for a human. Several files of one offer go in its one request, each introduced by its file name and our file id so page references map back.
+3. PDF files go as base64 `document` blocks inside the batch request, so nothing is stored at the provider to delete afterwards (the stable C# SDK supports base64 PDF sources; file-id sources need its beta namespace); an offer over 30 MB in total is `too_large` (section 4 item 8), and a tender's requests are split into several batches of at most 100 MB; DOCX goes as text extracted with the Open XML SDK (100% of facts kept in the spike); other types (XLSX, images) are listed to the model by name and marked "not reviewed" for a human. Several files of one offer go in its one request, each introduced by its file name and our file id so page references map back.
 4. Nothing is written into a human field. Drafts appear next to the human's own controls with verdict, evidence quote, file and page link, and the model and prompt version.
 
 ## 3. Data model and the F-50 audit record
@@ -207,7 +207,7 @@ Security and privacy:
 
 1. The API key lives in the secret store and appears in F-52 only as a reference (N-10).
 2. Offers are untrusted input. Defences: the prompt rule in section 4 item 3; schema-enforced output; server-side validation; quote verification; and a human decision on every item.
-3. Data minimization: only technical files; no financial data, no vendor bank details, no evaluator names. Files uploaded to the provider are deleted when the batch ends.
+3. Data minimization: only technical files; no financial data, no vendor bank details, no evaluator names. No files are uploaded to the provider; PDFs travel inside the batch request.
 4. Consent text names the provider, the processing location, and the provider's retention terms as they stand when the tenant signs; a change of provider or terms requires fresh consent.
 5. F-47 visibility is enforced server-side: the query that returns suggested scores for an offer returns nothing for criteria the requesting evaluator has not yet scored and submitted.
 
@@ -239,7 +239,7 @@ flowchart LR
 ```
 
 1. The `Ai` module owns its ports for what it needs from modules that do not exist yet: `IOfferFilesSource` (Documents), `ITenderRequirementsSource` (Tenders), `IScoringProgress` (Evaluation). Those modules implement the ports when they are built; until then tests use fakes. This keeps the module buildable now without reaching into other modules (foundation spec rule 2).
-2. `IOfferReviewModel` has one adapter, `ClaudeBatchReviewModel`, using the official Anthropic .NET SDK directly (ADR-0005): batches, Files API, structured output, and token counting are not covered by `Microsoft.Extensions.AI`.
+2. `IOfferReviewModel` has one adapter, `ClaudeBatchReviewModel`, using the official Anthropic .NET SDK directly (ADR-0005): batches, structured output, and token counting are not covered by `Microsoft.Extensions.AI`.
 3. Evaluation screens read drafts through `IAiReviewQuery` and write decisions through it; they never touch the `ai` schema.
 4. F-48 lives in the Evaluation module as `PriceChecker`, ported from the spike's rules: line total equals quantity times unit price, subtotal equals the sum of lines, VAT 15 percent, total equals subtotal plus VAT, every BoQ line priced, quantity and unit match the BoQ, and a line priced beyond a tenant-configured variance from the median of the other offers.
 

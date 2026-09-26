@@ -11,8 +11,8 @@ Document 02 named the Claude API behind `Microsoft.Extensions.AI`, and document 
 
 ## Decision
 
-1. Offer review uses Claude Sonnet (`claude-sonnet-5`, configurable) through the Claude API. PDFs go to the model as PDF documents through the Files API; DOCX goes as text from the Open XML SDK. No OCR or Markdown conversion for AI review.
-2. The `Ai` module calls the official Anthropic .NET SDK directly behind its own `IOfferReviewModel` port, not through `Microsoft.Extensions.AI`, because the design needs the Batch API, the Files API, API-enforced structured output, and token counting.
+1. Offer review uses Claude Sonnet (`claude-sonnet-5`, configurable) through the Claude API. PDFs go to the model as base64 PDF documents inside the batch request (nothing stored at the provider); DOCX goes as text from the Open XML SDK. No OCR or Markdown conversion for AI review.
+2. The `Ai` module calls the official Anthropic .NET SDK directly behind its own `IOfferReviewModel` port, not through `Microsoft.Extensions.AI`, because the design needs the Batch API, API-enforced structured output, and token counting.
 3. AI is off by default per tenant. A Tenant admin turns it on and records consent to processing outside the Kingdom; this is the accepted exception to N-01 for AI features only, recorded per tenant.
 4. One review per offer, run at technical opening through the Batch API; financial envelopes never go to a model; price checks (F-48) and cross-offer integrity comparison (F-49) are code.
 
@@ -29,7 +29,7 @@ Document 02 named the Claude API behind `Microsoft.Extensions.AI`, and document 
 | Option | Why not now |
 |---|---|
 | Convert to Markdown (Docling, PdfPig with a visual-to-logical pass, OCR) and send text | 65 percent agreement on PDF offers against 96 percent for the original PDF; scans lose the evidence behind red flags |
-| `Microsoft.Extensions.AI` abstraction | Does not cover batches, file uploads, enforced output schemas, or token counting; our own port gives the same swappability |
+| `Microsoft.Extensions.AI` abstraction | Does not cover batches, enforced output schemas, or token counting; our own port gives the same swappability |
 | Claude Haiku | About half the price, but repeated the same wrong "met" verdicts across runs (Excel reports as an electronic system, a split warranty); Sonnet made none |
 | Self-hosted open model in Jeddah | In-Kingdom and free, but untested for this task and CPU-only on the pilot host |
 | AI off until an in-Kingdom endpoint exists | Keeps N-01 whole but delays the main differentiator; stays available as the default for tenants that do not consent |
