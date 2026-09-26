@@ -39,6 +39,9 @@ services:
       KC_HOSTNAME_STRICT: "false"
       KC_FEATURES: organization
       KC_HEALTH_ENABLED: "true"
+      # Substituted into keycloak/import/waslabid-realm.json at import. Values live in .env, never in the repository (N-10).
+      WASLABID_WEB_CLIENT_SECRET: ${WASLABID_WEB_CLIENT_SECRET:?Set WASLABID_WEB_CLIENT_SECRET in infra/compose/.env}
+      WASLABID_DEV_USER_PASSWORD: ${WASLABID_DEV_USER_PASSWORD:?Set WASLABID_DEV_USER_PASSWORD in infra/compose/.env}
     ports:
       - "${KEYCLOAK_PORT:-8080}:8080"
       - "9000:9000"

@@ -1,6 +1,10 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Components.Server.Circuits;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Platform.Modules.Audit;
 using Platform.Modules.Identity;
+using Platform.Modules.Identity.Contracts;
 using Platform.Modules.Tenancy;
 using Platform.Modules.Workflow;
 using Platform.Shared;
@@ -25,6 +29,39 @@ builder.Services.AddWorkflowModule(platformDb);
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<CircuitHandler, TenantCircuitHandler>();
 
+builder.Services
+    .AddAuthentication(options =>
+    {
+        options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
+    })
+    .AddCookie(options =>
+    {
+        options.Cookie.Name = "waslabid.auth";
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Events.OnRedirectToAccessDenied = context =>
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return Task.CompletedTask;
+        };
+    })
+    .AddOpenIdConnect(options =>
+    {
+        builder.Configuration.GetSection("Oidc").Bind(options);
+        options.ResponseType = OpenIdConnectResponseType.Code;
+        options.UsePkce = true;
+        options.MapInboundClaims = false;
+        options.GetClaimsFromUserInfoEndpoint = false;
+        options.SaveTokens = false;
+        options.Scope.Clear();
+        options.Scope.Add("openid");
+        options.Scope.Add("profile");
+        options.Scope.Add("organization");
+        options.TokenValidationParameters.NameClaimType = IdentityClaims.Username;
+    });
+builder.Services.AddAuthorization(options => options.FallbackPolicy = IdentityModule.SameTenantPolicy);
+builder.Services.AddCascadingAuthenticationState();
+
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
@@ -34,9 +71,11 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseMiddleware<TenantMiddleware>();
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseAntiforgery();
-app.MapStaticAssets();
-app.MapHealthChecks("/health");
+app.MapStaticAssets().AllowAnonymous();
+app.MapHealthChecks("/health").AllowAnonymous();
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 
 app.Run();

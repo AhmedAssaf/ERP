@@ -40,7 +40,7 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 | W-01 | Local Compose stack | P0 | S | Done 2026-09-21: all services healthy on Docker Desktop 29 (Keycloak in 50 s, ClamAV within its start period), bucket created, Caddy answering on the override port; second `up -d` clean | |
 | W-02 | Solution skeleton: host, worker, modules, tests, UI project per document 02 section 4.5 | P0 | M | Done 2026-09-26: host, 4 modules, 2 test projects; worker with W-08, Platform.UI with W-05 (spec section 1) | W-01 |
 | W-03 | PostgreSQL row-level security foundation: `TenantId` convention, EF interceptor setting `app.tenant_id`, app role, policy migration helper | P0 | M | Done | W-02 |
-| W-04 | Keycloak realm export with Organizations, web client, worker client; OIDC wiring in the host | P0 | M | Backlog | W-01, W-02 |
+| W-04 | Keycloak realm export with Organizations, web client, worker client; OIDC wiring in the host | P0 | M | Done | W-01, W-02 |
 | W-05 | Tailwind build: standalone CLI in MSBuild, `@theme` tokens, fonts self-hosted, physical-utility lint | P0 | S | Backlog | W-02 |
 | W-06 | `Platform.UI` components for the MVP (document 08 section 6) with the gallery page in both directions | P0 | L | Backlog | W-05 |
 | W-07 | Localisation: `IStringLocalizer` setup, `ar-SA` and `en-US` resources, culture switch, `dir` on `<html>` | P0 | S | Backlog | W-02 |

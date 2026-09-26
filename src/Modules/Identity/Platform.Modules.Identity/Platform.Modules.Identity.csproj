@@ -1,11 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <ProjectReference Include="..\..\..\Platform.Shared\Platform.Shared.csproj" />
-    <ProjectReference Include="..\Platform.Modules.Identity.Contracts\Platform.Modules.Identity.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Migrations\*.sql" LogicalName="Migrations.%(Filename)%(Extension)" />
+    <ProjectReference Include="..\..\..\Platform.Shared\Platform.Shared.csproj" />
+    <ProjectReference Include="..\Platform.Modules.Identity.Contracts\Platform.Modules.Identity.Contracts.csproj" />
+    <ProjectReference Include="..\..\Audit\Platform.Modules.Audit.Contracts\Platform.Modules.Audit.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Platform.UnitTests" />

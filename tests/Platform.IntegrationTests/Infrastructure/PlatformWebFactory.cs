@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 
 namespace Platform.IntegrationTests.Infrastructure;
 
@@ -9,6 +10,9 @@ internal sealed class PlatformWebFactory(string appConnectionString) : WebApplic
     {
         builder.UseEnvironment("Testing");
         builder.UseSetting("ConnectionStrings:Platform", appConnectionString);
+        builder.UseSetting("Oidc:Authority", "https://keycloak.invalid/realms/waslabid");
+        builder.UseSetting("Oidc:ClientSecret", "unused-in-tests");
+        builder.ConfigureTestServices(services => services.AddTestAuthentication());
     }
 
     public HttpClient ClientFor(string host) =>

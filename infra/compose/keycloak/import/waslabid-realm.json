@@ -1,0 +1,85 @@
+{
+  "realm": "waslabid",
+  "displayName": "WaslaBid",
+  "enabled": true,
+  "sslRequired": "external",
+  "organizationsEnabled": true,
+  "internationalizationEnabled": true,
+  "supportedLocales": ["ar", "en"],
+  "defaultLocale": "ar",
+  "clients": [
+    {
+      "clientId": "waslabid-web",
+      "name": "WaslaBid web",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${WASLABID_WEB_CLIENT_SECRET}",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "https://acme.localhost:8443/signin-oidc",
+        "https://beta.localhost:8443/signin-oidc",
+        "https://acme.localhost/signin-oidc",
+        "https://beta.localhost/signin-oidc"
+      ],
+      "webOrigins": ["+"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "https://acme.localhost:8443/*##https://beta.localhost:8443/*##https://acme.localhost/*##https://beta.localhost/*"
+      },
+      "defaultClientScopes": ["basic", "profile", "email", "roles", "web-origins", "acr"],
+      "optionalClientScopes": ["organization"]
+    },
+    {
+      "clientId": "waslabid-tests",
+      "name": "Automated tests only; password grant; must not exist in staging or production realms",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "defaultClientScopes": ["basic", "profile", "email", "roles", "web-origins", "acr"],
+      "optionalClientScopes": ["organization"]
+    }
+  ],
+  "users": [
+    {
+      "username": "acme.admin",
+      "enabled": true,
+      "email": "admin@acme.waslabid.test",
+      "emailVerified": true,
+      "firstName": "Acme",
+      "lastName": "Admin",
+      "attributes": { "locale": ["ar"] },
+      "credentials": [{ "type": "password", "value": "${WASLABID_DEV_USER_PASSWORD}", "temporary": false }]
+    },
+    {
+      "username": "beta.admin",
+      "enabled": true,
+      "email": "admin@beta.waslabid.test",
+      "emailVerified": true,
+      "firstName": "Beta",
+      "lastName": "Admin",
+      "attributes": { "locale": ["en"] },
+      "credentials": [{ "type": "password", "value": "${WASLABID_DEV_USER_PASSWORD}", "temporary": false }]
+    }
+  ],
+  "organizations": [
+    {
+      "name": "Acme Contracting",
+      "alias": "acme",
+      "enabled": true,
+      "domains": [{ "name": "acme.waslabid.test", "verified": false }],
+      "members": [{ "username": "acme.admin", "membershipType": "MANAGED" }]
+    },
+    {
+      "name": "Beta Industries",
+      "alias": "beta",
+      "enabled": true,
+      "domains": [{ "name": "beta.waslabid.test", "verified": false }],
+      "members": [{ "username": "beta.admin", "membershipType": "MANAGED" }]
+    }
+  ]
+}

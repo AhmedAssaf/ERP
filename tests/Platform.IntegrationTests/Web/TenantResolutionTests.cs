@@ -28,7 +28,7 @@ public class TenantResolutionTests(DatabaseFixture db)
 
         var response = await client.GetAsync(new Uri("/", UriKind.Relative), Ct);
 
-        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
