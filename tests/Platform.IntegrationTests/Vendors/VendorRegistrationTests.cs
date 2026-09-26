@@ -290,8 +290,8 @@ public sealed partial class VendorRegistrationTests(DatabaseFixture db, Keycloak
     private async Task<Result<Guid>> RegisterAsync(VendorRegistration input, string userId, string email)
     {
         await using var host = Host();
-        await using var scope = host.ScopeFor(TestTenants.Acme);
-        return await scope.ServiceProvider.GetRequiredService<IVendorRegistration>().RegisterCompanyAsync(input, userId, email, Ct);
+        await using var scope = host.ScopeFor(TestTenants.Acme, actingUserId: userId);
+        return await scope.ServiceProvider.GetRequiredService<IVendorRegistration>().RegisterCompanyAsync(input, email, Ct);
     }
 
     private ModuleHost Host() => new(db.AppConnectionString, StaffInvitationTests.KeycloakAdminSettings(keycloak));

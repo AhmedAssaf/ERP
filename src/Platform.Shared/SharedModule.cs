@@ -19,6 +19,8 @@ public static class SharedModule
         services.AddScoped<ITenantAccessor>(sp => sp.GetRequiredService<TenantAccessor>());
         services.AddScoped<VendorAccessor>();
         services.AddScoped<IVendorAccessor>(sp => sp.GetRequiredService<VendorAccessor>());
+        services.AddScoped<ActingUserAccessor>();
+        services.AddScoped<IActingUserAccessor>(sp => sp.GetRequiredService<ActingUserAccessor>());
         services.AddScoped<PlatformRequestContext>();
         services.AddScoped<IPlatformRequestContext>(sp => sp.GetRequiredService<PlatformRequestContext>());
         // Unconfigured until the host calls AddObjectStorage; using it then throws rather than guessing a bucket.

@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
@@ -14,7 +15,7 @@ namespace Platform.IntegrationTests.Vendors;
 /// the vendor company, a tenant-scoped relationship row, and the security-definer functions that cross them.
 /// </summary>
 [Collection(DatabaseCollection.Name)]
-public sealed class VendorRowLevelSecurityTests(DatabaseFixture db) : IAsyncLifetime
+public sealed partial class VendorRowLevelSecurityTests(DatabaseFixture db) : IAsyncLifetime
 {
     private static readonly string[] VendorTables = ["companies", "vendor_users", "documents", "consent_events"];
 
@@ -102,7 +103,8 @@ public sealed class VendorRowLevelSecurityTests(DatabaseFixture db) : IAsyncLife
     [Fact]
     public async Task Related_company_returns_rows_only_while_a_relationship_exists()
     {
-        var companyId = await RegisterAsync(TestTenants.Acme);
+        var userId = NewUserId();
+        var companyId = await RegisterAsync(TestTenants.Acme, userId: userId);
         await AddDocumentAsync(companyId);
 
         (await RelatedCompanyCountAsync(TestTenants.Acme, companyId)).ShouldBe(1);
@@ -112,13 +114,7 @@ public sealed class VendorRowLevelSecurityTests(DatabaseFixture db) : IAsyncLife
         (await RelatedCompanyCountAsync(null, companyId)).ShouldBe(0);
 
         // Beta meets the vendor (the join flow, task 5): from then on beta sees the shared facts too.
-        await using (var beta = _host.ScopeFor(TestTenants.Beta))
-        {
-            await using var context = await CreateContextAsync(beta);
-            await context.Database.ExecuteSqlAsync(
-                $"insert into vendor.relationships (tenant_id, company_id, status) values ({TestTenants.Beta.TenantId}, {companyId}, 'pending')",
-                Ct);
-        }
+        await JoinAsync(TestTenants.Beta, companyId, userId);
 
         (await RelatedCompanyCountAsync(TestTenants.Beta, companyId)).ShouldBe(1);
         (await RelatedDocumentCountAsync(TestTenants.Beta, companyId)).ShouldBe(1);
@@ -259,20 +255,253 @@ public sealed class VendorRowLevelSecurityTests(DatabaseFixture db) : IAsyncLife
         reader.GetBoolean(3).ShouldBeFalse("public may not execute it");
     }
 
+    [Fact]
+    public async Task A_tenant_connection_cannot_insert_or_update_a_relationship_directly()
+    {
+        var companyId = await RegisterAsync(TestTenants.Acme);
+        var other = await RegisterAsync(TestTenants.Beta);
+
+        await using var scope = _host.ScopeFor(TestTenants.Acme, actingUserId: "officer-direct");
+        await using var context = await CreateContextAsync(scope);
+
+        var insert = await Should.ThrowAsync<PostgresException>(() => context.Database.ExecuteSqlAsync(
+            $"insert into vendor.relationships (tenant_id, company_id, status) values ({TestTenants.Acme.TenantId}, {other}, 'pending')", Ct));
+        insert.SqlState.ShouldBe(PostgresErrorCodes.InsufficientPrivilege);
+        var update = await Should.ThrowAsync<PostgresException>(() => context.Database.ExecuteSqlAsync(
+            $"update vendor.relationships set status = 'approved', approved_by = 'officer-direct' where company_id = {companyId}", Ct));
+        update.SqlState.ShouldBe(PostgresErrorCodes.InsufficientPrivilege);
+
+        (await RelationshipAsync(TestTenants.Acme.TenantId, other)).ShouldBeNull();
+        (await RelationshipAsync(TestTenants.Acme.TenantId, companyId)).ShouldBe(("pending", null));
+        (await RelatedCompanyCountAsync(TestTenants.Acme, other)).ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task Joining_requires_a_vendor_context_and_a_tenant()
+    {
+        var userId = NewUserId();
+        var companyId = await RegisterAsync(TestTenants.Acme, userId: userId);
+
+        (await Should.ThrowAsync<PostgresException>(() => JoinAsync(null, companyId, userId)))
+            .SqlState.ShouldBe(PostgresErrorCodes.InsufficientPrivilege);
+        (await Should.ThrowAsync<PostgresException>(() => JoinAsync(TestTenants.Beta, null, userId)))
+            .SqlState.ShouldBe(PostgresErrorCodes.InsufficientPrivilege);
+        // The acting user must be a user of the vendor company the context names.
+        (await Should.ThrowAsync<PostgresException>(() => JoinAsync(TestTenants.Beta, companyId, null)))
+            .SqlState.ShouldBe(PostgresErrorCodes.InsufficientPrivilege);
+        (await Should.ThrowAsync<PostgresException>(() => JoinAsync(TestTenants.Beta, companyId, NewUserId())))
+            .SqlState.ShouldBe(PostgresErrorCodes.InsufficientPrivilege);
+        (await RelationshipAsync(TestTenants.Beta.TenantId, companyId)).ShouldBeNull();
+
+        await JoinAsync(TestTenants.Beta, companyId, userId);
+        await JoinAsync(TestTenants.Beta, companyId, userId);
+
+        (await RelationshipAsync(TestTenants.Beta.TenantId, companyId)).ShouldBe(("pending", null));
+        (await RelationshipAsync(TestTenants.Acme.TenantId, companyId)).ShouldBe(("pending", null));
+    }
+
+    [Fact]
+    public async Task Joining_again_after_approval_keeps_the_approval()
+    {
+        var userId = NewUserId();
+        var companyId = await RegisterAsync(TestTenants.Acme, userId: userId);
+        (await ApproveAsync(TestTenants.Acme, companyId, "acme-officer")).ShouldBeTrue();
+
+        await JoinAsync(TestTenants.Acme, companyId, userId);
+
+        (await RelationshipAsync(TestTenants.Acme.TenantId, companyId)).ShouldBe(("approved", "acme-officer"));
+    }
+
+    [Fact]
+    public async Task Approving_records_the_acting_user()
+    {
+        var companyId = await RegisterAsync(TestTenants.Acme);
+
+        (await Should.ThrowAsync<PostgresException>(() => ApproveAsync(TestTenants.Acme, companyId, null)))
+            .SqlState.ShouldBe(PostgresErrorCodes.InsufficientPrivilege);
+        (await Should.ThrowAsync<PostgresException>(() => ApproveAsync(null, companyId, "acme-officer")))
+            .SqlState.ShouldBe(PostgresErrorCodes.InsufficientPrivilege);
+        // Beta has no relationship with the company: nothing to approve, and none is created.
+        (await ApproveAsync(TestTenants.Beta, companyId, "beta-officer")).ShouldBeFalse();
+        (await RelationshipAsync(TestTenants.Beta.TenantId, companyId)).ShouldBeNull();
+        (await RelationshipAsync(TestTenants.Acme.TenantId, companyId)).ShouldBe(("pending", null));
+
+        (await ApproveAsync(TestTenants.Acme, companyId, "acme-officer")).ShouldBeTrue();
+
+        (await RelationshipAsync(TestTenants.Acme.TenantId, companyId)).ShouldBe(("approved", "acme-officer"));
+        // Approving again changes nothing: the first approver stays on record.
+        (await ApproveAsync(TestTenants.Acme, companyId, "acme-admin")).ShouldBeFalse();
+        (await RelationshipAsync(TestTenants.Acme.TenantId, companyId)).ShouldBe(("approved", "acme-officer"));
+    }
+
+    [Theory]
+    [InlineData("join_tenant", "")]
+    [InlineData("approve_relationship", "uuid")]
+    [InlineData("register_company", "text, text, text, text, text, text, text, text, text")]
+    public async Task Relationship_functions_run_as_their_owner_with_a_pinned_search_path_and_only_the_app_role_may_call_them(
+        string name, string arguments)
+    {
+        await using var owner = new NpgsqlConnection(db.OwnerConnectionString);
+        await owner.OpenAsync(Ct);
+        await using var command = new NpgsqlCommand("""
+            select p.prosecdef, p.proconfig::text, pg_get_function_identity_arguments(p.oid),
+                   has_function_privilege('erp_app', p.oid, 'execute'),
+                   has_function_privilege('public', p.oid, 'execute')
+            from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+            where n.nspname = 'vendor' and p.proname = @name
+            """, owner);
+        command.Parameters.AddWithValue("name", name);
+        await using var reader = await command.ExecuteReaderAsync(Ct);
+        (await reader.ReadAsync(Ct)).ShouldBeTrue($"vendor.{name} exists");
+        reader.GetBoolean(0).ShouldBeTrue("security definer");
+        reader.GetString(1).ShouldContain("search_path=vendor, pg_temp");
+        ArgumentNames().Replace(reader.GetString(2), string.Empty).ShouldBe(arguments);
+        reader.GetBoolean(3).ShouldBeTrue("erp_app may execute it");
+        reader.GetBoolean(4).ShouldBeFalse("public may not execute it");
+        (await reader.ReadAsync(Ct)).ShouldBeFalse($"vendor.{name} has one signature");
+    }
+
+    [Fact]
+    public async Task Registering_without_an_acting_user_is_refused()
+    {
+        var cr = NewCrNumber();
+
+        var refused = await Should.ThrowAsync<PostgresException>(() => RegisterAsync(TestTenants.Acme, cr, null, "V1"));
+
+        refused.SqlState.ShouldBe(PostgresErrorCodes.InsufficientPrivilege);
+        (await CrExistsAsync(cr)).ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Registering_takes_the_vendor_admin_from_the_session_and_no_user_parameter_exists()
+    {
+        var sessionUser = NewUserId();
+        var companyId = await RegisterAsync(TestTenants.Acme, userId: sessionUser);
+
+        (await VendorAdminOfAsync(companyId)).ShouldBe(sessionUser);
+
+        // The old signature, which let the caller name the user, is gone.
+        await using var scope = _host.ScopeFor(TestTenants.Acme, actingUserId: NewUserId());
+        await using var context = await CreateContextAsync(scope);
+        var cr = NewCrNumber();
+        var other = NewUserId();
+        var gone = await Should.ThrowAsync<PostgresException>(() => context.Database.SqlQuery<Guid>($"""
+            select vendor.register_company({cr}, 'شركة', 'Company', '300000000000003', 'Riyadh',
+                                           'Contact Person', '+966500000000', 'contact@example.test', {other}, 'V1') as "Value"
+            """).SingleAsync(Ct));
+        gone.SqlState.ShouldBe(PostgresErrorCodes.UndefinedFunction);
+        (await CrExistsAsync(cr)).ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task A_pooled_connection_reused_without_an_acting_user_carries_none()
+    {
+        var singleConnection = new NpgsqlConnectionStringBuilder(db.AppConnectionString) { MaxPoolSize = 1 }.ConnectionString;
+        await using var host = new ModuleHost(singleConnection);
+
+        int backend;
+        await using (var signedIn = host.ScopeFor(TestTenants.Acme, actingUserId: "someone"))
+        {
+            await using var context = await CreateContextAsync(signedIn);
+            backend = await context.Database.SqlQueryRaw<int>("select pg_backend_pid() as \"Value\"").SingleAsync(Ct);
+            (await CurrentUserAsync(context)).ShouldBe("someone");
+        }
+
+        await using var anonymous = host.ScopeFor(TestTenants.Acme);
+        await using var anonymousContext = await CreateContextAsync(anonymous);
+        (await anonymousContext.Database.SqlQueryRaw<int>("select pg_backend_pid() as \"Value\"").SingleAsync(Ct)).ShouldBe(backend);
+        (await CurrentUserAsync(anonymousContext)).ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task A_revocation_cannot_name_another_revocation()
+    {
+        var companyId = await RegisterAsync(TestTenants.Acme);
+        var grant = await AddConsentGrantAsync(companyId);
+        var revocation = await AddConsentRevocationAsync(companyId, grant);
+
+        var refused = await Should.ThrowAsync<PostgresException>(() => AddConsentRevocationAsync(companyId, revocation));
+
+        refused.SqlState.ShouldBe(PostgresErrorCodes.ForeignKeyViolation);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("\t")]
+    [InlineData("V1234567890123456789012345678901234567890")]
+    public async Task A_privacy_notice_version_must_be_1_to_40_characters_and_not_blank(string version)
+    {
+        var refused = await Should.ThrowAsync<PostgresException>(() => RegisterAsync(TestTenants.Acme, null, NewUserId(), version));
+
+        refused.SqlState.ShouldBe(PostgresErrorCodes.CheckViolation);
+        refused.ConstraintName.ShouldBe("ck_vendor_users_privacy_notice_version");
+    }
+
+    [Fact]
+    public async Task A_privacy_notice_version_of_40_characters_is_accepted()
+    {
+        var companyId = await RegisterAsync(TestTenants.Acme, null, NewUserId(), new string('V', 40));
+
+        (await VendorAdminOfAsync(companyId)).ShouldNotBeNull();
+    }
+
+    private static async Task<string?> CurrentUserAsync(VendorsDbContext context) =>
+        await context.Database.SqlQueryRaw<string?>("select platform.current_user_id() as \"Value\"").SingleAsync(Ct);
+
     private static async Task<Guid?> CompanyOfUserAsync(VendorsDbContext context, string userId) =>
         await context.Database.SqlQuery<Guid?>($"select vendor.company_of_user({userId}) as \"Value\"").SingleAsync(Ct);
 
-    private async Task<Guid> RegisterAsync(TenantContext? tenant, string? crNumber = null, string? userId = null)
+    private Task<Guid> RegisterAsync(TenantContext? tenant, string? crNumber = null, string? userId = null) =>
+        RegisterAsync(tenant, crNumber, userId ?? NewUserId(), "V1");
+
+    private async Task<Guid> RegisterAsync(TenantContext? tenant, string? crNumber, string? actingUserId, string privacyNoticeVersion)
     {
         var cr = crNumber ?? NewCrNumber();
-        userId ??= Guid.NewGuid().ToString();
-        await using var scope = _host.ScopeFor(tenant);
+        await using var scope = _host.ScopeFor(tenant, actingUserId: actingUserId);
         await using var context = await CreateContextAsync(scope);
         return await context.Database.SqlQuery<Guid>($"""
             select vendor.register_company({cr}, 'شركة الاختبار', 'Test Company', '300000000000003', 'Riyadh',
-                                           'Contact Person', '+966500000000', 'contact@example.test', {userId}, 'V1') as "Value"
+                                           'Contact Person', '+966500000000', 'contact@example.test', {privacyNoticeVersion}) as "Value"
             """).SingleAsync(Ct);
     }
+
+    private async Task JoinAsync(TenantContext? tenant, Guid? companyId, string? actingUserId)
+    {
+        await using var scope = _host.ScopeFor(tenant, companyId, actingUserId);
+        await using var context = await CreateContextAsync(scope);
+        await context.Database.ExecuteSqlAsync($"select vendor.join_tenant()", Ct);
+    }
+
+    private async Task<bool> ApproveAsync(TenantContext? tenant, Guid companyId, string? actingUserId)
+    {
+        await using var scope = _host.ScopeFor(tenant, actingUserId: actingUserId);
+        await using var context = await CreateContextAsync(scope);
+        return await context.Database.SqlQuery<bool>($"select vendor.approve_relationship({companyId}) as \"Value\"").SingleAsync(Ct);
+    }
+
+    private async Task<(string Status, string? ApprovedBy)?> RelationshipAsync(Guid tenantId, Guid companyId)
+    {
+        await using var owner = new NpgsqlConnection(db.OwnerConnectionString);
+        await owner.OpenAsync(Ct);
+        await using var command = new NpgsqlCommand(
+            "select status, approved_by from vendor.relationships where tenant_id = @tenant and company_id = @company", owner);
+        command.Parameters.AddWithValue("tenant", tenantId);
+        command.Parameters.AddWithValue("company", companyId);
+        await using var reader = await command.ExecuteReaderAsync(Ct);
+        return await reader.ReadAsync(Ct) ? (reader.GetString(0), reader.IsDBNull(1) ? null : reader.GetString(1)) : null;
+    }
+
+    private async Task<string?> VendorAdminOfAsync(Guid companyId)
+    {
+        await using var owner = new NpgsqlConnection(db.OwnerConnectionString);
+        await owner.OpenAsync(Ct);
+        await using var command = new NpgsqlCommand("select user_id from vendor.vendor_users where company_id = @company", owner);
+        command.Parameters.AddWithValue("company", companyId);
+        return (string?)await command.ExecuteScalarAsync(Ct);
+    }
+
+    private static string NewUserId() => Guid.NewGuid().ToString();
 
     private async Task AddDocumentAsync(Guid companyId)
     {
@@ -290,14 +519,28 @@ public sealed class VendorRowLevelSecurityTests(DatabaseFixture db) : IAsyncLife
             """, Ct);
     }
 
-    private async Task AddConsentGrantAsync(Guid companyId)
+    private async Task<Guid> AddConsentGrantAsync(Guid companyId)
     {
+        var id = Guid.NewGuid();
         await using var scope = _host.ScopeFor(null, companyId);
         await using var context = await CreateContextAsync(scope);
         await context.Database.ExecuteSqlAsync($"""
             insert into vendor.consent_events (id, company_id, recipient_id, scope, kind, valid_from, valid_to, actor_id)
-            values ({Guid.NewGuid()}, {companyId}, {_recipientId}, 'award_records', 'grant', date '2026-01-01', date '2027-01-01', 'vendor-admin-user')
+            values ({id}, {companyId}, {_recipientId}, 'award_records', 'grant', date '2026-01-01', date '2027-01-01', 'vendor-admin-user')
             """, Ct);
+        return id;
+    }
+
+    private async Task<Guid> AddConsentRevocationAsync(Guid companyId, Guid revokes)
+    {
+        var id = Guid.NewGuid();
+        await using var scope = _host.ScopeFor(null, companyId);
+        await using var context = await CreateContextAsync(scope);
+        await context.Database.ExecuteSqlAsync($"""
+            insert into vendor.consent_events (id, company_id, recipient_id, scope, kind, revokes_grant_id, actor_id)
+            values ({id}, {companyId}, {_recipientId}, 'award_records', 'revoke', {revokes}, 'vendor-admin-user')
+            """, Ct);
+        return id;
     }
 
     private async Task<bool> CrExistsAsync(string cr)
@@ -340,4 +583,8 @@ public sealed class VendorRowLevelSecurityTests(DatabaseFixture db) : IAsyncLife
 
     private static Task<VendorsDbContext> CreateContextAsync(AsyncServiceScope scope) =>
         scope.ServiceProvider.GetRequiredService<IDbContextFactory<VendorsDbContext>>().CreateDbContextAsync(Ct);
+
+    // The parameter names in pg_get_function_identity_arguments output ("p_company_id uuid" becomes "uuid").
+    [GeneratedRegex("p_[a-z_]+ ", RegexOptions.CultureInvariant)]
+    private static partial Regex ArgumentNames();
 }

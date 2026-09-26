@@ -18,8 +18,9 @@ namespace Platform.Modules.Vendors.Registration;
 /// platform (V-6, audited), and membership of any organization (staff of another tenant, or a vendor who should join
 /// instead). Then Keycloak first (realm role <c>vendor</c>, the host tenant's organization), then the company, its first
 /// vendor admin and the pending relationship in one database call, so a failed database call takes back exactly what
-/// Keycloak was given, and a failed Keycloak call leaves no row. The tenant is always the request's; the user id and
-/// email come from the caller's principal, never from the form.
+/// Keycloak was given, and a failed Keycloak call leaves no row. The tenant is always the request's; the user is the
+/// acting user the host set from the principal (and the database takes it from the session, not from this service);
+/// the email comes from the caller's principal, never from the form.
 /// </summary>
 internal sealed partial class VendorRegistrationService(
     IDbContextFactory<VendorsDbContext> contexts,
@@ -27,6 +28,7 @@ internal sealed partial class VendorRegistrationService(
     IMemberDirectory members,
     IVendorAccounts accounts,
     ITenantAccessor tenants,
+    IActingUserAccessor actingUser,
     IAuditWriter audit,
     ILogger<VendorRegistrationService> logger) : IVendorRegistration
 {
@@ -37,13 +39,12 @@ internal sealed partial class VendorRegistrationService(
 
     public IReadOnlyList<Error> Validate(VendorRegistration registration) => VendorInput.Validate(registration);
 
-    public async Task<Result<Guid>> RegisterCompanyAsync(
-        VendorRegistration registration, string userId, string email, CancellationToken cancellationToken = default)
+    public async Task<Result<Guid>> RegisterCompanyAsync(VendorRegistration registration, string email, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(registration);
-        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         ArgumentException.ThrowIfNullOrWhiteSpace(email);
         var tenant = tenants.Current ?? throw new InvalidOperationException("A vendor company is registered through a tenant host; this request has none.");
+        var userId = actingUser.UserId ?? throw new InvalidOperationException("A vendor company is registered by a signed-in user; this request has none.");
 
         if (VendorInput.Validate(registration) is [var first, ..])
         {
@@ -89,7 +90,7 @@ internal sealed partial class VendorRegistrationService(
             companyId = await db.Database.SqlQuery<Guid>($"""
                 select vendor.register_company({input.CrNumber}, {input.NameAr}, {input.NameEn}, {input.VatNumber}, {input.Address},
                                                {input.ContactName}, {input.ContactPhone}, {input.ContactEmail},
-                                               {userId}, {input.PrivacyNoticeVersion}) as "Value"
+                                               {input.PrivacyNoticeVersion}) as "Value"
                 """).SingleAsync(cancellationToken);
         }
         catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UniqueViolation && ex.ConstraintName == CrConstraint)

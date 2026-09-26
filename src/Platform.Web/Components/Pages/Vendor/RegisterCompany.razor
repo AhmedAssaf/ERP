@@ -132,7 +132,8 @@
 
         try
         {
-            var result = await Registration.RegisterCompanyAsync(registration, userId, email);
+            // The user is the acting user the host set from this principal; the service never takes it as an argument.
+            var result = await Registration.RegisterCompanyAsync(registration, email);
             if (result.IsSuccess)
             {
                 _registered = true;

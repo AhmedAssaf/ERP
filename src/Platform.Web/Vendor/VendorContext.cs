@@ -6,6 +6,7 @@ using Platform.Modules.Identity.Contracts;
 using Platform.Modules.Vendors.Contracts;
 using Platform.Shared.Tenancy;
 using Platform.Web.PlatformHost;
+using Platform.Web.Tenancy;
 
 namespace Platform.Web.Vendor;
 
@@ -63,18 +64,27 @@ internal sealed class VendorContextMiddleware(RequestDelegate next)
 }
 
 /// <summary>
-/// A circuit's vendor context, from the principal of its connection request (<c>/_blazor</c>, which passed
-/// authentication), after <see cref="Tenancy.TenantCircuitHandler"/> set the tenant. The principal is fixed for the
-/// circuit's life, so the context is set once when the circuit opens.
+/// A circuit's acting user and vendor context, from the principal of its connection request (<c>/_blazor</c>, which
+/// passed authentication), after <see cref="Tenancy.TenantCircuitHandler"/> set the tenant. The principal is fixed for
+/// the circuit's life, so both are set once when the circuit opens. The acting user is set for every authenticated
+/// principal on tenant and platform hosts (staff approving a vendor, an applicant registering); the vendor context only
+/// on a tenant host and only after the Vendor policy passed.
 /// </summary>
-internal sealed class VendorCircuitHandler(IHttpContextAccessor httpContextAccessor, VendorContextResolver resolver) : CircuitHandler
+internal sealed class VendorCircuitHandler(
+    IHttpContextAccessor httpContextAccessor, VendorContextResolver resolver, ActingUserAccessor actingUser) : CircuitHandler
 {
     public override int Order => int.MinValue + 1;
 
     public override Task OnCircuitOpenedAsync(Circuit circuit, CancellationToken cancellationToken)
     {
         var connection = httpContextAccessor.HttpContext;
-        return connection is null || PlatformRequest.IsPlatform(connection)
+        if (connection is null)
+        {
+            return Task.CompletedTask;
+        }
+
+        ActingUser.SetFrom(connection.User, actingUser);
+        return PlatformRequest.IsPlatform(connection)
             ? Task.CompletedTask
             : resolver.ResolveAsync(connection.User, cancellationToken);
     }

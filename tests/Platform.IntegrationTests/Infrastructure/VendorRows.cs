@@ -10,7 +10,7 @@ internal sealed record VendorUserRow(Guid CompanyId, string Role, string Privacy
 
 /// <summary>
 /// Vendor rows for tests (vendor slice): registration through <c>vendor.register_company</c> as the app role with the
-/// tenant set, as a tenant-host request would, and reads as the owner so assertions see past row-level security.
+/// tenant and the acting user set, as a tenant-host request would, and reads as the owner so assertions see past row-level security.
 /// </summary>
 internal static class VendorRows
 {
@@ -25,9 +25,9 @@ internal static class VendorRows
         await using var connection = new NpgsqlConnection(appConnectionString);
         await connection.OpenAsync(cancellationToken);
         await using var command = new NpgsqlCommand("""
-            select set_config('app.tenant_id', @tenant, false);
+            select set_config('app.tenant_id', @tenant, false), set_config('app.user_id', @user, false);
             select vendor.register_company(@cr, 'شركة الاختبار', @name, '300000000000003', 'Riyadh',
-                                           'Contact Person', '+966500000000', 'contact@example.test', @user, 'V1');
+                                           'Contact Person', '+966500000000', 'contact@example.test', 'V1');
             """, connection);
         command.Parameters.AddWithValue("tenant", tenant.TenantId.ToString("D", CultureInfo.InvariantCulture));
         command.Parameters.AddWithValue("cr", crNumber);

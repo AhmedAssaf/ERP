@@ -32,14 +32,15 @@ public interface IVendorRegistration
     IReadOnlyList<Error> Validate(VendorRegistration registration);
 
     /// <summary>
-    /// Registers the company with <paramref name="userId"/> (the signed-in user's Keycloak <c>sub</c>) as its first vendor
-    /// admin and a pending relationship with the host tenant, grants the Keycloak realm role <c>vendor</c> and membership
-    /// of the tenant's organization, and audits <c>vendor.registered</c> in the tenant's log. <paramref name="email"/> is
-    /// the user's verified email from the token, kept in the audit entry. A CR number already on the platform is refused
-    /// with one neutral message and audited as <c>vendor.duplicate_cr_refused</c> (V-6). Returns the company id.
+    /// Registers the company with the acting user of the request or circuit (the signed-in principal's Keycloak
+    /// <c>sub</c>, set by the host; never a caller's argument) as its first vendor admin and a pending relationship with
+    /// the host tenant, grants the Keycloak realm role <c>vendor</c> and membership of the tenant's organization, and
+    /// audits <c>vendor.registered</c> in the tenant's log. <paramref name="email"/> is the user's verified email from the
+    /// token, kept in the audit entry. A CR number already on the platform is refused with one neutral message and audited
+    /// as <c>vendor.duplicate_cr_refused</c> (V-6). Returns the company id. Throws <see cref="InvalidOperationException"/>
+    /// when the scope has no tenant or no acting user.
     /// </summary>
-    Task<Result<Guid>> RegisterCompanyAsync(
-        VendorRegistration registration, string userId, string email, CancellationToken cancellationToken = default);
+    Task<Result<Guid>> RegisterCompanyAsync(VendorRegistration registration, string email, CancellationToken cancellationToken = default);
 }
 
 /// <summary>Stable error codes of the vendor services; pages map them to localized text.</summary>

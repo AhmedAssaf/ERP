@@ -158,6 +158,19 @@ public sealed class VendorRegistrationInputTests(DatabaseFixture db)
         registration.Validate(Valid() with { CrNumber = "١٠١٠١٢٣٤٥٦", VatNumber = "۳۰۰۰۰۰۰۰۰۰۰۰۰۰۳" }).ShouldBeEmpty();
     }
 
+    [Fact]
+    public async Task Registering_without_an_acting_user_is_refused_before_anything_changes()
+    {
+        var input = Valid();
+        await using var host = Host();
+        await using var scope = host.ScopeFor(TestTenants.Acme);
+
+        await Should.ThrowAsync<InvalidOperationException>(() =>
+            scope.ServiceProvider.GetRequiredService<IVendorRegistration>().RegisterCompanyAsync(input, "applicant@example.test", Ct));
+
+        (await VendorRows.CompaniesWithCrAsync(db.OwnerConnectionString, input.CrNumber!, Ct)).ShouldBe(0);
+    }
+
     internal static VendorRegistration Valid(string? cr = null) => new(
         cr ?? VendorRows.NewCrNumber(), "شركة الأفق للتجارة", "Al Ufuq Trading Co. 2", "300000000000003", "Riyadh, King Fahd Road",
         "Sara Al-Ahmed", "+966 50 000 0000", "sara@alufuq.example", VendorPrivacyNotice.CurrentVersion);
@@ -165,9 +178,9 @@ public sealed class VendorRegistrationInputTests(DatabaseFixture db)
     private async Task<Result<Guid>> RegisterAsync(VendorRegistration input, string? userId = null)
     {
         await using var host = Host();
-        await using var scope = host.ScopeFor(TestTenants.Acme);
+        await using var scope = host.ScopeFor(TestTenants.Acme, actingUserId: userId ?? NewUserId());
         return await scope.ServiceProvider.GetRequiredService<IVendorRegistration>()
-            .RegisterCompanyAsync(input, userId ?? NewUserId(), "applicant@example.test", Ct);
+            .RegisterCompanyAsync(input, "applicant@example.test", Ct);
     }
 
     private ModuleHost Host() => new(db.AppConnectionString, UnreachableKeycloak());

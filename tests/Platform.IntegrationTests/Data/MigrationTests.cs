@@ -20,7 +20,7 @@ public class MigrationTests(DatabaseFixture db)
         await connection.OpenAsync(Ct);
         await using var command = new NpgsqlCommand("select count(*) from platform.schema_migrations where module = 'platform'", connection);
         var count = (long)(await command.ExecuteScalarAsync(Ct))!;
-        count.ShouldBe(4);
+        count.ShouldBe(5);
     }
 
     [Fact]

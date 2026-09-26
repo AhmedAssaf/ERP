@@ -62,10 +62,11 @@ internal sealed class ModuleHost : IAsyncDisposable
     public IServiceProvider Services => _root;
 
     /// <summary>
-    /// One request: on the tenant's host when <paramref name="tenant"/> is given, and as a signed-in user of the vendor
-    /// company when <paramref name="vendorCompanyId"/> is given, as the vendor middleware sets it.
+    /// One request: on the tenant's host when <paramref name="tenant"/> is given, as a signed-in user of the vendor
+    /// company when <paramref name="vendorCompanyId"/> is given, as the vendor middleware sets it, and with
+    /// <paramref name="actingUserId"/> as the authenticated principal's <c>sub</c>, as the acting-user middleware sets it.
     /// </summary>
-    public AsyncServiceScope ScopeFor(TenantContext? tenant, Guid? vendorCompanyId = null)
+    public AsyncServiceScope ScopeFor(TenantContext? tenant, Guid? vendorCompanyId = null, string? actingUserId = null)
     {
         var scope = _root.CreateAsyncScope();
         if (tenant is not null)
@@ -76,6 +77,11 @@ internal sealed class ModuleHost : IAsyncDisposable
         if (vendorCompanyId is { } companyId)
         {
             scope.ServiceProvider.GetRequiredService<VendorAccessor>().Set(new VendorContext(companyId));
+        }
+
+        if (actingUserId is not null)
+        {
+            scope.ServiceProvider.GetRequiredService<ActingUserAccessor>().Set(actingUserId);
         }
 
         return scope;

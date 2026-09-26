@@ -174,24 +174,56 @@ public sealed partial class VendorAccessTests(DatabaseFixture db)
         (await OpenCircuitAsync(factory, new ClaimsPrincipal(new ClaimsIdentity()))).ShouldBeNull();
     }
 
+    [Fact]
+    public async Task A_circuit_acts_as_the_subject_of_its_connection_user_on_tenant_and_platform_hosts()
+    {
+        var (vendor, _) = await VendorAsync("Acting User Company");
+        var applicant = Applicant("en");
+        await using var factory = new PlatformWebFactory(db.AppConnectionString);
+
+        (await OpenCircuitAsync(factory, Principal(vendor), "acme.localhost")).ActingUser.ShouldBe(vendor.Subject);
+        // An applicant has no vendor role yet and no vendor context, but registering needs the acting user.
+        var (company, actingUser) = await OpenCircuitAsync(factory, Principal(applicant), "acme.localhost");
+        company.ShouldBeNull();
+        actingUser.ShouldBe(applicant.Subject);
+        (await OpenCircuitAsync(factory, Principal(applicant), "platform.localhost")).ActingUser.ShouldBe(applicant.Subject);
+        (await OpenCircuitAsync(factory, new ClaimsPrincipal(new ClaimsIdentity()), "acme.localhost")).ActingUser.ShouldBeNull();
+    }
+
     /// <summary>
     /// Runs the host's vendor circuit handler for an acme circuit (the tenant handler, which runs first, has set the
     /// tenant) whose connection request carried <paramref name="user"/>.
     /// </summary>
-    private static async Task<Guid?> OpenCircuitAsync(PlatformWebFactory factory, ClaimsPrincipal user)
+    private static async Task<Guid?> OpenCircuitAsync(PlatformWebFactory factory, ClaimsPrincipal user) =>
+        (await OpenCircuitAsync(factory, user, "acme.localhost")).Company;
+
+    /// <summary>
+    /// Runs the host's vendor circuit handler for a circuit on <paramref name="host"/> (the tenant handler, which runs
+    /// first, has set the tenant or the platform mark) whose connection request carried <paramref name="user"/>.
+    /// </summary>
+    private static async Task<(Guid? Company, string? ActingUser)> OpenCircuitAsync(PlatformWebFactory factory, ClaimsPrincipal user, string host)
     {
         await using var scope = factory.Services.CreateAsyncScope();
         var context = new DefaultHttpContext { User = user, RequestServices = scope.ServiceProvider };
-        context.Request.Host = new HostString("acme.localhost");
+        context.Request.Host = new HostString(host);
         scope.ServiceProvider.GetRequiredService<IHttpContextAccessor>().HttpContext = context;
-        scope.ServiceProvider.GetRequiredService<TenantAccessor>().Set(TestTenants.Acme);
+        if (host.StartsWith("platform.", StringComparison.Ordinal))
+        {
+            Platform.Web.PlatformHost.PlatformRequest.Mark(context);
+            scope.ServiceProvider.GetRequiredService<PlatformRequestContext>().MarkPlatform();
+        }
+        else
+        {
+            scope.ServiceProvider.GetRequiredService<TenantAccessor>().Set(TestTenants.Acme);
+        }
         var handlers = scope.ServiceProvider.GetServices<CircuitHandler>().ToList();
         var vendorHandler = handlers.OfType<Platform.Web.Vendor.VendorCircuitHandler>().ShouldHaveSingleItem();
         vendorHandler.Order.ShouldBeGreaterThan(handlers.OfType<Platform.Web.Tenancy.TenantCircuitHandler>().Single().Order);
 
         await vendorHandler.OnCircuitOpenedAsync(null!, Ct);
 
-        return scope.ServiceProvider.GetRequiredService<IVendorAccessor>().Current?.CompanyId;
+        return (scope.ServiceProvider.GetRequiredService<IVendorAccessor>().Current?.CompanyId,
+            scope.ServiceProvider.GetRequiredService<IActingUserAccessor>().UserId);
     }
 
     private static ClaimsPrincipal Principal(TestUser user)

@@ -182,6 +182,8 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseAuthentication();
+// The acting user (app.user_id) of every connection from here on: the authenticated principal's sub.
+app.UseMiddleware<ActingUserMiddleware>();
 app.UseRequestLocalization();
 app.UseAuthorization();
 app.UseMiddleware<PlatformAdminEverywhereMiddleware>();
