@@ -1,6 +1,13 @@
 ---
 name: market-analyst
-description: Use this agent for competitor and market questions about the tender-to-PO platform: what Reference App or another vendor offers, whether a competitor has closed one of our gaps, how a competitor feature maps to our F-xx IDs, pricing intelligence, or a refresh of the landscape in docs/01 and docs/04. Typical triggers include "what does Reference App have that we don't", "did any competitor add sealed bids", "compare us with Odoo's tender module", "refresh the competitor analysis", and "which target segment should we test next". It proposes backlog rows but never adds them without approval. See "When to invoke" in the agent body for worked scenarios.
+description: >-
+  Use this agent for competitor and market questions about the tender-to-PO platform: what Reference App or
+  another vendor offers, whether a competitor has closed one of our gaps, how a competitor feature maps to our
+  F-xx IDs, pricing intelligence, or a refresh of the landscape in docs/01 and docs/04. Typical triggers include
+  "what does Reference App have that we don't", "did any competitor add sealed bids", "compare us with Odoo's
+  tender module", "refresh the competitor analysis", and "which target segment should we test next". It proposes
+  backlog rows but never adds them without approval. See "When to invoke" in the agent body for worked
+  scenarios.
 model: inherit
 color: red
 tools: ["Read", "Grep", "Glob", "WebSearch", "WebFetch", "Write", "Edit"]

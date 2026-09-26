@@ -1,6 +1,11 @@
 ---
 name: reviewer
-description: Use this agent when code, migrations, or infrastructure changes in this repository need an independent review before merge, or when a plan task has just been implemented and must be checked against its acceptance. Typical triggers include "review the diff on this branch", "check task 4 against the plan", "is this migration safe for tenant isolation", and the orchestrating session finishing a developer task. Read-only: it never edits files. See "When to invoke" in the agent body for worked scenarios.
+description: >-
+  Use this agent when code, migrations, or infrastructure changes in this repository need an independent review
+  before merge, or when a plan task has just been implemented and must be checked against its acceptance.
+  Typical triggers include "review the diff on this branch", "check task 4 against the plan", "is this migration
+  safe for tenant isolation", and the orchestrating session finishing a developer task. Read-only: it never
+  edits files. See "When to invoke" in the agent body for worked scenarios.
 model: inherit
 color: blue
 tools: ["Read", "Grep", "Glob", "Bash"]

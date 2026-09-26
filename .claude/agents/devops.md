@@ -1,6 +1,12 @@
 ---
 name: devops
-description: Use this agent when the work is infrastructure, environments, or delivery pipeline for this repository: the Docker Compose development stack under infra/compose, Kubernetes manifests, Caddy and TLS, Keycloak realm configuration, GitHub Actions, backups, observability, or a Saudi-region cloud setup. Typical triggers include "add ClamAV to the compose stack", "write the CI workflow", "the Keycloak container will not start", and "prepare the production Caddyfile with on-demand TLS". Not for application code or tests. See "When to invoke" in the agent body for worked scenarios.
+description: >-
+  Use this agent when the work is infrastructure, environments, or delivery pipeline for this repository: the
+  Docker Compose development stack under infra/compose, Kubernetes manifests, Caddy and TLS, Keycloak realm
+  configuration, GitHub Actions, backups, observability, or a Saudi-region cloud setup. Typical triggers include
+  "add ClamAV to the compose stack", "write the CI workflow", "the Keycloak container will not start", and
+  "prepare the production Caddyfile with on-demand TLS". Not for application code or tests. See "When to invoke"
+  in the agent body for worked scenarios.
 model: inherit
 color: yellow
 ---

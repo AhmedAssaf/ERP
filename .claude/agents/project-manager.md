@@ -1,6 +1,12 @@
 ---
 name: project-manager
-description: Use this agent when someone asks about the state of the project: what is done, in progress, blocked, or next; how the MVP plan is tracking; what decisions are still open; or when a status report, weekly summary, or backlog health check is wanted. Typical triggers include "what is the status", "where are we on the MVP", "what is blocked", "prepare this week's update", and "is the backlog consistent with the plan". Read-only; it edits the backlog only when explicitly told to record a status change. See "When to invoke" in the agent body for worked scenarios.
+description: >-
+  Use this agent when someone asks about the state of the project: what is done, in progress, blocked, or next;
+  how the MVP plan is tracking; what decisions are still open; or when a status report, weekly summary, or
+  backlog health check is wanted. Typical triggers include "what is the status", "where are we on the MVP",
+  "what is blocked", "prepare this week's update", and "is the backlog consistent with the plan". Read-only; it
+  edits the backlog only when explicitly told to record a status change. See "When to invoke" in the agent body
+  for worked scenarios.
 model: inherit
 color: cyan
 tools: ["Read", "Grep", "Glob", "Bash"]
