@@ -54,9 +54,11 @@ public sealed class AlertsTests(DatabaseFixture db, MailpitFixture mailpit) : IC
         var notifier = scope.ServiceProvider.GetRequiredService<IncidentNotifier>();
         var now = DateTimeOffset.UtcNow;
 
-        await notifier.NotifyAsync(await healthLog.RecordAsync([Failure(component, now)], Ct), Ct);
+        await healthLog.RecordAsync([Failure(component, now)], Ct);
+        await notifier.NotifyPendingAsync(Ct);
         // A repeated failure while the incident is still open must not send a second email.
-        await notifier.NotifyAsync(await healthLog.RecordAsync([Failure(component, now.AddSeconds(1))], Ct), Ct);
+        await healthLog.RecordAsync([Failure(component, now.AddSeconds(1))], Ct);
+        await notifier.NotifyPendingAsync(Ct);
 
         var messages = await WaitForMessagesAsync(component, expectedCount: 1);
         messages[0].GetProperty("Subject").GetString().ShouldBe($"[WaslaBid] {component} is down");
@@ -72,8 +74,10 @@ public sealed class AlertsTests(DatabaseFixture db, MailpitFixture mailpit) : IC
         var notifier = scope.ServiceProvider.GetRequiredService<IncidentNotifier>();
         var now = DateTimeOffset.UtcNow;
 
-        await notifier.NotifyAsync(await healthLog.RecordAsync([Failure(component, now)], Ct), Ct);
-        await notifier.NotifyAsync(await healthLog.RecordAsync([Healthy(component, now.AddSeconds(1))], Ct), Ct);
+        await healthLog.RecordAsync([Failure(component, now)], Ct);
+        await notifier.NotifyPendingAsync(Ct);
+        await healthLog.RecordAsync([Healthy(component, now.AddSeconds(1))], Ct);
+        await notifier.NotifyPendingAsync(Ct);
 
         var messages = await WaitForMessagesAsync(component, expectedCount: 2);
         var subjects = messages.Select(m => m.GetProperty("Subject").GetString()).ToList();
@@ -96,9 +100,9 @@ public sealed class AlertsTests(DatabaseFixture db, MailpitFixture mailpit) : IC
         var healthLog = scope.ServiceProvider.GetRequiredService<IHealthLog>();
         var notifier = scope.ServiceProvider.GetRequiredService<IncidentNotifier>();
 
-        var transitions = await healthLog.RecordAsync(
+        await healthLog.RecordAsync(
             [new HealthResult(component, HealthStatus.Unhealthy, 0, DateTimeOffset.UtcNow, checkResult.Description)], Ct);
-        await notifier.NotifyAsync(transitions, Ct);
+        await notifier.NotifyPendingAsync(Ct);
 
         var messages = await WaitForMessagesAsync(component, expectedCount: 1);
         var full = await FetchMessageAsync(messages[0].GetProperty("ID").GetString()!);
@@ -112,17 +116,7 @@ public sealed class AlertsTests(DatabaseFixture db, MailpitFixture mailpit) : IC
     [Fact]
     public async Task A_job_failing_three_times_sends_one_alert()
     {
-        await using var worker = await JobServerHost.StartAsync(
-            db.AppConnectionString,
-            services =>
-            {
-                var configuration = new ConfigurationBuilder().AddInMemoryCollection(AlertConfiguration()).Build();
-                services.AddOperationsAlerts(configuration);
-            },
-            configureJobServer: options => options.SchedulePollingInterval = TimeSpan.FromMilliseconds(250),
-            cancellationToken: Ct);
-
-        await WaitUntilAsync(worker.ServerIsRegistered);
+        await using var worker = await StartWorkerAsync();
 
         string jobId;
         await using (var scope = worker.ScopeFor(null))
@@ -135,6 +129,128 @@ public sealed class AlertsTests(DatabaseFixture db, MailpitFixture mailpit) : IC
         var subject = messages[0].GetProperty("Subject").GetString();
         subject.ShouldNotBeNull();
         subject.ShouldContain("failed three times in a row");
+    }
+
+    [Fact]
+    public async Task A_recurring_job_failing_on_three_consecutive_runs_sends_one_alert()
+    {
+        await using var worker = await StartWorkerAsync();
+        var recurringId = $"failing-recurring-{Guid.NewGuid():N}";
+        var manager = new RecurringJobManager(worker.Storage);
+        manager.AddOrUpdate<ToggleTestJob>(recurringId, job => job.Run(recurringId), Cron.Never());
+
+        // Every trigger is a new job id with no retries (like "health-check"): the streak is per recurring job id.
+        for (var run = 0; run < 4; run++)
+        {
+            await RunTriggeredAsync(worker, manager, recurringId, fail: true);
+        }
+
+        var messages = await WaitForMessagesContainingAsync($"Recurring job: {recurringId}", expectedCount: 1);
+        messages[0].GetProperty("Subject").GetString().ShouldBe("[WaslaBid] Job ToggleTestJob.Run failed three times in a row");
+    }
+
+    [Fact]
+    public async Task A_success_between_failures_of_a_recurring_job_resets_the_count()
+    {
+        await using var worker = await StartWorkerAsync();
+        var recurringId = $"flaky-recurring-{Guid.NewGuid():N}";
+        var manager = new RecurringJobManager(worker.Storage);
+        manager.AddOrUpdate<ToggleTestJob>(recurringId, job => job.Run(recurringId), Cron.Never());
+
+        foreach (var fail in new[] { true, true, false, true, true })
+        {
+            await RunTriggeredAsync(worker, manager, recurringId, fail);
+        }
+
+        // The alert is sent synchronously while the failing run's state is elected, so once the fifth run has
+        // failed any alert it caused is already in Mailpit.
+        (await CountMessagesContainingAsync($"Recurring job: {recurringId}")).ShouldBe(0);
+
+        await RunTriggeredAsync(worker, manager, recurringId, fail: true);
+        await WaitForMessagesContainingAsync($"Recurring job: {recurringId}", expectedCount: 1);
+    }
+
+    [Fact]
+    public async Task A_job_alert_never_contains_the_job_arguments()
+    {
+        const string fakeSecret = "fake-secret-argument-value-7f3a";
+        await using var worker = await StartWorkerAsync();
+
+        string jobId;
+        await using (var scope = worker.ScopeFor(null))
+        {
+            jobId = scope.ServiceProvider.GetRequiredService<IBackgroundJobClient>()
+                .Enqueue<SecretArgumentFailingTestJob>(job => job.Run(fakeSecret));
+        }
+
+        var messages = await WaitForMessagesContainingAsync($"Job id: {jobId}", expectedCount: 1, timeoutSeconds: 90);
+        var subject = messages[0].GetProperty("Subject").GetString() ?? string.Empty;
+        var text = (await FetchMessageAsync(messages[0].GetProperty("ID").GetString()!)).GetProperty("Text").GetString() ?? string.Empty;
+
+        subject.ShouldBe("[WaslaBid] Job SecretArgumentFailingTestJob.Run failed three times in a row");
+        subject.ShouldNotContain(fakeSecret);
+        text.ShouldNotContain(fakeSecret);
+        text.ShouldContain("Job: SecretArgumentFailingTestJob.Run");
+    }
+
+    private async Task<JobServerHost> StartWorkerAsync()
+    {
+        var worker = await JobServerHost.StartAsync(
+            db.AppConnectionString,
+            services =>
+            {
+                var configuration = new ConfigurationBuilder().AddInMemoryCollection(AlertConfiguration()).Build();
+                services.AddOperationsModule(db.AppConnectionString);
+                services.AddOperationsAlerts(configuration);
+            },
+            configureJobServer: options => options.SchedulePollingInterval = TimeSpan.FromMilliseconds(250),
+            cancellationToken: Ct);
+
+        await WaitUntilAsync(worker.ServerIsRegistered);
+        return worker;
+    }
+
+    private static async Task RunTriggeredAsync(JobServerHost worker, RecurringJobManager manager, string recurringId, bool fail)
+    {
+        ToggleTestJob.ShouldFail[recurringId] = fail;
+        var jobId = manager.TriggerJob(recurringId);
+        var expected = fail ? "Failed" : "Succeeded";
+        var deadline = DateTime.UtcNow.AddSeconds(60);
+        while (true)
+        {
+            string? state;
+            using (var connection = worker.Storage.GetConnection())
+            {
+                state = connection.GetStateData(jobId)?.Name;
+            }
+
+            if (state == expected)
+            {
+                return;
+            }
+
+            if (DateTime.UtcNow > deadline)
+            {
+                throw new TimeoutException($"Triggered job {jobId} did not reach {expected} (last state {state}).");
+            }
+
+            await Task.Delay(100, Ct);
+        }
+    }
+
+    private async Task<int> CountMessagesContainingAsync(string bodyMarker)
+    {
+        var count = 0;
+        foreach (var candidate in await ListMessagesAsync())
+        {
+            var full = await FetchMessageAsync(candidate.GetProperty("ID").GetString()!);
+            if ((full.GetProperty("Text").GetString() ?? string.Empty).Contains(bodyMarker, StringComparison.Ordinal))
+            {
+                count++;
+            }
+        }
+
+        return count;
     }
 
     private Dictionary<string, string?> AlertConfiguration() => new()
@@ -248,5 +364,31 @@ public sealed class AlwaysFailingTestJob
 #pragma warning disable CA1822 // Instance method by convention: Hangfire jobs are activated per execution.
     [AutomaticRetry(Attempts = 5, DelaysInSeconds = [0, 0, 0, 0, 0])]
     public void Run() => throw new InvalidOperationException("Intentional failure for the job-failure-alert test.");
+#pragma warning restore CA1822
+}
+
+/// <summary>A recurring-job body that fails or succeeds per recurring id, with no retries (like "health-check").</summary>
+public sealed class ToggleTestJob
+{
+    public static readonly System.Collections.Concurrent.ConcurrentDictionary<string, bool> ShouldFail = new();
+
+#pragma warning disable CA1822 // Instance method by convention: Hangfire jobs are activated per execution.
+    [AutomaticRetry(Attempts = 0)]
+    public void Run(string key)
+    {
+        if (ShouldFail.TryGetValue(key, out var fail) && fail)
+        {
+            throw new InvalidOperationException("Intentional failure for the recurring job-failure-alert test.");
+        }
+    }
+#pragma warning restore CA1822
+}
+
+/// <summary>A failing job whose argument stands in for a secret (N-10): the alert must never echo it.</summary>
+public sealed class SecretArgumentFailingTestJob
+{
+#pragma warning disable CA1822 // Instance method by convention: Hangfire jobs are activated per execution.
+    [AutomaticRetry(Attempts = 5, DelaysInSeconds = [0, 0, 0, 0, 0])]
+    public void Run(string secret) => throw new InvalidOperationException($"Intentional failure; argument length {secret?.Length}.");
 #pragma warning restore CA1822
 }

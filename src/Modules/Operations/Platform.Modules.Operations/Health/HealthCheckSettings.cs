@@ -18,7 +18,8 @@ internal sealed record HealthCheckSettings(
     string SmtpHost,
     int SmtpPort,
     string WebHealthUrl,
-    int DiskAlertPercent)
+    int DiskAlertPercent,
+    string? DiskPath)
 {
     public static HealthCheckSettings FromConfiguration(IConfiguration configuration, string postgreSqlConnectionString)
     {
@@ -37,8 +38,15 @@ internal sealed record HealthCheckSettings(
             configuration["Smtp:Host"] ?? "localhost",
             ParseInt(configuration["Smtp:Port"], 1025),
             configuration["Platform:WebHealthUrl"] ?? "http://localhost:5273/health",
-            ParseInt(configuration["Platform:DiskAlertPercent"], 80));
+            ParseInt(configuration["Platform:DiskAlertPercent"], 80),
+            configuration["Platform:DiskPath"] is { Length: > 0 } diskPath ? diskPath : null);
     }
+
+    /// <summary>
+    /// The path whose volume the disk check measures: <c>Platform:DiskPath</c>, the volume that holds PostgreSQL or
+    /// object storage data in the deployment; the worker's content root only when that is not configured.
+    /// </summary>
+    public string DiskPathOr(string contentRootPath) => DiskPath ?? contentRootPath;
 
     private static int ParseInt(string? value, int fallback) =>
         int.TryParse(value, out var parsed) ? parsed : fallback;

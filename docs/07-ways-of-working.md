@@ -127,12 +127,20 @@ dotnet user-secrets set "Health:MinIo:SecretKey" "$(env_value MINIO_HEALTH_PROBE
 ```
 
 The same job (plan task 4, F-60 as narrowed) also sends one alert email when a check's incident opens, and one recovery
-notice when it closes (`ops.incidents.notified_open`/`notified_close`); disk usage above the configured threshold on
-the worker's own drive goes through the same incident pipeline as component "Disk", rather than being a board tile.
-A Hangfire job that fails three attempts in a row sends one more alert (per job id), through a job-server-scoped
-filter, not Hangfire's process-wide `GlobalJobFilters`. Settings, all in `Platform.Worker`'s configuration:
+notice when it closes (`ops.incidents.notified_open`/`notified_close`, each saved right after its own send; an email
+that fails to send is retried on the next run, and a recovery notice for up to 24 hours). When PostgreSQL itself is
+down the results cannot be recorded, so the worker alerts from memory instead: one "is down" email per unhealthy
+component and one "WaslaBid cannot record health results" email naming only the error type, once per outage; when
+recording works again it sends the recovery emails and hands back to the incident pipeline without repeating a
+"down" email. Disk usage above the configured threshold on the volume holding `Platform:DiskPath` goes through the
+same incident pipeline as component "Disk", rather than being a board tile. A Hangfire job that fails three times in a
+row sends one more alert, counted per recurring job id when it has one (every run of `health-check` is a new job id)
+and per job id otherwise, in `ops.job_failure_streaks`; a success resets the count. The alert names the job as
+`Type.Method` only, never its arguments (N-10). It runs through a job-server-scoped filter, not Hangfire's
+process-wide `GlobalJobFilters`. Settings, all in `Platform.Worker`'s configuration:
 `Smtp:Host`/`Smtp:Port` (shared with the SMTP health check), `Smtp:From`, `Platform:AlertRecipients` (a list; empty
-sends nothing rather than guessing a destination), `Platform:DiskAlertPercent` (default 80), and `Platform:BoardUrl`
+sends nothing rather than guessing a destination), `Platform:DiskAlertPercent` (default 80), `Platform:DiskPath` (the
+volume that holds PostgreSQL or object storage data in the deployment; default the worker's content root), and `Platform:BoardUrl`
 (the link an alert email includes; a plain Development default until the platform console host lands in a later
 task). Development defaults for the non-secret ones are in `src/Platform.Worker/appsettings.Development.json`; there
 is still no default recipient, so no alert leaves a fresh checkout until one is configured. Mailpit (already in the

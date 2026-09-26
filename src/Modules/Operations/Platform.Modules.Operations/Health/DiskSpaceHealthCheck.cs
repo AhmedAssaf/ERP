@@ -3,7 +3,8 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 namespace Platform.Modules.Operations.Health;
 
 /// <summary>
-/// docs/05 row 19 (F-60): disk usage on the worker's own drive (<see cref="DriveInfo"/>, no platform-specific API),
+/// docs/05 row 19 (F-60): disk usage of the volume holding <c>Platform:DiskPath</c> (the PostgreSQL or object storage
+/// data volume in the deployment; the worker's content root by default) via <see cref="DriveInfo"/>,
 /// alerted through the same open/close incident pipeline as any other check rather than shown as an F-51 board tile
 /// (docs/05 row 17 lists exactly seven board tiles and disk is not one of them); "component" name is "Disk".
 /// </summary>
@@ -16,7 +17,13 @@ internal sealed class DiskSpaceHealthCheck : IHealthCheck
     public DiskSpaceHealthCheck(string path, int thresholdPercent)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        _driveRoot = Path.GetPathRoot(Path.GetFullPath(path)) is { Length: > 0 } root ? root : path;
+        var fullPath = Path.GetFullPath(path);
+
+        // Windows' DriveInfo only accepts a drive root. On Linux it takes any path and reports the file system that
+        // contains it, so the full path measures the mounted data volume itself rather than the root file system.
+        _driveRoot = OperatingSystem.IsWindows()
+            ? Path.GetPathRoot(fullPath) is { Length: > 0 } root ? root : fullPath
+            : fullPath;
         _thresholdPercent = thresholdPercent;
     }
 

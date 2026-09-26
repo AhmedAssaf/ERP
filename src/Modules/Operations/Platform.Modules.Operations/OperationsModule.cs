@@ -83,9 +83,12 @@ public static class OperationsModule
         {
             var settings = sp.GetRequiredService<HealthCheckSettings>();
             var env = sp.GetRequiredService<IHostEnvironment>();
-            return new NamedHealthCheck("Disk", new DiskSpaceHealthCheck(env.ContentRootPath, settings.DiskAlertPercent));
+            return new NamedHealthCheck(
+                "Disk", new DiskSpaceHealthCheck(settings.DiskPathOr(env.ContentRootPath), settings.DiskAlertPercent));
         });
 
+        // One per worker process: remembers what was alerted while the health store (PostgreSQL) is unavailable.
+        services.AddSingleton<FallbackAlertState>();
         services.AddScoped<HealthCheckJob>();
         return services;
     }
