@@ -171,3 +171,19 @@ Findings:
 - Cost: Sonnet's list price is about twice Haiku's, so one Sonnet run costs less than three Haiku runs.
 
 Recommendation for the pilot: one Sonnet run per offer with schema-enforced output, and a human confirming every verdict. Use Haiku only where cost matters more than the wrong-"met" rate.
+
+### The PDF sent directly to Sonnet
+
+The six PDF offers (three Word PDFs, three scans) given to Sonnet as the original PDF instead of Markdown; the model sees each page as an image as well as any text layer. RFP as Markdown, prompt v3, one isolated run each; `python score_llm.py llm-v3-sonnet-pdf`.
+
+| Same 6 offers | Sonnet, converted Markdown | Sonnet, original PDF |
+|---|---|---|
+| Word PDF | 37/41 (90%) | 39/41 (95%) |
+| Scanned PDF | 16/41 (39%) | **40/41 (98%)** |
+| All | 53/82 (65%) | **79/82 (96%)** |
+| Wrongly called "met" | 0 | 0 |
+
+- **Scans stop being a problem.** Every single-offer red flag the OCR lost came back: the expired commercial registration, installation subcontracted to a rival bidder named in the offer, the social insurance certificate in a sister company's name, the missing VAT certificate, unnamed references, and every vague commitment.
+- Cross-offer flags (the shared phone number, paragraphs copied between bidders) cannot come from a per-offer review; they belong to the separate integrity step (F-49), which compares offers and the bidder list.
+- The conversion pipeline (Docling, OCR, PdfPig) is not needed for PDFs. DOCX can still go as Markdown, which converts perfectly.
+- Caveats: one run per offer; run through Claude Code's PDF reader, which is close to but not the same as the API's PDF document input; a page sent as an image costs more tokens than its text, so measure cost on real offers.
