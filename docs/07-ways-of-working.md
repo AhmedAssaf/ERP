@@ -124,6 +124,18 @@ dotnet user-secrets set "Health:MinIo:AccessKey" "$(env_value MINIO_ROOT_USER)" 
 dotnet user-secrets set "Health:MinIo:SecretKey" "$(env_value MINIO_ROOT_PASSWORD)" --project src/Platform.Worker > /dev/null
 ```
 
+The same job (plan task 4, F-60 as narrowed) also sends one alert email when a check's incident opens, and one recovery
+notice when it closes (`ops.incidents.notified_open`/`notified_close`); disk usage above the configured threshold on
+the worker's own drive goes through the same incident pipeline as component "Disk", rather than being a board tile.
+A Hangfire job that fails three attempts in a row sends one more alert (per job id), through a job-server-scoped
+filter, not Hangfire's process-wide `GlobalJobFilters`. Settings, all in `Platform.Worker`'s configuration:
+`Smtp:Host`/`Smtp:Port` (shared with the SMTP health check), `Smtp:From`, `Platform:AlertRecipients` (a list; empty
+sends nothing rather than guessing a destination), `Platform:DiskAlertPercent` (default 80), and `Platform:BoardUrl`
+(the link an alert email includes; a plain Development default until the platform console host lands in a later
+task). Development defaults for the non-secret ones are in `src/Platform.Worker/appsettings.Development.json`; there
+is still no default recipient, so no alert leaves a fresh checkout until one is configured. Mailpit (already in the
+Compose stack) catches every alert in Development.
+
 Open `https://acme.localhost:8443` (or the port in `CADDY_HTTPS_PORT`). Login only works through Caddy: it terminates TLS, which the OIDC correlation cookies need, and forwards the host with its port so the redirect URI is right. Plain `http://localhost:5273` cannot complete an OIDC login. Keycloak answers on `http://localhost:8080`; sign in as `acme.admin` or `beta.admin` with `WASLABID_DEV_USER_PASSWORD` from `.env`.
 
 ## 5. Branches, commits, pull requests

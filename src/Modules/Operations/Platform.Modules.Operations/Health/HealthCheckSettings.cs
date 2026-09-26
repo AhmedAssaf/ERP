@@ -17,7 +17,8 @@ internal sealed record HealthCheckSettings(
     int ClamAvPort,
     string SmtpHost,
     int SmtpPort,
-    string WebHealthUrl)
+    string WebHealthUrl,
+    int DiskAlertPercent)
 {
     public static HealthCheckSettings FromConfiguration(IConfiguration configuration, string postgreSqlConnectionString)
     {
@@ -35,7 +36,8 @@ internal sealed record HealthCheckSettings(
             ParseInt(configuration["ClamAv:Port"], 3310),
             configuration["Smtp:Host"] ?? "localhost",
             ParseInt(configuration["Smtp:Port"], 1025),
-            configuration["Platform:WebHealthUrl"] ?? "http://localhost:5273/health");
+            configuration["Platform:WebHealthUrl"] ?? "http://localhost:5273/health",
+            ParseInt(configuration["Platform:DiskAlertPercent"], 80));
     }
 
     private static int ParseInt(string? value, int fallback) =>

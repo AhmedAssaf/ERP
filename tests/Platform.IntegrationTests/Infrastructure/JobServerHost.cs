@@ -22,7 +22,10 @@ internal sealed class JobServerHost : IAsyncDisposable
     public JobStorage Storage => _host.Services.GetRequiredService<JobStorage>();
 
     public static async Task<JobServerHost> StartAsync(
-        string appConnectionString, Action<IServiceCollection>? configure = null, CancellationToken cancellationToken = default)
+        string appConnectionString,
+        Action<IServiceCollection>? configure = null,
+        Action<JobServerSettings>? configureJobServer = null,
+        CancellationToken cancellationToken = default)
     {
         var serverName = $"test-{Guid.NewGuid():N}";
         var builder = new HostApplicationBuilder(new HostApplicationBuilderSettings { DisableDefaults = true });
@@ -33,6 +36,7 @@ internal sealed class JobServerHost : IAsyncDisposable
         {
             options.ServerName = serverName;
             options.WorkerCount = 4;
+            configureJobServer?.Invoke(options);
         });
         configure?.Invoke(builder.Services);
 

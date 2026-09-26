@@ -2,6 +2,7 @@ using Hangfire;
 using Hangfire.Common;
 using Hangfire.PostgreSql;
 using Hangfire.PostgreSql.Factories;
+using Hangfire.States;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -17,6 +18,13 @@ public sealed class JobServerSettings
 
     /// <summary>Concurrent jobs per server; Hangfire's default when null.</summary>
     public int? WorkerCount { get; set; }
+
+    /// <summary>
+    /// How often the server checks for due scheduled/delayed jobs (Hangfire's default, 15 seconds, when null).
+    /// Tests that need a retry to run again quickly (for example plan task 4's job-failure alert, with
+    /// <c>AutomaticRetryAttribute.DelaysInSeconds</c> set to zero) shorten this instead of waiting out the default.
+    /// </summary>
+    public TimeSpan? SchedulePollingInterval { get; set; }
 }
 
 /// <summary>
@@ -42,10 +50,20 @@ public static class JobsModule
 
         services.AddSingleton<IHostedService>(sp =>
         {
+            // This host's own DI-registered state filters (e.g. Operations' job-failure alert), on top of Hangfire's
+            // process-wide defaults. Never Hangfire's static GlobalJobFilters.Filters: several Hangfire servers can
+            // share one process (tests build one per test host), and a filter registered for one must not run on
+            // another's jobs.
+            var hostFilters = sp.GetServices<IElectStateFilter>().Cast<object>()
+                .Concat(sp.GetServices<IApplyStateFilter>())
+                .ToArray();
+
             var options = new BackgroundJobServerOptions
             {
                 Activator = new TenantJobActivator(sp.GetRequiredService<IServiceScopeFactory>()),
-                FilterProvider = JobFilterProviders.Providers,
+                FilterProvider = hostFilters.Length == 0
+                    ? JobFilterProviders.Providers
+                    : new HostScopedFilterProvider(JobFilterProviders.Providers, hostFilters),
             };
             if (settings.ServerName is not null)
             {
@@ -55,6 +73,11 @@ public static class JobsModule
             if (settings.WorkerCount is { } workers)
             {
                 options.WorkerCount = workers;
+            }
+
+            if (settings.SchedulePollingInterval is { } pollingInterval)
+            {
+                options.SchedulePollingInterval = pollingInterval;
             }
 
             return new BackgroundJobServerHostedService(
@@ -92,5 +115,15 @@ public static class JobsModule
     {
         public IEnumerable<JobFilter> GetFilters(Job job) =>
             inner.GetFilters(job).Append(new JobFilter(tenantFilter, JobFilterScope.Global, null));
+    }
+
+    /// <summary>This job server's own extra state filters (see <see cref="AddJobServer"/>), on top of the defaults.</summary>
+    private sealed class HostScopedFilterProvider(IJobFilterProvider inner, IReadOnlyCollection<object> extraFilters) : IJobFilterProvider
+    {
+        // Hangfire's own JobFilterProviderCollection sorts by Order after combining providers; a plain Concat here
+        // would not, so a low-Order filter (see JobFailureAlertFilter) would run after Hangfire's own Order-20
+        // AutomaticRetryAttribute regardless of its declared Order.
+        public IEnumerable<JobFilter> GetFilters(Job job) =>
+            inner.GetFilters(job).Concat(extraFilters.Select(f => new JobFilter(f, JobFilterScope.Global, null))).OrderBy(f => f.Order);
     }
 }

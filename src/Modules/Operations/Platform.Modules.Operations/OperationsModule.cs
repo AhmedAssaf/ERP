@@ -1,7 +1,10 @@
 using Hangfire;
+using Hangfire.States;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Npgsql;
+using Platform.Modules.Operations.Alerts;
 using Platform.Modules.Operations.Contracts;
 using Platform.Modules.Operations.Health;
 using Platform.Shared.Data;
@@ -25,7 +28,10 @@ public static class OperationsModule
 
     /// <summary>
     /// Registers the health checks (spec 3.2) and the job that runs them; only the worker needs this (D-7: the
-    /// checks run from a Hangfire recurring job in the worker, never probed live by the board).
+    /// checks run from a Hangfire recurring job in the worker, never probed live by the board). Includes the alert
+    /// wiring (<see cref="AddOperationsAlerts"/>) so <see cref="Health.HealthCheckJob"/> can notify on every
+    /// incident, plus a disk-usage check (docs/05 row 19) that goes through the same incident pipeline rather than
+    /// the F-51 board's fixed seven tiles (docs/05 row 17).
     /// </summary>
     public static IServiceCollection AddOperationsHealthChecks(
         this IServiceCollection services, string postgreSqlConnectionString, IConfiguration configuration)
@@ -34,6 +40,7 @@ public static class OperationsModule
         ArgumentException.ThrowIfNullOrWhiteSpace(postgreSqlConnectionString);
         ArgumentNullException.ThrowIfNull(configuration);
 
+        services.AddOperationsAlerts(configuration);
         services.AddHttpClient();
         services.AddSingleton(_ => HealthCheckSettings.FromConfiguration(configuration, postgreSqlConnectionString));
 
@@ -72,8 +79,34 @@ public static class OperationsModule
             var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(WebHealthCheck));
             return new NamedHealthCheck("Web", new WebHealthCheck(httpClient, settings.WebHealthUrl));
         });
+        services.AddSingleton(sp =>
+        {
+            var settings = sp.GetRequiredService<HealthCheckSettings>();
+            var env = sp.GetRequiredService<IHostEnvironment>();
+            return new NamedHealthCheck("Disk", new DiskSpaceHealthCheck(env.ContentRootPath, settings.DiskAlertPercent));
+        });
 
         services.AddScoped<HealthCheckJob>();
+        return services;
+    }
+
+    /// <summary>
+    /// Registers the alert email path (plan task 4, F-60 as narrowed): <see cref="IAlertSender"/> (MailKit, D-13),
+    /// <see cref="IncidentNotifier"/> (consumed by <see cref="Health.HealthCheckJob"/>), and the Hangfire job-failure
+    /// filter. Split out from <see cref="AddOperationsHealthChecks"/> so a caller that only needs the job-failure
+    /// alert (a Hangfire server with no health checks of its own) is not forced to configure every check's settings.
+    /// </summary>
+    public static IServiceCollection AddOperationsAlerts(this IServiceCollection services, IConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        services.AddSingleton(_ => AlertSettings.FromConfiguration(configuration));
+        services.AddSingleton<IAlertSender, MailKitAlertSender>();
+        services.AddScoped<IncidentNotifier>();
+        // A per-job-server filter (Platform.Shared.Jobs.JobsModule.AddJobServer picks up IElectStateFilter /
+        // IApplyStateFilter registrations from this same container), never Hangfire's static GlobalJobFilters.
+        services.AddSingleton<IElectStateFilter, JobFailureAlertFilter>();
         return services;
     }
 

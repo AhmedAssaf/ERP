@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Platform.Modules.Operations.Alerts;
 using Platform.Modules.Operations.Contracts;
 
 namespace Platform.Modules.Operations.Health;
@@ -6,9 +7,12 @@ namespace Platform.Modules.Operations.Health;
 /// <summary>
 /// The recurring job "health-check" (plan task 3): runs every registered check with its own five-second timeout and
 /// records one result per component through <see cref="IHealthLog"/>. A check that throws unexpectedly (it is
-/// expected to catch its own failures) does not take the rest of the run down with it.
+/// expected to catch its own failures) does not take the rest of the run down with it. Plan task 4 (F-60): the
+/// incident transitions <see cref="IHealthLog.RecordAsync"/> returns are then handed to <see cref="IncidentNotifier"/>
+/// so an opened or closed incident sends its one email.
 /// </summary>
-internal sealed class HealthCheckJob(IEnumerable<NamedHealthCheck> checks, IHealthLog healthLog, TimeProvider timeProvider)
+internal sealed class HealthCheckJob(
+    IEnumerable<NamedHealthCheck> checks, IHealthLog healthLog, IncidentNotifier notifier, TimeProvider timeProvider)
 {
     private static readonly TimeSpan PerCheckTimeout = TimeSpan.FromSeconds(5);
 
@@ -39,7 +43,8 @@ internal sealed class HealthCheckJob(IEnumerable<NamedHealthCheck> checks, IHeal
             results.Add(new HealthResult(named.Component, Map(result.Status), latencyMs, checkedAt, result.Description));
         }
 
-        await healthLog.RecordAsync(results, cancellationToken);
+        var transitions = await healthLog.RecordAsync(results, cancellationToken);
+        await notifier.NotifyAsync(transitions, cancellationToken);
     }
 
     private static Platform.Modules.Operations.Contracts.HealthStatus Map(Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus status) => status switch

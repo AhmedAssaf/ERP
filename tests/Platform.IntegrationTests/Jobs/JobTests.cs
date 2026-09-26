@@ -34,8 +34,8 @@ public sealed class JobTests(DatabaseFixture db) : IAsyncLifetime
     public async Task A_job_runs_once_with_two_worker_instances()
     {
         void Counters(IServiceCollection services) => services.AddSingleton(new CounterTable(db.AppConnectionString));
-        await using var first = await JobServerHost.StartAsync(db.AppConnectionString, Counters, Ct);
-        await using var second = await JobServerHost.StartAsync(db.AppConnectionString, Counters, Ct);
+        await using var first = await JobServerHost.StartAsync(db.AppConnectionString, Counters, cancellationToken: Ct);
+        await using var second = await JobServerHost.StartAsync(db.AppConnectionString, Counters, cancellationToken: Ct);
         await WaitUntilAsync(() => first.ServerIsRegistered() && second.ServerIsRegistered());
 
         var counters = Enumerable.Range(0, 20).Select(_ => Guid.NewGuid()).ToList();
@@ -62,7 +62,7 @@ public sealed class JobTests(DatabaseFixture db) : IAsyncLifetime
     public async Task A_job_runs_as_the_tenant_that_enqueued_it()
     {
         var results = new ProbeResults();
-        await using var worker = await JobServerHost.StartAsync(db.AppConnectionString, s => s.AddSingleton(results), Ct);
+        await using var worker = await JobServerHost.StartAsync(db.AppConnectionString, s => s.AddSingleton(results), cancellationToken: Ct);
         var probeId = Guid.NewGuid();
 
         string jobId;
@@ -83,7 +83,7 @@ public sealed class JobTests(DatabaseFixture db) : IAsyncLifetime
     public async Task A_job_enqueued_without_a_tenant_runs_without_one()
     {
         var results = new ProbeResults();
-        await using var worker = await JobServerHost.StartAsync(db.AppConnectionString, s => s.AddSingleton(results), Ct);
+        await using var worker = await JobServerHost.StartAsync(db.AppConnectionString, s => s.AddSingleton(results), cancellationToken: Ct);
         var probeId = Guid.NewGuid();
 
         string jobId;
