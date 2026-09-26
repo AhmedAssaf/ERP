@@ -149,3 +149,25 @@ Findings:
 - **Disagreement between runs is a useful confidence signal.** The 18 requirements where runs disagreed sit almost entirely in the two hard partial offers and the scans; the three compliant offers were unanimous and right. A product can run three times and show "the model is unsure" wherever the runs split, pointing the human at exactly the verdicts to check.
 - **The remaining errors on text documents are consistent, not random:** all three runs accepted monthly Excel reports as an electronic reporting system, and two of three read "3 years manufacturer plus 2 from us" as meeting a five-year manufacturer warranty. Repetition cannot fix these; a stronger model or a sharper requirement text might.
 - Malformed JSON in 3 of 27 runs confirms that structured output must be enforced by the API, not requested in the prompt.
+
+### Stronger model: Claude Sonnet, prompt v3, one run per offer
+
+`python score_llm.py llm-v3-sonnet`, same inputs and isolation as the Haiku runs.
+
+| Measure | Haiku, 3 single runs | Haiku, majority of 3 | Sonnet, 1 run |
+|---|---|---|---|
+| All | 75 to 77% | 77% | 73% |
+| DOCX and Word PDF | 89 to 93% | 93% | 90% |
+| Scanned PDF | 44 to 51% | 46% | 39% |
+| Wrongly called "met" | 2 to 3 | 2 | **0** |
+| Malformed JSON | 0 to 2 of 9 | | 0 of 9 |
+
+Findings:
+
+- **Sonnet fixed every error Haiku repeated:** monthly Excel reports are not an electronic tracking system (partial), client-paid transport is a shifted obligation (partial), and "3 years manufacturer plus 2 from us" is short of a five-year manufacturer warranty (partial). Its notes state the reasoning in each case.
+- **It never called a requirement "met" wrongly.** Its remaining differences lean strict (`partial` read as `not_met`, readable scans read as `unclear`), which is the safe direction for an assistant whose drafts a human confirms.
+- It also marked two T2 offers' commercial registration as not proven because the offers do not state that the registration covers cleaning, which the RFP's M-01 requires. That is a fair reading the answer key missed.
+- Lower overall score comes from scans, where Sonnet is more willing to say `not_met` or `unclear` on damaged text; on DOCX and Word PDF it matches Haiku's majority.
+- Cost: Sonnet's list price is about twice Haiku's, so one Sonnet run costs less than three Haiku runs.
+
+Recommendation for the pilot: one Sonnet run per offer with schema-enforced output, and a human confirming every verdict. Use Haiku only where cost matters more than the wrong-"met" rate.
