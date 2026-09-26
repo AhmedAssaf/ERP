@@ -1,0 +1,96 @@
+{
+  "tender": "T3-hr-software",
+  "requirements": {
+    "M-01": "Valid commercial registration",
+    "M-02": "VAT registration certificate",
+    "M-03": "Valid Zakat certificate",
+    "M-04": "Valid GOSI certificate",
+    "M-05": "Signed non-disclosure agreement (template attached)",
+    "T-01": "Payroll compliant with GOSI and generating WPS files through Mudad",
+    "T-02": "Full Arabic and English user interface with right-to-left support on web and mobile",
+    "T-03": "Customer data hosted in a data centre inside Saudi Arabia, compliant with PDPL and NCA ECC",
+    "T-04": "Single sign-on with Microsoft Entra ID",
+    "T-05": "Employee self-service mobile app for iOS and Android",
+    "T-06": "Implementation including data migration within 120 days",
+    "T-07": "Availability SLA of at least 99.9 percent with service credits",
+    "T-08": "Three reference customers in Saudi Arabia with 500 or more employees"
+  },
+  "offers": {
+    "V1-cedar": {
+      "name": "Cedar HR Cloud",
+      "format": "docx",
+      "technical": "offers/V1-cedar/technical.docx",
+      "financial": "offers/V1-cedar/financial.docx",
+      "expected": {
+        "M-01": "met",
+        "M-02": "met",
+        "M-03": "met",
+        "M-04": "met",
+        "M-05": "met",
+        "T-01": "met",
+        "T-02": "met",
+        "T-03": "met",
+        "T-04": "met",
+        "T-05": "met",
+        "T-06": "met",
+        "T-07": "met",
+        "T-08": "met"
+      },
+      "flags": []
+    },
+    "V2-peoplepulse": {
+      "name": "PeoplePulse Systems",
+      "format": "pdf",
+      "technical": "offers/V2-peoplepulse/technical.pdf",
+      "financial": "offers/V2-peoplepulse/financial.pdf",
+      "expected": {
+        "M-01": "met",
+        "M-02": "met",
+        "M-03": "met",
+        "M-04": "met",
+        "M-05": "met",
+        "T-01": "partial",
+        "T-02": "partial",
+        "T-03": "not_met",
+        "T-04": "met",
+        "T-05": "met",
+        "T-06": "not_met",
+        "T-07": "not_met",
+        "T-08": "partial"
+      },
+      "flags": [
+        "financial: subscription priced per user per year, schedule asks per user per month",
+        "financial: data migration and training lines missing"
+      ]
+    },
+    "V3-qimma": {
+      "name": "Qimma Business Solutions",
+      "format": "scanned",
+      "technical": "offers/V3-qimma/technical.pdf",
+      "financial": "offers/V3-qimma/financial.pdf",
+      "expected": {
+        "M-01": "met",
+        "M-02": "not_met",
+        "M-03": "met",
+        "M-04": "met",
+        "M-05": "met",
+        "T-01": "met",
+        "T-02": "unclear",
+        "T-03": "unclear",
+        "T-04": "unclear",
+        "T-05": "unclear",
+        "T-06": "unclear",
+        "T-07": "unclear",
+        "T-08": "not_met"
+      },
+      "flags": [
+        "compliance: VAT certificate missing",
+        "risk: every requirement answered 'Complies' with no evidence",
+        "risk: references are unnamed",
+        "integrity: payroll paragraph identical to V1's proposal",
+        "financial: subtotal written as 127,000, correct is 117,000",
+        "financial: price less than half of V1"
+      ]
+    }
+  }
+}

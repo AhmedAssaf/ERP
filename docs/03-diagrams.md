@@ -571,4 +571,5 @@ mindmap
       F-52 connections registry
       F-53 logs and traces
       F-54 tenants and jobs
+      F-60 alerts
 ```

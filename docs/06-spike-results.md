@@ -137,3 +137,46 @@ Other measurements: a five-step snapshot is 2,169 characters of JSON; the finish
 ### 6.4 Decision proposed
 
 ADR-0003 point 5 says Elsa executes the snapshot only if both the fixed points hold and the designer can be delivered in Arabic under the tenant's brand. The first holds, the second does not, so our own state machine executes the snapshot. Proposed as ADR-0004. The F-56b editor in version 1.1 is built in `Platform.UI` as an ordered step list, not as a flowchart canvas.
+
+## 7. Spike 4: offers to Markdown for LLM review (W-22)
+
+Date: 2026-09-26. Code, full score table, and run steps: `spikes/OfferToMarkdownSpike/`. Question: can DOCX, PDF, and scanned PDF offers, Arabic and English, become Markdown with page references that a cheap LLM can evaluate against the RFP (option (e), document 02 section 5 item 7)?
+
+Samples were generated with known text: a three-page Arabic technical offer with English product names and a compliance table, exported to PDF by Word, plus a 200 dpi image-only copy and an English control. Real offers from a prospect are still needed.
+
+```mermaid
+flowchart LR
+  D[DOCX] -->|MarkItDown or Docling<br/>100% words, in order| OK[Usable Markdown]
+  T[Text PDF, Arabic] -->|MarkItDown, PdfPig as is<br/>letters reversed, 5%| X[Unusable]
+  T -->|PyMuPDF4LLM<br/>word order reversed, lam-alef split| X
+  T -->|Docling: 100% words, tables kept<br/>PdfPig + our logical pass: 100% words| P[Usable, mixed<br/>Arabic-English lines out of order]
+  S[Scanned PDF] -->|Docling OCR<br/>88% words, order lost,<br/>~35 s per page on CPU| W[Weak]
+```
+
+| Input | Best converter | Arabic word recall | Caveat |
+|---|---|---|---|
+| DOCX | MarkItDown or Docling | 100% | No page numbers; cite headings instead |
+| Word-exported PDF | Docling, or PdfPig with a visual-to-logical pass | 100% | Segment order on mixed Arabic and English lines is wrong in every tool |
+| Scanned PDF | Docling with OCR | 88% | OCR errors on Latin tokens inside Arabic text; slow on CPU |
+
+Decisions and follow-ups:
+
+1. Accept DOCX where the tender allows it and prefer it in vendor guidance.
+2. For PDFs, test the alternative before choosing a converter: give the PDF to an LLM that reads PDFs natively, which sidesteps text extraction at a higher token cost.
+3. Evidence quotes must be matched on words, not as exact substrings, because segment order on mixed lines is unreliable.
+4. W-22 stays in progress until two or three real Arabic offers are converted and read by a human.
+
+### 7.1 Three test tenders, end to end
+
+Three fictional tenders with nine offers and answer keys (`spikes/OfferToMarkdownSpike/samples/tenders/`) were converted and reviewed by Claude Haiku 4.5 as a stand-in for the cheapest model, one isolated run per offer.
+
+| Input | Facts kept after conversion | Verdicts matching the answer key |
+|---|---|---|
+| DOCX | 100% | 33 of 41 |
+| Word PDF (Docling) | 94 to 100% | 31 of 41 |
+| Scanned PDF (Docling OCR) | 46 to 71% | 12 of 41 |
+
+- A requirement was wrongly called "met" 3 times in 123; on unreadable scans the model said so instead of guessing.
+- A deterministic price checker found every planted financial error with no false positive, so F-48 arithmetic, missing-line, quantity, and unit checks need no LLM.
+- OCR lost the evidence behind several red flags (shared phone number, subcontractor name, certificate holder), so scans are not fit for this pipeline; test giving the PDF directly to a model that reads PDFs.
+- Prompt version 2 must limit the "valid for the whole contract" rule to documents the RFP names.

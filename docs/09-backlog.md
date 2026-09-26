@@ -19,7 +19,7 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 
 | Epic | Stories | P0 | P1 | P2 |
 |---|---|---|---|---|
-| E0 Platform foundation | W-01 to W-12, W-19 to W-21 | 12 | 3 | 0 |
+| E0 Platform foundation | W-01 to W-12, W-19 to W-22 | 12 | 4 | 0 |
 | E1 Tenancy and branding | F-01 to F-05, F-01b | 4 | 2 | 0 |
 | E2 Identity, users, roles | F-06 to F-10, F-06b | 2 | 2 | 2 |
 | E3 Vendor registration | F-11 to F-14, F-12b, F-14a | 3 | 1 | 2 |
@@ -31,7 +31,7 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 | E9 Audit and documents | F-41 to F-44 | 2 | 0 | 2 |
 | E10 AI assist | F-45 to F-50 | 0 | 2 | 4 |
 | E11 Pilot and market | W-13 to W-18 | 6 | 0 | 0 |
-| E12 Platform operations console | F-51 to F-54 | 0 | 3 | 1 |
+| E12 Platform operations console | F-51 to F-54, F-60 | 0 | 4 | 1 |
 
 ## E0 Platform foundation (W-01 to W-12)
 
@@ -52,6 +52,7 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 | W-20 | Elsa 3 spike, one-week box: custom activities for the fixed points, per-tender snapshot execution, Arabic and white-label designer feasibility; ends in ADR-0004 choosing the executor | P0 | L | Done | W-01 |
 | W-19 | Pilot environment on Oracle Cloud Always Free, Jeddah home region: one Arm VM running the Compose stack plus the app, HTTPS via Caddy, nightly volume backup to object storage | P0 | M | Backlog | W-01, W-09 |
 | W-21 | Revalidate the login against Keycloak membership: `OnValidatePrincipal` or a revalidating authentication state provider, so a user removed from an organization loses access within minutes, including open Blazor circuits | P0 | S | Backlog | W-04 |
+| W-22 | Offer-to-Markdown spike, one-day box: convert Arabic and English DOCX, text PDF, and scanned PDF offers to Markdown with page markers using MarkItDown, PyMuPDF4LLM, Docling and PdfPig; score each against ground truth; feeds option (e) of document 02 section 5 item 7 | P1 | S | In progress 2026-09-26: generated samples done (document 06 section 7); real offers pending | |
 
 Acceptance criteria:
 
@@ -68,6 +69,7 @@ Acceptance criteria:
 - **W-11.** Given a tenant with a verified custom domain, when the first HTTPS request for that hostname arrives, then Caddy asks the allow endpoint, receives 200, obtains a certificate, and serves the tenant portal; when the hostname is unknown, then the allow endpoint returns 404 and no certificate is issued.
 - **W-20.** Given the one-week box, when it ends, then ADR-0004 records the executor with evidence: whether a definition that skips locking or opens financial early is rejected by the executor, whether a running tender keeps its snapshot after the definition changes, whether the designer renders in Arabic right-to-left under a tenant's colour, and the measured time to implement one custom step; given the box overruns, then the in-house state machine is chosen.
 - **W-19.** Given an Oracle Cloud tenancy with Jeddah as home region, when the provisioning script runs, then an Always Free Arm instance (or the documented paid fallback) hosts the Compose stack and the app, the pilot tenant's hostname serves over HTTPS, all data stays in the Jeddah region, and a nightly backup of the PostgreSQL and MinIO volumes lands in Jeddah object storage; given the instance is destroyed, when the restore script runs on a new one, then the pilot tenant is back within one hour.
+- **W-22.** Given sample offers with known text (Arabic and English DOCX, a Word-exported PDF, and a scanned image PDF), when each converter runs, then a score table records per file and tool the character accuracy against the source text, whether Arabic comes out reversed, whether page markers are kept, and the time taken; given two or three real Arabic offers from a prospect, when converted, then a human reads the Markdown and records whether an evaluator could work from it; the result names one converter for option (e) or states that none is good enough.
 - **W-12.** Given a nightly backup, when the restore script runs against an empty environment, then the platform starts and a chosen tender's files and rows are present with matching hashes.
 
 ## E1 Tenancy and branding (F-01 to F-05)
@@ -262,7 +264,7 @@ Acceptance criteria:
 - **W-17.** Given the dry run, when it completes, then every row of the document 05 section 7 table has a measured value and a pass or fail.
 - **W-18.** Given the pilot review, when it is held, then every document 05 section 7 measure has its live-tender value beside the dry-run value, the contracts officer's and finance approver's willingness to pay is recorded verbatim, and the version 1.1 scope is a ranked list of backlog IDs with any new stories added with acceptance criteria.
 
-## E12 Platform operations console (F-51 to F-54)
+## E12 Platform operations console (F-51 to F-54, F-60)
 
 Added 2026-09-21 from the request for one admin page covering apps, logs, credentials, and connections. Platform admin only; secrets are shown as references, never values (N-10).
 
@@ -272,8 +274,10 @@ Added 2026-09-21 from the request for one admin page covering apps, logs, creden
 | F-52 | Connections and credentials registry with test and rotate | P1 | M | Backlog | F-51, W-11 |
 | F-53 | Logs and traces view with tenant and correlation filters | P1 | M | Backlog | W-10 |
 | F-54 | Tenants and jobs overview with suspend, TLS re-issue, job re-run | P2 | M | Backlog | F-51, F-03, W-08 |
+| F-60 | Alerts and notifications: email and SMS on health, job, deadline, TLS, scanner, AI provider, and capacity incidents, with recovery notice and alert history | P1 | M | Backlog | F-51, F-38, W-08, W-10 |
 
 - **F-51.** Given the platform host, when a platform admin with MFA opens the board, then every component in the list shows status, version, latency, and last check within the last 60 seconds; given a tenant admin, when they request the same URL, then they receive 404; given PostgreSQL stopped, then its tile turns to failed within one check interval and the failure text names the component.
 - **F-52.** Given the registry, when any page, API response, or log line is inspected, then no secret value is present, only the reference name; given the test action on the email connection, then the result and latency are shown and audited; given the rotate action, then the secret store receives a new version, the application picks it up without restart, and the last-rotated date updates.
 - **F-53.** Given a correlation id from a failed request, when entered in the filter, then every log line and the trace for that request appear within five seconds; given a log line containing a vendor's email, then the email is redacted in the view.
 - **F-54.** Given a tenant with a failing job, when the admin re-runs it, then the job executes once and the outcome is visible; given suspend, then the tenant's users receive a suspended page in their language and vendors can still read past receipts; every action produces an audit row naming the admin and the tenant.
+- **F-60.** Given PostgreSQL stopped, when the next health check fails, then the platform admin receives one email and one SMS naming the component within two minutes, and no repeat while the incident stays open; when it recovers, then one recovery notice is sent and the incident appears in the alert history with start and end times. Given a deadline-closure job that has not run five minutes after a tender's deadline, then an alert names the tenant and the tender. Given a tenant certificate expiring in 14 days, then one alert is sent. Given any alert, when inspected, then it contains no secret value.

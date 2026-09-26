@@ -1,0 +1,100 @@
+{
+  "tender": "T2-cleaning-jeddah",
+  "requirements": {
+    "M-01": "سجل تجاري ساري يتضمن نشاط التنظيف",
+    "M-02": "شهادة تسجيل في ضريبة القيمة المضافة",
+    "M-03": "شهادة الزكاة سارية",
+    "M-04": "شهادة التأمينات الاجتماعية سارية باسم المتقدم",
+    "M-05": "رخصة بلدية سارية لنشاط التنظيف طوال مدة العقد",
+    "M-06": "ضمان ابتدائي بنكي بنسبة 1% من قيمة العرض",
+    "T-01": "40 عامل نظافة و4 مشرفين بدوام كامل",
+    "T-02": "تغطية على مدار 24 ساعة طوال أيام الأسبوع للمبنيين",
+    "T-03": "مواد تنظيف صديقة للبيئة ومسجلة لدى الجهات المختصة",
+    "T-04": "زمن استجابة لا يتجاوز 30 دقيقة للبلاغات الطارئة",
+    "T-05": "تدريب العمالة على السلامة المهنية قبل المباشرة",
+    "T-06": "سكن ونقل العمالة على حساب المقاول",
+    "T-07": "نظام إلكتروني لمتابعة البلاغات مع تقارير شهرية",
+    "T-08": "خبرة في 3 عقود مماثلة على الأقل خلال آخر 5 سنوات"
+  },
+  "offers": {
+    "V1-lamaa": {
+      "name": "شركة لمعة للخدمات المتكاملة",
+      "format": "pdf",
+      "technical": "offers/V1-lamaa/technical.pdf",
+      "financial": "offers/V1-lamaa/financial.pdf",
+      "expected": {
+        "M-01": "met",
+        "M-02": "met",
+        "M-03": "met",
+        "M-04": "met",
+        "M-05": "met",
+        "M-06": "met",
+        "T-01": "met",
+        "T-02": "met",
+        "T-03": "met",
+        "T-04": "met",
+        "T-05": "met",
+        "T-06": "met",
+        "T-07": "met",
+        "T-08": "met"
+      },
+      "flags": []
+    },
+    "V2-alwaha": {
+      "name": "مؤسسة الواحة البيضاء للنظافة",
+      "format": "docx",
+      "technical": "offers/V2-alwaha/technical.docx",
+      "financial": "offers/V2-alwaha/financial.docx",
+      "expected": {
+        "M-01": "met",
+        "M-02": "met",
+        "M-03": "met",
+        "M-04": "met",
+        "M-05": "not_met",
+        "M-06": "met",
+        "T-01": "not_met",
+        "T-02": "partial",
+        "T-03": "met",
+        "T-04": "not_met",
+        "T-05": "partial",
+        "T-06": "partial",
+        "T-07": "partial",
+        "T-08": "partial"
+      },
+      "flags": [
+        "compliance: municipal licence expires 2026-11-30, before the contract starts on 2027-01-01",
+        "financial: reporting system line missing from the price schedule",
+        "financial: price about 40 percent below V1 with fewer staff than required"
+      ]
+    },
+    "V3-alamana": {
+      "name": "شركة الأمانة للتشغيل والصيانة",
+      "format": "scanned",
+      "technical": "offers/V3-alamana/technical.pdf",
+      "financial": "offers/V3-alamana/financial.pdf",
+      "expected": {
+        "M-01": "met",
+        "M-02": "met",
+        "M-03": "met",
+        "M-04": "not_met",
+        "M-05": "met",
+        "M-06": "met",
+        "T-01": "unclear",
+        "T-02": "unclear",
+        "T-03": "unclear",
+        "T-04": "unclear",
+        "T-05": "not_met",
+        "T-06": "not_met",
+        "T-07": "not_met",
+        "T-08": "unclear"
+      },
+      "flags": [
+        "compliance: GOSI certificate is in the name of a different company",
+        "risk: labour supplied through a sister company as subcontractor",
+        "risk: vague commitments on headcount, response time, and experience",
+        "financial: 12 x 150,000 written as 1,650,000, correct is 1,800,000",
+        "financial: single lump-sum line instead of the three BoQ lines"
+      ]
+    }
+  }
+}
