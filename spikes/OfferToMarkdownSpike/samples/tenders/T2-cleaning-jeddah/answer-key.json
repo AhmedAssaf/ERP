@@ -52,7 +52,7 @@
         "M-04": "met",
         "M-05": "not_met",
         "M-06": "met",
-        "T-01": "not_met",
+        "T-01": "partial",
         "T-02": "partial",
         "T-03": "met",
         "T-04": "not_met",

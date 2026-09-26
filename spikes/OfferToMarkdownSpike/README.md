@@ -89,3 +89,26 @@ Results:
    - Test data: a VAT row with "not applicable" in the expiry column read as ambiguous (3 misses).
    - Model errors: "30 days meets a 14-day requirement", "transport paid by the client" treated as met. These are the cases a human must catch, and the reason to keep evidence quotes beside every verdict.
    - Scans: most misses come from OCR loss, not from the model.
+
+### Prompt version 2 (`prompts/offer-review-v2.md`)
+
+General rules only, not answers fitted to the key: compare numbers explicitly with both values in the note, obligations moved to the buyer are partial, require validity for the whole contract only when the requirement says so, "not applicable" in an expiry column is normal, documents under renewal are unclear. Same inputs, same nine isolated Haiku runs; `python score_llm.py llm-v2`.
+
+| Measure | v1 | v2 |
+|---|---|---|
+| Exact agreement, all | 75/123 (61%) | 88/123 (72%) |
+| DOCX and Word PDF | 63/82 (77%) | 72/82 (88%) |
+| Scanned PDF | 12/41 (29%) | 16/41 (39%) |
+| Wrongly called "met" | 3 | 1 |
+| Compliant offers fully right | 0 of 3 | 2 of 3 |
+| Malformed JSON | 0 | 1 (a stray closing brace) |
+
+Scores are against the answer key as corrected for the shortfall decision below. The remaining differences on DOCX and Word PDF, before that decision:
+
+- **Policy, needs a decision (4):** when an offer falls short of a minimum (3 training days of 5, 2 references of 3, 18 hours of 24), v2's rule says `not_met` and the answer key says `partial`. The business rule has to be chosen, and could be a tenant setting.
+- **Model errors (3):** Excel reports accepted as an electronic reporting system (the one wrong "met"), the contract-validity rule still applied to a bid bond, and a VAT row with "not applicable" still read as ambiguous.
+- **Defensible either way (2):** one core switch with an optional second read as partial, and business-hours support with an English-only 24/7 line read as not met.
+
+The malformed file shows why the product must use schema-enforced structured output rather than parse free text.
+
+**Decision 2026-09-26: a shortfall against a minimum is `partial`.** Fewer days, staff, years, or references than required is partial; none at all is not met; exceeding a maximum (a deadline, a response time) stays not met. Recorded in `prompts/offer-review-v3.md`; the one answer-key row that contradicted it (T2 V2 T-01, 32 of 40 workers) is now partial. Prompt v3 has not been run yet.

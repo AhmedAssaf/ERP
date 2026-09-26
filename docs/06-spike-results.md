@@ -179,4 +179,6 @@ Three fictional tenders with nine offers and answer keys (`spikes/OfferToMarkdow
 - A requirement was wrongly called "met" 3 times in 123; on unreadable scans the model said so instead of guessing.
 - A deterministic price checker found every planted financial error with no false positive, so F-48 arithmetic, missing-line, quantity, and unit checks need no LLM.
 - OCR lost the evidence behind several red flags (shared phone number, subcontractor name, certificate holder), so scans are not fit for this pipeline; test giving the PDF directly to a model that reads PDFs.
-- Prompt version 2 must limit the "valid for the whole contract" rule to documents the RFP names.
+- Prompt version 2 (`prompts/offer-review-v2.md`: explicit number comparison, obligations moved to the buyer are partial, contract-long validity only when the RFP says so) raised agreement on DOCX and Word PDF from 63 to 72 of 82 (77 to 88 percent), scans from 12 to 16 of 41, and cut wrong "met" verdicts from 3 to 1.
+- Decided 2026-09-26: a shortfall against a minimum (3 training days of 5, 2 references of 3) is `partial`; none at all is `not_met`; exceeding a maximum such as a deadline stays `not_met`. Written into prompt version 3, not yet run. It may later become a tenant setting.
+- One v2 run returned malformed JSON, so the product must use schema-enforced structured output.

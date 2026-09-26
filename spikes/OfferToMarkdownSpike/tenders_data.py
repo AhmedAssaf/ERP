@@ -473,7 +473,7 @@ TENDERS = [
              "expected": key(["met"] * 6 + ["met"] * 8, M6 + T8), "flags": []},
             {"id": "V2-alwaha", "name": "مؤسسة الواحة البيضاء للنظافة", "format": "docx", "tech": T2_V2_TECH, "fin": T2_V2_FIN,
              "expected": key(["met", "met", "met", "met", "not_met", "met",
-                              "not_met", "partial", "met", "not_met", "partial", "partial", "partial", "partial"], M6 + T8),
+                              "partial", "partial", "met", "not_met", "partial", "partial", "partial", "partial"], M6 + T8),
              "flags": ["compliance: municipal licence expires 2026-11-30, before the contract starts on 2027-01-01",
                        "financial: reporting system line missing from the price schedule",
                        "financial: price about 40 percent below V1 with fewer staff than required"]},
