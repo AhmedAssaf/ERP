@@ -73,6 +73,46 @@ The mapper keeps only confirmed orders (Purchase Order or Locked) and posted ven
 
 Test it without Odoo: `python to_odoo.py` writes `odoo_sample/` (UTC datetimes, a cancelled order, a reversed bill, a two-line order, continuation rows); mapping it and running the review finds all 21 planted red flags again.
 
+## Oracle exports (E-Business Suite R12 or Fusion Cloud)
+
+```
+python map_oracle.py <oracle_folder> <mapped_folder> [utc_offset_hours]   # EBS: 0 (default); Fusion: 3
+python review.py <mapped_folder> <report_folder>
+```
+
+EBS: the customer's DBA runs one query per table in SQL Developer or Toad and exports CSV named after the table. Before exporting, run `ALTER SESSION SET NLS_DATE_FORMAT = 'YYYY-MM-DD HH24:MI:SS'`, or dates lose their time. Fusion Cloud: there is no database access, so the customer's Oracle admin builds a BI Publisher data model over the same tables (Fusion names below) and exports CSV. Fusion stores UTC, so pass 3.
+
+| Table (Fusion name if different) | Filter | Columns | Feeds |
+|---|---|---|---|
+| PO_HEADERS_ALL | CREATION_DATE in the quarter, one operating unit (ORG_ID) | PO_HEADER_ID, SEGMENT1, TYPE_LOOKUP_CODE, VENDOR_ID, AGENT_ID, CREATION_DATE, AUTHORIZATION_STATUS, APPROVED_DATE, CANCEL_FLAG | All PO rules |
+| PO_LINES_ALL | those headers | PO_HEADER_ID, LINE_NUM, ITEM_ID, ITEM_DESCRIPTION, CATEGORY_ID, QUANTITY, UNIT_PRICE, AMOUNT, CANCEL_FLAG | R1, R2, R6 |
+| MTL_CATEGORIES_KFV (EGP_CATEGORIES_TL) | all | CATEGORY_ID, CONCATENATED_SEGMENTS (CATEGORY_NAME) | Category names (optional) |
+| PO_ACTION_HISTORY | OBJECT_TYPE_CODE = 'PO', those headers | OBJECT_ID, OBJECT_TYPE_CODE, SEQUENCE_NUM, ACTION_CODE, EMPLOYEE_ID, ACTION_DATE | R7: last APPROVE is the approver, SUBMIT the requester |
+| AP_SUPPLIERS (POZ_SUPPLIERS plus HZ_PARTIES for the name) | vendors on the orders and invoices | VENDOR_ID, SEGMENT1, VENDOR_NAME (or PARTY_ID and HZ_PARTIES.PARTY_NAME), VAT_REGISTRATION_NUM, CREATION_DATE | Names, R5 |
+| SUPPLIER_BANK_ACCOUNTS (query below) | the same vendors | VENDOR_ID, IBAN | R4 |
+| AP_INVOICES_ALL | INVOICE_DATE in the quarter | INVOICE_ID, INVOICE_NUM, VENDOR_ID, INVOICE_DATE, INVOICE_AMOUNT, INVOICE_TYPE_LOOKUP_CODE, CANCELLED_DATE | R3, R8 |
+| AP_INVOICE_LINES_ALL | those invoices | INVOICE_ID, LINE_NUMBER, PO_HEADER_ID | Invoice to PO link |
+| AP_INVOICE_PAYMENTS_ALL, AP_CHECKS_ALL | those invoices | INVOICE_ID, CHECK_ID, REVERSAL_FLAG; CHECK_ID, CHECK_DATE, STATUS_LOOKUP_CODE, VOID_DATE | R5: paid date, voided payments ignored |
+| STAFF_BANK_ACCOUNTS (optional, from HR) | active staff | PERSON_ID, IBAN | R4; restricted HR data, only with the data form's staff option ticked |
+| `approval_limits.csv` | typed by hand from the approval hierarchy | level, limit_sar | R1 |
+
+Supplier bank accounts in EBS R12 live in Oracle Payments; a typical query, for the DBA to confirm on their instance:
+
+```sql
+SELECT s.vendor_id, eba.iban, eba.bank_account_num
+FROM   ap_suppliers s
+JOIN   iby_external_payees_all epa ON epa.payee_party_id = s.party_id
+JOIN   iby_pmt_instr_uses_all  piu ON piu.ext_pmt_party_id = epa.ext_payee_id
+                                  AND piu.instrument_type = 'BANKACCOUNT'
+JOIN   iby_ext_bank_accounts   eba ON eba.ext_bank_account_id = piu.instrument_id;
+```
+
+Staff bank accounts come from HR (payroll payment methods); ask for PERSON_ID and IBAN only. PO_ACTION_HISTORY.EMPLOYEE_ID is a person ID, so it matches PERSON_ID.
+
+The mapper keeps approved STANDARD orders that are not cancelled, drops cancelled lines, cancelled invoices and credit or debit memos, ignores voided payments, uses the supplier number (SEGMENT1) as the vendor ID, and uses AMOUNT for service lines without a quantity price. If only APPROVED_DATE is available and it has no time, the approval time is left empty rather than read as midnight, and the night and weekend check skips those orders.
+
+Test it without Oracle: `python to_oracle.py` writes `oracle_sample/` (DD-MON-RR dates, internal IDs, SUBMIT, FORWARD and APPROVE history, an incomplete and a cancelled order, a cancelled line, a cancelled invoice, a credit memo, a voided payment); mapping it and running the review finds all 21 planted red flags again.
+
 ## Testing the mappers
 
 `python to_sap.py` turns the fictional sample into `sap_sample/` in SAP format (German number format, price units, a two-line PO, a reversed invoice, change documents that are not releases). Mapping it and running the review finds all 21 planted red flags again.
