@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <TailwindVersion>v4.3.3</TailwindVersion>
+    <TailwindDir>$(MSBuildThisFileDirectory)..\..\..\.tools\tailwind\$(TailwindVersion)\</TailwindDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+    <TailwindAsset>tailwindcss-windows-x64.exe</TailwindAsset>
+    <TailwindSha256>e0e260ce048014e9268f6237ff18f8ccf02cef521cbd0ae04e82c2cdf7aa3955</TailwindSha256>
+  </PropertyGroup>
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+    <TailwindAsset>tailwindcss-linux-x64</TailwindAsset>
+    <TailwindSha256>dc61b3ac6b8c9ca874c0cc4c57b2409791a64c5540404ca5f5367360babc313a</TailwindSha256>
+  </PropertyGroup>
+  <PropertyGroup>
+    <TailwindExe>$(TailwindDir)$(TailwindAsset)</TailwindExe>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Platform.Shared\Platform.Shared.csproj" />
+  </ItemGroup>
+
+  <!--
+    The generated file already exists on disk after the first build, so the SDK's implicit
+    wwwroot/** glob would pick it up as a Content item at project evaluation time (before any
+    target runs). Excluding it here, unconditionally, means the TailwindBuild target below is
+    the only place that ever adds it, so it is never registered twice as a static web asset.
+  -->
+  <ItemGroup>
+    <Content Remove="wwwroot/css/app.css" />
+  </ItemGroup>
+
+  <!-- Downloads the pinned Tailwind standalone CLI once and verifies its SHA-256 (no Node.js in the build). -->
+  <Target Name="TailwindDownload" Condition="!Exists('$(TailwindExe)')">
+    <Error Condition="'$(TailwindAsset)' == ''" Text="Tailwind: no standalone binary is configured for this operating system." />
+    <DownloadFile SourceUrl="https://github.com/tailwindlabs/tailwindcss/releases/download/$(TailwindVersion)/$(TailwindAsset)" DestinationFolder="$(TailwindDir)" />
+    <GetFileHash Files="$(TailwindExe)" Algorithm="SHA256">
+      <Output TaskParameter="Hash" PropertyName="TailwindActualSha256" />
+    </GetFileHash>
+    <Delete Files="$(TailwindExe)" Condition="'$(TailwindActualSha256)' != '$(TailwindSha256)'" />
+    <Error Condition="'$(TailwindActualSha256)' != '$(TailwindSha256)'" Text="Tailwind: SHA-256 mismatch for $(TailwindAsset); the download was deleted." />
+    <Exec Condition="!$([MSBuild]::IsOSPlatform('Windows'))" Command="chmod +x &quot;$(TailwindExe)&quot;" />
+  </Target>
+
+  <!-- Builds wwwroot/css/app.css from Styles/app.css before compilation and registers it as a static web asset. -->
+  <Target Name="TailwindBuild" BeforeTargets="BeforeBuild;ResolveStaticWebAssetsInputs;DefineStaticWebAssets;AssignTargetPaths" DependsOnTargets="TailwindDownload">
+    <Exec Command="&quot;$(TailwindExe)&quot; --input Styles/app.css --output wwwroot/css/app.css --minify" WorkingDirectory="$(MSBuildProjectDirectory)" />
+    <ItemGroup>
+      <Content Include="wwwroot/css/app.css" />
+    </ItemGroup>
+  </Target>
+</Project>
