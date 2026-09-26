@@ -22,7 +22,9 @@ public sealed class TenantTableCatalogTests(DatabaseFixture db)
             from pg_class c
             join pg_namespace n on n.oid = c.relnamespace
             where c.relkind in ('r', 'p')
-              and n.nspname not in ('platform', 'tenancy', 'pg_catalog', 'information_schema')
+              and n.nspname not in ('platform', 'pg_catalog', 'information_schema')
+              -- The tenant registry itself is read before any tenant is known (host resolution), so it cannot be tenant-filtered.
+              and (n.nspname, c.relname) not in (('tenancy', 'tenants'), ('tenancy', 'tenant_hosts'))
               and exists (select 1 from pg_attribute a
                           where a.attrelid = c.oid and a.attname = 'tenant_id' and a.attnum > 0 and not a.attisdropped)
             order by 1

@@ -55,9 +55,9 @@ builder.Services
         options.Cookie.SameSite = SameSiteMode.Lax;
         options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
         options.Cookie.HttpOnly = true;
-        // Short sliding lifetime until W-21 revalidates membership against Keycloak.
+        // Fixed 30-minute lifetime, no sliding, until W-21 revalidates membership against Keycloak.
         options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
-        options.SlidingExpiration = true;
+        options.SlidingExpiration = false;
         options.Events.OnRedirectToAccessDenied = context =>
         {
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
@@ -78,7 +78,12 @@ builder.Services
         options.Scope.Add("organization");
         options.TokenValidationParameters.NameClaimType = IdentityClaims.Username;
     });
-builder.Services.AddAuthorization(options => options.FallbackPolicy = IdentityModule.SameTenantPolicy);
+builder.Services.AddAuthorization(options =>
+{
+    // Fallback covers endpoints with no metadata; default covers [Authorize] and RequireAuthorization().
+    options.FallbackPolicy = IdentityModule.SameTenantPolicy;
+    options.DefaultPolicy = IdentityModule.SameTenantPolicy;
+});
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddPlatformLocalization();
 

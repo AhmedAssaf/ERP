@@ -1,4 +1,5 @@
 using System.Net;
+using System.Xml.Linq;
 using Platform.IntegrationTests.Infrastructure;
 
 namespace Platform.IntegrationTests.Web;
@@ -16,7 +17,8 @@ public class LocalizationTests(DatabaseFixture db)
 
         html.ShouldContain("<html lang=\"ar\" dir=\"rtl\">");
         html.ShouldContain("مرحباً بك في Acme Contracting");
-        html.ShouldNotContain("Home.Welcome");
+        // A missing Arabic translation renders its key; no key from the shared resource may reach the page.
+        SharedResourceKeys().Where(key => html.Contains(key, StringComparison.Ordinal)).ShouldBeEmpty();
     }
 
     [Fact]
@@ -119,6 +121,14 @@ public class LocalizationTests(DatabaseFixture db)
 
         response.Headers.GetValues("Set-Cookie")
             .ShouldContain(c => c.StartsWith(".AspNetCore.Culture=", StringComparison.Ordinal) && c.Contains("secure", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static List<string> SharedResourceKeys()
+    {
+        var resx = Path.Combine(RepoPaths.Root, "src", "UI", "Platform.UI", "Resources", "SharedResource.en-US.resx");
+        var keys = XDocument.Load(resx).Root!.Elements("data").Select(d => (string)d.Attribute("name")!).ToList();
+        keys.ShouldNotBeEmpty();
+        return keys;
     }
 
     private async Task<string> GetHomeAsync(string host, TestUser user, string? cookie = null)

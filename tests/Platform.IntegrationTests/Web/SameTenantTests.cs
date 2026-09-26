@@ -1,6 +1,10 @@
 using System.Net;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Platform.IntegrationTests.Infrastructure;
 using Platform.Modules.Audit;
 
@@ -49,5 +53,43 @@ public class SameTenantTests(DatabaseFixture db)
         denied.ShouldNotBeEmpty();
         denied.ShouldAllBe(e => e.SubjectType == "host" && e.SubjectId == "acme.localhost");
         denied.ShouldAllBe(e => e.Data == "{}");
+    }
+
+    [Fact]
+    public async Task Endpoint_with_require_authorization_forbids_a_user_of_another_tenant()
+    {
+        using var response = await GetAuthorizedEndpointAsync("acme.localhost", TestUser.BetaAdmin);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Endpoint_with_require_authorization_serves_a_member_of_the_hosts_organization()
+    {
+        using var response = await GetAuthorizedEndpointAsync("acme.localhost", TestUser.AcmeAdmin);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Login_cookie_has_a_fixed_thirty_minute_lifetime_until_membership_is_revalidated()
+    {
+        await using var factory = new PlatformWebFactory(db.AppConnectionString);
+
+        var cookie = factory.Services.GetRequiredService<IOptionsMonitor<CookieAuthenticationOptions>>()
+            .Get(CookieAuthenticationDefaults.AuthenticationScheme);
+
+        cookie.ExpireTimeSpan.ShouldBe(TimeSpan.FromMinutes(30));
+        cookie.SlidingExpiration.ShouldBeFalse();
+    }
+
+    private async Task<HttpResponseMessage> GetAuthorizedEndpointAsync(string host, TestUser user)
+    {
+        await using var factory = new PlatformWebFactory(db.AppConnectionString);
+        await using var withEndpoint = factory.WithWebHostBuilder(builder =>
+            builder.ConfigureTestServices(services => services.AddSingleton<IStartupFilter, AuthorizedEndpointStartupFilter>()));
+        using var client = withEndpoint.CreateClient(new() { BaseAddress = new Uri($"http://{host}"), AllowAutoRedirect = false });
+
+        return await client.SendAsync(new HttpRequestMessage(HttpMethod.Get, AuthorizedEndpointStartupFilter.Path).As(user), Ct);
     }
 }
