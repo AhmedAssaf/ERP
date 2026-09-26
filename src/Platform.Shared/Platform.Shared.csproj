@@ -4,6 +4,9 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Data\Migrations\*.sql" LogicalName="Migrations.%(Filename)%(Extension)" />
+  </ItemGroup>
+  <ItemGroup>
     <InternalsVisibleTo Include="Platform.UnitTests" />
     <InternalsVisibleTo Include="Platform.IntegrationTests" />
   </ItemGroup>

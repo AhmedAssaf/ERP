@@ -2,7 +2,7 @@ using Platform.Modules.Audit;
 using Platform.Modules.Identity;
 using Platform.Modules.Tenancy;
 using Platform.Modules.Workflow;
-using Platform.Shared.Tenancy;
+using Platform.Shared;
 using Platform.Web.Components;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,9 +15,7 @@ if (string.IsNullOrWhiteSpace(platformDb))
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 builder.Services.AddProblemDetails();
 builder.Services.AddHealthChecks();
-builder.Services.AddSingleton(TimeProvider.System);
-builder.Services.AddScoped<TenantAccessor>();
-builder.Services.AddScoped<ITenantAccessor>(sp => sp.GetRequiredService<TenantAccessor>());
+builder.Services.AddPlatformShared();
 builder.Services.AddAuditModule(platformDb);
 builder.Services.AddTenancyModule(platformDb);
 builder.Services.AddIdentityModule();
