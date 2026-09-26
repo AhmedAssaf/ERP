@@ -114,7 +114,7 @@ sequenceDiagram
 
 ### First version
 
-- **Week 1, no product:** a Python script runs the eight rules on one export, and the findings go into a QuestPDF bundle built from the existing foundation. Run it for one company with its consent; charge or accept a written reference in return.
+- **Week 1, no product:** a Python script runs the eight rules on one export (built 2026-09-27: `spikes/AuditReviewSpike`, with fictional sample data in which it finds all 21 planted red flags), and the findings go into a QuestPDF bundle built from the existing foundation. Run it for one company with its consent; charge or accept a written reference in return.
 - **After 3 paid reviews:** an upload page on the foundation (Tenancy, Identity, Audit), the rules as code with tests, a findings screen with a reviewer note per finding, and the audit bundle (F-42). Approval limits come from the buyer's authority matrix, entered once.
 - **Data rules:** Saudi region only; files deleted after 30 days; staff bank accounts are optional, and if given they are compared as hashes and never shown; access is logged (F-41) and secrets never logged (N-10). A PDPL review comes before the first real export.
 
