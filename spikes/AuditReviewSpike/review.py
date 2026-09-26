@@ -71,6 +71,14 @@ def load(folder):
     return pos, inv, ven, staff, limits
 
 
+def po_totals(pos):
+    """One row per PO: approval limits and approvals apply to the whole order, not a line."""
+    return (pos.groupby("po_id", as_index=False)
+            .agg(po_date=("po_date", "first"), vendor_id=("vendor_id", "first"),
+                 requester_id=("requester_id", "first"), approver_id=("approver_id", "first"),
+                 approved_at=("approved_at", "first"), amount=("amount", "sum")))
+
+
 def finding(rule, reference, vendor, amount, evidence):
     return {"rule": rule, "title": RULES[rule], "reference": reference, "vendor_id": vendor,
             "amount_sar": round(float(amount), 2), "evidence": evidence}
@@ -78,6 +86,7 @@ def finding(rule, reference, vendor, amount, evidence):
 
 def r1_split(pos, limits):
     out = []
+    pos = po_totals(pos)
     for limit in sorted(limits["limit_sar"]):
         band = pos[(pos["amount"] >= limit * SPLIT_BAND) & (pos["amount"] < limit)]
         for (vendor, requester), g in band.groupby(["vendor_id", "requester_id"]):
@@ -102,9 +111,10 @@ def r2_single_source(pos):
     for cat, g in pos.groupby("category"):
         spend = g.groupby("vendor_id")["amount"].sum().sort_values(ascending=False)
         share = spend.iloc[0] / spend.sum()
-        if len(g) >= SINGLE_SOURCE_MIN_POS and share >= SINGLE_SOURCE_SHARE:
+        orders = g["po_id"].nunique()
+        if orders >= SINGLE_SOURCE_MIN_POS and share >= SINGLE_SOURCE_SHARE:
             out.append(finding("R2", cat, spend.index[0], spend.iloc[0],
-                               f"{share:.0%} of {len(g)} POs' spend in {cat} went to one vendor; "
+                               f"{share:.0%} of {orders} POs' spend in {cat} went to one vendor; "
                                f"{len(spend) - 1} other vendor{'' if len(spend) == 2 else 's'} used"))
     return out
 
@@ -134,12 +144,13 @@ def r4_bank_conflict(ven, inv, staff):
     out = []
     staff_hashes = dict(zip(staff["iban_hash"], staff["staff_id"]))
     for _, v in ven.iterrows():
-        sid = staff_hashes.get(sha(v["bank_iban"]))
-        if sid:
-            paid = inv.loc[inv["vendor_id"] == v["vendor_id"], "amount"].sum()
-            out.append(finding("R4", v["vendor_id"], v["vendor_id"], paid,
-                               f"Vendor account {mask(v['bank_iban'])} matches the account of staff member "
-                               f"{sid}; total paid SAR {paid:,.0f}"))
+        for account in str(v["bank_iban"]).split(";"):
+            sid = staff_hashes.get(sha(account)) if account.strip() else None
+            if sid:
+                paid = inv.loc[inv["vendor_id"] == v["vendor_id"], "amount"].sum()
+                out.append(finding("R4", v["vendor_id"], v["vendor_id"], paid,
+                                   f"Vendor account {mask(account.strip())} matches the account of staff member "
+                                   f"{sid}; total paid SAR {paid:,.0f}"))
     return out
 
 
@@ -148,7 +159,7 @@ def r5_new_vendor(ven, inv):
     first_paid = inv.groupby("vendor_id")["paid_date"].min()
     for _, v in ven.iterrows():
         paid = first_paid.get(v["vendor_id"])
-        if paid is not None and (paid - v["created_date"]).days <= NEW_VENDOR_DAYS:
+        if pd.notna(paid) and pd.notna(v["created_date"]) and (paid - v["created_date"]).days <= NEW_VENDOR_DAYS:
             amount = inv.loc[inv["vendor_id"] == v["vendor_id"], "amount"].sum()
             out.append(finding("R5", v["vendor_id"], v["vendor_id"], amount,
                                f"Created {v['created_date']:%Y-%m-%d}, first paid {paid:%Y-%m-%d} "
@@ -172,14 +183,14 @@ def r6_price_outliers(pos):
 
 def r7_approvals(pos):
     out = []
-    for _, row in pos.iterrows():
+    for _, row in po_totals(pos).iterrows():
         reasons = []
-        if row["requester_id"] == row["approver_id"]:
+        if pd.notna(row["approver_id"]) and row["requester_id"] == row["approver_id"]:
             reasons.append("requester approved own PO")
         t = row["approved_at"]
-        if t.hour < OFFICE_START or t.hour >= OFFICE_END:
+        if pd.notna(t) and (t.hour < OFFICE_START or t.hour >= OFFICE_END):
             reasons.append(f"approved at {t:%H:%M}")
-        if t.weekday() in WEEKEND:
+        if pd.notna(t) and t.weekday() in WEEKEND:
             reasons.append(f"approved on {t:%A}")
         if reasons:
             text = f"{'; '.join(reasons)} by {row['approver_id']}"
@@ -219,7 +230,7 @@ def run(inp, out_dir):
     df.insert(0, "finding", [f"F-{i + 1:03d}" for i in range(len(df))])
     out_dir.mkdir(exist_ok=True)
     df.to_csv(out_dir / "findings.csv", index=False, encoding="utf-8-sig")
-    stats = {"pos": len(pos), "spend": pos["amount"].sum(), "invoices": len(inv), "vendors": len(ven),
+    stats = {"pos": pos["po_id"].nunique(), "spend": pos["amount"].sum(), "invoices": len(inv), "vendors": len(ven),
              "from": pos["po_date"].min(), "to": pos["po_date"].max()}
     (out_dir / "report.html").write_text(report(df, stats), encoding="utf-8")
     check = inp / "answer_key.csv"

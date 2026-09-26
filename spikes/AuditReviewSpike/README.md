@@ -20,7 +20,34 @@ Needs Python 3.11+ and pandas. Open `output/report.html` in a browser and print 
 | `staff.csv` (optional) | staff_id, name, department, bank_iban |
 | `approval_limits.csv` | level, limit_sar |
 
-A real ERP export needs mapping into these columns first. SAP, Oracle, Odoo and local ERPs name them differently.
+A real ERP export needs mapping into these columns first. SAP, Oracle, Odoo and local ERPs name them differently. For SAP there is a mapper (next section).
+
+## SAP exports
+
+```
+python map_sap.py <sap_folder> <mapped_folder>   # writes the five CSVs and mapping_report.txt
+python review.py <mapped_folder> <report_folder>
+```
+
+Ask the company's SAP team for one file per table, filtered to the quarter and company code, downloaded from SE16N (or SE16H, or an ALV report) as tab-delimited text or Excel, named after the table (`EKKO.txt`, `EKPO.xlsx`, ...). Technical column names and the common English headers both work.
+
+| Table | Filter | Columns | Feeds |
+|---|---|---|---|
+| EKKO (PO header) | BEDAT in the quarter | EBELN, LIFNR, BEDAT, ERNAM | All PO rules |
+| EKPO (PO lines) | the EKKO POs | EBELN, EBELP, LOEKZ, MATNR, TXZ01, MATKL, MENGE, NETPR, PEINH, NETWR | R1, R2, R6 |
+| T023T (material group texts) | SPRAS = E or A | MATKL, WGBEZ | Category names (optional) |
+| CDHDR, CDPOS (change documents) | OBJECTCLAS = EINKBELEG, the EKKO POs | CDHDR: OBJECTID, CHANGENR, USERNAME, UDATE, UTIME; CDPOS: OBJECTID, CHANGENR, FNAME | R7: approver is the last release (FNAME FRGKE or FRGZU) |
+| RBKP (invoice header) | BLDAT in the quarter | BELNR, GJAHR, LIFNR, XBLNR, BLDAT, RMWWR, STBLG | R3, R8 |
+| RSEG (invoice lines) | the RBKP invoices | BELNR, GJAHR, EBELN | Invoice to PO link |
+| BKPF, BSAK (accounting header, cleared vendor items) | AWTYP = RMRP; the same company code | BKPF: BELNR, GJAHR, AWTYP, AWKEY; BSAK: BELNR, GJAHR, AUGDT | R5: payment date via AWKEY, then the clearing date |
+| LFA1 (vendor master) | vendors in EKKO or RBKP | LIFNR, NAME1, STCD1, ERDAT | Names, R5 |
+| LFBK and TIBAN (vendor banks) | the same vendors | LFBK: LIFNR, BANKS, BANKL, BANKN (or IBAN); TIBAN: BANKS, BANKL, BANKN, IBAN | R4 |
+| PA0009 (HR bank details, optional) | active staff | PERNR, IBAN | R4; restricted HR data, only with the data form's staff option ticked |
+| `approval_limits.csv` | typed by hand from the authority matrix | level, limit_sar | R1 |
+
+The mapper drops deleted PO lines (LOEKZ = L) and reversed invoices (STBLG filled), divides the net price by the price unit, strips leading zeros from vendor and material numbers, and reads dd.mm.yyyy dates and 1.234,56 numbers. When a table is missing it still runs, and `mapping_report.txt` says which rules cannot run. In S/4HANA, business partners still expose LFA1 and LFBK, and the tables above keep their names.
+
+Test it without SAP: `python to_sap.py` turns the fictional sample into `sap_sample/` in SAP format (German number format, price units, a two-line PO, a reversed invoice, change documents that are not releases). Mapping it and running the review finds all 21 planted red flags again.
 
 ## The eight rules
 
