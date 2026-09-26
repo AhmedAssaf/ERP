@@ -194,6 +194,9 @@ else
                     case "identity.invalid_display_name":
                         _nameError = T["Staff.Error.Name"];
                         break;
+                    case "identity.account_disabled":
+                        _inviteError = T["Staff.Error.CannotInvite"];
+                        break;
                     case "identity.no_role" or "identity.unknown_role":
                         _inviteRolesError = T["Staff.Error.Roles"];
                         break;
@@ -205,18 +208,15 @@ else
                 return;
             }
 
+            // One neutral message whether or not the person already had an account (no account oracle).
             var invitation = result.Value;
-            switch (invitation.Email)
+            if (invitation.Email == InvitationEmail.Sent)
             {
-                case InvitationEmail.Sent:
-                    Toasts.Show(T["Staff.Invited", invitation.Member.Email]);
-                    break;
-                case InvitationEmail.NotNeeded:
-                    Toasts.Show(T["Staff.AddedExisting", invitation.Member.Email], ToastTone.Info);
-                    break;
-                default:
-                    Toasts.Show(T["Staff.EmailFailed", invitation.Member.Email], ToastTone.Danger);
-                    break;
+                Toasts.Show(T["Staff.Invited", invitation.Member.Email]);
+            }
+            else
+            {
+                Toasts.Show(T["Staff.EmailFailed", invitation.Member.Email], ToastTone.Danger);
             }
 
             _inviteOpen = false;
@@ -224,7 +224,7 @@ else
         }
         catch (Exception ex)
         {
-            StaffLog.InviteFailed(Logger, ex);
+            StaffLog.InviteFailed(Logger, ex.GetType().Name);
             _inviteError = T["Staff.Error.Generic"];
         }
         finally
@@ -270,7 +270,7 @@ else
         }
         catch (Exception ex)
         {
-            StaffLog.SetRolesFailed(Logger, ex);
+            StaffLog.SetRolesFailed(Logger, ex.GetType().Name);
             _editRolesError = T["Staff.Error.Generic"];
         }
         finally
@@ -302,7 +302,6 @@ else
                     result.Error.Code switch
                     {
                         "identity.member_active" => T["Staff.Error.AlreadyActive", member.DisplayName],
-                        "identity.invitation_complete" => T["Staff.Error.SetupComplete", member.DisplayName],
                         "identity.member_not_found" => T["Staff.Error.NotFound"],
                         _ => T["Staff.Error.Generic"],
                     },
@@ -316,7 +315,7 @@ else
         }
         catch (Exception ex)
         {
-            StaffLog.ResendFailed(Logger, ex);
+            StaffLog.ResendFailed(Logger, ex.GetType().Name);
             Toasts.Show(T["Staff.Error.Generic"], ToastTone.Danger);
         }
         finally

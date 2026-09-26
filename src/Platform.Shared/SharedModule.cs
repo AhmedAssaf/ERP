@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Npgsql;
 using Platform.Shared.Data;
+using Platform.Shared.Email;
 using Platform.Shared.Storage;
 using Platform.Shared.Tenancy;
 
@@ -34,6 +35,19 @@ public static class SharedModule
         ArgumentNullException.ThrowIfNull(configuration);
         services.Replace(ServiceDescriptor.Singleton(ObjectStorageSettings.FromConfiguration(configuration)));
         services.TryAddSingleton<IObjectStorage, S3ObjectStorage>();
+        return services;
+    }
+
+    /// <summary>
+    /// Registers the platform's own email sender (<see cref="IEmailSender"/>, MailKit) with <c>Smtp:*</c>
+    /// (<see cref="EmailSettings"/>). Idempotent: the first registration wins, so modules may each call it.
+    /// </summary>
+    public static IServiceCollection AddEmail(this IServiceCollection services, IConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configuration);
+        services.TryAddSingleton(_ => EmailSettings.FromConfiguration(configuration));
+        services.TryAddSingleton<IEmailSender, MailKitEmailSender>();
         return services;
     }
 

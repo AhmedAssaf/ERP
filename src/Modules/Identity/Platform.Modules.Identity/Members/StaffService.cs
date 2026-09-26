@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Net;
 using System.Net.Mail;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -7,6 +8,7 @@ using Npgsql;
 using Platform.Modules.Audit.Contracts;
 using Platform.Modules.Identity.Contracts;
 using Platform.Modules.Identity.Keycloak;
+using Platform.Shared.Email;
 using Platform.Shared.Results;
 using Platform.Shared.Tenancy;
 
@@ -15,7 +17,9 @@ namespace Platform.Modules.Identity.Members;
 /// <summary>
 /// Staff invitations for the current tenant (F-06 as narrowed, spec D-4 and 4.2). Keycloak first (find or create the
 /// user, add them to the organization), then the invited member row, then the email, so a failed email never loses the
-/// member: the admin resends it. A Keycloak user left in the organization by a failed row insert holds no role.
+/// member: the admin resends it. When the row cannot be saved, the organization membership this invitation added is
+/// removed again. Every invited person is emailed, whether their account existed or not, and the answer to the admin is
+/// the same in both cases, so the page cannot be used to find out who has a WaslaBid account.
 /// </summary>
 internal sealed partial class StaffService(
     IDbContextFactory<MembersDbContext> contexts,
@@ -25,11 +29,11 @@ internal sealed partial class StaffService(
     ITenantAccessor tenants,
     MemberRolesCache cache,
     IAuditWriter audit,
+    IEmailSender email,
+    InvitationNotice notice,
     TimeProvider clock,
     ILogger<StaffService> logger) : IStaffService
 {
-    internal const int MaxDisplayName = 200;
-
     public Task<IReadOnlyList<Member>> ListAsync(CancellationToken cancellationToken = default) => directory.ListAsync(cancellationToken);
 
     public Task<Result<Member>> SetRolesAsync(
@@ -50,9 +54,9 @@ internal sealed partial class StaffService(
         }
 
         var name = displayName?.Trim() ?? string.Empty;
-        if (name.Length == 0 || name.Length > MaxDisplayName)
+        if (!DisplayNames.IsValid(name))
         {
-            return Result.Failure<Invitation>(Error.Validation("identity.invalid_display_name", $"Enter the person's name, up to {MaxDisplayName} characters."));
+            return InvalidName();
         }
 
         if (roles.Count == 0)
@@ -73,8 +77,37 @@ internal sealed partial class StaffService(
         }
 
         var existing = await keycloak.FindUserByEmailAsync(address, cancellationToken);
-        var userId = existing?.Id ?? await keycloak.CreateUserAsync(NewUser(address, name, tenant), cancellationToken);
-        await keycloak.AddToOrganizationAsync(tenant.KeycloakOrgAlias, userId, cancellationToken);
+        if (existing is { Enabled: false })
+        {
+            await audit.WriteAsync(
+                new AuditEntry(actorId, "identity.invitation_refused", "member", existing.Id, new Dictionary<string, string?>
+                {
+                    ["email"] = address,
+                    ["reason"] = "account_disabled",
+                }),
+                cancellationToken);
+            return Result.Failure<Invitation>(Error.Refused("identity.account_disabled", "This person cannot be invited. Contact support."));
+        }
+
+        string userId;
+        if (existing is not null)
+        {
+            userId = existing.Id;
+        }
+        else
+        {
+            try
+            {
+                userId = await keycloak.CreateUserAsync(NewUser(address, name, tenant), cancellationToken);
+            }
+            catch (KeycloakAdminException ex) when (ex.Status == HttpStatusCode.BadRequest)
+            {
+                // Keycloak's user profile refused a value our own check let through; the name is the only free text.
+                return InvalidName();
+            }
+        }
+
+        var added = await keycloak.AddToOrganizationAsync(tenant.KeycloakOrgAlias, userId, cancellationToken);
 
         var row = new MemberRecord
         {
@@ -94,22 +127,39 @@ internal sealed partial class StaffService(
         }
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
         {
-            // Another admin invited the same address, or the same account under another address, at the same moment.
+            // Another admin invited the same address, or the same account under another address, at the same moment;
+            // their invitation owns the organization membership, so it stays.
             return MemberExists();
+        }
+        catch (Exception ex) when (ex is DbUpdateException or NpgsqlException or TimeoutException or OperationCanceledException)
+        {
+            SaveFailed(logger, tenant.Slug, userId, ex.GetType().Name);
+            if (added)
+            {
+                await RemoveMembershipAsync(tenant, userId);
+            }
+
+            if (ex is OperationCanceledException)
+            {
+                throw;
+            }
+
+            return Result.Failure<Invitation>(Error.Refused("identity.invitation_failed", "The invitation could not be saved. Try again in a moment."));
         }
 
         cache.Invalidate(tenant.TenantId, userId);
-        var sent = await SendSetupEmailAsync(userId, tenant, cancellationToken);
+        var sent = await EmailAsync(row, tenant, actorId, db, cancellationToken);
         await audit.WriteAsync(
             new AuditEntry(actorId, "identity.member_invited", "member", userId, new Dictionary<string, string?>
             {
                 ["email"] = address,
                 ["roles"] = string.Join(",", row.Roles),
                 ["existing_account"] = existing is null ? "false" : "true",
-                ["email_sent"] = sent.ToString().ToLowerInvariant(),
+                ["email_kind"] = sent.Kind,
+                ["email_sent"] = sent.Email.ToString().ToLowerInvariant(),
             }),
             cancellationToken);
-        return Result.Success(new Invitation(ToMember(row), sent, existing is not null));
+        return Result.Success(new Invitation(ToMember(row), sent.Email));
     }
 
     public async Task<Result<Invitation>> ResendAsync(string userId, string actorId, CancellationToken cancellationToken = default)
@@ -130,29 +180,28 @@ internal sealed partial class StaffService(
             return Result.Failure<Invitation>(Error.Refused("identity.member_active", "This member has already signed in, so there is no invitation to resend."));
         }
 
-        var sent = await SendSetupEmailAsync(userId, tenant, cancellationToken);
-        if (sent == InvitationEmail.NotNeeded)
-        {
-            return Result.Failure<Invitation>(Error.Refused(
-                "identity.invitation_complete", "This person has already set a password and an authenticator; they can sign in now."));
-        }
-
+        var sent = await EmailAsync(row, tenant, actorId, db, cancellationToken);
         await audit.WriteAsync(
             new AuditEntry(actorId, "identity.invitation_resent", "member", userId, new Dictionary<string, string?>
             {
-                ["email_sent"] = sent.ToString().ToLowerInvariant(),
+                ["email_kind"] = sent.Kind,
+                ["email_sent"] = sent.Email.ToString().ToLowerInvariant(),
             }),
             cancellationToken);
-        return Result.Success(new Invitation(ToMember(row), sent, ExistingAccount: true));
+        return Result.Success(new Invitation(ToMember(row), sent.Email));
     }
 
     /// <summary>
-    /// Emails the setup link for what the account still lacks: a password (UPDATE_PASSWORD) and a TOTP authenticator
-    /// (CONFIGURE_TOTP). An account with both needs nothing. A failure to send is logged and reported, not thrown, since
-    /// the member is already saved and the admin can resend.
+    /// Emails the person. An account that still lacks a password (UPDATE_PASSWORD) or a TOTP authenticator
+    /// (CONFIGURE_TOTP) gets Keycloak's setup link for what it lacks ("setup"); an account with both gets our own short
+    /// notice that the tenant added them ("notice"). A failure to send is logged and reported, not thrown, since the member
+    /// is already saved and the admin can resend.
     /// </summary>
-    private async Task<InvitationEmail> SendSetupEmailAsync(string userId, TenantContext tenant, CancellationToken cancellationToken)
+    private async Task<(InvitationEmail Email, string Kind)> EmailAsync(
+        MemberRecord row, TenantContext tenant, string actorId, MembersDbContext db, CancellationToken cancellationToken)
     {
+        var userId = row.UserId!;
+        var kind = "setup";
         try
         {
             var credentials = await keycloak.CredentialTypesAsync(userId, cancellationToken);
@@ -167,20 +216,39 @@ internal sealed partial class StaffService(
                 actions.Add("CONFIGURE_TOTP");
             }
 
-            if (actions.Count == 0)
+            if (actions.Count > 0)
             {
-                return InvitationEmail.NotNeeded;
+                await keycloak.SendInvitationEmailAsync(userId, actions, options.Value.TenantHome(tenant.Slug), cancellationToken);
+                return (InvitationEmail.Sent, kind);
             }
 
-            await keycloak.SendInvitationEmailAsync(userId, actions, options.Value.TenantHome(tenant.Slug), cancellationToken);
-            return InvitationEmail.Sent;
+            kind = "notice";
+            var inviter = await db.Members.AsNoTracking()
+                .Where(m => m.UserId == actorId).Select(m => m.DisplayName).SingleOrDefaultAsync(cancellationToken);
+            await email.SendAsync(
+                notice.Write(row.Email, inviter, tenant.Branding.PortalName, row.Roles, options.Value.TenantHome(tenant.Slug), tenant.DefaultCulture),
+                cancellationToken);
+            return (InvitationEmail.Sent, kind);
         }
-        catch (Exception ex) when (ex is KeycloakAdminException or HttpRequestException
+        catch (Exception ex) when (ex is KeycloakAdminException or HttpRequestException or EmailDeliveryException
             || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
         {
             // Never ex.Message (N-10): an HttpRequestException can carry the target URL.
-            EmailFailed(logger, tenant.Slug, userId, ex.GetType().Name);
-            return InvitationEmail.Failed;
+            EmailFailed(logger, tenant.Slug, userId, kind, ex.GetType().Name);
+            return (InvitationEmail.Failed, kind);
+        }
+    }
+
+    // Best effort: the invitation already failed; a membership left behind holds no role (no member row) and is logged.
+    private async Task RemoveMembershipAsync(TenantContext tenant, string userId)
+    {
+        try
+        {
+            await keycloak.RemoveFromOrganizationAsync(tenant.KeycloakOrgAlias, userId, CancellationToken.None);
+        }
+        catch (Exception ex) when (ex is KeycloakAdminException or HttpRequestException or TaskCanceledException or InvalidOperationException)
+        {
+            CompensationFailed(logger, tenant.Slug, userId, ex.GetType().Name);
         }
     }
 
@@ -189,6 +257,11 @@ internal sealed partial class StaffService(
 
     private static Result<Invitation> MemberExists() =>
         Result.Failure<Invitation>(Error.Conflict("identity.member_exists", "This person is already a member of this tenant."));
+
+    private static Result<Invitation> InvalidName() =>
+        Result.Failure<Invitation>(Error.Validation(
+            "identity.invalid_display_name",
+            $"Enter the person's full name, up to {DisplayNames.MaxLength} characters, using letters, spaces, apostrophes, hyphens and periods."));
 
     private static string? NormalizeEmail(string? email)
     {
@@ -214,6 +287,12 @@ internal sealed partial class StaffService(
     private static Member ToMember(MemberRecord row) => new(
         row.UserId, row.Email, row.DisplayName, row.Roles, MemberStatus.Invited, row.InvitedAt, row.ActivatedAt);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Keycloak did not send the invitation email for tenant {Tenant}, user {UserId} ({ErrorType}).")]
-    private static partial void EmailFailed(ILogger logger, string tenant, string userId, string errorType);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The invitation email ({Kind}) was not sent for tenant {Tenant}, user {UserId} ({ErrorType}).")]
+    private static partial void EmailFailed(ILogger logger, string tenant, string userId, string kind, string errorType);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "The invited member row was not saved for tenant {Tenant}, user {UserId} ({ErrorType}).")]
+    private static partial void SaveFailed(ILogger logger, string tenant, string userId, string errorType);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "The organization membership added for a failed invitation was not removed for tenant {Tenant}, user {UserId} ({ErrorType}).")]
+    private static partial void CompensationFailed(ILogger logger, string tenant, string userId, string errorType);
 }

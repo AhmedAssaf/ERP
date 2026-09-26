@@ -4,11 +4,15 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Platform.IntegrationTests.Infrastructure;
 using Platform.Modules.Identity;
 using Platform.Modules.Identity.Contracts;
+using Platform.Modules.Identity.Keycloak;
+using Platform.Modules.Identity.Members;
 using Platform.Shared.Results;
 
 namespace Platform.IntegrationTests.Identity;
@@ -41,7 +45,6 @@ public sealed partial class StaffInvitationTests(DatabaseFixture db, KeycloakFix
 
         result.IsSuccess.ShouldBeTrue(result.IsSuccess ? null : result.Error.Message);
         result.Value.Email.ShouldBe(InvitationEmail.Sent);
-        result.Value.ExistingAccount.ShouldBeFalse();
         var userId = result.Value.Member.UserId.ShouldNotBeNull();
 
         var row = (await MemberRows.FindByEmailAsync(db.AppConnectionString, TestTenants.Acme.TenantId, email, Ct)).ShouldNotBeNull();
@@ -64,6 +67,7 @@ public sealed partial class StaffInvitationTests(DatabaseFixture db, KeycloakFix
         (token.GetProperty("exp").GetInt64() - token.GetProperty("iat").GetInt64()).ShouldBe(72 * 3600);
         (await MemberRows.AuditCountAsync(db.OwnerConnectionString, TestTenants.Acme.TenantId, Admin, "identity.member_invited", Ct)).ShouldBeGreaterThanOrEqualTo(1);
         (await InvitedAuditsForAsync(TestTenants.Acme.TenantId, userId)).ShouldBe(1);
+        (await InvitedAuditFieldAsync(TestTenants.Acme.TenantId, userId, "existing_account")).ShouldBe("false");
     }
 
     [Fact]
@@ -155,7 +159,7 @@ public sealed partial class StaffInvitationTests(DatabaseFixture db, KeycloakFix
         }
 
         second.IsSuccess.ShouldBeTrue(second.IsSuccess ? null : second.Error.Message);
-        second.Value.ExistingAccount.ShouldBeTrue();
+        (await InvitedAuditFieldAsync(TestTenants.Acme.TenantId, firstUserId, "existing_account")).ShouldBe("true");
         second.Value.Member.UserId.ShouldBe(firstUserId);
         (await keycloak.AdminGetAsync($"users?email={Uri.EscapeDataString(email)}&exact=true", Ct)).GetArrayLength().ShouldBe(1);
         (await OrganizationAliasesAsync(firstUserId)).Order(StringComparer.Ordinal).ShouldBe(["acme", "beta"]);
@@ -164,6 +168,134 @@ public sealed partial class StaffInvitationTests(DatabaseFixture db, KeycloakFix
         acmeRow.Roles.ShouldBe([TenantRoles.TenantAdmin]);
         // The account has no password or OTP yet, so the second tenant's invitation sends the setup link again.
         (await MessagesToAsync(email)).Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task Inviting_an_existing_set_up_account_emails_them_one_notice_and_answers_as_for_a_new_account()
+    {
+        // Tenant isolation: the inviting admin cannot tell whether the address already had a WaslaBid account, and the
+        // person is never added to a tenant without being told.
+        var email = KeycloakFixture.EmailOf(KeycloakFixture.ReadyUser);
+        var inviter = $"inviter-{Guid.NewGuid():N}";
+        var inviterEmail = $"hala.{Guid.NewGuid():N}@beta.test";
+        await MemberRows.InsertAsync(db.AppConnectionString, TestTenants.Beta.TenantId, inviter, inviterEmail, [TenantRoles.TenantAdmin], "active", Ct);
+        await using var host = Host();
+
+        Result<Invitation> fresh;
+        Result<Invitation> existing;
+        await using (var scope = host.ScopeFor(TestTenants.Beta))
+        {
+            var staff = scope.ServiceProvider.GetRequiredService<IStaffService>();
+            fresh = await staff.InviteAsync(Unique("fresh"), "Fresh Person", [TenantRoles.ContractsOfficer], inviter, Ct);
+            existing = await staff.InviteAsync(email, "Ready Person", [TenantRoles.ContractsOfficer, TenantRoles.FinanceApprover], inviter, Ct);
+        }
+
+        fresh.IsSuccess.ShouldBeTrue(fresh.IsSuccess ? null : fresh.Error.Message);
+        existing.IsSuccess.ShouldBeTrue(existing.IsSuccess ? null : existing.Error.Message);
+        existing.Value.Email.ShouldBe(fresh.Value.Email);
+        existing.Value.Email.ShouldBe(InvitationEmail.Sent);
+        var userId = existing.Value.Member.UserId.ShouldNotBeNull();
+        (await InvitedAuditFieldAsync(TestTenants.Beta.TenantId, userId, "existing_account")).ShouldBe("true");
+        (await OrganizationAliasesAsync(userId)).ShouldBe(["beta"]);
+
+        var notice = (await MessagesToAsync(email)).ShouldHaveSingleItem();
+        ActionLink().IsMatch(notice).ShouldBeFalse("a set-up account gets a notice, not a setup link");
+        var inviterName = inviterEmail.Split('@')[0];
+        var portal = TestTenants.Beta.Branding.PortalName;
+        notice.ShouldContain($"{inviterName} added you to {portal} on WaslaBid as Contracts officer, Finance approver.");
+        notice.ShouldContain("Sign in at https://beta.localhost:8443/");
+        notice.ShouldContain($"If you do not expect this, ignore this email and tell {portal}.");
+        notice.ShouldContain($"أضافك {inviterName} إلى {portal} على WaslaBid");
+    }
+
+    [Fact]
+    public async Task Inviting_a_disabled_account_is_refused_audited_and_adds_nothing()
+    {
+        var email = KeycloakFixture.EmailOf(KeycloakFixture.DisabledUser);
+        await using var host = Host();
+
+        Result<Invitation> result;
+        await using (var scope = host.ScopeFor(TestTenants.Acme))
+        {
+            result = await scope.ServiceProvider.GetRequiredService<IStaffService>()
+                .InviteAsync(email, "Disabled Person", [TenantRoles.ContractsOfficer], Admin, Ct);
+        }
+
+        result.IsSuccess.ShouldBeFalse();
+        result.Error.Code.ShouldBe("identity.account_disabled");
+        result.Error.Message.ShouldNotContain("disabled", Case.Insensitive);
+        (await MemberRows.FindByEmailAsync(db.AppConnectionString, TestTenants.Acme.TenantId, email, Ct)).ShouldBeNull();
+        var userId = (await keycloak.AdminGetAsync($"users?username={KeycloakFixture.DisabledUser}&exact=true", Ct))[0].GetProperty("id").GetString()!;
+        (await OrganizationAliasesAsync(userId)).ShouldBeEmpty();
+        (await MessagesToAsync(email)).ShouldBeEmpty();
+        (await RefusedAuditFieldAsync(TestTenants.Acme.TenantId, email, "reason")).ShouldBe("account_disabled");
+    }
+
+    [Fact]
+    public async Task A_name_keycloak_refuses_is_reported_as_an_invalid_name()
+    {
+        await using var host = Host(services => services.AddHttpClient<KeycloakAdminClient>()
+            .AddHttpMessageHandler(() => new RefuseUserCreation()));
+        var email = Unique("refused");
+
+        Result<Invitation> result;
+        await using (var scope = host.ScopeFor(TestTenants.Acme))
+        {
+            result = await scope.ServiceProvider.GetRequiredService<IStaffService>()
+                .InviteAsync(email, "Refused Name", [TenantRoles.ContractsOfficer], Admin, Ct);
+        }
+
+        result.IsSuccess.ShouldBeFalse();
+        result.Error.Code.ShouldBe("identity.invalid_display_name");
+        (await MemberRows.FindByEmailAsync(db.AppConnectionString, TestTenants.Acme.TenantId, email, Ct)).ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task When_the_member_row_cannot_be_saved_the_new_organization_membership_is_removed()
+    {
+        var email = Unique("compensate");
+        await using var host = Host(FailMemberSaves);
+
+        Result<Invitation> result;
+        await using (var scope = host.ScopeFor(TestTenants.Acme))
+        {
+            result = await scope.ServiceProvider.GetRequiredService<IStaffService>()
+                .InviteAsync(email, "Never Saved", [TenantRoles.ContractsOfficer], Admin, Ct);
+        }
+
+        result.IsSuccess.ShouldBeFalse();
+        result.Error.Code.ShouldBe("identity.invitation_failed");
+        (await MemberRows.FindByEmailAsync(db.AppConnectionString, TestTenants.Acme.TenantId, email, Ct)).ShouldBeNull();
+        var users = await keycloak.AdminGetAsync($"users?email={Uri.EscapeDataString(email)}&exact=true", Ct);
+        users.GetArrayLength().ShouldBe(1);
+        var userId = users[0].GetProperty("id").GetString()!;
+        (await OrganizationAliasesAsync(userId)).ShouldBeEmpty("the membership added for this invitation is taken back");
+        (await MessagesToAsync(email)).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task When_the_member_row_cannot_be_saved_an_earlier_membership_is_kept()
+    {
+        var email = Unique("keep");
+        string userId;
+        await using (var host = Host())
+        await using (var scope = host.ScopeFor(TestTenants.Beta))
+        {
+            var first = await scope.ServiceProvider.GetRequiredService<IStaffService>()
+                .InviteAsync(email, "Kept Member", [TenantRoles.ContractsOfficer], Admin, Ct);
+            userId = first.Value.Member.UserId.ShouldNotBeNull();
+        }
+
+        await using (var failing = Host(FailMemberSaves))
+        await using (var scope = failing.ScopeFor(TestTenants.Acme))
+        {
+            var second = await scope.ServiceProvider.GetRequiredService<IStaffService>()
+                .InviteAsync(email, "Kept Member", [TenantRoles.ContractsOfficer], Admin, Ct);
+            second.IsSuccess.ShouldBeFalse();
+            second.Error.Code.ShouldBe("identity.invitation_failed");
+        }
+
+        (await OrganizationAliasesAsync(userId)).ShouldBe(["beta"]);
     }
 
     [Fact]
@@ -259,7 +391,8 @@ public sealed partial class StaffInvitationTests(DatabaseFixture db, KeycloakFix
         (await keycloak.AdminGetAsync($"attack-detection/brute-force/users/{userId}", Ct)).GetProperty("disabled").GetBoolean().ShouldBeTrue();
     }
 
-    private ModuleHost Host() => new(db.AppConnectionString, KeycloakAdminSettings(keycloak));
+    private ModuleHost Host(Action<IServiceCollection>? configure = null) =>
+        new(db.AppConnectionString, KeycloakAdminSettings(keycloak), configure: configure);
 
     internal static IConfiguration KeycloakAdminSettings(KeycloakFixture keycloak) => new ConfigurationBuilder()
         .AddInMemoryCollection(new Dictionary<string, string?>
@@ -267,6 +400,9 @@ public sealed partial class StaffInvitationTests(DatabaseFixture db, KeycloakFix
             ["KeycloakAdmin:BaseUrl"] = keycloak.BaseAddress,
             ["KeycloakAdmin:ClientSecret"] = KeycloakFixture.AdminApiSecret,
             ["KeycloakAdmin:TenantUrl"] = "https://{slug}.localhost:8443/",
+            ["Smtp:Host"] = keycloak.MailpitSmtp.Host,
+            ["Smtp:Port"] = keycloak.MailpitSmtp.Port.ToString(CultureInfo.InvariantCulture),
+            ["Smtp:From"] = "no-reply@waslabid.test",
         })
         .Build();
 
@@ -348,6 +484,52 @@ public sealed partial class StaffInvitationTests(DatabaseFixture db, KeycloakFix
         command.Parameters.AddWithValue("tenant", tenantId);
         command.Parameters.AddWithValue("user", userId);
         return Convert.ToInt32(await command.ExecuteScalarAsync(Ct), CultureInfo.InvariantCulture);
+    }
+
+    private async Task<string?> InvitedAuditFieldAsync(Guid tenantId, string userId, string field)
+    {
+        await using var connection = new Npgsql.NpgsqlConnection(db.OwnerConnectionString);
+        await connection.OpenAsync(Ct);
+        await using var command = new Npgsql.NpgsqlCommand(
+            "select data ->> @field from audit.events where tenant_id = @tenant and action = 'identity.member_invited' and subject_id = @user order by occurred_at desc limit 1",
+            connection);
+        command.Parameters.AddWithValue("field", field);
+        command.Parameters.AddWithValue("tenant", tenantId);
+        command.Parameters.AddWithValue("user", userId);
+        return await command.ExecuteScalarAsync(Ct) as string;
+    }
+
+    private async Task<string?> RefusedAuditFieldAsync(Guid tenantId, string email, string field)
+    {
+        await using var connection = new Npgsql.NpgsqlConnection(db.OwnerConnectionString);
+        await connection.OpenAsync(Ct);
+        await using var command = new Npgsql.NpgsqlCommand(
+            "select data ->> @field from audit.events where tenant_id = @tenant and action = 'identity.invitation_refused' and data ->> 'email' = @email order by occurred_at desc limit 1",
+            connection);
+        command.Parameters.AddWithValue("field", field);
+        command.Parameters.AddWithValue("tenant", tenantId);
+        command.Parameters.AddWithValue("email", email);
+        return await command.ExecuteScalarAsync(Ct) as string;
+    }
+
+    private static void FailMemberSaves(IServiceCollection services) =>
+        services.ConfigureDbContext<MembersDbContext>(o => o.AddInterceptors(new FailingSave()));
+
+    /// <summary>The member store failing on save: every SaveChanges of the members context throws.</summary>
+    private sealed class FailingSave : SaveChangesInterceptor
+    {
+        public override ValueTask<InterceptionResult<int>> SavingChangesAsync(
+            DbContextEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default) =>
+            throw new DbUpdateException("Simulated failure of the member store.");
+    }
+
+    /// <summary>Keycloak answering 400 to user creation, as its user profile does for a name it will not take.</summary>
+    private sealed class RefuseUserCreation : DelegatingHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            request.Method == HttpMethod.Post && request.RequestUri!.AbsolutePath.EndsWith("/users", StringComparison.Ordinal)
+                ? Task.FromResult(new HttpResponseMessage(HttpStatusCode.BadRequest))
+                : base.SendAsync(request, cancellationToken);
     }
 
     private static string Unique(string name) => $"{name}.{Guid.NewGuid():N}@invited.waslabid.test";

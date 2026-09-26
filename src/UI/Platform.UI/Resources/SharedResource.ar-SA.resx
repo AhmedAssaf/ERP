@@ -185,15 +185,14 @@
   <data name="Staff.NotAllowed" xml:space="preserve"><value>هذا الإجراء متاح لمدير المنشأة فقط.</value></data>
   <data name="Staff.Error.Email" xml:space="preserve"><value>أدخل البريد الإلكتروني للعمل، مثل name@company.com.</value></data>
   <data name="Staff.Error.Exists" xml:space="preserve"><value>هذا الشخص عضو في فريقك بالفعل.</value></data>
-  <data name="Staff.Error.Name" xml:space="preserve"><value>أدخل الاسم الكامل بما لا يزيد على 200 حرف.</value></data>
+  <data name="Staff.Error.Name" xml:space="preserve"><value>أدخل الاسم الكامل بما لا يزيد على 100 حرف، باستخدام الحروف والمسافات والفواصل العليا والشرطات والنقاط فقط.</value></data>
   <data name="Staff.Error.Roles" xml:space="preserve"><value>اختر دوراً واحداً على الأقل.</value></data>
   <data name="Staff.Error.LastAdmin" xml:space="preserve"><value>يجب أن يبقى في فريقك مدير منشأة نشط واحد على الأقل، لذلك لا يمكن إزالة دور المدير هذا.</value></data>
   <data name="Staff.Error.NotFound" xml:space="preserve"><value>لم يعد هذا الشخص عضواً في فريقك. أعد تحميل الصفحة.</value></data>
   <data name="Staff.Error.AlreadyActive" xml:space="preserve"><value>سجّل {0} الدخول بالفعل، لذلك لا توجد دعوة لإعادة إرسالها.</value></data>
-  <data name="Staff.Error.SetupComplete" xml:space="preserve"><value>عيّن {0} كلمة المرور وتطبيق المصادقة بالفعل ويمكنه تسجيل الدخول الآن.</value></data>
+  <data name="Staff.Error.CannotInvite" xml:space="preserve"><value>لا يمكن دعوة هذا الشخص. تواصل مع الدعم.</value></data>
   <data name="Staff.Error.Generic" xml:space="preserve"><value>تعذّر إتمام العملية. حاول مرة أخرى بعد قليل.</value></data>
   <data name="Staff.Invited" xml:space="preserve"><value>أُرسلت الدعوة إلى {0}</value></data>
-  <data name="Staff.AddedExisting" xml:space="preserve"><value>أُضيف {0}. لديه حساب بالفعل ويمكنه تسجيل الدخول الآن.</value></data>
   <data name="Staff.EmailFailed" xml:space="preserve"><value>أُضيف {0} لكن لم يُرسل بريد الدعوة. استخدم إعادة إرسال الدعوة.</value></data>
   <data name="Staff.RolesSaved" xml:space="preserve"><value>حُفظت أدوار {0}</value></data>
   <data name="Staff.Resent" xml:space="preserve"><value>أُعيد إرسال الدعوة إلى {0}</value></data>

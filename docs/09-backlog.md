@@ -19,7 +19,7 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 
 | Epic | Stories | P0 | P1 | P2 |
 |---|---|---|---|---|
-| E0 Platform foundation | W-01 to W-12, W-19 to W-28 | 13 | 8 | 1 |
+| E0 Platform foundation | W-01 to W-12, W-19 to W-30 | 14 | 9 | 1 |
 | E1 Tenancy and branding | F-01 to F-05, F-01b | 4 | 2 | 0 |
 | E2 Identity, users, roles | F-06 to F-10, F-06b | 2 | 2 | 2 |
 | E3 Vendor registration | F-11 to F-14, F-12b, F-14a | 3 | 1 | 2 |
@@ -33,7 +33,7 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 | E11 Pilot and market | W-13 to W-18 | 6 | 0 | 0 |
 | E12 Platform operations console | F-51 to F-54, F-60 | 3 | 2 | 0 |
 
-## E0 Platform foundation (W-01 to W-12, W-19 to W-28)
+## E0 Platform foundation (W-01 to W-12, W-19 to W-30)
 
 | ID | Story | Pri | Size | Status | Depends on |
 |---|---|---|---|---|---|
@@ -59,6 +59,8 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 | W-26 | Move the waslabid-tests client into a test-only realm import used by Testcontainers | P1 | S | Backlog | W-04 |
 | W-27 | Throttle repeated identity.cross_tenant_denied audit rows per user and host | P2 | S | Done | F-41 |
 | W-28 | Keycloak admin and login events (lockout, login failure) copied into the tenant's audit | P1 | S | Backlog | F-41 |
+| W-29 | Register each tenant's home URL (and custom domain) on the Keycloak web client during tenant setup, so invitations can return there | P0 | S | Backlog | F-01 |
+| W-30 | Invitation and account emails in the tenant's brand (Keycloak email theme per organization) | P1 | M | Backlog | F-02 |
 
 Acceptance criteria:
 
@@ -78,6 +80,8 @@ Acceptance criteria:
 - **W-21.** Given a signed-in acme user, when their organization membership is removed in Keycloak, then within 5 minutes their next HTTP request is challenged and their open Blazor circuit is closed or shows the sign-in page; given the removal, then an audit row names the user and the tenant. Until W-21 lands, the login cookie has a fixed 30-minute lifetime.
 - **W-22.** Given sample offers with known text (Arabic and English DOCX, a Word-exported PDF, and a scanned image PDF), when each converter runs, then a score table records per file and tool the character accuracy against the source text, whether Arabic comes out reversed, whether page markers are kept, and the time taken; given two or three real Arabic offers from a prospect, when converted, then a human reads the Markdown and records whether an evaluator could work from it; the result names one converter for option (e) or states that none is good enough.
 - **W-12.** Given a nightly backup, when the restore script runs against an empty environment, then the platform starts and a chosen tender's files and rows are present with matching hashes.
+- **W-29.** Given a new tenant set up by the provisioning script (F-01), when it runs, then the tenant's home URL, and its custom domain once verified (F-03), is a registered redirect URI of `waslabid-web`, and an invitation to that tenant returns to its home after setup; given the tenant is removed, then its URIs are removed.
+- **W-30.** Given a tenant with a logo, colour and portal name (F-02), when Keycloak sends that tenant's invitation or password email, or the app sends its invitation notice, then the email shows the tenant's name, logo and colour and not WaslaBid's, in Arabic and English.
 
 ## E1 Tenancy and branding (F-01 to F-05)
 
@@ -100,7 +104,7 @@ Acceptance criteria:
 
 | ID | Story | Pri | Size | Status | Depends on |
 |---|---|---|---|---|---|
-| F-06 | Staff accounts: invite by email, password plus TOTP | P0 | M | Done 2026-09-27 as narrowed; lockout auditing is W-28 | W-04 |
+| F-06 | Staff accounts: invite by email, password plus TOTP | P0 | M | Done 2026-09-26 as narrowed; lockout auditing is W-28 | W-04 |
 | F-06b | Tenant SSO through Entra ID or any OIDC provider | P2 | M | Backlog | F-06 |
 | F-07 | Roles: tenant admin, contracts officer, technical evaluator, finance approver (MVP), auditor (P1) | P0 | S | Done | F-06 |
 | F-08 | Per-tender committee assignment onto snapshot steps | P1 | M | Backlog | F-07, F-56 |
@@ -108,7 +112,7 @@ Acceptance criteria:
 | F-10 | One vendor account across all tenants with per-tenant approval | P2 | L | Backlog | F-11 |
 
 - **F-06.** Given an invitation, when the invitee sets a password and enrols TOTP, then they can log in; when they enter a wrong TOTP three times, then the account locks for fifteen minutes and the event is audited.
-  MVP narrowing (docs/05 row 3, spec D-4, D-5 and 4.2): a tenant admin invites on `/admin/staff` (email, name, roles), changes roles and resends; the app calls the Keycloak Admin API as `waslabid-admin-api`, which creates or finds the user, adds them to the tenant's organization and has Keycloak email the set-password and TOTP link (72 hours, returning to the tenant's host); the member row is `invited` until the first sign-in. TOTP is required at every tenant login (realm browser flow), and brute-force detection locks the account for fifteen minutes after three failures. No SSO (F-06b). Evidence: `An_invitee_sets_a_password_and_totp_from_the_email_then_signs_in_and_becomes_active`, `Inviting_creates_the_user_adds_them_to_the_organization_and_emails_them`, `Inviting_an_existing_user_adds_membership_without_a_duplicate_user`, `Three_wrong_totp_codes_lock_the_account`, `A_non_admin_cannot_open_the_staff_page`. "The event is audited" is not met yet: the lockout happens inside Keycloak and reaches the tenant's audit with W-28; invitations, resends and role changes are audited (`identity.member_invited`, `identity.invitation_resent`, `identity.roles_changed`).
+  MVP narrowing (docs/05 row 3, spec D-4, D-5 and 4.2): a tenant admin invites on `/admin/staff` (email, name, roles), changes roles and resends; the app calls the Keycloak Admin API as `waslabid-admin-api`, which creates or finds the user, adds them to the tenant's organization and has Keycloak email the set-password and TOTP link (72 hours, returning to the tenant's host); the member row is `invited` until the first sign-in. TOTP is required at every tenant login (realm browser flow), and brute-force detection locks the account for fifteen minutes after three failures. No SSO (F-06b). An account that needs no setup still gets an email: a short notice in Arabic and English from our own SMTP sender ("{inviter} added you to {portal} on WaslaBid as {roles}. Sign in at {tenant home}..."), and the page shows the same "Invitation sent to {email}" either way, so it cannot be used to learn who has an account (the difference is only in the audit entry, `existing_account`). A disabled account is refused with a neutral message (`identity.account_disabled`, audited as `identity.invitation_refused`). Names are 1 to 100 letters, marks, spaces, apostrophes, hyphens and periods; bidi-override and zero-width characters are refused. When the member row cannot be saved, the organization membership the invitation added is removed again. Evidence: `An_invitee_sets_a_password_and_totp_from_the_email_then_signs_in_and_becomes_active`, `Inviting_creates_the_user_adds_them_to_the_organization_and_emails_them`, `Inviting_an_existing_user_adds_membership_without_a_duplicate_user`, `Inviting_an_existing_set_up_account_emails_them_one_notice_and_answers_as_for_a_new_account`, `Inviting_a_disabled_account_is_refused_audited_and_adds_nothing`, `When_the_member_row_cannot_be_saved_the_new_organization_membership_is_removed`, `Invite_change_roles_and_resend_run_through_the_page`, `An_admin_demoted_while_the_page_is_open_is_refused_every_action`, `Three_wrong_totp_codes_lock_the_account`, `A_non_admin_cannot_open_the_staff_page`. Tenant home URLs on the web client are registered by hand for the seeded tenants until W-29; the emails carry the tenant's brand with W-30. "The event is audited" is not met yet: the lockout happens inside Keycloak and reaches the tenant's audit with W-28; invitations, resends and role changes are audited (`identity.member_invited`, `identity.invitation_resent`, `identity.roles_changed`).
 - **F-07.** Given a user with only the technical evaluator role, when they open a tender's financial comparison, then they receive 403 and the attempt is audited.
   MVP narrowing (docs/05 row 4, spec 4.1): the four MVP roles live in `identity.members` per tenant with policies `TenantAdmin`, `ContractsOfficer`, `TechnicalEvaluator`, `FinanceApprover`; no Auditor role. Evidence: `A_user_without_the_role_gets_403_and_one_audit_row` (an evaluator on an admin-only endpoint), `Each_tenant_policy_admits_its_role_only`, `A_member_gets_role_claims_for_the_host_tenant_only`, `Repeated_denials_within_a_minute_write_one_audit_row`, `The_last_tenant_admin_cannot_drop_their_admin_role`. The financial comparison page itself arrives with its slice (F-31) and uses the `FinanceApprover` policy. Inviting staff and changing roles on a page is F-06 (plan task 9).
 - **F-08.** Given a committee of named evaluators, when a staff member outside it opens the tender's offers, then they see nothing; when an evaluator is removed, then their draft scores stay but they lose access.

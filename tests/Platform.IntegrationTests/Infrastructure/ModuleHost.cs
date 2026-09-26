@@ -15,13 +15,18 @@ namespace Platform.IntegrationTests.Infrastructure;
 /// <paramref name="keycloakAdmin"/> (settings <c>KeycloakAdmin:*</c>) the Keycloak Admin API client and the staff service
 /// are wired too, as the web host wires them. With <paramref name="clock"/> every module reads that time instead of the system's.
 /// With <paramref name="objectStorage"/> (settings <c>ObjectStorage:*</c>) object storage is configured, as the web host does.
+/// <paramref name="configure"/> runs last, for a test's own doubles and interceptors.
 /// </summary>
 internal sealed class ModuleHost : IAsyncDisposable
 {
     private readonly ServiceProvider _root;
 
     public ModuleHost(
-        string appConnectionString, IConfiguration? keycloakAdmin = null, TimeProvider? clock = null, IConfiguration? objectStorage = null)
+        string appConnectionString,
+        IConfiguration? keycloakAdmin = null,
+        TimeProvider? clock = null,
+        IConfiguration? objectStorage = null,
+        Action<IServiceCollection>? configure = null)
     {
         var services = new ServiceCollection();
         services.AddLogging();
@@ -45,6 +50,8 @@ internal sealed class ModuleHost : IAsyncDisposable
         {
             services.AddObjectStorage(objectStorage);
         }
+
+        configure?.Invoke(services);
 
         _root = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });
     }

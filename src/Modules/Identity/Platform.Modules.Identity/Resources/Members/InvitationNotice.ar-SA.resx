@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Subject" xml:space="preserve"><value>أُضفت إلى {0} على WaslaBid</value></data>
+  <data name="Body" xml:space="preserve"><value>أضافك {0} إلى {1} على WaslaBid بصفة {2}. سجّل الدخول من {3}. إذا لم تكن تتوقع هذا، فتجاهل هذه الرسالة وأبلغ {1}.</value></data>
+  <data name="SomeAdministrator" xml:space="preserve"><value>أحد المديرين</value></data>
+  <data name="RoleSeparator" xml:space="preserve"><value>، </value></data>
+  <data name="Role.tenant-admin" xml:space="preserve"><value>مدير المنشأة</value></data>
+  <data name="Role.contracts-officer" xml:space="preserve"><value>موظف العقود</value></data>
+  <data name="Role.technical-evaluator" xml:space="preserve"><value>المقيّم الفني</value></data>
+  <data name="Role.finance-approver" xml:space="preserve"><value>معتمد المالية</value></data>
+</root>

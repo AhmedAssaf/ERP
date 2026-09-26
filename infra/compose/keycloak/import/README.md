@@ -27,12 +27,17 @@ when it does not exist yet; after editing this file, delete the realm in the adm
 `manage-realm` is broader than the task needs: it also lets the service account change realm settings (flows, brute
 force, SMTP). There is no narrower role for organizations in 26.3 (fine-grained admin permissions v2 cover users,
 clients, groups and roles, not organizations). The secret is therefore a production secret like the web client's;
-revisit when Keycloak adds an organization-scoped role.
+revisit when Keycloak adds an organization-scoped role. **Known risk, awaiting the user's decision:** `manage-realm` on
+the Admin API account means a leaked `WASLABID_ADMIN_API_SECRET` can change the whole tenant realm, not only its users
+and organizations. The options are to accept it for the pilot, to move organization calls to a separate, more tightly
+held account, or to wait for a narrower Keycloak role; until the user decides, the grant stays as it is.
 
 An invitation creates the user (username and email = the invited address, email not yet verified, `locale` from the
 tenant's default culture) or finds the existing one, adds them to the tenant's organization, and sends the setup link
 for whatever the account still lacks (`UPDATE_PASSWORD` without a password, `CONFIGURE_TOTP` without an OTP
-credential). Keycloak's organization search matches names and domains, not aliases, so the client lists organizations
+credential). An account that lacks nothing gets no Keycloak email; the app sends its own short notice in Arabic and
+English through `Smtp:*` (Mailpit in Development), so nobody is added to a tenant without being told. A disabled
+account is refused. Keycloak's organization search matches names and domains, not aliases, so the client lists organizations
 and caches their ids by alias.
 
 Proven by `tests/Platform.IntegrationTests/Identity/StaffInvitationTests.cs` against a test copy of this file (the

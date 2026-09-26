@@ -1,12 +1,15 @@
-using MailKit.Net.Smtp;
-using MailKit.Security;
-using MimeKit;
+using Platform.Shared.Email;
 
 namespace Platform.Modules.Operations.Alerts;
 
-/// <summary>D-13: MailKit over the obsolete <c>System.Net.Mail.SmtpClient</c>.</summary>
+/// <summary>
+/// Platform alerts (F-60) through the shared MailKit sender (D-13) to <c>Platform:AlertRecipients</c>, from
+/// <c>Smtp:From</c> on <c>Smtp:Host</c>/<c>Smtp:Port</c>.
+/// </summary>
 internal sealed class MailKitAlertSender(AlertSettings settings) : IAlertSender
 {
+    private readonly MailKitEmailSender _email = new(new EmailSettings(settings.SmtpHost, settings.SmtpPort, settings.From));
+
     public async Task SendAsync(AlertMessage message, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(message);
@@ -17,19 +20,6 @@ internal sealed class MailKitAlertSender(AlertSettings settings) : IAlertSender
             return;
         }
 
-        var mime = new MimeMessage();
-        mime.From.Add(MailboxAddress.Parse(settings.From));
-        foreach (var recipient in settings.Recipients)
-        {
-            mime.To.Add(MailboxAddress.Parse(recipient));
-        }
-
-        mime.Subject = message.Subject;
-        mime.Body = new TextPart("plain") { Text = message.Body };
-
-        using var client = new SmtpClient();
-        await client.ConnectAsync(settings.SmtpHost, settings.SmtpPort, SecureSocketOptions.Auto, cancellationToken);
-        await client.SendAsync(mime, cancellationToken);
-        await client.DisconnectAsync(true, cancellationToken);
+        await _email.SendAsync(new EmailMessage(settings.Recipients, message.Subject, message.Body), cancellationToken);
     }
 }

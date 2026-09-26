@@ -8,6 +8,7 @@ using Npgsql;
 using Platform.Modules.Identity.Contracts;
 using Platform.Modules.Identity.Keycloak;
 using Platform.Modules.Identity.Members;
+using Platform.Shared;
 using Platform.Shared.Data;
 
 namespace Platform.Modules.Identity;
@@ -92,6 +93,11 @@ public static class IdentityModule
             http.Timeout = TimeSpan.FromSeconds(15);
         });
         services.Replace(ServiceDescriptor.Singleton<IOrganizationMemberSource, KeycloakOrganizationMemberSource>());
+        // The notice to an invited person whose account needs no setup goes out through our own SMTP sender (Smtp:*),
+        // in both languages from this module's resources.
+        services.AddEmail(configuration);
+        services.AddLocalization(o => o.ResourcesPath = "Resources");
+        services.TryAddSingleton<InvitationNotice>();
         services.AddScoped<IStaffService, StaffService>();
         return services;
     }

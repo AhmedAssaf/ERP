@@ -2,24 +2,25 @@ using Platform.Shared.Results;
 
 namespace Platform.Modules.Identity.Contracts;
 
-/// <summary>What happened to the invitation email Keycloak sends (spec D-4).</summary>
+/// <summary>What happened to the invitation email (spec D-4).</summary>
 public enum InvitationEmail
 {
-    /// <summary>Keycloak accepted the email with the set-password and TOTP enrolment link (72 hours).</summary>
+    /// <summary>
+    /// The person was emailed: the set-password and TOTP enrolment link (72 hours) when the account needs setup, or a
+    /// short notice that the tenant added them when it does not. The page cannot tell the two apart (no account oracle).
+    /// </summary>
     Sent,
 
-    /// <summary>The account already has a password and a TOTP credential, so there is nothing to set up.</summary>
-    NotNeeded,
-
-    /// <summary>The member was saved but Keycloak did not send the email; the admin can resend it.</summary>
+    /// <summary>The member was saved but the email was not sent; the admin can resend it.</summary>
     Failed,
 }
 
 /// <summary>
-/// The outcome of an invitation or a resend: the member as saved, what happened to the email, and whether the Keycloak
-/// account existed before (the person is staff of another tenant or was invited earlier).
+/// The outcome of an invitation or a resend: the member as saved and what happened to the email. Whether the account
+/// existed before is deliberately not part of it: another tenant's staff must not be discoverable by inviting them
+/// (it is kept in the audit entry as <c>existing_account</c>).
 /// </summary>
-public sealed record Invitation(Member Member, InvitationEmail Email, bool ExistingAccount);
+public sealed record Invitation(Member Member, InvitationEmail Email);
 
 /// <summary>
 /// Staff administration for the current tenant (F-06 as narrowed by docs/05 row 3, spec D-4 and 4.2). Keycloak holds the
@@ -33,17 +34,20 @@ public interface IStaffService
 
     /// <summary>
     /// Finds the Keycloak user by email or creates one, adds them to the tenant's organization, saves an invited member
-    /// row with <paramref name="roles"/>, and has Keycloak email the setup link (password and TOTP, whichever the account
-    /// lacks) that returns to the tenant's host. Audited as <c>identity.member_invited</c>. Refused when the email is
-    /// already a member of the tenant (<c>identity.member_exists</c>), when no role or an unknown role is given, or when
-    /// the email or name is not valid.
+    /// row with <paramref name="roles"/>, and emails the person: Keycloak's setup link (password and TOTP, whichever the
+    /// account lacks) that returns to the tenant's host, or, for an account with nothing to set up, a short notice in both
+    /// languages that the tenant added them. Both answer the same. Audited as <c>identity.member_invited</c>. Refused when
+    /// the email is already a member of the tenant (<c>identity.member_exists</c>), when the account cannot be invited
+    /// (<c>identity.account_disabled</c>, audited as <c>identity.invitation_refused</c>), when no role or an unknown role
+    /// is given, or when the email or name is not valid. When the member row cannot be saved, the organization
+    /// membership this call added is removed again and <c>identity.invitation_failed</c> is returned.
     /// </summary>
     Task<Result<Invitation>> InviteAsync(
         string email, string displayName, IReadOnlyCollection<string> roles, string actorId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Sends the setup link again to a member who has not signed in yet; audited as <c>identity.invitation_resent</c>.
-    /// Refused for an active member and for an account that has nothing left to set up.
+    /// Emails a member who has not signed in yet again, as <see cref="InviteAsync"/> does (the setup link, or the notice
+    /// for an account with nothing to set up); audited as <c>identity.invitation_resent</c>. Refused for an active member.
     /// </summary>
     Task<Result<Invitation>> ResendAsync(string userId, string actorId, CancellationToken cancellationToken = default);
 

@@ -114,7 +114,10 @@ internal sealed class KeycloakAdminClient(HttpClient http, KeycloakAdminState st
         return users?.FirstOrDefault(u => string.Equals(u.Email, email, StringComparison.OrdinalIgnoreCase));
     }
 
-    /// <summary>Creates an enabled user with an unverified email and returns its id (the <c>sub</c> of its tokens).</summary>
+    /// <summary>
+    /// Creates an enabled user with an unverified email and returns its id (the <c>sub</c> of its tokens). Keycloak answers
+    /// 400 when its user profile refuses a value (a name, say); the exception then carries that status.
+    /// </summary>
     public async Task<string> CreateUserAsync(NewKeycloakUser user, CancellationToken cancellationToken)
     {
         var body = new
@@ -136,15 +139,35 @@ internal sealed class KeycloakAdminClient(HttpClient http, KeycloakAdminState st
         return location.Segments[^1].TrimEnd('/');
     }
 
-    /// <summary>Adds the user to the organization with <paramref name="alias"/>; a user already in it is left as is.</summary>
-    public async Task AddToOrganizationAsync(string alias, string userId, CancellationToken cancellationToken)
+    /// <summary>
+    /// Adds the user to the organization with <paramref name="alias"/>. True when this call added them; false when they
+    /// were already a member (Keycloak answers 409), in which case nothing changes.
+    /// </summary>
+    public async Task<bool> AddToOrganizationAsync(string alias, string userId, CancellationToken cancellationToken)
     {
         var organizationId = await OrganizationIdAsync(alias, cancellationToken)
             ?? throw new KeycloakAdminException($"Keycloak has no organization '{alias}'.");
         using var response = await SendAsync(HttpMethod.Post, $"{Realm}/organizations/{organizationId}/members", userId, cancellationToken);
-        if (response.StatusCode is not (HttpStatusCode.Created or HttpStatusCode.NoContent or HttpStatusCode.Conflict))
+        return response.StatusCode switch
         {
-            throw new KeycloakAdminException($"Keycloak did not add the user to organization '{alias}' ({(int)response.StatusCode}).", response.StatusCode);
+            HttpStatusCode.Created or HttpStatusCode.NoContent => true,
+            HttpStatusCode.Conflict => false,
+            _ => throw new KeycloakAdminException(
+                $"Keycloak did not add the user to organization '{alias}' ({(int)response.StatusCode}).", response.StatusCode),
+        };
+    }
+
+    /// <summary>Removes the user from the organization with <paramref name="alias"/>; a user not in it is left as is.</summary>
+    public async Task RemoveFromOrganizationAsync(string alias, string userId, CancellationToken cancellationToken)
+    {
+        var organizationId = await OrganizationIdAsync(alias, cancellationToken)
+            ?? throw new KeycloakAdminException($"Keycloak has no organization '{alias}'.");
+        using var response = await SendAsync(
+            HttpMethod.Delete, $"{Realm}/organizations/{organizationId}/members/{Uri.EscapeDataString(userId)}", null, cancellationToken);
+        if (response.StatusCode is not (HttpStatusCode.NoContent or HttpStatusCode.OK or HttpStatusCode.NotFound))
+        {
+            throw new KeycloakAdminException(
+                $"Keycloak did not remove the user from organization '{alias}' ({(int)response.StatusCode}).", response.StatusCode);
         }
     }
 

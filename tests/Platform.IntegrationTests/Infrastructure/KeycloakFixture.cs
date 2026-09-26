@@ -32,6 +32,12 @@ public sealed class KeycloakFixture : IAsyncLifetime
     /// <summary>An acme user with its own OTP credential, which the lockout test locks.</summary>
     public const string LockoutUser = "acme.lockout";
 
+    /// <summary>A user in no organization with a password and a TOTP credential: an account that needs no setup.</summary>
+    public const string ReadyUser = "ready.person";
+
+    /// <summary>A disabled user in no organization.</summary>
+    public const string DisabledUser = "disabled.person";
+
     // Keycloak's TOTP key is the UTF-8 bytes of the stored secret value, not its base32 decoding.
     private const string OtpSecret = "waslabid-test-otp-secret-0002";
 
@@ -52,6 +58,12 @@ public sealed class KeycloakFixture : IAsyncLifetime
     /// <summary>Mailpit's HTTP API, where the mail Keycloak sent can be read.</summary>
     public Uri MailpitApi => new($"http://{Mailpit.Hostname}:{Mailpit.GetMappedPublicPort(8025)}");
 
+    /// <summary>Mailpit's SMTP endpoint from the host, where the app's own emails (<c>Smtp:*</c>) go in tests.</summary>
+    public (string Host, int Port) MailpitSmtp => (Mailpit.Hostname, Mailpit.GetMappedPublicPort(1025));
+
+    /// <summary>The email address of a user this fixture adds (<see cref="ReadyUser"/>, <see cref="DisabledUser"/>).</summary>
+    public static string EmailOf(string username) => $"{username}@acme.waslabid.test";
+
     public async ValueTask InitializeAsync()
     {
         Directory.CreateDirectory(_variantDirectory);
@@ -63,6 +75,7 @@ public sealed class KeycloakFixture : IAsyncLifetime
             .WithNetwork(_network)
             .WithNetworkAliases("mailpit")
             .WithPortBinding(8025, assignRandomHostPort: true)
+            .WithPortBinding(1025, assignRandomHostPort: true)
             .WithWaitStrategy(Wait.ForUnixContainer().UntilInternalTcpPortIsAvailable(8025))
             .Build();
         _keycloak = new KeycloakBuilder("quay.io/keycloak/keycloak:26.3")
@@ -150,12 +163,12 @@ public sealed class KeycloakFixture : IAsyncLifetime
             admin!.AsObject().Remove("requiredActions");
         }
 
-        foreach (var username in new[] { OtpUser, LockoutUser })
+        foreach (var username in new[] { OtpUser, LockoutUser, ReadyUser, DisabledUser })
         {
             users.Add(new JsonObject
             {
                 ["username"] = username,
-                ["enabled"] = true,
+                ["enabled"] = username != DisabledUser,
                 ["email"] = $"{username}@acme.waslabid.test",
                 ["emailVerified"] = true,
                 ["firstName"] = "Acme",
