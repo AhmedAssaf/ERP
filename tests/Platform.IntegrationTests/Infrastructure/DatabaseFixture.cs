@@ -27,6 +27,7 @@ public sealed class DatabaseFixture : IAsyncLifetime
         await _container.StartAsync();
         await WaitForAppRoleAsync();
         await MigrationRunner.RunAsync(OwnerConnectionString);
+        await DevSeed.SeedTenantsAsync(OwnerConnectionString);
     }
 
     public ValueTask DisposeAsync() => _container.DisposeAsync();
