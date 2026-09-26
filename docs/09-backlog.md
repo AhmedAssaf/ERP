@@ -23,7 +23,7 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 | E1 Tenancy and branding | F-01 to F-05, F-01b | 5 | 1 | 0 |
 | E2 Identity, users, roles | F-06 to F-10, F-06b | 2 | 2 | 2 |
 | E3 Vendor registration | F-11 to F-14, F-12b, F-14a | 3 | 1 | 2 |
-| E4 Tender authoring | F-15 to F-21, F-55, F-19b, F-59 | 6 | 2 | 2 |
+| E4 Tender authoring | F-15 to F-21, F-55, F-19b, F-59, F-62 | 6 | 2 | 3 |
 | E5 Offer submission | F-22 to F-26 | 3 | 2 | 0 |
 | E6 Evaluation chain | F-27 to F-34, F-56, F-56b, F-57, F-58 | 7 | 5 | 0 |
 | E7 Award and PO | F-35 to F-37, F-36b | 1 | 2 | 1 |
@@ -151,6 +151,7 @@ Acceptance criteria:
 | F-20 | Amendments with versioning and notification | P1 | M | Backlog | F-16, F-38 |
 | F-21 | Clarifications (MVP: public answers to all invited) | P0 | M | Backlog | F-19 |
 | F-55 | Tender invitation by email with registration continuation and access to the tender | P0 | M | Backlog | F-11, F-14a, F-19, F-38 |
+| F-62 | Cross-tenant opportunities directory: opt-in listing of Open tenders across tenants, vendor asks to join, buyer approves (ADR-0007) | P2 | L | Gated: starts at 10 tenants publishing open tenders and 500 registered vendors | F-19b, F-10, F-55, F-59 |
 
 - **F-15.** Given the MVP, when an officer creates a tender, then the only type offered is the sealed two-envelope Tender and its stages are Draft, Published, Clarification, Closed, Compliance screening, Technical evaluation, Technical locked, Financial opening, Financial evaluation, Finance approval, Awarded, Cancelled; given the P2 follow-up, when RFQ is chosen, then the technical stages are skipped and the financial stages run directly after Closed.
 - **F-16.** Given a draft tender, when the officer publishes without a submission deadline in the future, then publishing is refused with a specific message; when BoQ lines have a unit and quantity, then the vendor wizard prices exactly those lines.
@@ -161,6 +162,7 @@ Acceptance criteria:
 - **F-20.** Given a published tender, when the officer changes the scope attachment, then version 2 is created, all invited vendors are notified within one minute, and version 1 stays readable.
 - **F-55.** Given an invitation sent to an unregistered email, when the recipient opens the link, then they see the tender title and the inviting company's brand and are taken into registration with the email pre-filled; when they complete registration, then they land on the tender with access and the officer's list shows them as registered; given they stop halfway, when they reopen the same link a day later, then registration resumes where it stopped. Given an already registered vendor, when they open the link, then after login they land on the tender directly. Given the link is opened after the submission deadline, then it shows an expired message in the vendor's language. Given the link is used with a different email than the one invited, then access is refused and the officer is notified. Given the officer's tender page, then each invitee shows sent, opened, registered, or submitted with timestamps.
 - **F-21.** Given a vendor question before the clarification deadline, when the officer publishes an answer, then every invited vendor sees it without the asker's identity; when a question arrives after the deadline, then it is refused.
+- **F-62.** Given two tenants with Open tenders, one opted in and one not, when a registered vendor opens the directory, then only the opted-in tender is listed, with no offer, participant, or score data; when the vendor asks to join and the buyer approves, then the vendor lands on the tender through the F-55 flow, and a refusal shows its reason; both decisions are in the tenant audit log.
 
 ## E5 Offer submission (F-22 to F-26)
 
