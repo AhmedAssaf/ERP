@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+  <PropertyGroup>
+    <UserSecretsId>waslabid-worker</UserSecretsId>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Platform.Shared\Platform.Shared.csproj" />
+    <ProjectReference Include="..\Modules\Audit\Platform.Modules.Audit\Platform.Modules.Audit.csproj" />
+    <ProjectReference Include="..\Modules\Tenancy\Platform.Modules.Tenancy\Platform.Modules.Tenancy.csproj" />
+    <ProjectReference Include="..\Modules\Workflow\Platform.Modules.Workflow\Platform.Modules.Workflow.csproj" />
+  </ItemGroup>
+</Project>

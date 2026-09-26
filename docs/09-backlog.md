@@ -44,7 +44,7 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 | W-05 | Tailwind build: standalone CLI in MSBuild, `@theme` tokens, fonts self-hosted, physical-utility lint | P0 | S | Done | W-02 |
 | W-06 | `Platform.UI` components for the MVP (document 08 section 6) with the gallery page in both directions | P0 | L | Backlog | W-05 |
 | W-07 | Localisation: `IStringLocalizer` setup, `ar-SA` and `en-US` resources, culture switch, `dir` on `<html>` | P0 | S | Done | W-02 |
-| W-08 | Hangfire with PostgreSQL storage, dashboard behind admin role, deadline job skeleton; worker client in the Keycloak realm (moved from W-04) | P0 | S | Backlog | W-02, W-03 |
+| W-08 | Hangfire with PostgreSQL storage, dashboard behind admin role, deadline job skeleton; worker client in the Keycloak realm (moved from W-04) | P0 | S | Done 2026-09-27 except the dashboard, which the platform console mounts behind the platform policy (admin plan Task 7); not yet built: the deadline job skeleton (waits for the Tenders module, F-24) and the worker client in the Keycloak realm (waits for the first job that calls Keycloak) | W-02, W-03 |
 | W-09 | CI workflow: build, test with Testcontainers, format, Trivy, lint, Mermaid render check for docs | P0 | M | Backlog | W-02 |
 | W-10 | Observability: OpenTelemetry, Serilog, health endpoints, Sentry | P1 | S | Backlog | W-02 |
 | W-11 | Production Caddyfile with on-demand TLS and the tenant allow endpoint; Kubernetes manifests | P1 | M | Backlog | F-03 |

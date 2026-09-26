@@ -3,6 +3,7 @@
     <Project Path="src/Platform.Migrator/Platform.Migrator.csproj" />
     <Project Path="src/Platform.Shared/Platform.Shared.csproj" />
     <Project Path="src/Platform.Web/Platform.Web.csproj" />
+    <Project Path="src/Platform.Worker/Platform.Worker.csproj" />
   </Folder>
   <Folder Name="/src/Modules/" />
   <Folder Name="/src/Modules/Audit/">

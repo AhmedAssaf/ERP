@@ -93,6 +93,7 @@ APP_DB="Host=localhost;Port=5432;Database=platform;Username=erp_app;Password=erp
 dotnet user-secrets set "ConnectionStrings:Owner" "Host=localhost;Port=5432;Database=platform;Username=erp;Password=$PGPW" --project src/Platform.Migrator > /dev/null
 dotnet user-secrets set "ConnectionStrings:Platform" "$APP_DB" --project src/Platform.Migrator > /dev/null
 dotnet user-secrets set "ConnectionStrings:Platform" "$APP_DB" --project src/Platform.Web > /dev/null
+dotnet user-secrets set "ConnectionStrings:Platform" "$APP_DB" --project src/Platform.Worker > /dev/null
 dotnet user-secrets set "Oidc:ClientSecret" "$WEB_SECRET" --project src/Platform.Web > /dev/null
 unset PGPW WEB_SECRET
 ```
@@ -102,6 +103,12 @@ Then migrate, seed the development tenants `acme` and `beta`, and start the app:
 ```bash
 dotnet run --project src/Platform.Migrator -- --seed-dev
 dotnet run --project src/Platform.Web
+```
+
+Background jobs run in a second process, the worker (W-08, Hangfire on PostgreSQL). Start it in another terminal; it opens no port and connects as `erp_app` through its own user secret `ConnectionStrings:Platform` (set above). On first start it creates its tables in schema `hangfire`, which migration `platform/0003_hangfire_schema.sql` prepares for it. The web host only enqueues; jobs wait in the database until a worker runs.
+
+```bash
+dotnet run --project src/Platform.Worker
 ```
 
 Open `https://acme.localhost:8443` (or the port in `CADDY_HTTPS_PORT`). Login only works through Caddy: it terminates TLS, which the OIDC correlation cookies need, and forwards the host with its port so the redirect URI is right. Plain `http://localhost:5273` cannot complete an OIDC login. Keycloak answers on `http://localhost:8080`; sign in as `acme.admin` or `beta.admin` with `WASLABID_DEV_USER_PASSWORD` from `.env`.
