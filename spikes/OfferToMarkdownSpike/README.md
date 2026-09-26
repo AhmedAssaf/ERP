@@ -111,4 +111,20 @@ Scores are against the answer key as corrected for the shortfall decision below.
 
 The malformed file shows why the product must use schema-enforced structured output rather than parse free text.
 
-**Decision 2026-09-26: a shortfall against a minimum is `partial`.** Fewer days, staff, years, or references than required is partial; none at all is not met; exceeding a maximum (a deadline, a response time) stays not met. Recorded in `prompts/offer-review-v3.md`; the one answer-key row that contradicted it (T2 V2 T-01, 32 of 40 workers) is now partial. Prompt v3 has not been run yet.
+**Decision 2026-09-26: a shortfall against a minimum is `partial`.** Fewer days, staff, years, or references than required is partial; none at all is not met; exceeding a maximum (a deadline, a response time) stays not met. Recorded in `prompts/offer-review-v3.md`; the one answer-key row that contradicted it (T2 V2 T-01, 32 of 40 workers) is now partial. 
+### Prompt version 3 run
+
+| Measure | v1 | v2 | v3 |
+|---|---|---|---|
+| Exact agreement, all | 75/123 (61%) | 88/123 (72%) | 94/123 (76%) |
+| DOCX and Word PDF | 63/82 (77%) | 72/82 (88%) | 73/82 (89%) |
+| Scanned PDF | 12/41 (29%) | 16/41 (39%) | 21/41 (51%) |
+| Wrongly called "met" | 3 | 1 | 3 |
+| Compliant offers fully right | 0 of 3 | 2 of 3 | 3 of 3 |
+| Malformed JSON | 0 | 1 | 0 |
+
+What the v3 run shows:
+
+- The shortfall rule works when followed (T1 V2 training 3 of 5 days, T3 V2 two references of three: both `partial`, T3 V2 now 13 of 13), but Haiku ignored it for the same pattern in T2 V2 (32 of 40 workers, 2 of 3 contracts: `not_met`), which dropped that offer from 11 to 8 of 14.
+- Wrong "met" went back up to 3: warranty "3 years manufacturer plus 2 from us" read as 5 years from the manufacturer, and in T2 V2 client-paid transport and Excel reports again read as met. Two of these also appeared in v1, so they are run-to-run variation as much as prompt effect.
+- **One run per offer is too few to compare prompts.** Before the next prompt change: run each offer three times, report the spread, and use the majority verdict; and try one stronger model on the same set to see whether the remaining misses are the model's limit rather than the prompt's.
