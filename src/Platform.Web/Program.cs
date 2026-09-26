@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Platform.Modules.Audit;
 using Platform.Modules.Identity;
 using Platform.Modules.Identity.Contracts;
+using Platform.Modules.Operations;
 using Platform.Modules.Tenancy;
 using Platform.Modules.Workflow;
 using Platform.Shared;
@@ -40,6 +41,7 @@ builder.Services.AddAuditModule(platformDb);
 builder.Services.AddTenancyModule(platformDb);
 builder.Services.AddIdentityModule();
 builder.Services.AddWorkflowModule(platformDb);
+builder.Services.AddOperationsModule(platformDb);
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<CircuitHandler, TenantCircuitHandler>();
 

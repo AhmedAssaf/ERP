@@ -1,5 +1,6 @@
 using Npgsql;
 using Platform.Modules.Audit;
+using Platform.Modules.Operations;
 using Platform.Modules.Tenancy;
 using Platform.Modules.Workflow;
 using Platform.Shared;
@@ -19,6 +20,7 @@ public static class MigrationRunner
         applied.AddRange(Named("audit", await AuditModule.MigrateAsync(connection, cancellationToken)));
         applied.AddRange(Named("tenancy", await TenancyModule.MigrateAsync(connection, cancellationToken)));
         applied.AddRange(Named("workflow", await WorkflowModule.MigrateAsync(connection, cancellationToken)));
+        applied.AddRange(Named("operations", await OperationsModule.MigrateAsync(connection, cancellationToken)));
         return applied;
     }
 

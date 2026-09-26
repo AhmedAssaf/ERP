@@ -14,6 +14,10 @@
     <Project Path="src/Modules/Identity/Platform.Modules.Identity.Contracts/Platform.Modules.Identity.Contracts.csproj" />
     <Project Path="src/Modules/Identity/Platform.Modules.Identity/Platform.Modules.Identity.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Operations/">
+    <Project Path="src/Modules/Operations/Platform.Modules.Operations.Contracts/Platform.Modules.Operations.Contracts.csproj" />
+    <Project Path="src/Modules/Operations/Platform.Modules.Operations/Platform.Modules.Operations.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Tenancy/">
     <Project Path="src/Modules/Tenancy/Platform.Modules.Tenancy.Contracts/Platform.Modules.Tenancy.Contracts.csproj" />
     <Project Path="src/Modules/Tenancy/Platform.Modules.Tenancy/Platform.Modules.Tenancy.csproj" />

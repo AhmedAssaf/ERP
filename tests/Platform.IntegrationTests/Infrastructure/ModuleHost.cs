@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Platform.Modules.Audit;
+using Platform.Modules.Operations;
 using Platform.Modules.Tenancy;
 using Platform.Modules.Workflow;
 using Platform.Shared;
@@ -20,6 +21,7 @@ internal sealed class ModuleHost : IAsyncDisposable
         services.AddAuditModule(appConnectionString);
         services.AddTenancyModule(appConnectionString);
         services.AddWorkflowModule(appConnectionString);
+        services.AddOperationsModule(appConnectionString);
         _root = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });
     }
 

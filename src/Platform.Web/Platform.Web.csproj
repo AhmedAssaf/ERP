@@ -8,6 +8,7 @@
     <ProjectReference Include="..\Modules\Tenancy\Platform.Modules.Tenancy\Platform.Modules.Tenancy.csproj" />
     <ProjectReference Include="..\Modules\Identity\Platform.Modules.Identity\Platform.Modules.Identity.csproj" />
     <ProjectReference Include="..\Modules\Workflow\Platform.Modules.Workflow\Platform.Modules.Workflow.csproj" />
+    <ProjectReference Include="..\Modules\Operations\Platform.Modules.Operations\Platform.Modules.Operations.csproj" />
     <ProjectReference Include="..\UI\Platform.UI\Platform.UI.csproj" />
   </ItemGroup>
   <ItemGroup>
