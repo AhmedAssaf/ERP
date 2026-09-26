@@ -22,6 +22,10 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Platform.Shared\Platform.Shared.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- DataTable wraps QuickGrid (docs/08 section 6); pinned to the ASP.NET Core version in use. -->
+    <PackageReference Include="Microsoft.AspNetCore.Components.QuickGrid" />
+  </ItemGroup>
 
   <!--
     The generated file already exists on disk after the first build, so the SDK's implicit

@@ -88,6 +88,7 @@ builder.Services.AddAuthorization(options =>
 });
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddPlatformLocalization();
+builder.Services.AddPlatformUI();
 
 if (builder.Environment.IsDevelopment())
 {
@@ -114,6 +115,22 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseMiddleware<TenantMiddleware>();
+if (!app.Environment.IsDevelopment())
+{
+    // Developer pages (/dev/*, the component gallery) exist only in Development; elsewhere they are a 404 for everyone,
+    // signed in or not, before authentication can turn them into a sign-in challenge.
+    app.Use(async (context, next) =>
+    {
+        if (context.Request.Path.StartsWithSegments("/dev", StringComparison.OrdinalIgnoreCase))
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
+        await next(context);
+    });
+}
+
 app.UseAuthentication();
 app.UseRequestLocalization();
 app.UseAuthorization();

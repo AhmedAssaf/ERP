@@ -1,0 +1,20 @@
+@* The live region for toasts (docs/08 section 8). It is always rendered, even empty, so screen readers announce what is added. *@
+@implements IDisposable
+@inject ToastService Toasts
+@inject IStringLocalizer<SharedResource> T
+
+<div role="status" aria-live="polite" aria-label="@T["Toast.Region"]"
+     class="pointer-events-none fixed inset-x-4 bottom-4 z-50 grid justify-items-end gap-2 sm:start-auto">
+    @foreach (var message in Toasts.Messages)
+    {
+        <Toast @key="message.Id" Message="@message.Text" Tone="message.Tone" OnDismiss="() => Toasts.Dismiss(message.Id)" />
+    }
+</div>
+
+@code {
+    protected override void OnInitialized() => Toasts.Changed += OnChanged;
+
+    private void OnChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Toasts.Changed -= OnChanged;
+}

@@ -1,0 +1,24 @@
+@* Stage, validity or result in micro type, sentence case (docs/08 section 6). The text carries the meaning; colour supports it. *@
+
+<span class="@($"inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-micro {ToneClass}")" @attributes="AdditionalAttributes">
+    <span aria-hidden="true" class="size-1.5 shrink-0 rounded-full bg-current"></span>
+    @ChildContent
+</span>
+
+@code {
+    [Parameter] public StatusTone Tone { get; set; }
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+
+    // Fixed colours, not the tenant primary: a tenant colour is not guaranteed to reach 4.5:1 on white.
+    private string ToneClass => Tone switch
+    {
+        StatusTone.Info => "border-action bg-action/10 text-action",
+        StatusTone.Success => "border-success bg-success/10 text-success",
+        StatusTone.Warning => "border-warning bg-warning/10 text-warning",
+        StatusTone.Danger => "border-danger bg-danger/10 text-danger",
+        _ => "border-line bg-canvas text-ink-muted",
+    };
+}

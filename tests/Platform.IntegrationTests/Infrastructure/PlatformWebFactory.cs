@@ -8,14 +8,15 @@ namespace Platform.IntegrationTests.Infrastructure;
 internal sealed record OidcSettings(string Authority, string ClientSecret);
 
 /// <summary>
-/// The web host in the Testing environment. By default a header-driven test scheme replaces cookie and OIDC sign-in;
-/// pass <see cref="OidcSettings"/> to keep the real handlers against a Keycloak instance instead.
+/// The web host, in the Testing environment unless another is given. By default a header-driven test scheme replaces
+/// cookie and OIDC sign-in; pass <see cref="OidcSettings"/> to keep the real handlers against a Keycloak instance instead.
 /// </summary>
-internal sealed class PlatformWebFactory(string appConnectionString, OidcSettings? oidc = null) : WebApplicationFactory<Program>
+internal sealed class PlatformWebFactory(string appConnectionString, OidcSettings? oidc = null, string environment = "Testing")
+    : WebApplicationFactory<Program>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.UseEnvironment("Testing");
+        builder.UseEnvironment(environment);
         builder.UseSetting("ConnectionStrings:Platform", appConnectionString);
         builder.UseSetting("Oidc:Authority", oidc?.Authority ?? "https://keycloak.invalid/realms/waslabid");
         builder.UseSetting("Oidc:ClientSecret", oidc?.ClientSecret ?? "unused-in-tests");

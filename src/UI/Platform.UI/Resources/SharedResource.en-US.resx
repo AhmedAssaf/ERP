@@ -9,4 +9,80 @@
   <data name="Home.SignedInAs" xml:space="preserve"><value>Signed in as {0}</value></data>
   <data name="Language.Other" xml:space="preserve"><value>العربية</value></data>
   <data name="Language.OtherCulture" xml:space="preserve"><value>ar-SA</value></data>
+  <data name="Brand.Name" xml:space="preserve"><value>WaslaBid</value></data>
+  <data name="AppShell.SkipToContent" xml:space="preserve"><value>Skip to main content</value></data>
+  <data name="AppShell.MainNavigation" xml:space="preserve"><value>Main navigation</value></data>
+  <data name="AppShell.PlatformConsole" xml:space="preserve"><value>Platform console</value></data>
+  <data name="AppShell.SignOut" xml:space="preserve"><value>Sign out</value></data>
+  <data name="Button.Working" xml:space="preserve"><value>Working, please wait</value></data>
+  <data name="Field.Required" xml:space="preserve"><value>required</value></data>
+  <data name="ColorField.Invalid" xml:space="preserve"><value>Enter the colour as # followed by six hexadecimal digits, for example #1E4E79.</value></data>
+  <data name="ColorField.Picker" xml:space="preserve"><value>{0} (colour picker)</value></data>
+  <data name="DataTable.CompactRows" xml:space="preserve"><value>Compact rows</value></data>
+  <data name="DataTable.NoRows" xml:space="preserve"><value>There are no rows to show.</value></data>
+  <data name="Dialog.Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Toast.Region" xml:space="preserve"><value>Notifications</value></data>
+  <data name="Toast.Dismiss" xml:space="preserve"><value>Dismiss message</value></data>
+  <data name="AuditList.Empty" xml:space="preserve"><value>No events have been recorded yet.</value></data>
+  <data name="AuditList.RiyadhTime" xml:space="preserve"><value>Times are in Riyadh time.</value></data>
+  <data name="AuditList.TimeFormat" xml:space="preserve"><value>d MMMM yyyy, HH:mm</value></data>
+  <data name="Gallery.Title" xml:space="preserve"><value>Component gallery</value></data>
+  <data name="Gallery.Intro" xml:space="preserve"><value>Every shared component in Arabic and English, side by side. This page exists only in Development.</value></data>
+  <data name="Gallery.Panel" xml:space="preserve"><value>English, left to right</value></data>
+  <data name="Gallery.Section.AppShell" xml:space="preserve"><value>Application frame</value></data>
+  <data name="Gallery.Section.Button" xml:space="preserve"><value>Buttons</value></data>
+  <data name="Gallery.Section.Fields" xml:space="preserve"><value>Form fields</value></data>
+  <data name="Gallery.Section.DataTable" xml:space="preserve"><value>Data table</value></data>
+  <data name="Gallery.Section.StatusBadge" xml:space="preserve"><value>Status badges</value></data>
+  <data name="Gallery.Section.Dialog" xml:space="preserve"><value>Confirmation dialog</value></data>
+  <data name="Gallery.Section.Toast" xml:space="preserve"><value>Result messages</value></data>
+  <data name="Gallery.Section.EmptyState" xml:space="preserve"><value>Empty state</value></data>
+  <data name="Gallery.Section.AuditList" xml:space="preserve"><value>Event history</value></data>
+  <data name="Gallery.Sample.PortalName" xml:space="preserve"><value>Acme Contracting</value></data>
+  <data name="Gallery.Sample.UserName" xml:space="preserve"><value>Sara Ahmed</value></data>
+  <data name="Gallery.Sample.NavTenders" xml:space="preserve"><value>Tenders</value></data>
+  <data name="Gallery.Sample.NavStaff" xml:space="preserve"><value>Staff</value></data>
+  <data name="Gallery.Sample.NavBranding" xml:space="preserve"><value>Branding</value></data>
+  <data name="Gallery.Sample.NavHealth" xml:space="preserve"><value>Health board</value></data>
+  <data name="Gallery.Sample.NavTenants" xml:space="preserve"><value>Tenants</value></data>
+  <data name="Gallery.Sample.PageBody" xml:space="preserve"><value>Page content goes here.</value></data>
+  <data name="Gallery.Sample.Publish" xml:space="preserve"><value>Publish tender</value></data>
+  <data name="Gallery.Sample.SaveDraft" xml:space="preserve"><value>Save draft</value></data>
+  <data name="Gallery.Sample.CancelTender" xml:space="preserve"><value>Cancel tender</value></data>
+  <data name="Gallery.Sample.ViewHistory" xml:space="preserve"><value>View history</value></data>
+  <data name="Gallery.Sample.PortalNameLabel" xml:space="preserve"><value>Portal name</value></data>
+  <data name="Gallery.Sample.PortalNameHelp" xml:space="preserve"><value>Shown in the header and in emails.</value></data>
+  <data name="Gallery.Sample.PortalNameError" xml:space="preserve"><value>Enter a portal name of up to 80 characters.</value></data>
+  <data name="Gallery.Sample.RoleLabel" xml:space="preserve"><value>Role</value></data>
+  <data name="Gallery.Sample.RolePlaceholder" xml:space="preserve"><value>Choose a role</value></data>
+  <data name="Gallery.Sample.RoleAdmin" xml:space="preserve"><value>Tenant administrator</value></data>
+  <data name="Gallery.Sample.RoleContracts" xml:space="preserve"><value>Contracts officer</value></data>
+  <data name="Gallery.Sample.RoleFinance" xml:space="preserve"><value>Finance approver</value></data>
+  <data name="Gallery.Sample.ColourLabel" xml:space="preserve"><value>Primary colour</value></data>
+  <data name="Gallery.Sample.ColourHelp" xml:space="preserve"><value>Used for the header and the focus ring.</value></data>
+  <data name="Gallery.Sample.TableLabel" xml:space="preserve"><value>Component health</value></data>
+  <data name="Gallery.Sample.ColumnComponent" xml:space="preserve"><value>Component</value></data>
+  <data name="Gallery.Sample.ColumnStatus" xml:space="preserve"><value>Status</value></data>
+  <data name="Gallery.Sample.ColumnChecks" xml:space="preserve"><value>Checks today</value></data>
+  <data name="Gallery.Sample.Database" xml:space="preserve"><value>Database</value></data>
+  <data name="Gallery.Sample.SignIn" xml:space="preserve"><value>Sign-in service</value></data>
+  <data name="Gallery.Sample.Storage" xml:space="preserve"><value>File storage</value></data>
+  <data name="Gallery.Sample.Healthy" xml:space="preserve"><value>Healthy</value></data>
+  <data name="Gallery.Sample.Slow" xml:space="preserve"><value>Slow</value></data>
+  <data name="Gallery.Sample.Failing" xml:space="preserve"><value>Failing</value></data>
+  <data name="Gallery.Sample.Draft" xml:space="preserve"><value>Draft</value></data>
+  <data name="Gallery.Sample.Published" xml:space="preserve"><value>Published</value></data>
+  <data name="Gallery.Sample.DialogTitle" xml:space="preserve"><value>Revoke access for Omar Khalid?</value></data>
+  <data name="Gallery.Sample.DialogBody" xml:space="preserve"><value>Omar Khalid loses access to this workspace at once. His past actions stay in the audit log.</value></data>
+  <data name="Gallery.Sample.DialogConfirm" xml:space="preserve"><value>Revoke access</value></data>
+  <data name="Gallery.Sample.ToastSaved" xml:space="preserve"><value>Branding saved</value></data>
+  <data name="Gallery.Sample.ToastFailed" xml:space="preserve"><value>The invitation was not sent. Check the email address and try again.</value></data>
+  <data name="Gallery.Sample.EmptyTitle" xml:space="preserve"><value>No staff invited yet</value></data>
+  <data name="Gallery.Sample.EmptyBody" xml:space="preserve"><value>Invite the first member of your team to start working on tenders.</value></data>
+  <data name="Gallery.Sample.EmptyAction" xml:space="preserve"><value>Invite staff member</value></data>
+  <data name="Gallery.Sample.AuditLabel" xml:space="preserve"><value>Staff history</value></data>
+  <data name="Gallery.Sample.AuditActorOmar" xml:space="preserve"><value>Omar Khalid</value></data>
+  <data name="Gallery.Sample.AuditInvited" xml:space="preserve"><value>invited Omar Khalid as contracts officer</value></data>
+  <data name="Gallery.Sample.AuditAccepted" xml:space="preserve"><value>accepted the invitation</value></data>
+  <data name="Gallery.Sample.AuditDetail" xml:space="preserve"><value>From the link in the invitation email</value></data>
 </root>

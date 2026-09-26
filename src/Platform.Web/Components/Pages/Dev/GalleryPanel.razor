@@ -1,0 +1,142 @@
+@* Every shared component in the current culture. Gallery renders this twice, once per culture, as static HTML. *@
+@using Microsoft.AspNetCore.Components.QuickGrid
+@inject IStringLocalizer<SharedResource> T
+
+<div class="grid gap-8">
+    <h2 class="text-subheading text-ink-muted">@T["Gallery.Panel"]</h2>
+    <GallerySection Name="AppShell" Title="@T["Gallery.Section.AppShell"]">
+        <div class="overflow-hidden rounded-card border border-line">
+            <AppShell Variant="AppShellVariant.Tenant" PortalName="@T["Gallery.Sample.PortalName"]" UserName="@T["Gallery.Sample.UserName"]">
+                <Navigation>
+                    <a href="/dev/gallery" aria-current="page" class="border-b-2 border-current py-1 font-semibold">@T["Gallery.Sample.NavTenders"]</a>
+                    <a href="/dev/gallery" class="py-1 opacity-90">@T["Gallery.Sample.NavStaff"]</a>
+                    <a href="/dev/gallery" class="py-1 opacity-90">@T["Gallery.Sample.NavBranding"]</a>
+                </Navigation>
+                <ChildContent><p class="text-ink-muted">@T["Gallery.Sample.PageBody"]</p></ChildContent>
+            </AppShell>
+        </div>
+        <div class="overflow-hidden rounded-card border border-line">
+            <AppShell Variant="AppShellVariant.Platform" UserName="@T["Gallery.Sample.UserName"]">
+                <Navigation>
+                    <a href="/dev/gallery" aria-current="page" class="border-b-2 border-current py-1 font-semibold">@T["Gallery.Sample.NavHealth"]</a>
+                    <a href="/dev/gallery" class="py-1 opacity-90">@T["Gallery.Sample.NavTenants"]</a>
+                </Navigation>
+                <ChildContent><p class="text-ink-muted">@T["Gallery.Sample.PageBody"]</p></ChildContent>
+            </AppShell>
+        </div>
+    </GallerySection>
+
+    <GallerySection Name="Button" Title="@T["Gallery.Section.Button"]">
+        <div class="flex flex-wrap items-center gap-3">
+            <Button Variant="ButtonVariant.Primary">@T["Gallery.Sample.Publish"]</Button>
+            <Button Variant="ButtonVariant.Secondary">@T["Gallery.Sample.SaveDraft"]</Button>
+            <Button Variant="ButtonVariant.Danger">@T["Gallery.Sample.CancelTender"]</Button>
+            <Button Variant="ButtonVariant.Quiet">@T["Gallery.Sample.ViewHistory"]</Button>
+            <Button Variant="ButtonVariant.Primary" Loading="true">@T["Gallery.Sample.Publish"]</Button>
+            <Button Variant="ButtonVariant.Secondary" Disabled="true">@T["Gallery.Sample.SaveDraft"]</Button>
+        </div>
+    </GallerySection>
+
+    <GallerySection Name="TextField" Title="@T["Gallery.Section.Fields"]">
+        <div class="grid gap-4 sm:grid-cols-2">
+            <TextField Label="@T["Gallery.Sample.PortalNameLabel"]" Help="@T["Gallery.Sample.PortalNameHelp"]" Value="@T["Gallery.Sample.PortalName"]" Required="true" />
+            <TextField Label="@T["Gallery.Sample.PortalNameLabel"]" Error="@T["Gallery.Sample.PortalNameError"]" Required="true" />
+        </div>
+    </GallerySection>
+
+    <GallerySection Name="Select">
+        <div class="grid gap-4 sm:grid-cols-2">
+            <Select Label="@T["Gallery.Sample.RoleLabel"]" Placeholder="@T["Gallery.Sample.RolePlaceholder"]" Options="Roles" />
+            <Select Label="@T["Gallery.Sample.RoleLabel"]" Options="Roles" Value="contracts-officer" />
+        </div>
+    </GallerySection>
+
+    <GallerySection Name="ColorField">
+        <div class="grid gap-4 sm:grid-cols-2">
+            <ColorField Label="@T["Gallery.Sample.ColourLabel"]" Help="@T["Gallery.Sample.ColourHelp"]" Value="#1E4E79" />
+            <ColorField Label="@T["Gallery.Sample.ColourLabel"]" Value="#0F766E" Disabled="true" />
+        </div>
+    </GallerySection>
+
+    <GallerySection Name="DataTable" Title="@T["Gallery.Section.DataTable"]">
+        <DataTable Items="Health" Label="@T["Gallery.Sample.TableLabel"]">
+            <PropertyColumn Property="r => r.Component" Title="@T["Gallery.Sample.ColumnComponent"]" />
+            <TemplateColumn Title="@T["Gallery.Sample.ColumnStatus"]">
+                <StatusBadge Tone="context.Tone">@context.Status</StatusBadge>
+            </TemplateColumn>
+            <PropertyColumn Property="r => r.Checks" Title="@T["Gallery.Sample.ColumnChecks"]" />
+        </DataTable>
+        <DataTable Items="Health" Label="@T["Gallery.Sample.TableLabel"]" Density="TableDensity.Compact">
+            <PropertyColumn Property="r => r.Component" Title="@T["Gallery.Sample.ColumnComponent"]" />
+            <PropertyColumn Property="r => r.Checks" Title="@T["Gallery.Sample.ColumnChecks"]" />
+        </DataTable>
+    </GallerySection>
+
+    <GallerySection Name="StatusBadge" Title="@T["Gallery.Section.StatusBadge"]">
+        <div class="flex flex-wrap gap-2">
+            <StatusBadge Tone="StatusTone.Neutral">@T["Gallery.Sample.Draft"]</StatusBadge>
+            <StatusBadge Tone="StatusTone.Info">@T["Gallery.Sample.Published"]</StatusBadge>
+            <StatusBadge Tone="StatusTone.Success">@T["Gallery.Sample.Healthy"]</StatusBadge>
+            <StatusBadge Tone="StatusTone.Warning">@T["Gallery.Sample.Slow"]</StatusBadge>
+            <StatusBadge Tone="StatusTone.Danger">@T["Gallery.Sample.Failing"]</StatusBadge>
+        </div>
+    </GallerySection>
+
+    <GallerySection Name="Dialog" Title="@T["Gallery.Section.Dialog"]">
+        @* The transform makes this box the containing block of the dialog's fixed layers, so it stays inside the gallery. *@
+        <div class="relative h-96 transform-gpu overflow-hidden rounded-card border border-line">
+            <Dialog Open="true" Title="@T["Gallery.Sample.DialogTitle"]" ConfirmText="@T["Gallery.Sample.DialogConfirm"]" ConfirmVariant="ButtonVariant.Danger">
+                <p>@T["Gallery.Sample.DialogBody"]</p>
+            </Dialog>
+        </div>
+    </GallerySection>
+
+    <GallerySection Name="Toast" Title="@T["Gallery.Section.Toast"]">
+        <div class="grid gap-2">
+            <Toast Message="@T["Gallery.Sample.ToastSaved"]" Tone="ToastTone.Success" OnDismiss="() => { }" />
+            <Toast Message="@T["Gallery.Sample.ToastFailed"]" Tone="ToastTone.Danger" OnDismiss="() => { }" />
+        </div>
+    </GallerySection>
+
+    <GallerySection Name="EmptyState" Title="@T["Gallery.Section.EmptyState"]">
+        <EmptyState Title="@T["Gallery.Sample.EmptyTitle"]" HeadingLevel="3">
+            <ChildContent>@T["Gallery.Sample.EmptyBody"]</ChildContent>
+            <Action><Button Variant="ButtonVariant.Primary">@T["Gallery.Sample.EmptyAction"]</Button></Action>
+        </EmptyState>
+    </GallerySection>
+
+    <GallerySection Name="AuditList" Title="@T["Gallery.Section.AuditList"]">
+        <AuditList Label="@T["Gallery.Sample.AuditLabel"]" Entries="Audit" />
+    </GallerySection>
+</div>
+
+@code {
+    private IReadOnlyList<SelectOption> Roles { get; set; } = [];
+
+    private IQueryable<HealthSample> Health { get; set; } = Enumerable.Empty<HealthSample>().AsQueryable();
+
+    private IReadOnlyList<AuditEntry> Audit { get; set; } = [];
+
+    protected override void OnInitialized()
+    {
+        Roles =
+        [
+            new("tenant-admin", T["Gallery.Sample.RoleAdmin"]),
+            new("contracts-officer", T["Gallery.Sample.RoleContracts"]),
+            new("finance-approver", T["Gallery.Sample.RoleFinance"]),
+        ];
+        Health = new HealthSample[]
+        {
+            new(T["Gallery.Sample.Database"], T["Gallery.Sample.Healthy"], StatusTone.Success, 288),
+            new(T["Gallery.Sample.SignIn"], T["Gallery.Sample.Slow"], StatusTone.Warning, 288),
+            new(T["Gallery.Sample.Storage"], T["Gallery.Sample.Failing"], StatusTone.Danger, 1024),
+        }.AsQueryable();
+        Audit =
+        [
+            new(T["Gallery.Sample.UserName"], T["Gallery.Sample.AuditInvited"], new DateTimeOffset(2026, 9, 26, 11, 5, 0, TimeSpan.Zero)),
+            new(T["Gallery.Sample.AuditActorOmar"], T["Gallery.Sample.AuditAccepted"], new DateTimeOffset(2026, 9, 26, 13, 40, 0, TimeSpan.Zero), T["Gallery.Sample.AuditDetail"]),
+        ];
+    }
+
+    private sealed record HealthSample(string Component, string Status, StatusTone Tone, int Checks);
+}

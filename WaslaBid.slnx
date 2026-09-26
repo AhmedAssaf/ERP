@@ -31,6 +31,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Platform.IntegrationTests/Platform.IntegrationTests.csproj" />
+    <Project Path="tests/Platform.UITests/Platform.UITests.csproj" />
     <Project Path="tests/Platform.UnitTests/Platform.UnitTests.csproj" />
   </Folder>
 </Solution>

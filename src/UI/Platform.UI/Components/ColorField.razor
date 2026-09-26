@@ -1,0 +1,67 @@
+@* A colour as a picker plus its hexadecimal text (#RRGGBB). Only a valid colour is raised, always in upper case. *@
+@using System.Globalization
+@using System.Text.RegularExpressions
+@inherits FieldBase
+@inject IStringLocalizer<SharedResource> T
+
+<div class="grid gap-1.5">
+    <FieldLabel For="@Id" Label="@Label" Required="Required" />
+    <div class="flex items-center gap-2">
+        <input type="color" value="@PickerValue" aria-label="@T["ColorField.Picker", Label]" disabled="@Disabled"
+               class="h-11 w-14 shrink-0 cursor-pointer rounded-control border border-ink-muted bg-surface p-1 disabled:cursor-not-allowed"
+               @onchange="OnPickedAsync" />
+        @* Hexadecimal reads left to right in both languages. *@
+        <input id="@Id" type="text" dir="ltr" value="@_text" maxlength="7" spellcheck="false" autocomplete="off"
+               class="@($"{ControlClass} max-w-40 font-mono")" required="@Required" disabled="@Disabled"
+               aria-invalid="@AriaInvalid" aria-describedby="@DescribedBy" @onchange="OnTypedAsync" @attributes="AdditionalAttributes" />
+    </div>
+    <FieldHints Help="@Help" Error="@ShownError" HelpId="@HelpId" ErrorId="@ErrorId" />
+</div>
+
+@code {
+    private static readonly Regex Hex = new("^#[0-9A-Fa-f]{6}$", RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
+
+    private string? _text;
+    private string? _lastValue;
+    private bool _invalid;
+
+    /// <summary>The colour as #RRGGBB.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+
+    protected override string? ShownError => _invalid ? T["ColorField.Invalid"] : Error;
+
+    // The browser's colour input only accepts lower-case #rrggbb.
+    private string PickerValue => Value is not null && Hex.IsMatch(Value) ? Value.ToLowerInvariant() : "#000000";
+
+    protected override void OnParametersSet()
+    {
+        if (Value != _lastValue)
+        {
+            _lastValue = Value;
+            _text = Value;
+            _invalid = false;
+        }
+    }
+
+    private Task OnTypedAsync(ChangeEventArgs e) => AcceptAsync(e.Value as string ?? string.Empty);
+
+    private Task OnPickedAsync(ChangeEventArgs e) => AcceptAsync(e.Value as string ?? string.Empty);
+
+    private async Task AcceptAsync(string raw)
+    {
+        var candidate = raw.Trim();
+        if (!Hex.IsMatch(candidate))
+        {
+            _text = raw;
+            _invalid = true;
+            return;
+        }
+
+        var normalized = candidate.ToUpper(CultureInfo.InvariantCulture);
+        _text = normalized;
+        _invalid = false;
+        await ValueChanged.InvokeAsync(normalized);
+    }
+}

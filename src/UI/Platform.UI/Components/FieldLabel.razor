@@ -1,0 +1,18 @@
+@* The label of a form field, with "(required)" when the field must be filled. Used by TextField, Select, ColorField. *@
+@inject IStringLocalizer<SharedResource> T
+
+<label for="@For" class="text-small font-semibold text-ink">
+    @Label
+    @if (Required)
+    {
+        <span class="font-normal text-ink-muted">(@T["Field.Required"])</span>
+    }
+</label>
+
+@code {
+    [Parameter, EditorRequired] public string For { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+
+    [Parameter] public bool Required { get; set; }
+}

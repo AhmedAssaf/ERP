@@ -1,0 +1,20 @@
+@* Help and error text under a form field; the ids match the field's aria-describedby. *@
+
+@if (!string.IsNullOrWhiteSpace(Help))
+{
+    <p id="@HelpId" class="text-small text-ink-muted">@Help</p>
+}
+@if (Error is not null)
+{
+    <p id="@ErrorId" class="text-small font-semibold text-danger">@Error</p>
+}
+
+@code {
+    [Parameter] public string? Help { get; set; }
+
+    [Parameter] public string? Error { get; set; }
+
+    [Parameter, EditorRequired] public string HelpId { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired] public string ErrorId { get; set; } = string.Empty;
+}

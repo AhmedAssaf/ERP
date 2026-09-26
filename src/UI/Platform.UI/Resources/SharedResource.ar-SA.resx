@@ -9,4 +9,80 @@
   <data name="Home.SignedInAs" xml:space="preserve"><value>دخلت باسم {0}</value></data>
   <data name="Language.Other" xml:space="preserve"><value>English</value></data>
   <data name="Language.OtherCulture" xml:space="preserve"><value>en-US</value></data>
+  <data name="Brand.Name" xml:space="preserve"><value>وصلة بد</value></data>
+  <data name="AppShell.SkipToContent" xml:space="preserve"><value>انتقل إلى المحتوى الرئيسي</value></data>
+  <data name="AppShell.MainNavigation" xml:space="preserve"><value>التنقل الرئيسي</value></data>
+  <data name="AppShell.PlatformConsole" xml:space="preserve"><value>لوحة تشغيل المنصة</value></data>
+  <data name="AppShell.SignOut" xml:space="preserve"><value>تسجيل الخروج</value></data>
+  <data name="Button.Working" xml:space="preserve"><value>جارٍ التنفيذ، يرجى الانتظار</value></data>
+  <data name="Field.Required" xml:space="preserve"><value>مطلوب</value></data>
+  <data name="ColorField.Invalid" xml:space="preserve"><value>أدخل اللون بالرمز # متبوعاً بستة أرقام ست عشرية، مثل #1E4E79.</value></data>
+  <data name="ColorField.Picker" xml:space="preserve"><value>{0} (منتقي الألوان)</value></data>
+  <data name="DataTable.CompactRows" xml:space="preserve"><value>صفوف مضغوطة</value></data>
+  <data name="DataTable.NoRows" xml:space="preserve"><value>لا توجد صفوف لعرضها.</value></data>
+  <data name="Dialog.Cancel" xml:space="preserve"><value>إلغاء</value></data>
+  <data name="Toast.Region" xml:space="preserve"><value>الإشعارات</value></data>
+  <data name="Toast.Dismiss" xml:space="preserve"><value>إغلاق الرسالة</value></data>
+  <data name="AuditList.Empty" xml:space="preserve"><value>لم تُسجَّل أي أحداث بعد.</value></data>
+  <data name="AuditList.RiyadhTime" xml:space="preserve"><value>الأوقات بتوقيت الرياض.</value></data>
+  <data name="AuditList.TimeFormat" xml:space="preserve"><value>d MMMM yyyy، HH:mm</value></data>
+  <data name="Gallery.Title" xml:space="preserve"><value>معرض المكوّنات</value></data>
+  <data name="Gallery.Intro" xml:space="preserve"><value>كل المكوّنات المشتركة بالعربية والإنجليزية جنباً إلى جنب. هذه الصفحة متاحة في بيئة التطوير فقط.</value></data>
+  <data name="Gallery.Panel" xml:space="preserve"><value>العربية، من اليمين إلى اليسار</value></data>
+  <data name="Gallery.Section.AppShell" xml:space="preserve"><value>إطار التطبيق</value></data>
+  <data name="Gallery.Section.Button" xml:space="preserve"><value>الأزرار</value></data>
+  <data name="Gallery.Section.Fields" xml:space="preserve"><value>حقول النموذج</value></data>
+  <data name="Gallery.Section.DataTable" xml:space="preserve"><value>جدول البيانات</value></data>
+  <data name="Gallery.Section.StatusBadge" xml:space="preserve"><value>شارات الحالة</value></data>
+  <data name="Gallery.Section.Dialog" xml:space="preserve"><value>نافذة التأكيد</value></data>
+  <data name="Gallery.Section.Toast" xml:space="preserve"><value>رسائل النتيجة</value></data>
+  <data name="Gallery.Section.EmptyState" xml:space="preserve"><value>الحالة الفارغة</value></data>
+  <data name="Gallery.Section.AuditList" xml:space="preserve"><value>سجل الأحداث</value></data>
+  <data name="Gallery.Sample.PortalName" xml:space="preserve"><value>شركة أكمي للمقاولات</value></data>
+  <data name="Gallery.Sample.UserName" xml:space="preserve"><value>سارة أحمد</value></data>
+  <data name="Gallery.Sample.NavTenders" xml:space="preserve"><value>المنافسات</value></data>
+  <data name="Gallery.Sample.NavStaff" xml:space="preserve"><value>الموظفون</value></data>
+  <data name="Gallery.Sample.NavBranding" xml:space="preserve"><value>الهوية</value></data>
+  <data name="Gallery.Sample.NavHealth" xml:space="preserve"><value>لوحة السلامة</value></data>
+  <data name="Gallery.Sample.NavTenants" xml:space="preserve"><value>المنشآت</value></data>
+  <data name="Gallery.Sample.PageBody" xml:space="preserve"><value>يظهر محتوى الصفحة هنا.</value></data>
+  <data name="Gallery.Sample.Publish" xml:space="preserve"><value>نشر المنافسة</value></data>
+  <data name="Gallery.Sample.SaveDraft" xml:space="preserve"><value>حفظ المسودة</value></data>
+  <data name="Gallery.Sample.CancelTender" xml:space="preserve"><value>إلغاء المنافسة</value></data>
+  <data name="Gallery.Sample.ViewHistory" xml:space="preserve"><value>عرض السجل</value></data>
+  <data name="Gallery.Sample.PortalNameLabel" xml:space="preserve"><value>اسم البوابة</value></data>
+  <data name="Gallery.Sample.PortalNameHelp" xml:space="preserve"><value>يظهر في الترويسة وفي الرسائل.</value></data>
+  <data name="Gallery.Sample.PortalNameError" xml:space="preserve"><value>أدخل اسماً للبوابة لا يتجاوز 80 حرفاً.</value></data>
+  <data name="Gallery.Sample.RoleLabel" xml:space="preserve"><value>الدور</value></data>
+  <data name="Gallery.Sample.RolePlaceholder" xml:space="preserve"><value>اختر دوراً</value></data>
+  <data name="Gallery.Sample.RoleAdmin" xml:space="preserve"><value>مدير المنشأة</value></data>
+  <data name="Gallery.Sample.RoleContracts" xml:space="preserve"><value>موظف العقود</value></data>
+  <data name="Gallery.Sample.RoleFinance" xml:space="preserve"><value>معتمد المالية</value></data>
+  <data name="Gallery.Sample.ColourLabel" xml:space="preserve"><value>اللون الأساسي</value></data>
+  <data name="Gallery.Sample.ColourHelp" xml:space="preserve"><value>يُستخدم في الترويسة وفي حلقة التركيز.</value></data>
+  <data name="Gallery.Sample.TableLabel" xml:space="preserve"><value>سلامة المكوّنات</value></data>
+  <data name="Gallery.Sample.ColumnComponent" xml:space="preserve"><value>المكوّن</value></data>
+  <data name="Gallery.Sample.ColumnStatus" xml:space="preserve"><value>الحالة</value></data>
+  <data name="Gallery.Sample.ColumnChecks" xml:space="preserve"><value>فحوصات اليوم</value></data>
+  <data name="Gallery.Sample.Database" xml:space="preserve"><value>قاعدة البيانات</value></data>
+  <data name="Gallery.Sample.SignIn" xml:space="preserve"><value>خدمة تسجيل الدخول</value></data>
+  <data name="Gallery.Sample.Storage" xml:space="preserve"><value>تخزين الملفات</value></data>
+  <data name="Gallery.Sample.Healthy" xml:space="preserve"><value>سليم</value></data>
+  <data name="Gallery.Sample.Slow" xml:space="preserve"><value>بطيء</value></data>
+  <data name="Gallery.Sample.Failing" xml:space="preserve"><value>متعطل</value></data>
+  <data name="Gallery.Sample.Draft" xml:space="preserve"><value>مسودة</value></data>
+  <data name="Gallery.Sample.Published" xml:space="preserve"><value>منشورة</value></data>
+  <data name="Gallery.Sample.DialogTitle" xml:space="preserve"><value>إلغاء صلاحية عمر خالد؟</value></data>
+  <data name="Gallery.Sample.DialogBody" xml:space="preserve"><value>يفقد عمر خالد الوصول إلى مساحة العمل فوراً. تبقى إجراءاته السابقة في سجل التدقيق.</value></data>
+  <data name="Gallery.Sample.DialogConfirm" xml:space="preserve"><value>إلغاء الصلاحية</value></data>
+  <data name="Gallery.Sample.ToastSaved" xml:space="preserve"><value>تم حفظ الهوية</value></data>
+  <data name="Gallery.Sample.ToastFailed" xml:space="preserve"><value>لم تُرسل الدعوة. تحقق من عنوان البريد الإلكتروني وحاول مرة أخرى.</value></data>
+  <data name="Gallery.Sample.EmptyTitle" xml:space="preserve"><value>لم تتم دعوة أي موظف بعد</value></data>
+  <data name="Gallery.Sample.EmptyBody" xml:space="preserve"><value>ادعُ أول عضو في فريقك لبدء العمل على المنافسات.</value></data>
+  <data name="Gallery.Sample.EmptyAction" xml:space="preserve"><value>دعوة موظف</value></data>
+  <data name="Gallery.Sample.AuditLabel" xml:space="preserve"><value>سجل الموظفين</value></data>
+  <data name="Gallery.Sample.AuditActorOmar" xml:space="preserve"><value>عمر خالد</value></data>
+  <data name="Gallery.Sample.AuditInvited" xml:space="preserve"><value>دعت عمر خالد بصفة موظف عقود</value></data>
+  <data name="Gallery.Sample.AuditAccepted" xml:space="preserve"><value>قبل الدعوة</value></data>
+  <data name="Gallery.Sample.AuditDetail" xml:space="preserve"><value>من الرابط في رسالة الدعوة</value></data>
 </root>

@@ -1,0 +1,54 @@
+@*
+    W-06 component gallery, Development only (Program.cs answers 404 for /dev/* elsewhere). Culture is ambient per
+    render, so each culture's panel is rendered separately as static HTML with that culture set, then shown side by
+    side: Arabic right to left, English left to right. Static on purpose: component behaviour is covered by bUnit tests;
+    this page is for looking at both directions and for the screenshot pass at 360 and 1280 pixels.
+*@
+@page "/dev/gallery"
+@using System.Globalization
+@inject IStringLocalizer<SharedResource> T
+@inject IServiceProvider Services
+@inject ILoggerFactory LoggerFactory
+
+<PageTitle>@T["Gallery.Title"]</PageTitle>
+
+<div class="mx-auto grid max-w-[1600px] gap-6 px-4 py-6">
+    <header class="grid gap-1">
+        <h1 class="text-display">@T["Gallery.Title"]</h1>
+        <p class="text-ink-muted">@T["Gallery.Intro"]</p>
+    </header>
+    <div class="grid gap-8 xl:grid-cols-2">
+        @foreach (var panel in _panels)
+        {
+            <section lang="@panel.Language" dir="@panel.Direction" class="grid min-w-0 content-start gap-4 rounded-card border border-line bg-surface p-4">
+                @((MarkupString)panel.Html)
+            </section>
+        }
+    </div>
+</div>
+
+@code {
+    private readonly List<Panel> _panels = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        // The renderer shares this request's services, so the panel sees the same tenant and navigation state.
+        await using var renderer = new HtmlRenderer(Services, LoggerFactory);
+        foreach (var name in PlatformLocalization.SupportedCultures)
+        {
+            _panels.Add(await RenderPanelAsync(renderer, CultureInfo.GetCultureInfo(name)));
+        }
+    }
+
+    private static Task<Panel> RenderPanelAsync(HtmlRenderer renderer, CultureInfo culture) =>
+        renderer.Dispatcher.InvokeAsync(async () =>
+        {
+            // Set inside the dispatched work, so it applies to this render only and never leaks into the request.
+            CultureInfo.CurrentCulture = culture;
+            CultureInfo.CurrentUICulture = culture;
+            var html = (await renderer.RenderComponentAsync<GalleryPanel>()).ToHtmlString();
+            return new Panel(culture.TwoLetterISOLanguageName, culture.TextInfo.IsRightToLeft ? "rtl" : "ltr", html);
+        });
+
+    private sealed record Panel(string Language, string Direction, string Html);
+}

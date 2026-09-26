@@ -1,0 +1,74 @@
+@* QuickGrid with a sticky header, tabular numbers and a row density toggle (docs/08 section 6). Columns go in ChildContent. *@
+@typeparam TGridItem
+@attribute [CascadingTypeParameter(nameof(TGridItem))]
+@inject IStringLocalizer<SharedResource> T
+
+@if (_hasRows)
+{
+    <div class="grid gap-2" data-density="@(_density == TableDensity.Compact ? "compact" : "comfortable")">
+        <div class="flex justify-end">
+            <button type="button" aria-pressed="@(_density == TableDensity.Compact ? "true" : "false")" @onclick="ToggleDensity"
+                    class="inline-flex min-h-9 items-center gap-2 rounded-control border border-ink-muted bg-surface px-3 text-small text-ink hover:bg-canvas aria-pressed:bg-primary aria-pressed:text-on-primary">
+                @T["DataTable.CompactRows"]
+            </button>
+        </div>
+        @* A scrolling region must be keyboard focusable to be scrolled without a mouse; the header sticks inside it. *@
+        <div role="region" aria-label="@Label" tabindex="0" class="max-h-[70vh] overflow-auto rounded-card border border-line bg-surface">
+            <QuickGrid TGridItem="TGridItem" Items="Items" Class="@TableClass">
+                @ChildContent
+            </QuickGrid>
+        </div>
+    </div>
+}
+else if (EmptyContent is not null)
+{
+    @EmptyContent
+}
+else
+{
+    <p class="rounded-card border border-line bg-surface px-4 py-6 text-ink-muted">@T["DataTable.NoRows"]</p>
+}
+
+@code {
+    private const string Base =
+        "w-full border-collapse text-start tabular-nums "
+        + "[&_thead_th]:sticky [&_thead_th]:top-0 [&_thead_th]:z-10 [&_thead_th]:bg-canvas [&_thead_th]:text-start "
+        + "[&_thead_th]:text-small [&_thead_th]:font-semibold [&_thead_th]:text-ink-muted [&_thead_th]:border-b [&_thead_th]:border-line "
+        + "[&_th]:px-3 [&_td]:px-3 [&_tbody_tr+tr_td]:border-t [&_tbody_tr+tr_td]:border-line";
+
+    private TableDensity _density;
+    private TableDensity? _lastDensity;
+    private bool _hasRows;
+
+    [Parameter, EditorRequired] public IQueryable<TGridItem> Items { get; set; } = default!;
+
+    /// <summary>The table's accessible name ("Component health"); pages show their own visible heading.</summary>
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+
+    /// <summary>The columns: QuickGrid's PropertyColumn and TemplateColumn.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Shown instead of the table when there are no rows, usually an EmptyState.</summary>
+    [Parameter] public RenderFragment? EmptyContent { get; set; }
+
+    /// <summary>The starting density; the reader can toggle it.</summary>
+    [Parameter] public TableDensity Density { get; set; }
+
+    private string TableClass => _density == TableDensity.Compact
+        ? $"{Base} [&_th]:py-1.5 [&_td]:py-1 text-small"
+        : $"{Base} [&_th]:py-2.5 [&_td]:py-3";
+
+    protected override void OnParametersSet()
+    {
+        if (Density != _lastDensity)
+        {
+            _lastDensity = Density;
+            _density = Density;
+        }
+
+        _hasRows = Items.Any();
+    }
+
+    private void ToggleDensity() =>
+        _density = _density == TableDensity.Compact ? TableDensity.Comfortable : TableDensity.Compact;
+}
