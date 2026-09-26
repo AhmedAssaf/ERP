@@ -19,7 +19,7 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 
 | Epic | Stories | P0 | P1 | P2 |
 |---|---|---|---|---|
-| E0 Platform foundation | W-01 to W-12, W-19, W-20 | 11 | 3 | 0 |
+| E0 Platform foundation | W-01 to W-12, W-19 to W-21 | 12 | 3 | 0 |
 | E1 Tenancy and branding | F-01 to F-05, F-01b | 4 | 2 | 0 |
 | E2 Identity, users, roles | F-06 to F-10, F-06b | 2 | 2 | 2 |
 | E3 Vendor registration | F-11 to F-14, F-12b, F-14a | 3 | 1 | 2 |
@@ -40,7 +40,7 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 | W-01 | Local Compose stack | P0 | S | Done 2026-09-21: all services healthy on Docker Desktop 29 (Keycloak in 50 s, ClamAV within its start period), bucket created, Caddy answering on the override port; second `up -d` clean | |
 | W-02 | Solution skeleton: host, worker, modules, tests, UI project per document 02 section 4.5 | P0 | M | Done 2026-09-26: host, 4 modules, 2 test projects; worker with W-08, Platform.UI with W-05 (spec section 1) | W-01 |
 | W-03 | PostgreSQL row-level security foundation: `TenantId` convention, EF interceptor setting `app.tenant_id`, app role, policy migration helper | P0 | M | Done | W-02 |
-| W-04 | Keycloak realm export with Organizations, web client, worker client; OIDC wiring in the host | P0 | M | Done | W-01, W-02 |
+| W-04 | Keycloak realm export with Organizations, web client, worker client; OIDC wiring in the host | P0 | M | Done 2026-09-26 except the browser login end to end, which Task 16 of the foundation plan proves; worker client with W-08; tenants match the organization alias, not the id (spec section 7) | W-01, W-02 |
 | W-05 | Tailwind build: standalone CLI in MSBuild, `@theme` tokens, fonts self-hosted, physical-utility lint | P0 | S | Done | W-02 |
 | W-06 | `Platform.UI` components for the MVP (document 08 section 6) with the gallery page in both directions | P0 | L | Backlog | W-05 |
 | W-07 | Localisation: `IStringLocalizer` setup, `ar-SA` and `en-US` resources, culture switch, `dir` on `<html>` | P0 | S | Backlog | W-02 |
@@ -51,6 +51,7 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 | W-12 | Backup and restore drill script for PostgreSQL and object storage | P1 | S | Backlog | W-11 |
 | W-20 | Elsa 3 spike, one-week box: custom activities for the fixed points, per-tender snapshot execution, Arabic and white-label designer feasibility; ends in ADR-0004 choosing the executor | P0 | L | Done | W-01 |
 | W-19 | Pilot environment on Oracle Cloud Always Free, Jeddah home region: one Arm VM running the Compose stack plus the app, HTTPS via Caddy, nightly volume backup to object storage | P0 | M | Backlog | W-01, W-09 |
+| W-21 | Revalidate the login against Keycloak membership: `OnValidatePrincipal` or a revalidating authentication state provider, so a user removed from an organization loses access within minutes, including open Blazor circuits | P0 | S | Backlog | W-04 |
 
 Acceptance criteria:
 

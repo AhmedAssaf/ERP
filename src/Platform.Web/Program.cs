@@ -18,6 +18,17 @@ if (string.IsNullOrWhiteSpace(platformDb))
     throw new InvalidOperationException("Connection string 'Platform' is not configured. Set it with dotnet user-secrets (see README).");
 }
 
+if (!builder.Environment.IsDevelopment() && !builder.Environment.IsEnvironment("Testing"))
+{
+    foreach (var key in new[] { "Oidc:Authority", "Oidc:ClientSecret" })
+    {
+        if (string.IsNullOrWhiteSpace(builder.Configuration[key]))
+        {
+            throw new InvalidOperationException($"Setting '{key}' is not configured. It is required outside Development.");
+        }
+    }
+}
+
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 builder.Services.AddProblemDetails();
 builder.Services.AddHealthChecks();
@@ -39,6 +50,11 @@ builder.Services
     {
         options.Cookie.Name = "waslabid.auth";
         options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.Cookie.HttpOnly = true;
+        // Short sliding lifetime until W-21 revalidates membership against Keycloak.
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
+        options.SlidingExpiration = true;
         options.Events.OnRedirectToAccessDenied = context =>
         {
             context.Response.StatusCode = StatusCodes.Status403Forbidden;

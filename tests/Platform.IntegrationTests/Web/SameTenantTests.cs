@@ -45,7 +45,9 @@ public class SameTenantTests(DatabaseFixture db)
         await using var host = new ModuleHost(db.AppConnectionString);
         await using var scope = host.ScopeFor(TestTenants.Acme);
         await using var audit = await scope.ServiceProvider.GetRequiredService<IDbContextFactory<AuditDbContext>>().CreateDbContextAsync(Ct);
-        var denied = await audit.Events.CountAsync(e => e.Action == "identity.cross_tenant_denied" && e.ActorId == "beta.admin", Ct);
-        denied.ShouldBeGreaterThan(0);
+        var denied = await audit.Events.Where(e => e.Action == "identity.cross_tenant_denied" && e.ActorId == "beta.admin").ToListAsync(Ct);
+        denied.ShouldNotBeEmpty();
+        denied.ShouldAllBe(e => e.SubjectType == "host" && e.SubjectId == "acme.localhost");
+        denied.ShouldAllBe(e => e.Data == "{}");
     }
 }

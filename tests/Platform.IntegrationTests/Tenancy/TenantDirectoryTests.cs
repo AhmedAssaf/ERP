@@ -140,6 +140,22 @@ public class TenantDirectoryTests(DatabaseFixture db)
         await transaction.RollbackAsync(Ct);
     }
 
+    [Fact]
+    public async Task An_organization_alias_with_upper_case_is_refused()
+    {
+        await using var connection = new NpgsqlConnection(db.OwnerConnectionString);
+        await connection.OpenAsync(Ct);
+        await using var command = new NpgsqlCommand("""
+            insert into tenancy.tenants (id, slug, keycloak_org_alias, portal_name, primary_color)
+            values (gen_random_uuid(), 'alias-case', 'Acme2', 'Alias Case', '#000000')
+            """, connection);
+
+        var error = await Should.ThrowAsync<PostgresException>(() => command.ExecuteNonQueryAsync(Ct));
+
+        error.SqlState.ShouldBe(PostgresErrorCodes.CheckViolation);
+        error.ConstraintName.ShouldBe("ck_tenants_alias_lowercase");
+    }
+
     private async Task ExecuteAsOwnerAsync(string sql)
     {
         await using var connection = new NpgsqlConnection(db.OwnerConnectionString);
