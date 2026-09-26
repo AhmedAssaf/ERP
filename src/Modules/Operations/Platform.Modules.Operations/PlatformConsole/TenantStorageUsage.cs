@@ -4,6 +4,7 @@ using Amazon.S3;
 using Amazon.S3.Model;
 using Microsoft.Extensions.Logging;
 using Platform.Modules.Operations.Contracts;
+using Platform.Shared.Storage;
 
 namespace Platform.Modules.Operations.PlatformConsole;
 

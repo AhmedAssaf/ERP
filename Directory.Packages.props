@@ -31,6 +31,10 @@
          stable, MIT, no known advisories. -->
     <PackageVersion Include="Otp.NET" Version="1.4.1" />
     <PackageVersion Include="Shouldly" Version="4.3.0" />
+    <!-- Logo re-encoding (F-02, spec D-10; MIT). 4.152.1 is current stable, no known advisories (OSV, checked at pinning).
+         SkiaSharp brings the Windows and macOS native assets; containers need the Linux build without fontconfig. -->
+    <PackageVersion Include="SkiaSharp" Version="4.152.1" />
+    <PackageVersion Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.152.1" />
     <PackageVersion Include="Testcontainers" Version="4.15.0" />
     <PackageVersion Include="Testcontainers.Keycloak" Version="4.15.0" />
     <PackageVersion Include="Testcontainers.PostgreSql" Version="4.15.0" />

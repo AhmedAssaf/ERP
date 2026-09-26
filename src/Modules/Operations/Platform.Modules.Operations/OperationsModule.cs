@@ -8,6 +8,7 @@ using Platform.Modules.Operations.Alerts;
 using Platform.Modules.Operations.Contracts;
 using Platform.Modules.Operations.PlatformConsole;
 using Platform.Modules.Operations.Health;
+using Platform.Shared;
 using Platform.Shared.Data;
 
 namespace Platform.Modules.Operations;
@@ -36,7 +37,7 @@ public static class OperationsModule
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
-        services.AddSingleton(_ => ObjectStorageSettings.FromConfiguration(configuration));
+        services.AddObjectStorage(configuration);
         services.AddSingleton<ITenantStorageUsage, TenantStorageUsage>();
         services.AddScoped<IPlatformJobs, PlatformJobs>();
         return services;

@@ -26,6 +26,32 @@ public sealed class MinioFixture : IAsyncLifetime
 
     public static string SecretKey => RootPassword;
 
+    /// <summary>The web host's <c>ObjectStorage:*</c> settings for this container.</summary>
+    public IReadOnlyDictionary<string, string?> Settings => new Dictionary<string, string?>
+    {
+        ["ObjectStorage:ServiceUrl"] = ServiceUrl,
+        ["ObjectStorage:BucketName"] = BucketName,
+        ["ObjectStorage:AccessKey"] = AccessKey,
+        ["ObjectStorage:SecretKey"] = SecretKey,
+    };
+
+    /// <summary>The object's bytes, or null when the bucket has no such key.</summary>
+    public async Task<byte[]?> ReadAsync(string key, CancellationToken cancellationToken)
+    {
+        using var client = new AmazonS3Client(AccessKey, SecretKey, new AmazonS3Config { ServiceURL = ServiceUrl, ForcePathStyle = true });
+        try
+        {
+            using var response = await client.GetObjectAsync(BucketName, key, cancellationToken);
+            using var buffer = new MemoryStream();
+            await response.ResponseStream.CopyToAsync(buffer, cancellationToken);
+            return buffer.ToArray();
+        }
+        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+    }
+
     public async ValueTask InitializeAsync()
     {
         await _container.StartAsync();

@@ -9,6 +9,7 @@
 <AppShell Variant="AppShellVariant.Tenant" PortalName="@Tenants.Current?.Branding.PortalName" LogoUrl="@Tenants.Current?.Branding.LogoUrl" UserName="@_userName">
     <Navigation>
         <NavLink href="admin/staff" class="@LinkClass">@T["Admin.Nav.Staff"]</NavLink>
+        <NavLink href="admin/branding" class="@LinkClass">@T["Admin.Nav.Branding"]</NavLink>
     </Navigation>
     <ChildContent>@Body</ChildContent>
 </AppShell>

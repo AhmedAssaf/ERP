@@ -197,4 +197,30 @@
   <data name="Staff.EmailFailed" xml:space="preserve"><value>أُضيف {0} لكن لم يُرسل بريد الدعوة. استخدم إعادة إرسال الدعوة.</value></data>
   <data name="Staff.RolesSaved" xml:space="preserve"><value>حُفظت أدوار {0}</value></data>
   <data name="Staff.Resent" xml:space="preserve"><value>أُعيد إرسال الدعوة إلى {0}</value></data>
+  <data name="Admin.Nav.Branding" xml:space="preserve"><value>الهوية</value></data>
+  <data name="Branding.Title" xml:space="preserve"><value>هوية البوابة</value></data>
+  <data name="Branding.Intro" xml:space="preserve"><value>يظهر اسم بوابتك ولونها وشعارها في كل صفحة يراها موظفوك والموردون، بدلًا من هويتنا.</value></data>
+  <data name="Branding.Details" xml:space="preserve"><value>الاسم واللون</value></data>
+  <data name="Branding.Field.PortalName" xml:space="preserve"><value>اسم البوابة</value></data>
+  <data name="Branding.Field.Color" xml:space="preserve"><value>اللون الأساسي</value></data>
+  <data name="Branding.Field.ColorHelp" xml:space="preserve"><value>يُستخدم في الترويسة والأزرار الرئيسية مع نص أبيض. إذا كان اللون فاتحًا جدًا على النص الأبيض فسيُغمَّق عند الحفظ.</value></data>
+  <data name="Branding.Save" xml:space="preserve"><value>حفظ الاسم واللون</value></data>
+  <data name="Branding.Saved" xml:space="preserve"><value>تم حفظ الهوية.</value></data>
+  <data name="Branding.ColorAdjusted" xml:space="preserve"><value>تباين اللون {0} مع النص الأبيض منخفض، لذا حُفظ اللون الأغمق {1} بدلًا منه.</value></data>
+  <data name="Branding.Error.PortalName" xml:space="preserve"><value>أدخل اسمًا للبوابة لا يتجاوز 100 حرف.</value></data>
+  <data name="Branding.Error.Color" xml:space="preserve"><value>أدخل اللون بالعلامة # متبوعة بستة أرقام ست عشرية، مثل ‎#0F766E.</value></data>
+  <data name="Branding.Error.Generic" xml:space="preserve"><value>لم تُحفظ الهوية. حاول مرة أخرى، وإذا تكرر الخطأ فتواصل مع الدعم.</value></data>
+  <data name="Branding.NotAllowed" xml:space="preserve"><value>لم تعد مسؤولًا عن الجهة، لذا لم يُحفظ هذا التغيير.</value></data>
+  <data name="Branding.Logo.Heading" xml:space="preserve"><value>الشعار</value></data>
+  <data name="Branding.Logo.Current" xml:space="preserve"><value>الشعار الحالي</value></data>
+  <data name="Branding.Logo.None" xml:space="preserve"><value>لا يوجد شعار بعد. تعرض الترويسة اسم البوابة وحده.</value></data>
+  <data name="Branding.Logo.Field" xml:space="preserve"><value>ملف الشعار</value></data>
+  <data name="Branding.Logo.Help" xml:space="preserve"><value>PNG أو JPEG بحجم لا يتجاوز 512 كيلوبايت. تُصغَّر الصور الأكبر إلى 1024 بكسل في الضلع الأطول.</value></data>
+  <data name="Branding.Logo.Upload" xml:space="preserve"><value>رفع الشعار</value></data>
+  <data name="Branding.Logo.Saved" xml:space="preserve"><value>تم حفظ الشعار، وهو يظهر الآن في الترويسة.</value></data>
+  <data name="Branding.Logo.Error.TooLarge" xml:space="preserve"><value>حجم الملف أكبر من 512 كيلوبايت. احفظ صورة PNG أو JPEG أصغر ثم ارفعها مجددًا.</value></data>
+  <data name="Branding.Logo.Error.NotImage" xml:space="preserve"><value>الملف ليس صورة PNG أو JPEG. اختر ملف PNG أو JPEG.</value></data>
+  <data name="Branding.Logo.Error.Dimensions" xml:space="preserve"><value>عرض الصورة أو ارتفاعها أكبر من 4096 بكسل. غيّر حجمها ثم ارفعها مجددًا.</value></data>
+  <data name="Branding.Logo.Error.Unreadable" xml:space="preserve"><value>تعذرت قراءة الصورة وقد تكون تالفة. صدّرها مجددًا بصيغة PNG أو JPEG ثم ارفعها.</value></data>
+  <data name="Branding.Logo.Error.Missing" xml:space="preserve"><value>اختر ملف الشعار لرفعه.</value></data>
 </root>

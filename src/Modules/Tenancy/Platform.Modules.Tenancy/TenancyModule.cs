@@ -1,6 +1,7 @@
 using System.Data.Common;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
+using Platform.Modules.Tenancy.Branding;
 using Platform.Modules.Tenancy.Contracts;
 using Platform.Shared.Data;
 
@@ -30,6 +31,8 @@ public static class TenancyModule
         services.AddSingleton<ITenantDirectory, TenantDirectory>();
         // Scoped: it reads the scope's platform mark (IPlatformRequestContext from AddPlatformShared).
         services.AddScoped<ITenantCatalog, TenantCatalog>();
+        // F-02: needs IAuditWriter (Audit module) and IObjectStorage (AddPlatformShared, configured by AddObjectStorage).
+        services.AddScoped<IBrandingService, BrandingService>();
         return services;
     }
 

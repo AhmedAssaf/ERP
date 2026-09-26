@@ -85,7 +85,7 @@ Acceptance criteria:
 |---|---|---|---|---|---|
 | F-01 | Tenant provisioning (MVP: by script) | P0 | S | Backlog | W-03, W-04 |
 | F-01b | Tenant provisioning admin screen | P1 | S | Backlog | F-01 |
-| F-02 | White-label branding: logo, primary colour, portal name | P0 | M | Backlog | W-05, W-06 |
+| F-02 | White-label branding: logo, primary colour, portal name | P0 | M | Done 2026-09-27 as narrowed (docs/05 row 2): `/admin/branding` sets the portal name, primary colour (under 4.5:1 on white stored darkened and shown) and a PNG or JPEG logo re-encoded to PNG in object storage; the tenant header and theme use them. Emails, PDFs and the vendor portal pick up the branding in their own slices | W-05, W-06 |
 | F-03 | Custom domain mapping with automatic TLS | P1 | M | Backlog | W-11 |
 | F-04 | Arabic and English with right-to-left everywhere | P0 | (constraint) | Backlog | W-07 |
 | F-05 | Tenant data isolation enforced in the database | P0 | (via W-03) | Backlog | W-03 |

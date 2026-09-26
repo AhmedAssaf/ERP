@@ -14,12 +14,14 @@ namespace Platform.IntegrationTests.Infrastructure;
 /// The modules wired as the web host wires them, without HTTP. One scope stands for one request. With
 /// <paramref name="keycloakAdmin"/> (settings <c>KeycloakAdmin:*</c>) the Keycloak Admin API client and the staff service
 /// are wired too, as the web host wires them. With <paramref name="clock"/> every module reads that time instead of the system's.
+/// With <paramref name="objectStorage"/> (settings <c>ObjectStorage:*</c>) object storage is configured, as the web host does.
 /// </summary>
 internal sealed class ModuleHost : IAsyncDisposable
 {
     private readonly ServiceProvider _root;
 
-    public ModuleHost(string appConnectionString, IConfiguration? keycloakAdmin = null, TimeProvider? clock = null)
+    public ModuleHost(
+        string appConnectionString, IConfiguration? keycloakAdmin = null, TimeProvider? clock = null, IConfiguration? objectStorage = null)
     {
         var services = new ServiceCollection();
         services.AddLogging();
@@ -37,6 +39,11 @@ internal sealed class ModuleHost : IAsyncDisposable
         if (keycloakAdmin is not null)
         {
             services.AddKeycloakAdmin(keycloakAdmin);
+        }
+
+        if (objectStorage is not null)
+        {
+            services.AddObjectStorage(objectStorage);
         }
 
         _root = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });

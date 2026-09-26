@@ -197,4 +197,30 @@
   <data name="Staff.EmailFailed" xml:space="preserve"><value>{0} was added, but the invitation email was not sent. Use Resend invitation.</value></data>
   <data name="Staff.RolesSaved" xml:space="preserve"><value>Roles saved for {0}</value></data>
   <data name="Staff.Resent" xml:space="preserve"><value>Invitation sent again to {0}</value></data>
+  <data name="Admin.Nav.Branding" xml:space="preserve"><value>Branding</value></data>
+  <data name="Branding.Title" xml:space="preserve"><value>Branding</value></data>
+  <data name="Branding.Intro" xml:space="preserve"><value>Your portal name, colour and logo appear on every page your staff and vendors see, in place of ours.</value></data>
+  <data name="Branding.Details" xml:space="preserve"><value>Name and colour</value></data>
+  <data name="Branding.Field.PortalName" xml:space="preserve"><value>Portal name</value></data>
+  <data name="Branding.Field.Color" xml:space="preserve"><value>Primary colour</value></data>
+  <data name="Branding.Field.ColorHelp" xml:space="preserve"><value>Used for the header and main buttons, with white text. A colour too light for white text is darkened when you save.</value></data>
+  <data name="Branding.Save" xml:space="preserve"><value>Save name and colour</value></data>
+  <data name="Branding.Saved" xml:space="preserve"><value>Branding saved.</value></data>
+  <data name="Branding.ColorAdjusted" xml:space="preserve"><value>{0} has too little contrast with white text, so the darker {1} was saved instead.</value></data>
+  <data name="Branding.Error.PortalName" xml:space="preserve"><value>Enter a portal name of up to 100 characters.</value></data>
+  <data name="Branding.Error.Color" xml:space="preserve"><value>Enter the colour as # followed by six hexadecimal digits, for example #0F766E.</value></data>
+  <data name="Branding.Error.Generic" xml:space="preserve"><value>The branding was not saved. Try again; if it keeps failing, contact support.</value></data>
+  <data name="Branding.NotAllowed" xml:space="preserve"><value>You are no longer a tenant admin, so this change was not saved.</value></data>
+  <data name="Branding.Logo.Heading" xml:space="preserve"><value>Logo</value></data>
+  <data name="Branding.Logo.Current" xml:space="preserve"><value>Current logo</value></data>
+  <data name="Branding.Logo.None" xml:space="preserve"><value>No logo yet. The header shows the portal name on its own.</value></data>
+  <data name="Branding.Logo.Field" xml:space="preserve"><value>Logo file</value></data>
+  <data name="Branding.Logo.Help" xml:space="preserve"><value>PNG or JPEG, up to 512 KB. Larger images are scaled down to 1024 pixels on the longer side.</value></data>
+  <data name="Branding.Logo.Upload" xml:space="preserve"><value>Upload logo</value></data>
+  <data name="Branding.Logo.Saved" xml:space="preserve"><value>Logo saved. It now shows in the header.</value></data>
+  <data name="Branding.Logo.Error.TooLarge" xml:space="preserve"><value>The file is larger than 512 KB. Save a smaller PNG or JPEG and upload it again.</value></data>
+  <data name="Branding.Logo.Error.NotImage" xml:space="preserve"><value>The file is not a PNG or JPEG image. Choose a PNG or JPEG file.</value></data>
+  <data name="Branding.Logo.Error.Dimensions" xml:space="preserve"><value>The image is wider or taller than 4096 pixels. Resize it and upload it again.</value></data>
+  <data name="Branding.Logo.Error.Unreadable" xml:space="preserve"><value>The image could not be read; it may be damaged. Export it again as PNG or JPEG and upload it.</value></data>
+  <data name="Branding.Logo.Error.Missing" xml:space="preserve"><value>Choose a logo file to upload.</value></data>
 </root>

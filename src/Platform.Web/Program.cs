@@ -14,6 +14,7 @@ using Platform.Shared;
 using Platform.Shared.Jobs;
 using Platform.UI;
 using Platform.Web.Account;
+using Platform.Web.Branding;
 using Platform.Web.Components;
 using Platform.Web.Localization;
 using Platform.Web.PlatformHost;
@@ -45,6 +46,8 @@ builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 builder.Services.AddProblemDetails();
 builder.Services.AddHealthChecks();
 builder.Services.AddPlatformShared();
+// One bucket for every module (settings ObjectStorage:*): tenant logos (F-02) and storage usage in the console (F-54).
+builder.Services.AddObjectStorage(builder.Configuration);
 builder.Services.AddAuditModule(platformDb);
 builder.Services.AddTenancyModule(platformDb);
 builder.Services.AddIdentityModule(platformDb);
@@ -170,6 +173,7 @@ app.MapStaticAssets().AllowAnonymous();
 app.MapHealthChecks("/health").AllowAnonymous();
 app.MapCultureEndpoints();
 app.MapSignOutEndpoints();
+app.MapBrandingEndpoints();
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 app.MapJobsDashboard();
 
