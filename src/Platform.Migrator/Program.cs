@@ -9,10 +9,11 @@ internal static class EntryPoint
 {
     private static async Task<int> Main(string[] args)
     {
+        var seedDev = args.Contains("--seed-dev", StringComparer.Ordinal);
         var configuration = new ConfigurationBuilder()
             .AddUserSecrets(typeof(MigrationRunner).Assembly, optional: true)
             .AddEnvironmentVariables()
-            .AddCommandLine(args)
+            .AddCommandLine(args.Where(a => a != "--seed-dev").ToArray())
             .Build();
 
         var owner = configuration.GetConnectionString("Owner");
@@ -24,6 +25,21 @@ internal static class EntryPoint
 
         var applied = await MigrationRunner.RunAsync(owner);
         Console.WriteLine(applied.Count == 0 ? "Database is up to date." : $"Applied {applied.Count} scripts: {string.Join(", ", applied)}");
+
+        if (seedDev)
+        {
+            var app = configuration.GetConnectionString("Platform");
+            if (string.IsNullOrWhiteSpace(app))
+            {
+                Console.Error.WriteLine("--seed-dev needs connection string 'Platform' (the erp_app role).");
+                return 1;
+            }
+
+            await DevSeed.SeedTenantsAsync(owner);
+            await DevSeed.SeedWorkflowsAsync(app);
+            Console.WriteLine("Seeded development tenants acme and beta with the default approval chain.");
+        }
+
         return 0;
     }
 }

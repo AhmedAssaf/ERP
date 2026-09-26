@@ -1,4 +1,9 @@
+using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
+using Platform.Modules.Audit;
+using Platform.Modules.Workflow;
+using Platform.Modules.Workflow.Contracts;
+using Platform.Shared;
 using Platform.Shared.Tenancy;
 
 namespace Platform.Migrator;
@@ -39,6 +44,34 @@ public static class DevSeed
             command.Parameters.AddWithValue("color", tenant.PrimaryColor);
             command.Parameters.AddWithValue("host", tenant.Host);
             await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+    }
+
+    /// <summary>Gives each dev tenant the default approval chain, through the module's own service as the app role.</summary>
+    public static async Task SeedWorkflowsAsync(string appConnectionString, CancellationToken cancellationToken = default)
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddPlatformShared();
+        services.AddAuditModule(appConnectionString);
+        services.AddWorkflowModule(appConnectionString);
+        await using var provider = services.BuildServiceProvider();
+
+        foreach (var tenant in Tenants)
+        {
+            await using var scope = provider.CreateAsyncScope();
+            scope.ServiceProvider.GetRequiredService<TenantAccessor>().Set(tenant.ToContext());
+            var definitions = scope.ServiceProvider.GetRequiredService<IWorkflowDefinitions>();
+            if (await definitions.FindDefaultAsync(cancellationToken) is not null)
+            {
+                continue;
+            }
+
+            var saved = await definitions.SaveAsync(new SaveDefinition(null, DefaultTemplate.Name, true, DefaultTemplate.Steps), cancellationToken);
+            if (!saved.IsSuccess)
+            {
+                throw new InvalidOperationException($"Seeding the default chain for {tenant.Slug} failed: {saved.Error.Message}");
+            }
         }
     }
 }
