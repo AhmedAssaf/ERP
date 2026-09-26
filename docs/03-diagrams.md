@@ -381,12 +381,15 @@ flowchart TB
     EVA[evaluation]:::core
     AWD[awards + PO]:::core
     AI[ai review]:::core
+    WF[workflow]:::core
 
     VEN --> TEN & IDN & DOC & NOT & AUD
     TDR --> VEN & TEN & IDN & DOC & NOT & AUD
     EVA --> TDR & IDN & AUD & NOT
+    EVA --> WF
     AWD --> EVA & TDR & DOC & NOT & AUD
     AI --> TDR & EVA & DOC & AUD
+    WF --> TEN & IDN & AUD
 ```
 
 ## 9. Deployment in a Saudi region

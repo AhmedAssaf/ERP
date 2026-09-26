@@ -15,8 +15,25 @@ public interface ITenantAccessor
     TenantContext? Current { get; }
 }
 
-/// <summary>Scoped holder set once per request or circuit. Only infrastructure code sets it.</summary>
+/// <summary>
+/// Scoped holder set once per request or circuit. Only host infrastructure (middleware, circuit handler,
+/// migrator, tests) may call <see cref="Set"/>; application code should depend on <see cref="ITenantAccessor"/>
+/// and only read <see cref="Current"/>.
+/// </summary>
 public sealed class TenantAccessor : ITenantAccessor
 {
-    public TenantContext? Current { get; set; }
+    public TenantContext? Current { get; private set; }
+
+    /// <summary>Sets the tenant once. Setting the same tenant again is a no-op; setting a different tenant throws.</summary>
+    public void Set(TenantContext tenant)
+    {
+        ArgumentNullException.ThrowIfNull(tenant);
+        if (Current is not null && Current != tenant)
+        {
+            throw new InvalidOperationException(
+                $"The tenant is already set to '{Current.Slug}'; it cannot be changed to '{tenant.Slug}' within the same request or circuit.");
+        }
+
+        Current = tenant;
+    }
 }

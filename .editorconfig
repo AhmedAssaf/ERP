@@ -17,8 +17,6 @@ csharp_style_namespace_declarations = file_scoped:warning
 dotnet_diagnostic.CA2007.severity = none
 # LoggerMessage source generation is adopted when logging grows; the foundation logs little.
 dotnet_diagnostic.CA1848.severity = none
-# Result<T>.Success and Failure are deliberate static factories on a generic type.
-dotnet_diagnostic.CA1000.severity = none
 # Internal types are created by dependency injection, EF Core or Blazor, which the analyzer cannot see.
 dotnet_diagnostic.CA1812.severity = none
 # Components, minimal-API types and Program are discovered by the framework.
@@ -31,3 +29,7 @@ dotnet_diagnostic.CA1716.severity = none
 dotnet_diagnostic.CA1707.severity = none
 # xUnit collection definitions end in "Collection" by convention.
 dotnet_diagnostic.CA1711.severity = none
+
+[src/Platform.Shared/Results/Result.cs]
+# Result<T>.Success and Failure are deliberate static factories on a generic type.
+dotnet_diagnostic.CA1000.severity = none

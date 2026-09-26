@@ -58,6 +58,9 @@ Expected: a line starting `10.0.401`.
   "sdk": {
     "version": "10.0.401",
     "rollForward": "latestFeature"
+  },
+  "test": {
+    "runner": "Microsoft.Testing.Platform"
   }
 }
 ```
@@ -387,7 +390,7 @@ public sealed class TenantAccessor : ITenantAccessor
 - [ ] **Step 5: Run the tests to verify they pass**
 
 Run: `dotnet test tests/Platform.UnitTests`
-Expected: `Passed!  - Failed: 0, Passed: 2`.
+Expected: `total: 2` and `failed: 0`.
 
 - [ ] **Step 6: Commit**
 
@@ -624,7 +627,7 @@ Create an empty `Migrations` folder in each implementation project so the embedd
 - [ ] **Step 5: Run to verify pass**
 
 Run: `dotnet build WaslaBid.slnx -warnaserror && dotnet test tests/Platform.UnitTests`
-Expected: `Build succeeded.` then `Passed!  - Failed: 0, Passed: 14` (2 result + 8 architecture + 4 registration).
+Expected: `Build succeeded.` then `total: 14` and `failed: 0` (2 result + 8 architecture + 4 registration).
 
 - [ ] **Step 6: Commit**
 
@@ -1362,7 +1365,11 @@ internal sealed class ModuleHost : IAsyncDisposable
     public AsyncServiceScope ScopeFor(TenantContext? tenant)
     {
         var scope = _root.CreateAsyncScope();
-        scope.ServiceProvider.GetRequiredService<TenantAccessor>().Current = tenant;
+        if (tenant is not null)
+        {
+            scope.ServiceProvider.GetRequiredService<TenantAccessor>().Set(tenant);
+        }
+
         return scope;
     }
 
@@ -2154,7 +2161,7 @@ internal sealed class TenantMiddleware(RequestDelegate next)
             return;
         }
 
-        accessor.Current = tenant;
+        accessor.Set(tenant);
         await next(context);
     }
 }
@@ -2178,8 +2185,9 @@ internal sealed class TenantCircuitHandler(NavigationManager navigation, ITenant
     public override async Task OnCircuitOpenedAsync(Circuit circuit, CancellationToken cancellationToken)
     {
         var host = new Uri(navigation.BaseUri).Host;
-        accessor.Current = await directory.FindByHostAsync(host, cancellationToken)
+        var tenant = await directory.FindByHostAsync(host, cancellationToken)
             ?? throw new InvalidOperationException($"No tenant owns the host '{host}'.");
+        accessor.Set(tenant);
     }
 }
 ```
@@ -5177,7 +5185,7 @@ Add to `src/Platform.Migrator/DevSeed.cs` (with `using Microsoft.Extensions.Depe
         foreach (var tenant in Tenants)
         {
             await using var scope = provider.CreateAsyncScope();
-            scope.ServiceProvider.GetRequiredService<TenantAccessor>().Current = tenant.ToContext();
+            scope.ServiceProvider.GetRequiredService<TenantAccessor>().Set(tenant.ToContext());
             var definitions = scope.ServiceProvider.GetRequiredService<IWorkflowDefinitions>();
             if (await definitions.FindDefaultAsync(cancellationToken) is not null)
             {
@@ -5193,43 +5201,50 @@ Add to `src/Platform.Migrator/DevSeed.cs` (with `using Microsoft.Extensions.Depe
     }
 ```
 
-Replace `src/Platform.Migrator/Program.cs`:
+Replace `src/Platform.Migrator/Program.cs`. Keep the `internal static class EntryPoint` shape from Task 5 (top-level statements synthesize a type named `Program`, which collides with `Platform.Web`'s `Program` once `Platform.IntegrationTests` references both — see spec section 7):
 ```csharp
 using Microsoft.Extensions.Configuration;
-using Platform.Migrator;
 
-var seedDev = args.Contains("--seed-dev", StringComparer.Ordinal);
-var configuration = new ConfigurationBuilder()
-    .AddUserSecrets(typeof(MigrationRunner).Assembly, optional: true)
-    .AddEnvironmentVariables()
-    .AddCommandLine(args.Where(a => a != "--seed-dev").ToArray())
-    .Build();
+namespace Platform.Migrator;
 
-var owner = configuration.GetConnectionString("Owner");
-if (string.IsNullOrWhiteSpace(owner))
+internal static class EntryPoint
 {
-    Console.Error.WriteLine("Connection string 'Owner' is not configured (user secrets or ConnectionStrings__Owner).");
-    return 1;
-}
-
-var applied = await MigrationRunner.RunAsync(owner);
-Console.WriteLine(applied.Count == 0 ? "Database is up to date." : $"Applied {applied.Count} scripts: {string.Join(", ", applied)}");
-
-if (seedDev)
-{
-    var app = configuration.GetConnectionString("Platform");
-    if (string.IsNullOrWhiteSpace(app))
+    public static async Task<int> Main(string[] args)
     {
-        Console.Error.WriteLine("--seed-dev needs connection string 'Platform' (the erp_app role).");
-        return 1;
+        var seedDev = args.Contains("--seed-dev", StringComparer.Ordinal);
+        var configuration = new ConfigurationBuilder()
+            .AddUserSecrets(typeof(MigrationRunner).Assembly, optional: true)
+            .AddEnvironmentVariables()
+            .AddCommandLine(args.Where(a => a != "--seed-dev").ToArray())
+            .Build();
+
+        var owner = configuration.GetConnectionString("Owner");
+        if (string.IsNullOrWhiteSpace(owner))
+        {
+            Console.Error.WriteLine("Connection string 'Owner' is not configured (user secrets or ConnectionStrings__Owner).");
+            return 1;
+        }
+
+        var applied = await MigrationRunner.RunAsync(owner);
+        Console.WriteLine(applied.Count == 0 ? "Database is up to date." : $"Applied {applied.Count} scripts: {string.Join(", ", applied)}");
+
+        if (seedDev)
+        {
+            var app = configuration.GetConnectionString("Platform");
+            if (string.IsNullOrWhiteSpace(app))
+            {
+                Console.Error.WriteLine("--seed-dev needs connection string 'Platform' (the erp_app role).");
+                return 1;
+            }
+
+            await DevSeed.SeedTenantsAsync(owner);
+            await DevSeed.SeedWorkflowsAsync(app);
+            Console.WriteLine("Seeded development tenants acme and beta with the default approval chain.");
+        }
+
+        return 0;
     }
-
-    await DevSeed.SeedTenantsAsync(owner);
-    await DevSeed.SeedWorkflowsAsync(app);
-    Console.WriteLine("Seeded development tenants acme and beta with the default approval chain.");
 }
-
-return 0;
 ```
 
 - [ ] **Step 3: Run to verify pass**
