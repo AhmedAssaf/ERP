@@ -222,4 +222,37 @@
   <data name="Branding.Logo.Error.Dimensions" xml:space="preserve"><value>The image is wider or taller than 4096 pixels. Resize it and upload it again.</value></data>
   <data name="Branding.Logo.Error.Unreadable" xml:space="preserve"><value>The image could not be read; it may be damaged. Export it again as PNG or JPEG and upload it.</value></data>
   <data name="Branding.Logo.Error.Missing" xml:space="preserve"><value>Choose a logo file to upload.</value></data>
+  <data name="Vendor.Register.Title" xml:space="preserve"><value>Register your company</value></data>
+  <data name="Vendor.Register.Intro" xml:space="preserve"><value>Enter your company's details as they appear in its commercial registration. You become its administrator on WaslaBid.</value></data>
+  <data name="Vendor.Register.Submit" xml:space="preserve"><value>Register company</value></data>
+  <data name="Vendor.Register.Done" xml:space="preserve"><value>Your company is registered. Sign in again to open your vendor page.</value></data>
+  <data name="Vendor.Register.SignInAgain" xml:space="preserve"><value>Sign in again</value></data>
+  <data name="Vendor.Register.AlreadyRegistered" xml:space="preserve"><value>This account already belongs to a vendor company.</value></data>
+  <data name="Vendor.Register.GoToVendorHome" xml:space="preserve"><value>Go to your vendor page</value></data>
+  <data name="Vendor.Register.Error.CrNumber" xml:space="preserve"><value>Enter the 10-digit commercial registration (CR) number, using digits only.</value></data>
+  <data name="Vendor.Register.Error.NameAr" xml:space="preserve"><value>Enter the company's Arabic name as registered, up to 200 characters, using letters, digits, spaces and . , ' - &amp; ( ) /.</value></data>
+  <data name="Vendor.Register.Error.NameEn" xml:space="preserve"><value>Enter the company's English name as registered, up to 200 characters, using letters, digits, spaces and . , ' - &amp; ( ) /.</value></data>
+  <data name="Vendor.Register.Error.VatNumber" xml:space="preserve"><value>Enter the 15-digit VAT number; it starts and ends with 3.</value></data>
+  <data name="Vendor.Register.Error.Address" xml:space="preserve"><value>Enter the address on one line, in up to 500 characters.</value></data>
+  <data name="Vendor.Register.Error.ContactName" xml:space="preserve"><value>Enter the contact person's full name, up to 200 characters, using letters, spaces, apostrophes, hyphens and periods.</value></data>
+  <data name="Vendor.Register.Error.ContactPhone" xml:space="preserve"><value>Enter a phone number of 7 to 15 digits; a + at the start, spaces and hyphens are allowed.</value></data>
+  <data name="Vendor.Register.Error.ContactEmail" xml:space="preserve"><value>Enter the contact's work email address, for example name@company.com.</value></data>
+  <data name="Vendor.Register.Error.Privacy" xml:space="preserve"><value>Read the privacy notice and tick the box to accept it.</value></data>
+  <data name="Vendor.Register.Error.Duplicate" xml:space="preserve"><value>This company already has an account on WaslaBid. Ask its administrator to add you.</value></data>
+  <data name="Vendor.Register.Error.StaffAccount" xml:space="preserve"><value>This account belongs to a staff member. Register your company with a separate account.</value></data>
+  <data name="Vendor.Register.Error.Generic" xml:space="preserve"><value>The registration could not be completed. Try again in a moment.</value></data>
+  <data name="Vendor.Field.CrNumber" xml:space="preserve"><value>Commercial registration (CR) number</value></data>
+  <data name="Vendor.Field.CrNumber.Help" xml:space="preserve"><value>10 digits</value></data>
+  <data name="Vendor.Field.NameAr" xml:space="preserve"><value>Company name in Arabic</value></data>
+  <data name="Vendor.Field.NameEn" xml:space="preserve"><value>Company name in English</value></data>
+  <data name="Vendor.Field.VatNumber" xml:space="preserve"><value>VAT number</value></data>
+  <data name="Vendor.Field.VatNumber.Help" xml:space="preserve"><value>15 digits, starting and ending with 3</value></data>
+  <data name="Vendor.Field.Address" xml:space="preserve"><value>Address</value></data>
+  <data name="Vendor.Field.ContactName" xml:space="preserve"><value>Contact person</value></data>
+  <data name="Vendor.Field.ContactPhone" xml:space="preserve"><value>Contact phone</value></data>
+  <data name="Vendor.Field.ContactEmail" xml:space="preserve"><value>Contact email</value></data>
+  <data name="Vendor.Privacy.Heading" xml:space="preserve"><value>Privacy notice</value></data>
+  <data name="Vendor.Privacy.V1" xml:space="preserve"><value>WaslaBid, the platform that runs this portal, keeps your company's registration details, the documents you upload and a record of what you do here, so that the organizations you work with can assess your company and every decision can be audited. Your data is stored in Saudi Arabia. An organization sees your company only after you register or work with it through its portal. Your company decides, through its consent ledger, whether any other party may receive its records. You can ask for a copy of your data or for its correction at any time.</value></data>
+  <data name="Vendor.Privacy.Accept" xml:space="preserve"><value>I have read the privacy notice and accept it.</value></data>
+  <data name="Vendor.Home.Title" xml:space="preserve"><value>Vendor page</value></data>
 </root>

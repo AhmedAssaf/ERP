@@ -1,0 +1,36 @@
+@*
+    The vendor's home on a tenant host (spec section 3). This task gives it the company it acts for, read under the vendor
+    row-level security, which proves the vendor context was set for the request; documents and consent arrive in tasks
+    3 to 6. Vendors only (the Vendor policy); staff get 403.
+*@
+@page "/vendor"
+@attribute [Authorize(Policy = VendorPolicies.Vendor)]
+@using System.Globalization
+@inject IVendorCompanies Companies
+@inject ITenantAccessor Tenants
+@inject IStringLocalizer<SharedResource> T
+
+<PageTitle>@T["Vendor.Home.Title"]</PageTitle>
+
+<AppShell Variant="AppShellVariant.Tenant" PortalName="@Tenants.Current?.Branding.PortalName" LogoUrl="@Tenants.Current?.Branding.LogoUrl">
+    <h1 class="text-display font-semibold">@T["Vendor.Home.Title"]</h1>
+    @if (_company is { } company)
+    {
+        <section data-vendor-company="@company.Id" aria-labelledby="company-heading" class="grid gap-2">
+            <h2 id="company-heading" class="text-heading">@CompanyName(company)</h2>
+            <dl class="grid gap-1 text-body">
+                <div class="flex gap-2"><dt class="font-semibold">@T["Vendor.Field.CrNumber"]</dt><dd dir="ltr">@company.CrNumber</dd></div>
+                <div class="flex gap-2"><dt class="font-semibold">@T["Vendor.Field.VatNumber"]</dt><dd dir="ltr">@company.VatNumber</dd></div>
+            </dl>
+        </section>
+    }
+</AppShell>
+
+@code {
+    private VendorCompany? _company;
+
+    protected override async Task OnInitializedAsync() => _company = await Companies.CurrentAsync();
+
+    private static string CompanyName(VendorCompany company) =>
+        CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar" ? company.NameAr : company.NameEn;
+}

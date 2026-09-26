@@ -37,7 +37,8 @@ public interface IStaffService
     /// row with <paramref name="roles"/>, and emails the person: Keycloak's setup link (password and TOTP, whichever the
     /// account lacks) that returns to the tenant's host, or, for an account with nothing to set up, a short notice in both
     /// languages that the tenant added them. Both answer the same. Audited as <c>identity.member_invited</c>. Refused when
-    /// the email is already a member of the tenant (<c>identity.member_exists</c>), when the account cannot be invited
+    /// the email is already a member of the tenant (<c>identity.member_exists</c>), when the account cannot be invited (disabled,
+    /// or a vendor account, V-3)
     /// (<c>identity.account_disabled</c>, audited as <c>identity.invitation_refused</c>), when no role or an unknown role
     /// is given, or when the email or name is not valid. When the member row cannot be saved, the organization
     /// membership this call added is removed again and <c>identity.invitation_failed</c> is returned.

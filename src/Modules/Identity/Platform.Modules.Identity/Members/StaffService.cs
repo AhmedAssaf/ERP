@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Net;
-using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -85,6 +84,20 @@ internal sealed partial class StaffService(
                 {
                     ["email"] = address,
                     ["reason"] = "account_disabled",
+                }),
+                cancellationToken);
+            return Result.Failure<Invitation>(Error.Refused("identity.account_disabled", "This person cannot be invited. Contact support."));
+        }
+
+        if (existing is not null && (await keycloak.RealmRolesAsync(existing.Id, cancellationToken)).Contains(IdentityClaims.VendorRealmRole))
+        {
+            // V-3: a vendor account never gets a member row, so staff policies stay closed to it. The admin sees the same
+            // answer as for a disabled account, so the page does not tell who is a vendor.
+            await audit.WriteAsync(
+                new AuditEntry(actorId, "identity.invitation_refused", "member", existing.Id, new Dictionary<string, string?>
+                {
+                    ["email"] = address,
+                    ["reason"] = "vendor_account",
                 }),
                 cancellationToken);
             return Result.Failure<Invitation>(Error.Refused("identity.account_disabled", "This person cannot be invited. Contact support."));
@@ -271,59 +284,8 @@ internal sealed partial class StaffService(
             "identity.invalid_display_name",
             $"Enter the person's full name, up to {DisplayNames.MaxLength} characters, using letters, spaces, apostrophes, hyphens and periods."));
 
-    /// <summary>
-    /// A work email address, stricter than <see cref="System.Net.Mail.MailAddress"/>: ASCII only, an unquoted local
-    /// part, a domain of at least two letter/digit/hyphen labels (no label starting or ending with a hyphen, no
-    /// trailing dot, no dotted-quad IP literal), and at most 254 characters overall. The address is shown next to the
-    /// name on <c>/admin/staff</c> and in emails, so the bidi-override and zero-width characters the name refuses must
-    /// not enter here either, though an ASCII-only address can never carry them.
-    /// </summary>
-    private static string? NormalizeEmail(string? email)
-    {
-        var trimmed = email?.Trim();
-        if (string.IsNullOrEmpty(trimmed) || trimmed.Length > 254 || TextSafety.HasInvisibleOrBidiControl(trimmed))
-        {
-            return null;
-        }
-
-        foreach (var c in trimmed)
-        {
-            if (c > '\u007F')
-            {
-                return null;
-            }
-        }
-
-        var at = trimmed.IndexOf('@');
-        if (at <= 0 || at != trimmed.LastIndexOf('@') || at == trimmed.Length - 1)
-        {
-            return null;
-        }
-
-        var localPart = trimmed[..at];
-        var domain = trimmed[(at + 1)..];
-        if (localPart[0] == '"' || !LocalPart().IsMatch(localPart))
-        {
-            return null;
-        }
-
-        var labels = domain.Split('.');
-        if (labels.Length < 2 || labels.Any(label => !DomainLabel().IsMatch(label))
-            || labels.All(label => label.All(char.IsAsciiDigit)))
-        {
-            // Fewer than two labels (no dot, "localhost"), an empty label (a trailing or doubled dot), a label
-            // starting or ending with a hyphen, or every label numeric (a dotted-quad IP literal) is refused.
-            return null;
-        }
-
-        return trimmed.ToLowerInvariant();
-    }
-
-    [GeneratedRegex(@"^[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+(\.[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+)*$", RegexOptions.CultureInvariant)]
-    private static partial Regex LocalPart();
-
-    [GeneratedRegex(@"^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?$", RegexOptions.CultureInvariant)]
-    private static partial Regex DomainLabel();
+    /// <summary>A work email address under the platform's rule (<see cref="EmailAddresses"/>), shared with vendor contacts.</summary>
+    private static string? NormalizeEmail(string? email) => EmailAddresses.Normalize(email);
 
     // Keycloak keeps first and last name apart; the last word is the last name ("Sara Al Ahmed" -> "Sara Al", "Ahmed").
     private static NewKeycloakUser NewUser(string email, string name, TenantContext tenant)

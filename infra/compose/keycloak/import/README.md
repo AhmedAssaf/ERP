@@ -17,7 +17,7 @@ when it does not exist yet; after editing this file, delete the realm in the adm
 | Setting | Value | Why |
 |---|---|---|
 | Brute-force detection | on; temporary lockout (`permanentLockout` false) after `failureFactor` 3, wait 900 s (`waitIncrementSeconds` and `maxFailureWaitSeconds`), failures forgotten after 12 h; Keycloak's default quick-login check kept (two failures under 1 s apart lock for 60 s) | F-06: three wrong TOTP codes lock the account for fifteen minutes. Wrong passwords count too. |
-| Browser flow | `tenant browser`: Keycloak 26.3's built-in browser flow (cookie, identity provider redirector, the organization identity-first step) with the forms sub-flow changed to Username Password Form REQUIRED plus OTP Form REQUIRED | every tenant user needs TOTP at every login; a user without an OTP credential is sent to `CONFIGURE_TOTP` by that step. OTP policy TOTP, SHA-1, 6 digits, 30 s. |
+| Browser flow | `tenant browser`: Keycloak 26.3's built-in browser flow (cookie, identity provider redirector, the organization identity-first step) with the forms sub-flow changed to Username Password Form REQUIRED plus OTP Form REQUIRED (since vendor task 2 inside a conditional sub-flow that skips holders of the realm role `vendor`, see below) | every tenant staff user needs TOTP at every login; a user without an OTP credential is sent to `CONFIGURE_TOTP` by that step. OTP policy TOTP, SHA-1, 6 digits, 30 s. |
 | Required actions | not defined in the file | `CONFIGURE_TOTP` and `UPDATE_PASSWORD` are enabled by default in 26.3; an import that defines `requiredActions` replaces the built-in list. `acme.admin` and `beta.admin` carry `CONFIGURE_TOTP` as a user required action, so they enrol on their first login. |
 | SMTP | `mailpit:1025`, from `no-reply@waslabid.test` (display name WaslaBid), no auth, no TLS | Compose's Mailpit catches the invitation emails; `mailpit` resolves on the Compose network. |
 | `waslabid-admin-api` | confidential client, service account only (no browser or password flows), secret `${WASLABID_ADMIN_API_SECRET}` | the web host's Keycloak Admin API client (`KeycloakAdmin:*` settings). |
@@ -47,6 +47,37 @@ get a seeded OTP credential), with Keycloak and Mailpit on one Docker network un
 reaches the browser flow's OTP form), spaces the attempts more than a second apart so only `failureFactor` can lock,
 and checks Keycloak's attack-detection status after each code. The lockout is not yet copied into the tenant's audit;
 that is W-28.
+
+### Vendor self-registration (vendor slice task 2, F-11, spec V-3 to V-5)
+
+| Setting | Value | Why |
+|---|---|---|
+| `registrationAllowed`, `registrationEmailAsUsername` | true, true | vendors sign up themselves from a tenant host (`/vendor/register`); the form asks only for email, first and last name and password (the email is the username) |
+| `verifyEmail` | true | V-5: a new account cannot finish a sign-in until the link in the verification email is clicked. It applies to every user of the realm: invited staff verify through the invitation link (Keycloak marks the email verified when an `execute-actions-email` link is used), and the imported admins are verified already |
+| `duplicateEmailsAllowed` | false (the default, stated) | one account per address, so an invited staff address cannot also sign up as a vendor |
+| Realm role `vendor` | defined, **not** in `default-roles-waslabid` | self-registration never grants it; the app grants it through the Admin API when the user registers a company (`IVendorAccounts`), together with membership of the host tenant's organization |
+| `waslabid-web` mapper "realm roles in id token" | claim `roles`, multivalued | the Vendor policy reads the role from the id token, as the platform realm's client does for `platform-admin` |
+| Browser flow | the forms sub-flow keeps Username Password Form REQUIRED; the OTP form moved into the CONDITIONAL sub-flow `tenant browser otp` = "Condition - user role" (`vendor`, negated) REQUIRED plus OTP Form REQUIRED | V-4: vendors sign in without a second factor; everyone else, staff included, still must use TOTP. A registered account that has not registered a company yet holds no `vendor` role, so a later sign-in asks it to enrol TOTP (stricter than V-4, never weaker) |
+
+How the registration link reaches Keycloak in 26.3: `waslabid-web` requires pushed authorization requests, and Keycloak
+reads `prompt=create` only from the front-channel query of `/protocol/openid-connect/auth`, which under PAR carries only
+`client_id` and `request_uri`; the pushed prompt is ignored and the identity-first login page (the organization step)
+appears. The app therefore sends that one challenge to Keycloak's registration endpoint,
+`/protocol/openid-connect/registrations`, with the same pushed request, and the redirect URI is the tenant host's own
+`/signin-oidc`, so the user lands back on the tenant host at `/vendor/register/company`. The identity-first step does not
+touch the registration flow.
+
+Admin API roles for vendors: granting and removing the realm role (`POST`/`DELETE /users/{id}/role-mappings/realm`) needs
+`manage-users`; reading the role by name (`GET /roles/vendor`) needs `view-realm`, which the service account holds through
+`manage-realm`; listing a user's organizations (`GET /organizations/members/{id}/organizations`) needs `manage-realm`, like
+every organizations endpoint. No new role was added to the service account. A staff invitation of an address that holds
+the `vendor` role is refused (V-3: a vendor never gets a member row), audited as `identity.invitation_refused` with reason
+`vendor_account`.
+
+Proven by `tests/Platform.IntegrationTests/Vendors/VendorRegistrationTests.cs` (registration from the tenant host, the
+verification email in Mailpit, the role and membership after company registration, and the vendor's next sign-in with
+password only). After pulling this change, delete the `waslabid` realm in the admin console and restart Keycloak so it
+is imported again.
 
 ## waslabid-platform-realm.json
 

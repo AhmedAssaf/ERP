@@ -43,6 +43,7 @@ internal sealed class ModuleHost : IAsyncDisposable
         services.AddWorkflowModule(appConnectionString);
         services.AddOperationsModule(appConnectionString);
         services.AddVendorsModule(appConnectionString);
+        services.AddVendorPortal();
         if (keycloakAdmin is not null)
         {
             services.AddKeycloakAdmin(keycloakAdmin);

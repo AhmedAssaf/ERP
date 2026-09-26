@@ -136,6 +136,45 @@ public sealed class KeycloakFixture : IAsyncLifetime
     public async Task<JsonElement> AdminGetAsync(string path, CancellationToken cancellationToken)
     {
         using var http = new HttpClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, AdminUri(path));
+        request.Headers.Authorization = new("Bearer", await BootstrapTokenAsync(http, cancellationToken));
+        using var response = await http.SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+        return body.RootElement.Clone();
+    }
+
+    /// <summary>
+    /// Creates an enabled user in no organization, with <paramref name="email"/> as username and email, a password, and no
+    /// second factor, as the container's bootstrap admin; returns its id.
+    /// </summary>
+    public async Task<string> CreateUserAsync(string email, string password, bool emailVerified, CancellationToken cancellationToken)
+    {
+        using var http = new HttpClient();
+        using var request = new HttpRequestMessage(HttpMethod.Post, AdminUri("users"))
+        {
+            Content = System.Net.Http.Json.JsonContent.Create(new
+            {
+                username = email,
+                email,
+                firstName = "Test",
+                lastName = "Person",
+                enabled = true,
+                emailVerified,
+                credentials = new[] { new { type = "password", value = password, temporary = false } },
+            }),
+        };
+        request.Headers.Authorization = new("Bearer", await BootstrapTokenAsync(http, cancellationToken));
+        using var response = await http.SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return response.Headers.Location!.Segments[^1].TrimEnd('/');
+    }
+
+    private Uri AdminUri(string path) =>
+        new(new Uri(BaseAddress), path.Length == 0 ? "admin/realms/waslabid" : $"admin/realms/waslabid/{path}");
+
+    private async Task<string> BootstrapTokenAsync(HttpClient http, CancellationToken cancellationToken)
+    {
         using var form = new FormUrlEncodedContent(new Dictionary<string, string>
         {
             ["client_id"] = "admin-cli",
@@ -146,12 +185,7 @@ public sealed class KeycloakFixture : IAsyncLifetime
         using var tokenResponse = await http.PostAsync(new Uri(new Uri(BaseAddress), "realms/master/protocol/openid-connect/token"), form, cancellationToken);
         tokenResponse.EnsureSuccessStatusCode();
         using var token = JsonDocument.Parse(await tokenResponse.Content.ReadAsStringAsync(cancellationToken));
-        using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(new Uri(BaseAddress), $"admin/realms/waslabid/{path}"));
-        request.Headers.Authorization = new("Bearer", token.RootElement.GetProperty("access_token").GetString());
-        using var response = await http.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
-        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
-        return body.RootElement.Clone();
+        return token.RootElement.GetProperty("access_token").GetString()!;
     }
 
     private static string BuildTestVariant(string repositoryRealm)

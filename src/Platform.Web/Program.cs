@@ -10,6 +10,7 @@ using Platform.Modules.Identity.Contracts;
 using Platform.Modules.Operations;
 using Platform.Modules.Tenancy;
 using Platform.Modules.Vendors;
+using Platform.Modules.Vendors.Contracts;
 using Platform.Modules.Workflow;
 using Platform.Shared;
 using Platform.Shared.Jobs;
@@ -20,6 +21,7 @@ using Platform.Web.Components;
 using Platform.Web.Localization;
 using Platform.Web.PlatformHost;
 using Platform.Web.Tenancy;
+using Platform.Web.Vendor;
 
 var builder = WebApplication.CreateBuilder(args);
 var platformDb = builder.Configuration.GetConnectionString("Platform");
@@ -58,6 +60,9 @@ builder.Services.AddWorkflowModule(platformDb);
 builder.Services.AddOperationsModule(platformDb);
 // Vendor slice (ADR-0008): one vendor company across tenants.
 builder.Services.AddVendorsModule(platformDb);
+// Vendor pages (F-11): registration, the Vendor policy's company check, and the vendor context after that policy passes.
+builder.Services.AddVendorPortal();
+builder.Services.AddScoped<VendorContextResolver>();
 // The web host only enqueues and reads jobs (D-6): Hangfire storage without a server, plus the dashboard (task 7).
 builder.Services.AddJobClient(platformDb);
 builder.Services.AddJobsDashboard();
@@ -65,6 +70,7 @@ builder.Services.AddOperationsConsole(builder.Configuration);
 builder.Services.AddScoped<TenantOverview>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<CircuitHandler, TenantCircuitHandler>();
+builder.Services.AddScoped<CircuitHandler, VendorCircuitHandler>();
 builder.Services.Configure<PlatformHostOptions>(builder.Configuration.GetSection(PlatformHostOptions.Section));
 
 // Two sign-ins side by side (spec 3.1): tenant hosts use the tenant realm and cookie, the platform host the platform
@@ -108,6 +114,8 @@ builder.Services
         options.Scope.Add("email");
         options.TokenValidationParameters.NameClaimType = IdentityClaims.Username;
         options.Events.OnRedirectToIdentityProviderForSignOut = SignOutEndpoints.NameClientOnEndSession;
+        // F-11: /vendor/register goes to the realm's registration endpoint (VendorRegistrationEndpoints).
+        options.Events.OnRedirectToIdentityProvider = VendorRegistrationEndpoints.UseRegistrationEndpoint;
     })
     .AddPlatformAuthentication(builder.Configuration);
 builder.Services.AddAuthorization(options =>
@@ -119,6 +127,12 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy(PlatformAuthentication.PolicyName, PlatformAuthentication.AdminPolicy);
     // F-07: TenantAdmin, ContractsOfficer, TechnicalEvaluator, FinanceApprover (same tenant plus the role in identity.members).
     options.AddTenantRolePolicies();
+    // Vendor pages (spec section 3, V-3): the vendor's own requirements plus membership of the host tenant's organization.
+    options.AddPolicy(VendorPolicies.Vendor, new AuthorizationPolicyBuilder()
+        .Combine(IdentityModule.SameTenantPolicy)
+        .Combine(VendorsModule.VendorRequirements)
+        .Build());
+    options.AddPolicy(VendorPolicies.VendorApplicant, VendorsModule.VendorApplicantPolicy);
 });
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, HostAwareAuthorizationPolicyProvider>();
 builder.Services.AddCascadingAuthenticationState();
@@ -171,11 +185,13 @@ app.UseAuthentication();
 app.UseRequestLocalization();
 app.UseAuthorization();
 app.UseMiddleware<PlatformAdminEverywhereMiddleware>();
+app.UseMiddleware<VendorContextMiddleware>();
 app.UseAntiforgery();
 app.MapStaticAssets().AllowAnonymous();
 app.MapHealthChecks("/health").AllowAnonymous();
 app.MapCultureEndpoints();
 app.MapSignOutEndpoints();
+app.MapVendorRegistrationEndpoints();
 app.MapBrandingEndpoints();
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 app.MapJobsDashboard();

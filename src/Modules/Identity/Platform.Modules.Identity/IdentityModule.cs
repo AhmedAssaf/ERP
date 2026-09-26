@@ -66,6 +66,7 @@ public static class IdentityModule
         services.AddScoped<IAuthorizationHandler, TenantRoleHandler>();
         services.TryAddSingleton<IOrganizationMemberSource, UnavailableOrganizationMembers>();
         services.TryAddSingleton<IOrganizationMembers, CachingOrganizationMembers>();
+        services.TryAddScoped<IVendorAccounts, UnavailableVendorAccounts>();
         return services;
     }
 
@@ -99,6 +100,8 @@ public static class IdentityModule
         services.AddLocalization(o => o.ResourcesPath = "Resources");
         services.TryAddSingleton<InvitationNotice>();
         services.AddScoped<IStaffService, StaffService>();
+        // Vendor slice (V-3): the realm role vendor and organization membership for registered vendor companies.
+        services.Replace(ServiceDescriptor.Scoped<IVendorAccounts, KeycloakVendorAccounts>());
         return services;
     }
 

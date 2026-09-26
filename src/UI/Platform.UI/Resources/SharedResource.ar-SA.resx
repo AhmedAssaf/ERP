@@ -222,4 +222,37 @@
   <data name="Branding.Logo.Error.Dimensions" xml:space="preserve"><value>عرض الصورة أو ارتفاعها أكبر من 4096 بكسل. غيّر حجمها ثم ارفعها مجددًا.</value></data>
   <data name="Branding.Logo.Error.Unreadable" xml:space="preserve"><value>تعذرت قراءة الصورة وقد تكون تالفة. صدّرها مجددًا بصيغة PNG أو JPEG ثم ارفعها.</value></data>
   <data name="Branding.Logo.Error.Missing" xml:space="preserve"><value>اختر ملف الشعار لرفعه.</value></data>
+  <data name="Vendor.Register.Title" xml:space="preserve"><value>سجّل شركتك</value></data>
+  <data name="Vendor.Register.Intro" xml:space="preserve"><value>أدخل بيانات شركتك كما تظهر في سجلها التجاري. ستصبح مسؤول حسابها على وصلة بد.</value></data>
+  <data name="Vendor.Register.Submit" xml:space="preserve"><value>تسجيل الشركة</value></data>
+  <data name="Vendor.Register.Done" xml:space="preserve"><value>تم تسجيل شركتك. سجّل الدخول مرة أخرى لفتح صفحة المورّد.</value></data>
+  <data name="Vendor.Register.SignInAgain" xml:space="preserve"><value>تسجيل الدخول مرة أخرى</value></data>
+  <data name="Vendor.Register.AlreadyRegistered" xml:space="preserve"><value>هذا الحساب مرتبط بشركة مورّدة بالفعل.</value></data>
+  <data name="Vendor.Register.GoToVendorHome" xml:space="preserve"><value>الانتقال إلى صفحة المورّد</value></data>
+  <data name="Vendor.Register.Error.CrNumber" xml:space="preserve"><value>أدخل رقم السجل التجاري المكوّن من 10 أرقام، بالأرقام فقط.</value></data>
+  <data name="Vendor.Register.Error.NameAr" xml:space="preserve"><value>أدخل اسم الشركة بالعربية كما هو مسجَّل، بما لا يزيد على 200 حرف، باستخدام الحروف والأرقام والمسافات والرموز . , ' - &amp; ( ) / فقط.</value></data>
+  <data name="Vendor.Register.Error.NameEn" xml:space="preserve"><value>أدخل اسم الشركة بالإنجليزية كما هو مسجَّل، بما لا يزيد على 200 حرف، باستخدام الحروف والأرقام والمسافات والرموز . , ' - &amp; ( ) / فقط.</value></data>
+  <data name="Vendor.Register.Error.VatNumber" xml:space="preserve"><value>أدخل الرقم الضريبي المكوّن من 15 رقماً، ويبدأ بالرقم 3 وينتهي به.</value></data>
+  <data name="Vendor.Register.Error.Address" xml:space="preserve"><value>أدخل العنوان في سطر واحد بما لا يزيد على 500 حرف.</value></data>
+  <data name="Vendor.Register.Error.ContactName" xml:space="preserve"><value>أدخل الاسم الكامل لمسؤول التواصل بما لا يزيد على 200 حرف، باستخدام الحروف والمسافات والفواصل العليا والشرطات والنقاط فقط.</value></data>
+  <data name="Vendor.Register.Error.ContactPhone" xml:space="preserve"><value>أدخل رقم هاتف من 7 إلى 15 رقماً؛ يُسمح بعلامة + في البداية وبالمسافات والشرطات.</value></data>
+  <data name="Vendor.Register.Error.ContactEmail" xml:space="preserve"><value>أدخل البريد الإلكتروني للعمل لمسؤول التواصل، مثل name@company.com.</value></data>
+  <data name="Vendor.Register.Error.Privacy" xml:space="preserve"><value>اقرأ إشعار الخصوصية وحدّد المربع للموافقة عليه.</value></data>
+  <data name="Vendor.Register.Error.Duplicate" xml:space="preserve"><value>هذه الشركة لديها حساب على وصلة بد بالفعل. اطلب من مسؤول حسابها أن يضيفك.</value></data>
+  <data name="Vendor.Register.Error.StaffAccount" xml:space="preserve"><value>هذا الحساب لموظف في إحدى المنشآت. سجّل شركتك بحساب منفصل.</value></data>
+  <data name="Vendor.Register.Error.Generic" xml:space="preserve"><value>تعذّر إكمال التسجيل. حاول مرة أخرى بعد قليل.</value></data>
+  <data name="Vendor.Field.CrNumber" xml:space="preserve"><value>رقم السجل التجاري</value></data>
+  <data name="Vendor.Field.CrNumber.Help" xml:space="preserve"><value>10 أرقام</value></data>
+  <data name="Vendor.Field.NameAr" xml:space="preserve"><value>اسم الشركة بالعربية</value></data>
+  <data name="Vendor.Field.NameEn" xml:space="preserve"><value>اسم الشركة بالإنجليزية</value></data>
+  <data name="Vendor.Field.VatNumber" xml:space="preserve"><value>الرقم الضريبي</value></data>
+  <data name="Vendor.Field.VatNumber.Help" xml:space="preserve"><value>15 رقماً، يبدأ بالرقم 3 وينتهي به</value></data>
+  <data name="Vendor.Field.Address" xml:space="preserve"><value>العنوان</value></data>
+  <data name="Vendor.Field.ContactName" xml:space="preserve"><value>مسؤول التواصل</value></data>
+  <data name="Vendor.Field.ContactPhone" xml:space="preserve"><value>هاتف التواصل</value></data>
+  <data name="Vendor.Field.ContactEmail" xml:space="preserve"><value>البريد الإلكتروني للتواصل</value></data>
+  <data name="Vendor.Privacy.Heading" xml:space="preserve"><value>إشعار الخصوصية</value></data>
+  <data name="Vendor.Privacy.V1" xml:space="preserve"><value>تحتفظ وصلة بد، المنصة التي تشغّل هذه البوابة، ببيانات تسجيل شركتك والمستندات التي ترفعها وسجلٍّ لما تقوم به هنا، لكي تتمكن الجهات التي تتعامل معها من تقييم شركتك ولكي يمكن تدقيق كل قرار. تُحفظ بياناتك داخل المملكة العربية السعودية. لا ترى أي جهة شركتك إلا بعد أن تسجّل لديها أو تتعامل معها عبر بوابتها. تقرّر شركتك، عبر سجل الموافقات الخاص بها، ما إذا كان يجوز لأي طرف آخر أن يتلقى سجلاتها. يمكنك طلب نسخة من بياناتك أو تصحيحها في أي وقت.</value></data>
+  <data name="Vendor.Privacy.Accept" xml:space="preserve"><value>قرأت إشعار الخصوصية وأوافق عليه.</value></data>
+  <data name="Vendor.Home.Title" xml:space="preserve"><value>صفحة المورّد</value></data>
 </root>

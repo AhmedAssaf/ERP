@@ -101,7 +101,8 @@ internal sealed class KeycloakAdminState(TimeProvider clock) : IDisposable
 /// <c>waslabid-admin-api</c>. A typed <see cref="HttpClient"/>; the token and organization ids live in
 /// <see cref="KeycloakAdminState"/>. Keycloak 26.3 serves every <c>/organizations</c> endpoint, reads included, only to
 /// the realm-management role <c>manage-realm</c>; the users endpoints need <c>manage-users</c>, <c>view-users</c> and
-/// <c>query-users</c> (infra/compose/keycloak/import/README.md).
+/// <c>query-users</c>; reading a realm role by name needs <c>view-realm</c> (held through <c>manage-realm</c>) and mapping
+/// it to a user <c>manage-users</c> (infra/compose/keycloak/import/README.md).
 /// </summary>
 internal sealed class KeycloakAdminClient(HttpClient http, KeycloakAdminState state, IOptions<KeycloakAdminOptions> options)
 {
@@ -208,6 +209,55 @@ internal sealed class KeycloakAdminClient(HttpClient http, KeycloakAdminState st
         }
     }
 
+    /// <summary>The names of the realm roles mapped directly to the user.</summary>
+    public async Task<IReadOnlySet<string>> RealmRolesAsync(string userId, CancellationToken cancellationToken)
+    {
+        var roles = await GetAsync<List<RoleResponse>>($"{Realm}/users/{Uri.EscapeDataString(userId)}/role-mappings/realm", cancellationToken);
+        return (roles ?? []).Select(r => r.Name).ToHashSet(StringComparer.Ordinal);
+    }
+
+    /// <summary>
+    /// Maps the realm role <paramref name="role"/> to the user. True when this call added it; false when the user already
+    /// held it, in which case nothing changes.
+    /// </summary>
+    public async Task<bool> AssignRealmRoleAsync(string userId, string role, CancellationToken cancellationToken)
+    {
+        if ((await RealmRolesAsync(userId, cancellationToken)).Contains(role))
+        {
+            return false;
+        }
+
+        var representation = await RealmRoleAsync(role, cancellationToken);
+        using var response = await SendAsync(
+            HttpMethod.Post, $"{Realm}/users/{Uri.EscapeDataString(userId)}/role-mappings/realm", new[] { representation }, cancellationToken);
+        if (response.StatusCode is not (HttpStatusCode.NoContent or HttpStatusCode.OK))
+        {
+            throw new KeycloakAdminException($"Keycloak did not grant realm role '{role}' ({(int)response.StatusCode}).", response.StatusCode);
+        }
+
+        return true;
+    }
+
+    /// <summary>Removes the realm role <paramref name="role"/> from the user; a user without it is left as is.</summary>
+    public async Task RemoveRealmRoleAsync(string userId, string role, CancellationToken cancellationToken)
+    {
+        var representation = await RealmRoleAsync(role, cancellationToken);
+        using var response = await SendAsync(
+            HttpMethod.Delete, $"{Realm}/users/{Uri.EscapeDataString(userId)}/role-mappings/realm", new[] { representation }, cancellationToken);
+        if (response.StatusCode is not (HttpStatusCode.NoContent or HttpStatusCode.OK or HttpStatusCode.NotFound))
+        {
+            throw new KeycloakAdminException($"Keycloak did not remove realm role '{role}' ({(int)response.StatusCode}).", response.StatusCode);
+        }
+    }
+
+    /// <summary>The aliases of every organization the user is a member of.</summary>
+    public async Task<IReadOnlyList<string>> OrganizationAliasesOfAsync(string userId, CancellationToken cancellationToken)
+    {
+        var organizations = await GetAsync<List<OrganizationResponse>>(
+            $"{Realm}/organizations/members/{Uri.EscapeDataString(userId)}/organizations?briefRepresentation=true", cancellationToken);
+        return [.. (organizations ?? []).Select(o => o.Alias)];
+    }
+
     /// <summary>The number of members of the organization with <paramref name="alias"/>; null when there is none.</summary>
     public async Task<int?> CountOrganizationMembersAsync(string alias, CancellationToken cancellationToken)
     {
@@ -286,7 +336,15 @@ internal sealed class KeycloakAdminClient(HttpClient http, KeycloakAdminState st
 
     private static string PathOnly(string path) => path.Split('?')[0];
 
+    private async Task<RoleResponse> RealmRoleAsync(string role, CancellationToken cancellationToken) =>
+        await GetAsync<RoleResponse>($"{Realm}/roles/{Uri.EscapeDataString(role)}", cancellationToken)
+        ?? throw new KeycloakAdminException($"Keycloak has no realm role '{role}'.");
+
     private sealed record CredentialResponse([property: JsonPropertyName("type")] string Type);
+
+    private sealed record RoleResponse(
+        [property: JsonPropertyName("id")] string Id,
+        [property: JsonPropertyName("name")] string Name);
 
     private sealed record OrganizationResponse(
         [property: JsonPropertyName("id")] string Id,

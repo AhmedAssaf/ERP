@@ -222,10 +222,50 @@ public sealed class VendorRowLevelSecurityTests(DatabaseFixture db) : IAsyncLife
         refused.SqlState.ShouldBe(PostgresErrorCodes.InsufficientPrivilege);
     }
 
-    private async Task<Guid> RegisterAsync(TenantContext? tenant, string? crNumber = null)
+    [Fact]
+    public async Task Company_of_user_finds_the_company_before_any_vendor_context_exists()
+    {
+        // Task 2: the Vendor policy must find the user's company while RLS still hides vendor.vendor_users.
+        var userId = Guid.NewGuid().ToString();
+        var companyId = await RegisterAsync(TestTenants.Acme, userId: userId);
+
+        foreach (var tenant in new[] { TestTenants.Acme, TestTenants.Beta, null })
+        {
+            await using var scope = _host.ScopeFor(tenant);
+            await using var context = await CreateContextAsync(scope);
+            (await CountAsync(context, "vendor_users")).ShouldBe(0);
+            (await CompanyOfUserAsync(context, userId)).ShouldBe(companyId);
+            (await CompanyOfUserAsync(context, Guid.NewGuid().ToString())).ShouldBeNull();
+        }
+    }
+
+    [Fact]
+    public async Task Company_of_user_runs_as_its_owner_with_a_pinned_search_path_and_only_the_app_role_may_call_it()
+    {
+        await using var owner = new NpgsqlConnection(db.OwnerConnectionString);
+        await owner.OpenAsync(Ct);
+        await using var command = new NpgsqlCommand("""
+            select p.prosecdef, p.proconfig::text,
+                   has_function_privilege('erp_app', p.oid, 'execute'),
+                   has_function_privilege('public', p.oid, 'execute')
+            from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+            where n.nspname = 'vendor' and p.proname = 'company_of_user'
+            """, owner);
+        await using var reader = await command.ExecuteReaderAsync(Ct);
+        (await reader.ReadAsync(Ct)).ShouldBeTrue("vendor.company_of_user exists");
+        reader.GetBoolean(0).ShouldBeTrue("security definer");
+        reader.GetString(1).ShouldContain("search_path=vendor, pg_temp");
+        reader.GetBoolean(2).ShouldBeTrue("erp_app may execute it");
+        reader.GetBoolean(3).ShouldBeFalse("public may not execute it");
+    }
+
+    private static async Task<Guid?> CompanyOfUserAsync(VendorsDbContext context, string userId) =>
+        await context.Database.SqlQuery<Guid?>($"select vendor.company_of_user({userId}) as \"Value\"").SingleAsync(Ct);
+
+    private async Task<Guid> RegisterAsync(TenantContext? tenant, string? crNumber = null, string? userId = null)
     {
         var cr = crNumber ?? NewCrNumber();
-        var userId = Guid.NewGuid().ToString();
+        userId ??= Guid.NewGuid().ToString();
         await using var scope = _host.ScopeFor(tenant);
         await using var context = await CreateContextAsync(scope);
         return await context.Database.SqlQuery<Guid>($"""
