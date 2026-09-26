@@ -187,3 +187,20 @@ The six PDF offers (three Word PDFs, three scans) given to Sonnet as the origina
 - Cross-offer flags (the shared phone number, paragraphs copied between bidders) cannot come from a per-offer review; they belong to the separate integrity step (F-49), which compares offers and the bidder list.
 - The conversion pipeline (Docling, OCR, PdfPig) is not needed for PDFs. DOCX can still go as Markdown, which converts perfectly.
 - Caveats: one run per offer; run through Claude Code's PDF reader, which is close to but not the same as the API's PDF document input; a page sent as an image costs more tokens than its text, so measure cost on real offers.
+
+### Cost per offer with PDF input
+
+`python measure_cost.py` estimates from the documented billing rules; `python measure_cost.py --measure` gives exact input tokens from the free `count_tokens` endpoint once `ANTHROPIC_API_KEY` is set (no key on this machine yet, so the table below is an estimate).
+
+Documented rules: each PDF page is billed as its text (typically 1,500 to 3,000 tokens) plus the page as an image (at most 4,784 tokens on current models); the page render resolution is not documented, and an AWS example quotes about 7,000 tokens for a 3-page PDF. Output about 3,000 tokens; prompt and RFP about 6,000.
+
+| Offer size | Input tokens (low to high) | Sonnet | Sonnet, Batch API | Haiku |
+|---|---|---|---|---|
+| 20 pages | 52,000 to 162,000 | USD 0.13 to 0.35 | 0.07 to 0.18 | 0.07 to 0.18 |
+| 50 pages | 121,000 to 395,000 | USD 0.27 to 0.82 | 0.14 to 0.41 | 0.14 to 0.41 |
+| 80 pages | 190,000 to 629,000 | USD 0.41 to 1.29 (typical 0.53) | 0.21 to 0.64 | 0.21 to 0.64 |
+
+- A tender with five 80-page offers costs about USD 2.65 (SAR 10) with Sonnet at typical density and at most about USD 6.45 (SAR 24); half that through the Batch API, which suits a review that runs after the deadline, not while someone waits.
+- Against the SAR 1,500 to 7,500 monthly subscription in document 11, AI review is a low single-digit percentage even at several tenders a month.
+- PDF input costs about 1.5 to 3.5 times the Markdown route (80 pages as Markdown: about USD 0.36 with Sonnet), and buys the jump from 65 to 96 percent agreement.
+- The earlier figure of about USD 0.05 an offer assumed Haiku on 40,000 tokens of Markdown; it is superseded for PDF input.
