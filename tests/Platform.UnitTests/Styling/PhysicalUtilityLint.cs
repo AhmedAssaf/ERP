@@ -41,6 +41,6 @@ internal static partial class PhysicalUtilityLint
         PhysicalUtility().Matches(text).Select(m => m.Value).ToList();
 
     [GeneratedRegex(
-        @"(?<![\w-])(?:(?:scroll-)?(?:ml|mr|pl|pr)-[\w\[\]./%-]+|(?:left|right)-[\w\[\]./%-]+|(?:border|rounded)-(?:l|r|tl|tr|bl|br)(?:-[\w\[\]./%-]+)?|text-(?:left|right)|float-(?:left|right)|clear-(?:left|right))(?![\w-])")]
+        @"(?<![\w-])-?(?:(?:scroll-)?(?:ml|mr|pl|pr)-[\w\[\]./%-]+|(?:left|right)-[\w\[\]./%-]+|(?:border|rounded)-(?:l|r|tl|tr|bl|br)(?:-[\w\[\]./%-]+)?|text-(?:left|right)|float-(?:left|right)|clear-(?:left|right))(?![\w-])")]
     private static partial Regex PhysicalUtility();
 }

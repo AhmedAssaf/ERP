@@ -33,21 +33,46 @@
     <Content Remove="wwwroot/css/app.css" />
   </ItemGroup>
 
-  <!-- Downloads the pinned Tailwind standalone CLI once and verifies its SHA-256 (no Node.js in the build). -->
+  <!--
+    The files that can change what Tailwind must emit: this project's stylesheet and its own
+    markup/code, plus Platform.Web's markup/code (it is scanned too, via @source in app.css).
+    Used as the TailwindBuild target's Inputs so an up-to-date build skips the CLI invocation.
+  -->
+  <ItemGroup>
+    <TailwindWatchFile Include="Styles/app.css" />
+    <TailwindWatchFile Include="@(Content)" />
+    <TailwindWatchFile Include="**/*.razor;**/*.cs" Exclude="bin/**;obj/**" />
+    <TailwindWatchFile Include="../../Platform.Web/**/*.razor;../../Platform.Web/**/*.cs" Exclude="../../Platform.Web/bin/**;../../Platform.Web/obj/**" />
+  </ItemGroup>
+
+  <!-- Downloads the pinned Tailwind standalone CLI once (no Node.js in the build). SHA-256 is checked by TailwindVerify below, every build, not just here. -->
   <Target Name="TailwindDownload" Condition="!Exists('$(TailwindExe)')">
     <Error Condition="'$(TailwindAsset)' == ''" Text="Tailwind: no standalone binary is configured for this operating system." />
     <DownloadFile SourceUrl="https://github.com/tailwindlabs/tailwindcss/releases/download/$(TailwindVersion)/$(TailwindAsset)" DestinationFolder="$(TailwindDir)" />
+    <Exec Condition="!$([MSBuild]::IsOSPlatform('Windows'))" Command="chmod +x &quot;$(TailwindExe)&quot;" />
+  </Target>
+
+  <!-- Verifies the Tailwind binary's SHA-256 on every build (not only right after it is downloaded), so a tampered or corrupted cached binary is caught too. -->
+  <Target Name="TailwindVerify" DependsOnTargets="TailwindDownload">
+    <Error Condition="'$(TailwindAsset)' == ''" Text="Tailwind: no standalone binary is configured for this operating system." />
     <GetFileHash Files="$(TailwindExe)" Algorithm="SHA256">
       <Output TaskParameter="Hash" PropertyName="TailwindActualSha256" />
     </GetFileHash>
     <Delete Files="$(TailwindExe)" Condition="'$(TailwindActualSha256)' != '$(TailwindSha256)'" />
     <Error Condition="'$(TailwindActualSha256)' != '$(TailwindSha256)'" Text="Tailwind: SHA-256 mismatch for $(TailwindAsset); the download was deleted." />
-    <Exec Condition="!$([MSBuild]::IsOSPlatform('Windows'))" Command="chmod +x &quot;$(TailwindExe)&quot;" />
   </Target>
 
-  <!-- Builds wwwroot/css/app.css from Styles/app.css before compilation and registers it as a static web asset. -->
-  <Target Name="TailwindBuild" BeforeTargets="BeforeBuild;ResolveStaticWebAssetsInputs;DefineStaticWebAssets;AssignTargetPaths" DependsOnTargets="TailwindDownload">
+  <!-- Builds wwwroot/css/app.css from Styles/app.css. Skipped when no watched input changed since the file was last written. -->
+  <Target Name="TailwindBuild"
+          BeforeTargets="BeforeBuild;ResolveStaticWebAssetsInputs;DefineStaticWebAssets;AssignTargetPaths"
+          DependsOnTargets="TailwindVerify"
+          Inputs="@(TailwindWatchFile)"
+          Outputs="wwwroot/css/app.css">
     <Exec Command="&quot;$(TailwindExe)&quot; --input Styles/app.css --output wwwroot/css/app.css --minify" WorkingDirectory="$(MSBuildProjectDirectory)" />
+  </Target>
+
+  <!-- Registers the built CSS as a static web asset. Always runs, even when TailwindBuild above is skipped as up-to-date. -->
+  <Target Name="TailwindRegister" BeforeTargets="BeforeBuild;ResolveStaticWebAssetsInputs;DefineStaticWebAssets;AssignTargetPaths" DependsOnTargets="TailwindBuild">
     <ItemGroup>
       <Content Include="wwwroot/css/app.css" />
     </ItemGroup>

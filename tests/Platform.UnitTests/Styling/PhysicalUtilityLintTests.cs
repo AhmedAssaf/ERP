@@ -28,6 +28,12 @@ public class PhysicalUtilityLintTests
     [InlineData("rounded-l-md")]
     [InlineData("border-r-2")]
     [InlineData("rtl:mr-2")]
+    [InlineData("-ml-4")]
+    [InlineData("-ml-[3px]")]
+    [InlineData("hover:-mr-2")]
+    [InlineData("-left-2")]
+    [InlineData("md:pr-2")]
+    [InlineData("ml-[3px]")]
     public void Physical_utilities_are_detected(string utility) =>
         PhysicalUtilityLint.FindIn($"<div class=\"{utility}\"></div>").ShouldBe([utility.Split(':')[^1]]);
 
@@ -35,6 +41,7 @@ public class PhysicalUtilityLintTests
     [InlineData("ms-4 me-2 ps-1 pe-3 start-0 end-0 text-start text-end rounded-s-md border-e-2")]
     [InlineData("px-6 mx-auto")]
     [InlineData("border-left-color copyright-notice html-body")]
+    [InlineData("-ms-4 -me-2")]
     public void Logical_and_unrelated_text_is_not_reported(string text) =>
         PhysicalUtilityLint.FindIn(text).ShouldBeEmpty();
 
