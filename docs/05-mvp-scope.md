@@ -170,7 +170,7 @@ About 18 weeks from first spike to the live tender at the durations shown (one w
 ## 8. Decisions this plan assumes
 
 - Gate 1 before building past the foundation (decided 2026-09-26): the customer track (W-13, W-16) runs beside the foundation, and no slice after the foundation starts, including the AI offer review plan, until two of three interviewed firms would pay SAR 1,500 or more a month and one names a real tender (W-31).
-- PO scope: branded PDF only in the MVP; version 1 adds the structured export (F-37). ERP push is a later paid integration and WaslaBid does not become an ERP (open decision 1, decided 2026-09-26).
+- PO scope: branded PDF only in the MVP; version 1 adds the structured export (F-37); ERP-format profiles for Odoo, SAP and Oracle (F-37b) come after it. ERP push is a later paid integration and WaslaBid does not become an ERP (open decision 1, decided 2026-09-26).
 - Vendor identity: one vendor account across all tenants from the MVP (ADR-0008; open decision 2, decided 2026-09-26).
 - Hosting: any Saudi-region VM or small Kubernetes cluster for the pilot; the provider decision (open decision 3) can wait until version 1.
 - First customer: still to be named. The plan cannot start section "Pilot" without one, so finding them runs in parallel with the spikes and foundation.

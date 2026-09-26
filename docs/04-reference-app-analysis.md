@@ -128,7 +128,7 @@ Every plan lists the same checklist (pricing page, read 2026-09-21). This is the
 | Awarding & Contract | Purchase Orders (POs) | F-36, F-37 | Parity |
 | Awarding & Contract | Contracts, Framework Agreements / Utilization Tracking, Multi-Framework Agreement | none | Deliberate gap for version 1 |
 | AI | AI PR Assistant, AI Sourcing Assistant, AI Knowledge intelligence | F-45 to F-47 loosely | Different philosophy |
-| Integration | Major Cloud-based ERPs (SAP, Oracle, Microsoft, Odoo...etc) | F-37 export only | Their advantage |
+| Integration | Major Cloud-based ERPs (SAP, Oracle, Microsoft, Odoo...etc) | F-37 export; F-37b import files for Odoo, SAP and Oracle (P2), no live push | Their advantage, narrowed by F-37b |
 | Integration | E-Signature | none | Candidate, section 12 |
 | Integration | Other cloud-base Platforms | none | Their advantage |
 | Users | Unlimited basic users, core users To Be Defined | F-06, F-07 | Pricing lever they hold back; ours is per tenant |

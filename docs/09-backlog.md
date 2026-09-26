@@ -26,7 +26,7 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 | E4 Tender authoring | F-15 to F-21, F-55, F-19b, F-59, F-62 | 7 | 1 | 3 |
 | E5 Offer submission | F-22 to F-26 | 3 | 2 | 0 |
 | E6 Evaluation chain | F-27 to F-34, F-56, F-56b, F-57, F-58 | 7 | 5 | 0 |
-| E7 Award and PO | F-35 to F-37, F-36b | 1 | 2 | 1 |
+| E7 Award and PO | F-35 to F-37, F-36b, F-37b | 1 | 2 | 2 |
 | E8 Notifications | F-38 to F-40, F-39b | 2 | 1 | 1 |
 | E9 Audit and documents | F-41 to F-44, F-65 | 4 | 0 | 1 |
 | E10 AI assist | F-45 to F-50 | 0 | 2 | 4 |
@@ -222,11 +222,13 @@ Acceptance criteria:
 | F-36 | Branded PO PDF (QuestPDF, document 06 rules) | P0 | M | Backlog | F-33 |
 | F-37 | PO structured export | P1 | S | Backlog | F-36 |
 | F-36b | Electronic signature on the PO by named signatories, with an optional Saudi e-signature provider | P2 | M | Backlog | F-36, F-06, F-41 |
+| F-37b | ERP export profiles with a per-tenant code mapping: Odoo first, then SAP and Oracle Fusion when the first customer on each ERP confirms the layout, Oracle EBS only on request | P2 | M | Backlog | F-37, F-07 |
 
 - **F-36.** Given an awarded tender, when the PO is generated, then it carries the tenant numbering pattern, the winning lines, VAT, payment terms, Arabic and English text with correct shaping, and matches the golden image within tolerance.
 - **F-36b.** Given an approved award, when the named signatories confirm in the portal with MFA, then the PO PDF carries their names, timestamps, and a document hash in the footer and the event is audited; given a Saudi e-signature provider is configured for the tenant, when the PO is generated, then it is routed to that provider and the returned signed PDF replaces the draft. Source: Reference App pricing checklist "E-Signature" (docs/04 section 12).
 - **F-35.** Given an award, when letters are sent, then the winner receives the award letter and every other compliant vendor receives a regret letter, each in the vendor's language.
 - **F-37.** Given a PO, when exported, then the JSON contains every line with quantity, unit price, and VAT, and the CSV opens in Excel with Arabic intact.
+- **F-37b.** Given a tenant with the Odoo profile and every vendor mapped, when a PO is exported in that profile, then Odoo's Import screen accepts the file without edits and the imported order has the same lines, quantities, unit prices and taxes; given a vendor or code without a mapping, when the officer chooses a profile, then export is refused and the missing mappings are listed; given the SAP or Oracle Fusion profile, then it is enabled for a tenant only after the load file was test-loaded in that customer's ERP and the layout recorded.
 
 ## E8 Notifications (F-38 to F-40)
 
