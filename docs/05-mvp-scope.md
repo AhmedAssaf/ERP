@@ -41,7 +41,7 @@ flowchart LR
         B8[AI compliance pre-check<br/>F-45 F-50]:::next
     end
 
-    subgraph R1["MVP: pilot tender (16 features)"]
+    subgraph R1["MVP: pilot tender (19 features)"]
         direction TB
         A1[Tenant + logo<br/>F-01 F-02]:::mvp
         A2[Staff accounts + roles<br/>F-06 F-07]:::mvp
@@ -53,6 +53,7 @@ flowchart LR
         A8[Comparison + finance approval<br/>F-31 F-33]:::mvp
         A9[PO PDF<br/>F-36]:::mvp
         A10[Email + audit log<br/>F-38 F-41]:::mvp
+        A11[Platform console: health,<br/>tenants, alerts F-51 F-54 F-60]:::mvp
     end
 ```
 
@@ -78,12 +79,15 @@ Every row is a feature ID from document 02 with the MVP-sized version of its acc
 | 14 | F-38, F-39 | Email only: invitation, question answered, deadline in 48 hours, submission received, action required, award or regret | No SMS, no in-app, no digests |
 | 16 | F-56 | Workflow definition model, per-tender snapshot, and executor with one default template (contracts screening, technical evaluators, finance approver). No editor screen; the template is seeded by script | Editor screen is F-56b in version 1.1; executor is our own state machine (ADR-0004, spike W-20) |
 | 15 | F-41 | Append-only event table: actor, tenant, action, entity, timestamp, IP. Visible to Tenant admin as a filterable list | No signed export |
+| 17 | F-51 | Platform admin page on the platform host, MFA required: status, latency, last check, and last failure for web host, worker, PostgreSQL, object storage, Keycloak, ClamAV, and the email provider | No version column, no SMS or AI provider tiles (neither is in the MVP), no edge tile |
+| 18 | F-54 | Tenant list: status, user count, active tenders, storage used, failing jobs. One action: re-run a failed job, confirmed and audited | No suspend or resume, no TLS re-issue (no custom domains in the MVP) |
+| 19 | F-60 | Email to the platform admin, once per incident plus a recovery notice, when a health check fails, a job fails three times, a deadline-closure job has not run five minutes after a deadline, or disk passes 80 percent. Incidents of the last 30 days listed on the F-51 page. Thresholds in configuration | No SMS, no TLS alerts, no threshold screen |
 
-Also in the MVP because the pilot cannot run without them, though they carry no feature ID: Arabic and English UI with right-to-left (F-04 is treated as a constraint, not a feature), and the tender state machine (F-27) limited to the states the sixteen features need.
+Also in the MVP because the pilot cannot run without them, though they carry no feature ID: Arabic and English UI with right-to-left (F-04 is treated as a constraint, not a feature), and the tender state machine (F-27) limited to the states the nineteen features need.
 
 ## 4. Explicitly out of the MVP
 
-Custom domains, SSO, the workflow editor screen (F-56b; the model ships, the pilot uses the seeded default), per-tender committees, delegation of authority limits, information requests to vendors after submission and internal comment threads (F-57, F-58; during the pilot the officer emails the vendor and the reply is filed by hand), amendments, open tenders with a public listing page (F-19b; the pilot is invited-only), receipts with hashes, vendor dashboard, ranking other than lowest price, cancellation, award and regret letters, PO export, SMS, notification preferences, local content fields, the full tenant vendor list with approval states (the address book F-14a is in), templates, public listing, audit export, dashboards, every AI feature, mobile apps, ERP integration, vendor identity across tenants.
+Custom domains, SSO, the workflow editor screen (F-56b; the model ships, the pilot uses the seeded default), per-tender committees, delegation of authority limits, information requests to vendors after submission and internal comment threads (F-57, F-58; during the pilot the officer emails the vendor and the reply is filed by hand), amendments, open tenders with a public listing page (F-19b; the pilot is invited-only), receipts with hashes, vendor dashboard, ranking other than lowest price, cancellation, award and regret letters, PO export, SMS, notification preferences, local content fields, the full tenant vendor list with approval states (the address book F-14a is in), templates, public listing, audit export, dashboards, the credentials registry and logs view (F-52, F-53; the pilot uses Grafana and Sentry directly), every AI feature, mobile apps, ERP integration, vendor identity across tenants.
 
 If the pilot customer asks for one of these, the answer is "version 1.1, after your tender closes", unless the tender cannot legally proceed without it.
 
@@ -127,16 +131,17 @@ gantt
     Screening, scoring, lock (11)    :e2, after e1, 10d
     Comparison sheet, finance approval (12) :e3, after e2, 7d
     PO PDF (13)                      :e4, after e3, 5d
+    Platform console and alerts (17, 18, 19) :e5, after e4, 5d
 
     section Pilot
-    Arabic and English pass, RTL fixes :p1, after e4, 7d
+    Arabic and English pass, RTL fixes :p1, after e5, 7d
     Internal dry run with fake vendors :p2, after p1, 5d
     Pilot customer onboarding        :p3, after p2, 5d
     Live tender runs                 :p4, after p3, 30d
     Pilot review, version 1.1 scope  :p5, after p4, 5d
 ```
 
-About 15 weeks from first spike to the live tender at the durations shown (one week for the workflow spike, one for the workflow model), then a 30-day tender window and a review, so about 18 weeks to the pilot verdict. Plan for 16 to 18 weeks to the live tender if a spike fails or the customer is late. Two developers bring the build portion to about 7 weeks.
+About 16 weeks from first spike to the live tender at the durations shown (one week for the workflow spike, one for the workflow model, one for the platform console added 2026-09-26), then a 30-day tender window and a review, so about 19 weeks to the pilot verdict. Plan for 17 to 19 weeks to the live tender if a spike fails or the customer is late. Two developers bring the build portion to about 8 weeks.
 
 ## 7. What the pilot must prove
 

@@ -31,7 +31,7 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 | E9 Audit and documents | F-41 to F-44 | 2 | 0 | 2 |
 | E10 AI assist | F-45 to F-50 | 0 | 2 | 4 |
 | E11 Pilot and market | W-13 to W-18 | 6 | 0 | 0 |
-| E12 Platform operations console | F-51 to F-54, F-60 | 0 | 4 | 1 |
+| E12 Platform operations console | F-51 to F-54, F-60 | 3 | 2 | 0 |
 
 ## E0 Platform foundation (W-01 to W-12)
 
@@ -270,11 +270,11 @@ Added 2026-09-21 from the request for one admin page covering apps, logs, creden
 
 | ID | Story | Pri | Size | Status | Depends on |
 |---|---|---|---|---|---|
-| F-51 | Component health board | P1 | M | Backlog | W-10 |
+| F-51 | Component health board (MVP narrowing in document 05 row 17) | P0 | M | Backlog | W-10 |
 | F-52 | Connections and credentials registry with test and rotate | P1 | M | Backlog | F-51, W-11 |
 | F-53 | Logs and traces view with tenant and correlation filters | P1 | M | Backlog | W-10 |
-| F-54 | Tenants and jobs overview with suspend, TLS re-issue, job re-run | P2 | M | Backlog | F-51, F-03, W-08 |
-| F-60 | Alerts and notifications: email and SMS on health, job, deadline, TLS, scanner, AI provider, and capacity incidents, with recovery notice and alert history | P1 | M | Backlog | F-51, F-38, W-08, W-10 |
+| F-54 | Tenants and jobs overview with suspend, TLS re-issue, job re-run (MVP: list and job re-run only, document 05 row 18) | P0 | M | Backlog | F-51, W-08; F-03 for the TLS action |
+| F-60 | Alerts and notifications: email and SMS on health, job, deadline, TLS, scanner, AI provider, and capacity incidents, with recovery notice and alert history (MVP: email only, document 05 row 19) | P0 | M | Backlog | F-51, F-38, W-08, W-10 |
 
 - **F-51.** Given the platform host, when a platform admin with MFA opens the board, then every component in the list shows status, version, latency, and last check within the last 60 seconds; given a tenant admin, when they request the same URL, then they receive 404; given PostgreSQL stopped, then its tile turns to failed within one check interval and the failure text names the component.
 - **F-52.** Given the registry, when any page, API response, or log line is inspected, then no secret value is present, only the reference name; given the test action on the email connection, then the result and latency are shown and audited; given the rotate action, then the secret store receives a new version, the application picks it up without restart, and the last-rotated date updates.
