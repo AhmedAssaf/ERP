@@ -1,0 +1,1141 @@
+PURCHASEORDERNUMBER,LINENUMBER,ITEMNUMBER,LINEDESCRIPTION,PROCUREMENTCATEGORYNAME,ORDEREDPURCHASEQUANTITY,PURCHASEPRICE,PURCHASEPRICEQUANTITY,LINEAMOUNT,PURCHASEORDERLINESTATUS
+PO26-000001,1,A1006,Event catering per head,Catering,29,148.55,1,4307.95,Invoiced
+PO26-000001,2,A1006,Event catering per head,Catering,500,148.55,1,250000,Canceled
+PO26-000002,1,A1007,Guard shift,Security services,55,491.62,1,27039.1,Invoiced
+PO26-000003,1,A1011,Network switch,IT hardware,8,4015.97,1,32127.76,Invoiced
+PO26-000004,1,A1015,Rebar ton,Building materials,2,2821.85,1,5643.7,Invoiced
+PO26-000005,1,A1008,Laptop,IT hardware,7,4963.2,1,34742.4,Invoiced
+PO26-000006,1,A1002,Access card batch,Security services,4,1570.01,1,6280.04,Invoiced
+PO26-000007,1,A1001,AC maintenance visit,Facility services,26,901.68,1,23443.68,Invoiced
+PO26-000008,1,A1015,Rebar ton,Building materials,6,2845.56,1,17073.36,Invoiced
+PO26-000009,1,A1018,Water carton,Catering,2045,1440.0,100,29448.0,Invoiced
+PO26-000010,1,A1001,AC maintenance visit,Facility services,18,855.06,1,15391.08,Invoiced
+PO26-000011,1,A1005,Cleaning visit,Facility services,9,1329.95,1,11969.55,Invoiced
+PO26-000012,1,A1012,Office chair,Office supplies,39,724.42,1,28252.38,Invoiced
+PO26-000013,1,A1003,CCTV maintenance,Security services,6,2268.26,1,13609.56,Invoiced
+PO26-000014,1,A1011,Network switch,IT hardware,5,4046.91,1,20234.55,Invoiced
+PO26-000015,1,A1000,A4 paper box,Office supplies,100,92.33,1,9233.0,Invoiced
+PO26-000016,1,A1002,Access card batch,Security services,11,1832.56,1,20158.16,Invoiced
+PO26-000017,1,A1009,Monitor 27in,IT hardware,34,1083.01,1,36822.34,Invoiced
+PO26-000018,1,A1007,Guard shift,Security services,69,464.32,1,32038.08,Invoiced
+PO26-000019,1,A1004,Cement bag 50kg,Building materials,1247,1808.0,100,22545.76,Invoiced
+PO26-000020,1,A1004,Cement bag 50kg,Building materials,740,1986.0,100,14696.4,Invoiced
+PO26-000021,1,A1016,Staff lunch box,Catering,913,2956.0,100,26988.28,Invoiced
+PO26-000022,1,A1018,Water carton,Catering,1189,1375.0,100,16348.75,Invoiced
+PO26-000023,1,A1000,A4 paper box,Office supplies,162,102.54,1,16611.48,Invoiced
+PO26-000024,1,A1004,Cement bag 50kg,Building materials,1356,2044.0,100,27716.64,Invoiced
+PO26-000025,1,A1015,Rebar ton,Building materials,6,3061.21,1,18367.26,Invoiced
+PO26-000026,1,A1008,Laptop,IT hardware,1,4920.43,1,4920.43,Invoiced
+PO26-000027,1,A1001,AC maintenance visit,Facility services,35,858.09,1,30033.15,Invoiced
+PO26-000028,1,A1000,A4 paper box,Office supplies,165,99.71,1,16452.15,Invoiced
+PO26-000029,1,A1009,Monitor 27in,IT hardware,3,1179.67,1,3539.01,Invoiced
+PO26-000030,1,A1017,Toner cartridge,Office supplies,71,389.45,1,27650.95,Invoiced
+PO26-000031,1,A1016,Staff lunch box,Catering,219,3173.0,100,6948.87,Invoiced
+PO26-000032,1,A1007,Guard shift,Security services,67,516.64,1,34614.88,Invoiced
+PO26-000033,1,A1018,Water carton,Catering,2061,1469.0,100,30276.09,Invoiced
+PO26-000034,1,A1005,Cleaning visit,Facility services,16,1364.93,1,21838.88,Invoiced
+PO26-000035,1,A1004,Cement bag 50kg,Building materials,2050,1898.0,100,38909.0,Invoiced
+PO26-000036,1,A1018,Water carton,Catering,537,1311.0,100,7040.07,Invoiced
+PO26-000037,1,A1008,Laptop,IT hardware,5,4523.54,1,22617.7,Invoiced
+PO26-000038,1,A1013,Pest control visit,Facility services,7,693.26,1,4852.82,Invoiced
+PO26-000039,1,A1007,Guard shift,Security services,38,516.18,1,19614.84,Invoiced
+PO26-000040,1,A1004,Cement bag 50kg,Building materials,1285,1784.0,100,22924.4,Invoiced
+PO26-000041,1,A1009,Monitor 27in,IT hardware,20,1137.32,1,22746.4,Invoiced
+PO26-000042,1,A1000,A4 paper box,Office supplies,414,93.31,1,38630.34,Invoiced
+PO26-000043,1,A1015,Rebar ton,Building materials,4,2961.88,1,11847.52,Invoiced
+PO26-000044,1,A1001,AC maintenance visit,Facility services,34,937.87,1,31887.58,Invoiced
+PO26-000045,1,A1005,Cleaning visit,Facility services,15,1268.03,1,19020.45,Invoiced
+PO26-000046,1,A1018,Water carton,Catering,959,1490.0,100,14289.1,Invoiced
+PO26-000047,1,A1013,Pest control visit,Facility services,19,671.58,1,12760.02,Invoiced
+PO26-000048,1,A1004,Cement bag 50kg,Building materials,1874,1991.0,100,37311.34,Invoiced
+PO26-000049,1,A1001,AC maintenance visit,Facility services,7,936.37,1,6554.59,Invoiced
+PO26-000050,1,A1009,Monitor 27in,IT hardware,8,1167.83,1,9342.64,Invoiced
+PO26-000051,1,A1018,Water carton,Catering,648,1396.0,100,9046.08,Invoiced
+PO26-000052,1,A1018,Water carton,Catering,2156,1335.0,100,28782.6,Invoiced
+PO26-000053,1,A1014,Ready-mix m3,Building materials,7,271.01,1,1897.07,Invoiced
+PO26-000054,1,A1005,Cleaning visit,Facility services,28,1330.84,1,37263.52,Invoiced
+PO26-000055,1,A1004,Cement bag 50kg,Building materials,937,1778.0,100,16659.86,Invoiced
+PO26-000056,1,A1012,Office chair,Office supplies,4,791.77,1,3167.08,Invoiced
+PO26-000057,1,A1017,Toner cartridge,Office supplies,58,450.81,1,26146.98,Invoiced
+PO26-000058,1,A1016,Staff lunch box,Catering,266,3091.0,100,8222.06,Invoiced
+PO26-000059,1,A1015,Rebar ton,Building materials,8,2959.73,1,23677.84,Invoiced
+PO26-000060,1,A1006,Event catering per head,Catering,177,155.15,1,27461.55,Invoiced
+PO26-000061,1,A1008,Laptop,IT hardware,4,4443.06,1,17772.24,Invoiced
+PO26-000062,1,A1003,CCTV maintenance,Security services,16,2159.61,1,34553.76,Invoiced
+PO26-000063,1,A1000,A4 paper box,Office supplies,147,90.98,1,13374.06,Invoiced
+PO26-000064,1,A1000,A4 paper box,Office supplies,263,100.59,1,26455.17,Invoiced
+PO26-000065,1,A1016,Staff lunch box,Catering,167,2951.0,100,4928.17,Invoiced
+PO26-000066,1,A1001,AC maintenance visit,Facility services,39,839.74,1,32749.86,Invoiced
+PO26-000067,1,A1007,Guard shift,Security services,24,444.4,1,10665.6,Invoiced
+PO26-000068,1,A1003,CCTV maintenance,Security services,3,2330.95,1,6992.85,Invoiced
+PO26-000069,1,A1016,Staff lunch box,Catering,508,3300.0,100,16764.0,Invoiced
+PO26-000070,1,A1016,Staff lunch box,Catering,705,3305.0,100,23300.25,Invoiced
+PO26-000071,1,A1004,Cement bag 50kg,Building materials,1886,1787.0,100,33702.82,Invoiced
+PO26-000072,1,A1002,Access card batch,Security services,21,1668.14,1,35030.94,Invoiced
+PO26-000073,1,A1011,Network switch,IT hardware,1,3673.22,1,3673.22,Invoiced
+PO26-000074,1,A1011,Network switch,IT hardware,6,3771.58,1,22629.48,Invoiced
+PO26-000075,1,A1009,Monitor 27in,IT hardware,25,1231.0,1,30775.0,Invoiced
+PO26-000076,1,A1002,Access card batch,Security services,14,1769.93,1,24779.02,Invoiced
+PO26-000076,2,A1002,Access card batch,Security services,500,1769.93,1,250000,Canceled
+PO26-000077,1,A1012,Office chair,Office supplies,5,730.31,1,3651.55,Invoiced
+PO26-000078,1,A1008,Laptop,IT hardware,3,4310.7,1,12932.1,Invoiced
+PO26-000079,1,A1007,Guard shift,Security services,73,510.05,1,37233.65,Invoiced
+PO26-000080,1,A1006,Event catering per head,Catering,148,144.73,1,21420.04,Invoiced
+PO26-000081,1,A1014,Ready-mix m3,Building materials,97,246.52,1,23912.44,Invoiced
+PO26-000082,1,A1011,Network switch,IT hardware,6,4086.49,1,24518.94,Invoiced
+PO26-000083,1,A1017,Toner cartridge,Office supplies,24,431.81,1,10363.44,Invoiced
+PO26-000084,1,A1000,A4 paper box,Office supplies,177,97.16,1,17197.32,Invoiced
+PO26-000085,1,A1017,Toner cartridge,Office supplies,56,394.92,1,22115.52,Invoiced
+PO26-000086,1,A1002,Access card batch,Security services,3,1580.71,1,4742.13,Invoiced
+PO26-000087,1,A1002,Access card batch,Security services,17,1778.0,1,30226.0,Invoiced
+PO26-000088,1,A1017,Toner cartridge,Office supplies,46,394.72,1,18157.12,Invoiced
+PO26-000089,1,A1018,Water carton,Catering,349,1343.0,100,4687.07,Invoiced
+PO26-000090,1,A1008,Laptop,IT hardware,1,4696.55,1,4696.55,Invoiced
+PO26-000091,1,A1007,Guard shift,Security services,69,458.02,1,31603.38,Invoiced
+PO26-000092,1,A1006,Event catering per head,Catering,105,146.71,1,15404.55,Invoiced
+PO26-000093,1,A1012,Office chair,Office supplies,42,722.63,1,30350.46,Invoiced
+PO26-000094,1,A1012,Office chair,Office supplies,47,748.51,1,35179.97,Invoiced
+PO26-000095,1,A1001,AC maintenance visit,Facility services,42,892.1,1,37468.2,Invoiced
+PO26-000096,1,A1005,Cleaning visit,Facility services,12,1315.41,1,15784.92,Invoiced
+PO26-000097,1,A1000,A4 paper box,Office supplies,372,89.72,1,33375.84,Invoiced
+PO26-000098,1,A1009,Monitor 27in,IT hardware,11,1211.12,1,13322.32,Invoiced
+PO26-000099,1,A1017,Toner cartridge,Office supplies,76,393.54,1,29909.04,Invoiced
+PO26-000100,1,A1007,Guard shift,Security services,76,472.93,1,35942.68,Invoiced
+PO26-000101,1,A1001,AC maintenance visit,Facility services,7,872.83,1,6109.81,Invoiced
+PO26-000102,1,A1003,CCTV maintenance,Security services,15,2142.4,1,32136.0,Invoiced
+PO26-000103,1,A1000,A4 paper box,Office supplies,372,90.62,1,33710.64,Invoiced
+PO26-000104,1,A1006,Event catering per head,Catering,22,135.18,1,2973.96,Invoiced
+PO26-000105,1,A1015,Rebar ton,Building materials,11,2916.21,1,32078.31,Invoiced
+PO26-000106,1,A1008,Laptop,IT hardware,5,4877.33,1,24386.65,Invoiced
+PO26-000107,1,A1007,Guard shift,Security services,71,476.53,1,33833.63,Invoiced
+PO26-000108,1,A1000,A4 paper box,Office supplies,382,91.67,1,35017.94,Invoiced
+PO26-000109,1,A1006,Event catering per head,Catering,267,136.92,1,36557.64,Invoiced
+PO26-000110,1,A1016,Staff lunch box,Catering,810,3012.0,100,24397.2,Invoiced
+PO26-000111,1,A1014,Ready-mix m3,Building materials,49,259.98,1,12739.02,Invoiced
+PO26-000112,1,A1011,Network switch,IT hardware,5,4204.3,1,21021.5,Invoiced
+PO26-000113,1,A1000,A4 paper box,Office supplies,63,93.85,1,5912.55,Invoiced
+PO26-000114,1,A1002,Access card batch,Security services,16,1707.64,1,27322.24,Invoiced
+PO26-000115,1,A1005,Cleaning visit,Facility services,4,1409.65,1,5638.6,Invoiced
+PO26-000116,1,A1004,Cement bag 50kg,Building materials,1905,1827.0,100,34804.35,Invoiced
+PO26-000117,1,A1017,Toner cartridge,Office supplies,48,389.68,1,18704.64,Invoiced
+PO26-000118,1,A1006,Event catering per head,Catering,130,139.66,1,18155.8,Invoiced
+PO26-000119,1,A1008,Laptop,IT hardware,2,4344.37,1,8688.74,Invoiced
+PO26-000120,1,A1013,Pest control visit,Facility services,2,614.16,1,1228.32,Invoiced
+PO26-000121,1,A1016,Staff lunch box,Catering,193,2983.0,100,5757.19,Invoiced
+PO26-000122,1,A1018,Water carton,Catering,1140,1346.0,100,15344.4,Invoiced
+PO26-000123,1,A1014,Ready-mix m3,Building materials,18,254.79,1,4586.22,Invoiced
+PO26-000124,1,A1001,AC maintenance visit,Facility services,28,902.06,1,25257.68,Invoiced
+PO26-000125,1,A1009,Monitor 27in,IT hardware,30,1117.99,1,33539.7,Invoiced
+PO26-000126,1,A1011,Network switch,IT hardware,1,3653.95,1,3653.95,Invoiced
+PO26-000127,1,A1009,Monitor 27in,IT hardware,22,1132.74,1,24920.28,Invoiced
+PO26-000128,1,A1014,Ready-mix m3,Building materials,105,247.41,1,25978.05,Invoiced
+PO26-000129,1,A1013,Pest control visit,Facility services,4,668.19,1,2672.76,Invoiced
+PO26-000130,1,A1011,Network switch,IT hardware,2,4136.85,1,8273.7,Invoiced
+PO26-000131,1,A1011,Network switch,IT hardware,7,4104.28,1,28729.96,Invoiced
+PO26-000132,1,A1003,CCTV maintenance,Security services,13,2117.08,1,27522.04,Invoiced
+PO26-000133,1,A1018,Water carton,Catering,2653,1506.0,100,39954.18,Invoiced
+PO26-000134,1,A1000,A4 paper box,Office supplies,218,101.06,1,22031.08,Invoiced
+PO26-000135,1,A1002,Access card batch,Security services,3,1695.93,1,5087.79,Invoiced
+PO26-000136,1,A1018,Water carton,Catering,1786,1365.0,100,24378.9,Invoiced
+PO26-000137,1,A1015,Rebar ton,Building materials,6,2652.01,1,15912.06,Invoiced
+PO26-000138,1,A1008,Laptop,IT hardware,4,4815.77,1,19263.08,Invoiced
+PO26-000139,1,A1001,AC maintenance visit,Facility services,36,928.07,1,33410.52,Invoiced
+PO26-000140,1,A1014,Ready-mix m3,Building materials,14,264.56,1,3703.84,Invoiced
+PO26-000141,1,A1015,Rebar ton,Building materials,9,2740.18,1,24661.62,Invoiced
+PO26-000142,1,A1016,Staff lunch box,Catering,1159,3045.0,100,35291.55,Invoiced
+PO26-000143,1,A1009,Monitor 27in,IT hardware,9,1085.35,1,9768.15,Invoiced
+PO26-000144,1,A1008,Laptop,IT hardware,6,4738.48,1,28430.88,Invoiced
+PO26-000145,1,A1005,Cleaning visit,Facility services,22,1286.61,1,28305.42,Invoiced
+PO26-000146,1,A1007,Guard shift,Security services,43,455.02,1,19565.86,Invoiced
+PO26-000147,1,A1013,Pest control visit,Facility services,15,631.63,1,9474.45,Invoiced
+PO26-000148,1,A1006,Event catering per head,Catering,22,143.64,1,3160.08,Invoiced
+PO26-000149,1,A1018,Water carton,Catering,1503,1464.0,100,22003.92,Invoiced
+PO26-000150,1,A1008,Laptop,IT hardware,3,4559.12,1,13677.36,Invoiced
+PO26-000151,1,A1004,Cement bag 50kg,Building materials,1199,1894.0,100,22709.06,Invoiced
+PO26-000151,2,A1004,Cement bag 50kg,Building materials,500,1894.0,100,250000,Canceled
+PO26-000152,1,A1015,Rebar ton,Building materials,7,2685.59,1,18799.13,Invoiced
+PO26-000153,1,A1003,CCTV maintenance,Security services,10,2337.92,1,23379.2,Invoiced
+PO26-000154,1,A1008,Laptop,IT hardware,1,4306.15,1,4306.15,Invoiced
+PO26-000155,1,A1017,Toner cartridge,Office supplies,92,406.04,1,37355.68,Invoiced
+PO26-000156,1,A1018,Water carton,Catering,805,1354.0,100,10899.7,Invoiced
+PO26-000157,1,A1004,Cement bag 50kg,Building materials,79,2006.0,100,1584.74,Invoiced
+PO26-000158,1,A1011,Network switch,IT hardware,1,3803.13,1,3803.13,Invoiced
+PO26-000159,1,A1002,Access card batch,Security services,19,1674.0,1,31806.0,Invoiced
+PO26-000160,1,A1014,Ready-mix m3,Building materials,16,281.98,1,4511.68,Invoiced
+PO26-000161,1,A1015,Rebar ton,Building materials,2,2768.16,1,5536.32,Invoiced
+PO26-000162,1,A1009,Monitor 27in,IT hardware,10,1231.8,1,12318.0,Invoiced
+PO26-000163,1,A1018,Water carton,Catering,1590,1305.0,100,20749.5,Invoiced
+PO26-000164,1,A1008,Laptop,IT hardware,1,4381.23,1,4381.23,Invoiced
+PO26-000165,1,A1003,CCTV maintenance,Security services,15,2109.37,1,31640.55,Invoiced
+PO26-000166,1,A1016,Staff lunch box,Catering,1144,3143.0,100,35955.92,Invoiced
+PO26-000167,1,A1007,Guard shift,Security services,66,498.9,1,32927.4,Invoiced
+PO26-000168,1,A1007,Guard shift,Security services,64,498.76,1,31920.64,Invoiced
+PO26-000169,1,A1004,Cement bag 50kg,Building materials,1422,2008.0,100,28553.76,Invoiced
+PO26-000170,1,A1018,Water carton,Catering,2772,1355.0,100,37560.6,Invoiced
+PO26-000171,1,A1002,Access card batch,Security services,12,1825.65,1,21907.8,Invoiced
+PO26-000172,1,A1002,Access card batch,Security services,20,1825.84,1,36516.8,Invoiced
+PO26-000173,1,A1004,Cement bag 50kg,Building materials,1100,1849.0,100,20339.0,Invoiced
+PO26-000174,1,A1006,Event catering per head,Catering,135,150.84,1,20363.4,Invoiced
+PO26-000175,1,A1014,Ready-mix m3,Building materials,81,278.74,1,22577.94,Invoiced
+PO26-000176,1,A1006,Event catering per head,Catering,133,136.11,1,18102.63,Invoiced
+PO26-000177,1,A1016,Staff lunch box,Catering,1237,3042.0,100,37629.54,Invoiced
+PO26-000178,1,A1009,Monitor 27in,IT hardware,28,1105.03,1,30940.84,Invoiced
+PO26-000179,1,A1001,AC maintenance visit,Facility services,38,844.65,1,32096.7,Invoiced
+PO26-000180,1,A1004,Cement bag 50kg,Building materials,1198,2027.0,100,24283.46,Invoiced
+PO26-000181,1,A1005,Cleaning visit,Facility services,5,1335.54,1,6677.7,Invoiced
+PO26-000182,1,A1011,Network switch,IT hardware,5,3972.94,1,19864.7,Invoiced
+PO26-000183,1,A1007,Guard shift,Security services,18,505.39,1,9097.02,Invoiced
+PO26-000184,1,A1007,Guard shift,Security services,55,492.34,1,27078.7,Invoiced
+PO26-000185,1,A1014,Ready-mix m3,Building materials,12,281.13,1,3373.56,Invoiced
+PO26-000186,1,A1008,Laptop,IT hardware,4,4539.81,1,18159.24,Invoiced
+PO26-000187,1,A1005,Cleaning visit,Facility services,17,1244.7,1,21159.9,Invoiced
+PO26-000188,1,A1009,Monitor 27in,IT hardware,34,1169.6,1,39766.4,Invoiced
+PO26-000189,1,A1003,CCTV maintenance,Security services,14,2179.25,1,30509.5,Invoiced
+PO26-000190,1,A1005,Cleaning visit,Facility services,10,1274.07,1,12740.7,Invoiced
+PO26-000191,1,A1003,CCTV maintenance,Security services,11,2358.88,1,25947.68,Invoiced
+PO26-000192,1,A1016,Staff lunch box,Catering,394,3132.0,100,12340.08,Invoiced
+PO26-000193,1,A1017,Toner cartridge,Office supplies,58,388.62,1,22539.96,Invoiced
+PO26-000194,1,A1001,AC maintenance visit,Facility services,35,838.09,1,29333.15,Invoiced
+PO26-000195,1,A1001,AC maintenance visit,Facility services,31,876.15,1,27160.65,Invoiced
+PO26-000196,1,A1011,Network switch,IT hardware,8,4144.07,1,33152.56,Invoiced
+PO26-000197,1,A1012,Office chair,Office supplies,30,784.39,1,23531.7,Invoiced
+PO26-000198,1,A1006,Event catering per head,Catering,176,155.98,1,27452.48,Invoiced
+PO26-000199,1,A1003,CCTV maintenance,Security services,4,2140.95,1,8563.8,Invoiced
+PO26-000200,1,A1017,Toner cartridge,Office supplies,58,448.22,1,25996.76,Invoiced
+PO26-000201,1,A1018,Water carton,Catering,2019,1441.0,100,29093.79,Invoiced
+PO26-000202,1,A1002,Access card batch,Security services,20,1678.2,1,33564.0,Invoiced
+PO26-000203,1,A1015,Rebar ton,Building materials,2,2979.58,1,5959.16,Invoiced
+PO26-000204,1,A1004,Cement bag 50kg,Building materials,1518,1786.0,100,27111.48,Invoiced
+PO26-000205,1,A1013,Pest control visit,Facility services,36,691.9,1,24908.4,Invoiced
+PO26-000206,1,A1008,Laptop,IT hardware,3,4733.45,1,14200.35,Invoiced
+PO26-000207,1,A1000,A4 paper box,Office supplies,356,101.25,1,36045.0,Invoiced
+PO26-000208,1,A1001,AC maintenance visit,Facility services,13,905.28,1,11768.64,Invoiced
+PO26-000209,1,A1006,Event catering per head,Catering,206,142.11,1,29274.66,Invoiced
+PO26-000210,1,A1013,Pest control visit,Facility services,7,659.25,1,4614.75,Invoiced
+PO26-000211,1,A1017,Toner cartridge,Office supplies,37,422.27,1,15623.99,Invoiced
+PO26-000212,1,A1008,Laptop,IT hardware,2,4848.57,1,9697.14,Invoiced
+PO26-000213,1,A1015,Rebar ton,Building materials,12,2643.65,1,31723.8,Invoiced
+PO26-000214,1,A1005,Cleaning visit,Facility services,26,1353.29,1,35185.54,Invoiced
+PO26-000215,1,A1008,Laptop,IT hardware,8,4670.04,1,37360.32,Invoiced
+PO26-000216,1,A1001,AC maintenance visit,Facility services,22,866.65,1,19066.3,Invoiced
+PO26-000217,1,A1003,CCTV maintenance,Security services,1,2063.35,1,2063.35,Invoiced
+PO26-000218,1,A1014,Ready-mix m3,Building materials,22,269.11,1,5920.42,Invoiced
+PO26-000219,1,A1017,Toner cartridge,Office supplies,85,440.98,1,37483.3,Invoiced
+PO26-000220,1,A1012,Office chair,Office supplies,25,786.71,1,19667.75,Invoiced
+PO26-000221,1,A1001,AC maintenance visit,Facility services,10,928.84,1,9288.4,Invoiced
+PO26-000222,1,A1001,AC maintenance visit,Facility services,31,862.14,1,26726.34,Invoiced
+PO26-000223,1,A1008,Laptop,IT hardware,8,4661.42,1,37291.36,Invoiced
+PO26-000224,1,A1017,Toner cartridge,Office supplies,31,431.43,1,13374.33,Invoiced
+PO26-000225,1,A1012,Office chair,Office supplies,36,820.3,1,29530.8,Invoiced
+PO26-000226,1,A1011,Network switch,IT hardware,5,3604.94,1,18024.7,Invoiced
+PO26-000226,2,A1011,Network switch,IT hardware,500,3604.94,1,250000,Canceled
+PO26-000227,1,A1004,Cement bag 50kg,Building materials,1996,2039.0,100,40698.44,Invoiced
+PO26-000228,1,A1017,Toner cartridge,Office supplies,53,425.73,1,22563.69,Invoiced
+PO26-000229,1,A1001,AC maintenance visit,Facility services,30,888.7,1,26661.0,Invoiced
+PO26-000230,1,A1011,Network switch,IT hardware,8,3632.59,1,29060.72,Invoiced
+PO26-000231,1,A1015,Rebar ton,Building materials,2,2925.1,1,5850.2,Invoiced
+PO26-000232,1,A1006,Event catering per head,Catering,266,155.94,1,41480.04,Invoiced
+PO26-000233,1,A1008,Laptop,IT hardware,1,4274.37,1,4274.37,Invoiced
+PO26-000234,1,A1000,A4 paper box,Office supplies,84,97.11,1,8157.24,Invoiced
+PO26-000235,1,A1015,Rebar ton,Building materials,1,3003.66,1,3003.66,Invoiced
+PO26-000236,1,A1008,Laptop,IT hardware,3,4691.62,1,14074.86,Invoiced
+PO26-000237,1,A1013,Pest control visit,Facility services,37,698.64,1,25849.68,Invoiced
+PO26-000238,1,A1016,Staff lunch box,Catering,319,3303.0,100,10536.57,Invoiced
+PO26-000239,1,A1009,Monitor 27in,IT hardware,2,1069.0,1,2138.0,Invoiced
+PO26-000240,1,A1016,Staff lunch box,Catering,776,2969.0,100,23039.44,Invoiced
+PO26-000241,1,A1014,Ready-mix m3,Building materials,111,256.64,1,28487.04,Invoiced
+PO26-000242,1,A1016,Staff lunch box,Catering,1200,3187.0,100,38244.0,Invoiced
+PO26-000243,1,A1017,Toner cartridge,Office supplies,62,412.74,1,25589.88,Invoiced
+PO26-000244,1,A1005,Cleaning visit,Facility services,19,1296.31,1,24629.89,Invoiced
+PO26-000245,1,A1017,Toner cartridge,Office supplies,83,418.12,1,34703.96,Invoiced
+PO26-000246,1,A1014,Ready-mix m3,Building materials,36,259.53,1,9343.08,Invoiced
+PO26-000247,1,A1016,Staff lunch box,Catering,917,3318.0,100,30426.06,Invoiced
+PO26-000248,1,A1001,AC maintenance visit,Facility services,3,930.96,1,2792.88,Invoiced
+PO26-000249,1,A1000,A4 paper box,Office supplies,303,93.6,1,28360.8,Invoiced
+PO26-000250,1,A1017,Toner cartridge,Office supplies,35,433.45,1,15170.75,Invoiced
+PO26-000251,1,A1002,Access card batch,Security services,19,1617.0,1,30723.0,Invoiced
+PO26-000252,1,A1013,Pest control visit,Facility services,16,649.97,1,10399.52,Invoiced
+PO26-000253,1,A1005,Cleaning visit,Facility services,27,1421.62,1,38383.74,Invoiced
+PO26-000254,1,A1001,AC maintenance visit,Facility services,15,915.61,1,13734.15,Invoiced
+PO26-000255,1,A1011,Network switch,IT hardware,8,4080.18,1,32641.44,Invoiced
+PO26-000256,1,A1000,A4 paper box,Office supplies,333,88.28,1,29397.24,Invoiced
+PO26-000257,1,A1006,Event catering per head,Catering,252,136.3,1,34347.6,Invoiced
+PO26-000258,1,A1008,Laptop,IT hardware,4,4706.72,1,18826.88,Invoiced
+PO26-000259,1,A1016,Staff lunch box,Catering,353,3274.0,100,11557.22,Invoiced
+PO26-000260,1,A1004,Cement bag 50kg,Building materials,1854,2046.0,100,37932.84,Invoiced
+PO26-000261,1,A1014,Ready-mix m3,Building materials,123,268.44,1,33018.12,Invoiced
+PO26-000262,1,A1016,Staff lunch box,Catering,943,3361.0,100,31694.23,Invoiced
+PO26-000263,1,A1000,A4 paper box,Office supplies,368,92.55,1,34058.4,Invoiced
+PO26-000264,1,A1003,CCTV maintenance,Security services,11,2080.81,1,22888.91,Invoiced
+PO26-000265,1,A1013,Pest control visit,Facility services,18,665.2,1,11973.6,Invoiced
+PO26-000266,1,A1015,Rebar ton,Building materials,1,2763.42,1,2763.42,Invoiced
+PO26-000267,1,A1015,Rebar ton,Building materials,2,2727.97,1,5455.94,Invoiced
+PO26-000268,1,A1018,Water carton,Catering,1511,1422.0,100,21486.42,Invoiced
+PO26-000269,1,A1006,Event catering per head,Catering,160,148.27,1,23723.2,Invoiced
+PO26-000270,1,A1008,Laptop,IT hardware,2,4373.88,1,8747.76,Invoiced
+PO26-000271,1,A1014,Ready-mix m3,Building materials,124,258.49,1,32052.76,Invoiced
+PO26-000272,1,A1017,Toner cartridge,Office supplies,76,412.76,1,31369.76,Invoiced
+PO26-000273,1,A1007,Guard shift,Security services,31,459.97,1,14259.07,Invoiced
+PO26-000274,1,A1015,Rebar ton,Building materials,11,2739.0,1,30129.0,Invoiced
+PO26-000275,1,A1017,Toner cartridge,Office supplies,11,432.35,1,4755.85,Invoiced
+PO26-000276,1,A1012,Office chair,Office supplies,15,823.62,1,12354.3,Invoiced
+PO26-000277,1,A1007,Guard shift,Security services,62,496.19,1,30763.78,Invoiced
+PO26-000278,1,A1012,Office chair,Office supplies,8,724.2,1,5793.6,Invoiced
+PO26-000279,1,A1011,Network switch,IT hardware,1,3793.73,1,3793.73,Invoiced
+PO26-000280,1,A1018,Water carton,Catering,499,1500.0,100,7485.0,Invoiced
+PO26-000281,1,A1017,Toner cartridge,Office supplies,62,440.52,1,27312.24,Invoiced
+PO26-000282,1,A1009,Monitor 27in,IT hardware,13,1224.67,1,15920.71,Invoiced
+PO26-000283,1,A1017,Toner cartridge,Office supplies,80,395.2,1,31616.0,Invoiced
+PO26-000284,1,A1008,Laptop,IT hardware,2,4687.81,1,9375.62,Invoiced
+PO26-000285,1,A1008,Laptop,IT hardware,1,4521.77,1,4521.77,Invoiced
+PO26-000286,1,A1017,Toner cartridge,Office supplies,77,426.41,1,32833.57,Invoiced
+PO26-000287,1,A1012,Office chair,Office supplies,46,817.69,1,37613.74,Invoiced
+PO26-000288,1,A1004,Cement bag 50kg,Building materials,1373,1951.0,100,26787.23,Invoiced
+PO26-000289,1,A1006,Event catering per head,Catering,110,154.73,1,17020.3,Invoiced
+PO26-000290,1,A1016,Staff lunch box,Catering,773,3425.0,100,26475.25,Invoiced
+PO26-000291,1,A1016,Staff lunch box,Catering,755,3172.0,100,23948.6,Invoiced
+PO26-000292,1,A1001,AC maintenance visit,Facility services,20,835.71,1,16714.2,Invoiced
+PO26-000293,1,A1005,Cleaning visit,Facility services,4,1315.09,1,5260.36,Invoiced
+PO26-000294,1,A1014,Ready-mix m3,Building materials,23,254.43,1,5851.89,Invoiced
+PO26-000295,1,A1002,Access card batch,Security services,4,1636.25,1,6545.0,Invoiced
+PO26-000296,1,A1012,Office chair,Office supplies,12,751.35,1,9016.2,Invoiced
+PO26-000297,1,A1005,Cleaning visit,Facility services,29,1419.25,1,41158.25,Invoiced
+PO26-000298,1,A1016,Staff lunch box,Catering,574,3345.0,100,19200.3,Invoiced
+PO26-000299,1,A1003,CCTV maintenance,Security services,1,2083.92,1,2083.92,Invoiced
+PO26-000300,1,A1018,Water carton,Catering,2674,1472.0,100,39361.28,Invoiced
+PO26-000301,1,A1009,Monitor 27in,IT hardware,32,1149.75,1,36792.0,Invoiced
+PO26-000301,2,A1009,Monitor 27in,IT hardware,500,1149.75,1,250000,Canceled
+PO26-000302,1,A1002,Access card batch,Security services,8,1768.3,1,14146.4,Invoiced
+PO26-000303,1,A1018,Water carton,Catering,1650,1437.0,100,23710.5,Invoiced
+PO26-000304,1,A1000,A4 paper box,Office supplies,113,101.2,1,11435.6,Invoiced
+PO26-000305,1,A1000,A4 paper box,Office supplies,152,90.22,1,13713.44,Invoiced
+PO26-000306,1,A1005,Cleaning visit,Facility services,13,1349.16,1,17539.08,Invoiced
+PO26-000307,1,A1012,Office chair,Office supplies,12,799.13,1,9589.56,Invoiced
+PO26-000308,1,A1007,Guard shift,Security services,69,508.82,1,35108.58,Invoiced
+PO26-000309,1,A1006,Event catering per head,Catering,171,154.22,1,26371.62,Invoiced
+PO26-000310,1,A1013,Pest control visit,Facility services,27,682.51,1,18427.77,Invoiced
+PO26-000311,1,A1017,Toner cartridge,Office supplies,85,407.75,1,34658.75,Invoiced
+PO26-000312,1,A1004,Cement bag 50kg,Building materials,1828,2043.0,100,37346.04,Invoiced
+PO26-000313,1,A1002,Access card batch,Security services,2,1615.55,1,3231.1,Invoiced
+PO26-000314,1,A1008,Laptop,IT hardware,3,4334.7,1,13004.1,Invoiced
+PO26-000315,1,A1014,Ready-mix m3,Building materials,106,275.44,1,29196.64,Invoiced
+PO26-000316,1,A1004,Cement bag 50kg,Building materials,1352,1761.0,100,23808.72,Invoiced
+PO26-000317,1,A1000,A4 paper box,Office supplies,379,98.3,1,37255.7,Invoiced
+PO26-000318,1,A1015,Rebar ton,Building materials,11,2787.95,1,30667.45,Invoiced
+PO26-000319,1,A1007,Guard shift,Security services,51,481.85,1,24574.35,Invoiced
+PO26-000320,1,A1015,Rebar ton,Building materials,6,3073.96,1,18443.76,Invoiced
+PO26-000321,1,A1000,A4 paper box,Office supplies,416,100.46,1,41791.36,Invoiced
+PO26-000322,1,A1015,Rebar ton,Building materials,2,2654.05,1,5308.1,Invoiced
+PO26-000323,1,A1002,Access card batch,Security services,13,1625.66,1,21133.58,Invoiced
+PO26-000324,1,A1002,Access card batch,Security services,1,1744.57,1,1744.57,Invoiced
+PO26-000325,1,A1015,Rebar ton,Building materials,4,2782.23,1,11128.92,Invoiced
+PO26-000326,1,A1015,Rebar ton,Building materials,1,2734.48,1,2734.48,Invoiced
+PO26-000327,1,A1015,Rebar ton,Building materials,8,2630.87,1,21046.96,Invoiced
+PO26-000328,1,A1009,Monitor 27in,IT hardware,28,1210.25,1,33887.0,Invoiced
+PO26-000329,1,A1002,Access card batch,Security services,20,1732.31,1,34646.2,Invoiced
+PO26-000330,1,A1011,Network switch,IT hardware,4,4120.23,1,16480.92,Invoiced
+PO26-000331,1,A1007,Guard shift,Security services,67,513.71,1,34418.57,Invoiced
+PO26-000332,1,A1011,Network switch,IT hardware,7,3917.78,1,27424.46,Invoiced
+PO26-000333,1,A1001,AC maintenance visit,Facility services,17,971.23,1,16510.91,Invoiced
+PO26-000334,1,A1002,Access card batch,Security services,12,1573.77,1,18885.24,Invoiced
+PO26-000335,1,A1002,Access card batch,Security services,18,1791.58,1,32248.44,Invoiced
+PO26-000336,1,A1004,Cement bag 50kg,Building materials,530,2001.0,100,10605.3,Invoiced
+PO26-000337,1,A1006,Event catering per head,Catering,243,149.48,1,36323.64,Invoiced
+PO26-000338,1,A1002,Access card batch,Security services,8,1702.59,1,13620.72,Invoiced
+PO26-000339,1,A1001,AC maintenance visit,Facility services,16,848.88,1,13582.08,Invoiced
+PO26-000340,1,A1004,Cement bag 50kg,Building materials,2042,1805.0,100,36858.1,Invoiced
+PO26-000341,1,A1011,Network switch,IT hardware,8,3700.17,1,29601.36,Invoiced
+PO26-000342,1,A1008,Laptop,IT hardware,7,4900.13,1,34300.91,Invoiced
+PO26-000343,1,A1001,AC maintenance visit,Facility services,40,946.15,1,37846.0,Invoiced
+PO26-000344,1,A1007,Guard shift,Security services,67,506.82,1,33956.94,Invoiced
+PO26-000345,1,A1000,A4 paper box,Office supplies,394,96.8,1,38139.2,Invoiced
+PO26-000346,1,A1003,CCTV maintenance,Security services,12,2170.12,1,26041.44,Invoiced
+PO26-000347,1,A1012,Office chair,Office supplies,21,783.55,1,16454.55,Invoiced
+PO26-000348,1,A1003,CCTV maintenance,Security services,17,2098.43,1,35673.31,Invoiced
+PO26-000349,1,A1017,Toner cartridge,Office supplies,37,415.72,1,15381.64,Invoiced
+PO26-000350,1,A1004,Cement bag 50kg,Building materials,1390,1828.0,100,25409.2,Invoiced
+PO26-000351,1,A1008,Laptop,IT hardware,1,4796.34,1,4796.34,Invoiced
+PO26-000352,1,A1018,Water carton,Catering,723,1491.0,100,10779.93,Invoiced
+PO26-000353,1,A1016,Staff lunch box,Catering,90,3165.0,100,2848.5,Invoiced
+PO26-000354,1,A1006,Event catering per head,Catering,121,149.15,1,18047.15,Invoiced
+PO26-000355,1,A1004,Cement bag 50kg,Building materials,824,1943.0,100,16010.32,Invoiced
+PO26-000356,1,A1015,Rebar ton,Building materials,13,2712.14,1,35257.82,Invoiced
+PO26-000357,1,A1011,Network switch,IT hardware,7,3664.22,1,25649.54,Invoiced
+PO26-000358,1,A1012,Office chair,Office supplies,2,772.87,1,1545.74,Invoiced
+PO26-000359,1,A1003,CCTV maintenance,Security services,17,2101.7,1,35728.9,Invoiced
+PO26-000360,1,A1008,Laptop,IT hardware,6,4568.39,1,27410.34,Invoiced
+PO26-000361,1,A1000,A4 paper box,Office supplies,201,97.76,1,19649.76,Invoiced
+PO26-000362,1,A1011,Network switch,IT hardware,2,3787.33,1,7574.66,Invoiced
+PO26-000363,1,A1004,Cement bag 50kg,Building materials,451,1892.0,100,8532.92,Invoiced
+PO26-000364,1,A1007,Guard shift,Security services,16,454.68,1,7274.88,Invoiced
+PO26-000365,1,A1002,Access card batch,Security services,15,1833.72,1,27505.8,Invoiced
+PO26-000366,1,A1004,Cement bag 50kg,Building materials,513,1929.0,100,9895.77,Invoiced
+PO26-000367,1,A1014,Ready-mix m3,Building materials,125,247.4,1,30925.0,Invoiced
+PO26-000368,1,A1002,Access card batch,Security services,21,1571.13,1,32993.73,Invoiced
+PO26-000369,1,A1011,Network switch,IT hardware,8,4133.49,1,33067.92,Invoiced
+PO26-000370,1,A1016,Staff lunch box,Catering,162,3397.0,100,5503.14,Invoiced
+PO26-000371,1,A1000,A4 paper box,Office supplies,125,95.88,1,11985.0,Invoiced
+PO26-000372,1,A1006,Event catering per head,Catering,247,140.7,1,34752.9,Invoiced
+PO26-000373,1,A1006,Event catering per head,Catering,122,138.13,1,16851.86,Invoiced
+PO26-000374,1,A1015,Rebar ton,Building materials,4,2978.25,1,11913.0,Invoiced
+PO26-000375,1,A1003,CCTV maintenance,Security services,15,2281.76,1,34226.4,Invoiced
+PO26-000376,1,A1004,Cement bag 50kg,Building materials,1610,1836.0,100,29559.6,Invoiced
+PO26-000376,2,A1004,Cement bag 50kg,Building materials,500,1836.0,100,250000,Canceled
+PO26-000377,1,A1002,Access card batch,Security services,19,1657.82,1,31498.58,Invoiced
+PO26-000378,1,A1003,CCTV maintenance,Security services,12,2267.78,1,27213.36,Invoiced
+PO26-000379,1,A1015,Rebar ton,Building materials,7,2814.89,1,19704.23,Invoiced
+PO26-000380,1,A1016,Staff lunch box,Catering,701,3122.0,100,21885.22,Invoiced
+PO26-000381,1,A1011,Network switch,IT hardware,5,3845.12,1,19225.6,Invoiced
+PO26-000382,1,A1012,Office chair,Office supplies,10,816.02,1,8160.2,Invoiced
+PO26-000383,1,A1015,Rebar ton,Building materials,13,2821.39,1,36678.07,Invoiced
+PO26-000384,1,A1002,Access card batch,Security services,7,1702.62,1,11918.34,Invoiced
+PO26-000385,1,A1017,Toner cartridge,Office supplies,18,418.71,1,7536.78,Invoiced
+PO26-000386,1,A1004,Cement bag 50kg,Building materials,398,1860.0,100,7402.8,Invoiced
+PO26-000387,1,A1004,Cement bag 50kg,Building materials,1665,1850.0,100,30802.5,Invoiced
+PO26-000388,1,A1013,Pest control visit,Facility services,14,692.92,1,9700.88,Invoiced
+PO26-000389,1,A1017,Toner cartridge,Office supplies,13,421.79,1,5483.27,Invoiced
+PO26-000390,1,A1004,Cement bag 50kg,Building materials,1797,1961.0,100,35239.17,Invoiced
+PO26-000391,1,A1007,Guard shift,Security services,13,506.12,1,6579.56,Invoiced
+PO26-000392,1,A1006,Event catering per head,Catering,35,141.55,1,4954.25,Invoiced
+PO26-000393,1,A1000,A4 paper box,Office supplies,122,88.54,1,10801.88,Invoiced
+PO26-000394,1,A1007,Guard shift,Security services,32,451.38,1,14444.16,Invoiced
+PO26-000395,1,A1012,Office chair,Office supplies,48,769.81,1,36950.88,Invoiced
+PO26-000396,1,A1005,Cleaning visit,Facility services,26,1418.87,1,36890.62,Invoiced
+PO26-000397,1,A1011,Network switch,IT hardware,6,3704.72,1,22228.32,Invoiced
+PO26-000398,1,A1000,A4 paper box,Office supplies,289,97.24,1,28102.36,Invoiced
+PO26-000399,1,A1018,Water carton,Catering,2214,1433.0,100,31726.62,Invoiced
+PO26-000400,1,A1006,Event catering per head,Catering,261,139.06,1,36294.66,Invoiced
+PO26-000401,1,A1008,Laptop,IT hardware,5,4871.47,1,24357.35,Invoiced
+PO26-000402,1,A1008,Laptop,IT hardware,2,4635.17,1,9270.34,Invoiced
+PO26-000403,1,A1000,A4 paper box,Office supplies,377,90.38,1,34073.26,Invoiced
+PO26-000404,1,A1017,Toner cartridge,Office supplies,18,389.56,1,7012.08,Invoiced
+PO26-000405,1,A1009,Monitor 27in,IT hardware,26,1148.32,1,29856.32,Invoiced
+PO26-000406,1,A1000,A4 paper box,Office supplies,92,95.24,1,8762.08,Invoiced
+PO26-000407,1,A1018,Water carton,Catering,858,1448.0,100,12423.84,Invoiced
+PO26-000408,1,A1001,AC maintenance visit,Facility services,3,837.84,1,2513.52,Invoiced
+PO26-000409,1,A1006,Event catering per head,Catering,153,148.14,1,22665.42,Invoiced
+PO26-000410,1,A1009,Monitor 27in,IT hardware,21,1139.56,1,23930.76,Invoiced
+PO26-000411,1,A1002,Access card batch,Security services,19,1572.56,1,29878.64,Invoiced
+PO26-000412,1,A1004,Cement bag 50kg,Building materials,689,1841.0,100,12684.49,Invoiced
+PO26-000413,1,A1003,CCTV maintenance,Security services,18,2160.11,1,38881.98,Invoiced
+PO26-000414,1,A1004,Cement bag 50kg,Building materials,720,2035.0,100,14652.0,Invoiced
+PO26-000415,1,A1017,Toner cartridge,Office supplies,41,434.73,1,17823.93,Invoiced
+PO26-000416,1,A1006,Event catering per head,Catering,204,154.64,1,31546.56,Invoiced
+PO26-000417,1,A1009,Monitor 27in,IT hardware,11,1105.35,1,12158.85,Invoiced
+PO26-000418,1,A1015,Rebar ton,Building materials,11,2924.52,1,32169.72,Invoiced
+PO26-000419,1,A1012,Office chair,Office supplies,9,766.91,1,6902.19,Invoiced
+PO26-000420,1,A1005,Cleaning visit,Facility services,24,1318.8,1,31651.2,Invoiced
+PO26-000421,1,A1006,Event catering per head,Catering,165,143.97,1,23755.05,Invoiced
+PO26-000422,1,A1009,Monitor 27in,IT hardware,17,1239.51,1,21071.67,Invoiced
+PO26-000423,1,A1000,A4 paper box,Office supplies,70,90.43,1,6330.1,Invoiced
+PO26-000424,1,A1002,Access card batch,Security services,15,1773.62,1,26604.3,Invoiced
+PO26-000425,1,A1017,Toner cartridge,Office supplies,30,413.35,1,12400.5,Invoiced
+PO26-000426,1,A1007,Guard shift,Security services,73,515.15,1,37605.95,Invoiced
+PO26-000427,1,A1003,CCTV maintenance,Security services,6,2072.67,1,12436.02,Invoiced
+PO26-000428,1,A1004,Cement bag 50kg,Building materials,782,2047.0,100,16007.54,Invoiced
+PO26-000429,1,A1004,Cement bag 50kg,Building materials,1920,1848.0,100,35481.6,Invoiced
+PO26-000430,1,A1005,Cleaning visit,Facility services,4,1372.64,1,5490.56,Invoiced
+PO26-000431,1,A1015,Rebar ton,Building materials,4,2663.09,1,10652.36,Invoiced
+PO26-000432,1,A1013,Pest control visit,Facility services,37,643.03,1,23792.11,Invoiced
+PO26-000433,1,A1001,AC maintenance visit,Facility services,8,912.02,1,7296.16,Invoiced
+PO26-000434,1,A1002,Access card batch,Security services,6,1748.27,1,10489.62,Invoiced
+PO26-000435,1,A1007,Guard shift,Security services,37,461.73,1,17084.01,Invoiced
+PO26-000436,1,A1011,Network switch,IT hardware,5,3701.24,1,18506.2,Invoiced
+PO26-000437,1,A1011,Network switch,IT hardware,6,3596.14,1,21576.84,Invoiced
+PO26-000438,1,A1016,Staff lunch box,Catering,1065,3236.0,100,34463.4,Invoiced
+PO26-000439,1,A1018,Water carton,Catering,695,1460.0,100,10147.0,Invoiced
+PO26-000440,1,A1000,A4 paper box,Office supplies,350,90.39,1,31636.5,Invoiced
+PO26-000441,1,A1013,Pest control visit,Facility services,26,692.8,1,18012.8,Invoiced
+PO26-000442,1,A1009,Monitor 27in,IT hardware,3,1090.86,1,3272.58,Invoiced
+PO26-000443,1,A1004,Cement bag 50kg,Building materials,1706,1889.0,100,32226.34,Invoiced
+PO26-000444,1,A1017,Toner cartridge,Office supplies,35,451.41,1,15799.35,Invoiced
+PO26-000445,1,A1006,Event catering per head,Catering,119,149.34,1,17771.46,Invoiced
+PO26-000446,1,A1008,Laptop,IT hardware,1,4928.22,1,4928.22,Invoiced
+PO26-000447,1,A1018,Water carton,Catering,1310,1306.0,100,17108.6,Invoiced
+PO26-000448,1,A1017,Toner cartridge,Office supplies,57,443.68,1,25289.76,Invoiced
+PO26-000449,1,A1014,Ready-mix m3,Building materials,121,263.17,1,31843.57,Invoiced
+PO26-000450,1,A1000,A4 paper box,Office supplies,102,89.44,1,9122.88,Invoiced
+PO26-000451,1,A1018,Water carton,Catering,1333,1476.0,100,19675.08,Invoiced
+PO26-000451,2,A1018,Water carton,Catering,500,1476.0,100,250000,Canceled
+PO26-000452,1,A1014,Ready-mix m3,Building materials,14,245.73,1,3440.22,Invoiced
+PO26-000453,1,A1008,Laptop,IT hardware,2,4922.16,1,9844.32,Invoiced
+PO26-000454,1,A1005,Cleaning visit,Facility services,28,1247.05,1,34917.4,Invoiced
+PO26-000455,1,A1004,Cement bag 50kg,Building materials,1786,1864.0,100,33291.04,Invoiced
+PO26-000456,1,A1009,Monitor 27in,IT hardware,3,1190.67,1,3572.01,Invoiced
+PO26-000457,1,A1014,Ready-mix m3,Building materials,125,274.45,1,34306.25,Invoiced
+PO26-000458,1,A1011,Network switch,IT hardware,5,3859.49,1,19297.45,Invoiced
+PO26-000459,1,A1000,A4 paper box,Office supplies,89,89.93,1,8003.77,Invoiced
+PO26-000460,1,A1014,Ready-mix m3,Building materials,103,283.59,1,29209.77,Invoiced
+PO26-000461,1,A1003,CCTV maintenance,Security services,13,2183.15,1,28380.95,Invoiced
+PO26-000462,1,A1011,Network switch,IT hardware,3,3610.09,1,10830.27,Invoiced
+PO26-000463,1,A1018,Water carton,Catering,655,1430.0,100,9366.5,Invoiced
+PO26-000464,1,A1009,Monitor 27in,IT hardware,25,1180.39,1,29509.75,Invoiced
+PO26-000465,1,A1005,Cleaning visit,Facility services,17,1323.55,1,22500.35,Invoiced
+PO26-000466,1,A1005,Cleaning visit,Facility services,26,1247.65,1,32438.9,Invoiced
+PO26-000467,1,A1001,AC maintenance visit,Facility services,30,914.23,1,27426.9,Invoiced
+PO26-000468,1,A1005,Cleaning visit,Facility services,8,1274.13,1,10193.04,Invoiced
+PO26-000469,1,A1005,Cleaning visit,Facility services,24,1450.42,1,34810.08,Invoiced
+PO26-000470,1,A1014,Ready-mix m3,Building materials,85,282.52,1,24014.2,Invoiced
+PO26-000471,1,A1017,Toner cartridge,Office supplies,61,405.02,1,24706.22,Invoiced
+PO26-000472,1,A1014,Ready-mix m3,Building materials,111,274.47,1,30466.17,Invoiced
+PO26-000473,1,A1017,Toner cartridge,Office supplies,35,398.88,1,13960.8,Invoiced
+PO26-000474,1,A1002,Access card batch,Security services,20,1816.75,1,36335.0,Invoiced
+PO26-000475,1,A1001,AC maintenance visit,Facility services,27,967.12,1,26112.24,Invoiced
+PO26-000476,1,A1005,Cleaning visit,Facility services,6,1382.23,1,8293.38,Invoiced
+PO26-000477,1,A1017,Toner cartridge,Office supplies,52,388.25,1,20189.0,Invoiced
+PO26-000478,1,A1007,Guard shift,Security services,8,515.55,1,4124.4,Invoiced
+PO26-000479,1,A1016,Staff lunch box,Catering,1147,3390.0,100,38883.3,Invoiced
+PO26-000480,1,A1013,Pest control visit,Facility services,9,641.33,1,5771.97,Invoiced
+PO26-000481,1,A1004,Cement bag 50kg,Building materials,805,1752.0,100,14103.6,Invoiced
+PO26-000482,1,A1014,Ready-mix m3,Building materials,64,249.88,1,15992.32,Invoiced
+PO26-000483,1,A1017,Toner cartridge,Office supplies,92,449.82,1,41383.44,Invoiced
+PO26-000484,1,A1009,Monitor 27in,IT hardware,24,1060.14,1,25443.36,Invoiced
+PO26-000485,1,A1011,Network switch,IT hardware,4,3936.17,1,15744.68,Invoiced
+PO26-000486,1,A1005,Cleaning visit,Facility services,20,1316.86,1,26337.2,Invoiced
+PO26-000487,1,A1004,Cement bag 50kg,Building materials,237,1828.0,100,4332.36,Invoiced
+PO26-000488,1,A1003,CCTV maintenance,Security services,9,2321.26,1,20891.34,Invoiced
+PO26-000489,1,A1007,Guard shift,Security services,61,481.93,1,29397.73,Invoiced
+PO26-000490,1,A1015,Rebar ton,Building materials,1,2794.57,1,2794.57,Invoiced
+PO26-000491,1,A1001,AC maintenance visit,Facility services,33,943.59,1,31138.47,Invoiced
+PO26-000492,1,A1007,Guard shift,Security services,65,507.64,1,32996.6,Invoiced
+PO26-000493,1,A1009,Monitor 27in,IT hardware,23,1115.52,1,25656.96,Invoiced
+PO26-000494,1,A1017,Toner cartridge,Office supplies,67,410.76,1,27520.92,Invoiced
+PO26-000495,1,A1008,Laptop,IT hardware,7,4538.78,1,31771.46,Invoiced
+PO26-000496,1,A1016,Staff lunch box,Catering,650,3256.0,100,21164.0,Invoiced
+PO26-000497,1,A1001,AC maintenance visit,Facility services,27,928.71,1,25075.17,Invoiced
+PO26-000498,1,A1016,Staff lunch box,Catering,455,3405.0,100,15492.75,Invoiced
+PO26-000499,1,A1007,Guard shift,Security services,11,504.72,1,5551.92,Invoiced
+PO26-000500,1,A1011,Network switch,IT hardware,3,3851.95,1,11555.85,Invoiced
+PO26-000501,1,A1001,AC maintenance visit,Facility services,39,857.51,1,33442.89,Invoiced
+PO26-000502,1,A1012,Office chair,Office supplies,43,781.36,1,33598.48,Invoiced
+PO26-000503,1,A1004,Cement bag 50kg,Building materials,512,1838.0,100,9410.56,Invoiced
+PO26-000504,1,A1014,Ready-mix m3,Building materials,21,270.31,1,5676.51,Invoiced
+PO26-000505,1,A1006,Event catering per head,Catering,39,148.18,1,5779.02,Invoiced
+PO26-000506,1,A1005,Cleaning visit,Facility services,21,1269.55,1,26660.55,Invoiced
+PO26-000507,1,A1004,Cement bag 50kg,Building materials,1569,1800.0,100,28242.0,Invoiced
+PO26-000508,1,A1017,Toner cartridge,Office supplies,92,389.41,1,35825.72,Invoiced
+PO26-000509,1,A1009,Monitor 27in,IT hardware,5,1127.94,1,5639.7,Invoiced
+PO26-000510,1,A1011,Network switch,IT hardware,10,3993.7,1,39937.0,Invoiced
+PO26-000511,1,A1012,Office chair,Office supplies,23,754.46,1,17352.58,Invoiced
+PO26-000512,1,A1003,CCTV maintenance,Security services,7,2173.58,1,15215.06,Invoiced
+PO26-000513,1,A1003,CCTV maintenance,Security services,9,2056.78,1,18511.02,Invoiced
+PO26-000514,1,A1018,Water carton,Catering,1115,1418.0,100,15810.7,Invoiced
+PO26-000515,1,A1005,Cleaning visit,Facility services,3,1431.54,1,4294.62,Invoiced
+PO26-000516,1,A1017,Toner cartridge,Office supplies,35,414.33,1,14501.55,Invoiced
+PO26-000517,1,A1015,Rebar ton,Building materials,7,2929.74,1,20508.18,Invoiced
+PO26-000518,1,A1011,Network switch,IT hardware,7,3885.54,1,27198.78,Invoiced
+PO26-000519,1,A1006,Event catering per head,Catering,47,147.42,1,6928.74,Invoiced
+PO26-000520,1,A1011,Network switch,IT hardware,1,3724.86,1,3724.86,Invoiced
+PO26-000521,1,A1005,Cleaning visit,Facility services,26,1296.34,1,33704.84,Invoiced
+PO26-000522,1,A1018,Water carton,Catering,306,1309.0,100,4005.54,Invoiced
+PO26-000523,1,A1004,Cement bag 50kg,Building materials,1593,1824.0,100,29056.32,Invoiced
+PO26-000524,1,A1011,Network switch,IT hardware,7,4004.09,1,28028.63,Invoiced
+PO26-000525,1,A1013,Pest control visit,Facility services,55,674.18,1,37079.9,Invoiced
+PO26-000526,1,A1008,Laptop,IT hardware,6,4864.72,1,29188.32,Invoiced
+PO26-000526,2,A1008,Laptop,IT hardware,500,4864.72,1,250000,Canceled
+PO26-000527,1,A1011,Network switch,IT hardware,5,3813.67,1,19068.35,Invoiced
+PO26-000528,1,A1007,Guard shift,Security services,77,489.94,1,37725.38,Invoiced
+PO26-000529,1,A1014,Ready-mix m3,Building materials,135,279.47,1,37728.45,Invoiced
+PO26-000530,1,A1006,Event catering per head,Catering,146,142.14,1,20752.44,Invoiced
+PO26-000531,1,A1011,Network switch,IT hardware,9,3752.6,1,33773.4,Invoiced
+PO26-000532,1,A1011,Network switch,IT hardware,1,3972.49,1,3972.49,Invoiced
+PO26-000533,1,A1000,A4 paper box,Office supplies,263,99.33,1,26123.79,Invoiced
+PO26-000534,1,A1015,Rebar ton,Building materials,5,3006.14,1,15030.7,Invoiced
+PO26-000535,1,A1014,Ready-mix m3,Building materials,12,260.28,1,3123.36,Invoiced
+PO26-000536,1,A1001,AC maintenance visit,Facility services,31,922.3,1,28591.3,Invoiced
+PO26-000537,1,A1004,Cement bag 50kg,Building materials,603,1928.0,100,11625.84,Invoiced
+PO26-000538,1,A1004,Cement bag 50kg,Building materials,240,2018.0,100,4843.2,Invoiced
+PO26-000539,1,A1004,Cement bag 50kg,Building materials,425,1936.0,100,8228.0,Invoiced
+PO26-000540,1,A1002,Access card batch,Security services,8,1588.41,1,12707.28,Invoiced
+PO26-000541,1,A1018,Water carton,Catering,1069,1383.0,100,14784.27,Invoiced
+PO26-000542,1,A1009,Monitor 27in,IT hardware,13,1082.35,1,14070.55,Invoiced
+PO26-000543,1,A1001,AC maintenance visit,Facility services,20,890.54,1,17810.8,Invoiced
+PO26-000544,1,A1006,Event catering per head,Catering,104,150.81,1,15684.24,Invoiced
+PO26-000545,1,A1009,Monitor 27in,IT hardware,2,1176.87,1,2353.74,Invoiced
+PO26-000546,1,A1016,Staff lunch box,Catering,314,3421.0,100,10741.94,Invoiced
+PO26-000547,1,A1012,Office chair,Office supplies,4,770.07,1,3080.28,Invoiced
+PO26-000548,1,A1001,AC maintenance visit,Facility services,3,955.67,1,2867.01,Invoiced
+PO26-000549,1,A1000,A4 paper box,Office supplies,307,89.11,1,27356.77,Invoiced
+PO26-000550,1,A1017,Toner cartridge,Office supplies,32,438.72,1,14039.04,Invoiced
+PO26-000551,1,A1015,Rebar ton,Building materials,6,3066.47,1,18398.82,Invoiced
+PO26-000552,1,A1009,Monitor 27in,IT hardware,25,1133.49,1,28337.25,Invoiced
+PO26-000553,1,A1015,Rebar ton,Building materials,8,2731.93,1,21855.44,Invoiced
+PO26-000554,1,A1005,Cleaning visit,Facility services,2,1341.92,1,2683.84,Invoiced
+PO26-000555,1,A1018,Water carton,Catering,2308,1404.0,100,32404.32,Invoiced
+PO26-000556,1,A1015,Rebar ton,Building materials,11,2845.15,1,31296.65,Invoiced
+PO26-000557,1,A1017,Toner cartridge,Office supplies,39,427.12,1,16657.68,Invoiced
+PO26-000558,1,A1006,Event catering per head,Catering,191,151.71,1,28976.61,Invoiced
+PO26-000559,1,A1008,Laptop,IT hardware,8,4236.81,1,33894.48,Invoiced
+PO26-000560,1,A1015,Rebar ton,Building materials,4,3075.38,1,12301.52,Invoiced
+PO26-000561,1,A1002,Access card batch,Security services,19,1793.17,1,34070.23,Invoiced
+PO26-000562,1,A1009,Monitor 27in,IT hardware,3,1089.15,1,3267.45,Invoiced
+PO26-000563,1,A1018,Water carton,Catering,918,1300.0,100,11934.0,Invoiced
+PO26-000564,1,A1006,Event catering per head,Catering,61,147.82,1,9017.02,Invoiced
+PO26-000565,1,A1008,Laptop,IT hardware,6,4878.73,1,29272.38,Invoiced
+PO26-000566,1,A1013,Pest control visit,Facility services,9,633.98,1,5705.82,Invoiced
+PO26-000567,1,A1008,Laptop,IT hardware,8,4491.07,1,35928.56,Invoiced
+PO26-000568,1,A1009,Monitor 27in,IT hardware,12,1240.2,1,14882.4,Invoiced
+PO26-000569,1,A1005,Cleaning visit,Facility services,24,1275.82,1,30619.68,Invoiced
+PO26-000570,1,A1007,Guard shift,Security services,12,477.92,1,5735.04,Invoiced
+PO26-000571,1,A1013,Pest control visit,Facility services,32,643.59,1,20594.88,Invoiced
+PO26-000572,1,A1001,AC maintenance visit,Facility services,11,951.3,1,10464.3,Invoiced
+PO26-000573,1,A1008,Laptop,IT hardware,7,4268.72,1,29881.04,Invoiced
+PO26-000574,1,A1000,A4 paper box,Office supplies,201,91.21,1,18333.21,Invoiced
+PO26-000575,1,A1018,Water carton,Catering,205,1363.0,100,2794.15,Invoiced
+PO26-000576,1,A1006,Event catering per head,Catering,139,138.37,1,19233.43,Invoiced
+PO26-000577,1,A1005,Cleaning visit,Facility services,28,1258.43,1,35236.04,Invoiced
+PO26-000578,1,A1015,Rebar ton,Building materials,13,3049.21,1,39639.73,Invoiced
+PO26-000579,1,A1014,Ready-mix m3,Building materials,46,286.15,1,13162.9,Invoiced
+PO26-000580,1,A1006,Event catering per head,Catering,19,155.21,1,2948.99,Invoiced
+PO26-000581,1,A1003,CCTV maintenance,Security services,6,2213.0,1,13278.0,Invoiced
+PO26-000582,1,A1003,CCTV maintenance,Security services,14,2103.48,1,29448.72,Invoiced
+PO26-000583,1,A1005,Cleaning visit,Facility services,20,1360.87,1,27217.4,Invoiced
+PO26-000584,1,A1003,CCTV maintenance,Security services,10,2173.61,1,21736.1,Invoiced
+PO26-000585,1,A1017,Toner cartridge,Office supplies,22,423.56,1,9318.32,Invoiced
+PO26-000586,1,A1003,CCTV maintenance,Security services,11,2143.52,1,23578.72,Invoiced
+PO26-000587,1,A1000,A4 paper box,Office supplies,318,93.97,1,29882.46,Invoiced
+PO26-000588,1,A1008,Laptop,IT hardware,1,4397.67,1,4397.67,Invoiced
+PO26-000589,1,A1005,Cleaning visit,Facility services,25,1367.02,1,34175.5,Invoiced
+PO26-000590,1,A1012,Office chair,Office supplies,22,839.23,1,18463.06,Invoiced
+PO26-000591,1,A1012,Office chair,Office supplies,3,746.38,1,2239.14,Invoiced
+PO26-000592,1,A1016,Staff lunch box,Catering,515,3094.0,100,15934.1,Invoiced
+PO26-000593,1,A1018,Water carton,Catering,639,1344.0,100,8588.16,Invoiced
+PO26-000594,1,A1000,A4 paper box,Office supplies,223,100.26,1,22357.98,Invoiced
+PO26-000595,1,A1009,Monitor 27in,IT hardware,22,1103.6,1,24279.2,Invoiced
+PO26-000596,1,A1011,Network switch,IT hardware,7,3962.06,1,27734.42,Invoiced
+PO26-000597,1,A1015,Rebar ton,Building materials,4,2855.16,1,11420.64,Invoiced
+PO26-000598,1,A1001,AC maintenance visit,Facility services,39,837.58,1,32665.62,Invoiced
+PO26-000599,1,A1015,Rebar ton,Building materials,1,2708.53,1,2708.53,Invoiced
+PO26-000600,1,A1002,Access card batch,Security services,5,1583.04,1,7915.2,Invoiced
+PO26-000601,1,A1001,AC maintenance visit,Facility services,43,907.81,1,39035.83,Invoiced
+PO26-000601,2,A1001,AC maintenance visit,Facility services,500,907.81,1,250000,Canceled
+PO26-000602,1,A1002,Access card batch,Security services,8,1593.78,1,12750.24,Invoiced
+PO26-000603,1,A1016,Staff lunch box,Catering,835,3255.0,100,27179.25,Invoiced
+PO26-000604,1,A1005,Cleaning visit,Facility services,21,1301.65,1,27334.65,Invoiced
+PO26-000605,1,A1005,Cleaning visit,Facility services,8,1272.91,1,10183.28,Invoiced
+PO26-000606,1,A1016,Staff lunch box,Catering,848,2968.0,100,25168.64,Invoiced
+PO26-000607,1,A1009,Monitor 27in,IT hardware,17,1191.66,1,20258.22,Invoiced
+PO26-000608,1,A1000,A4 paper box,Office supplies,278,94.85,1,26368.3,Invoiced
+PO26-000609,1,A1013,Pest control visit,Facility services,59,665.65,1,39273.35,Invoiced
+PO26-000610,1,A1014,Ready-mix m3,Building materials,87,276.52,1,24057.24,Invoiced
+PO26-000611,1,A1008,Laptop,IT hardware,2,4817.06,1,9634.12,Invoiced
+PO26-000612,1,A1009,Monitor 27in,IT hardware,22,1096.73,1,24128.06,Invoiced
+PO26-000613,1,A1009,Monitor 27in,IT hardware,31,1122.09,1,34784.79,Invoiced
+PO26-000614,1,A1009,Monitor 27in,IT hardware,23,1102.49,1,25357.27,Invoiced
+PO26-000615,1,A1017,Toner cartridge,Office supplies,44,440.0,1,19360.0,Invoiced
+PO26-000616,1,A1006,Event catering per head,Catering,140,147.53,1,20654.2,Invoiced
+PO26-000617,1,A1012,Office chair,Office supplies,29,765.02,1,22185.58,Invoiced
+PO26-000618,1,A1005,Cleaning visit,Facility services,16,1306.95,1,20911.2,Invoiced
+PO26-000619,1,A1004,Cement bag 50kg,Building materials,244,1801.0,100,4394.44,Invoiced
+PO26-000620,1,A1018,Water carton,Catering,567,1450.0,100,8221.5,Invoiced
+PO26-000621,1,A1000,A4 paper box,Office supplies,355,102.05,1,36227.75,Invoiced
+PO26-000622,1,A1005,Cleaning visit,Facility services,19,1284.78,1,24410.82,Invoiced
+PO26-000623,1,A1000,A4 paper box,Office supplies,233,93.32,1,21743.56,Invoiced
+PO26-000624,1,A1005,Cleaning visit,Facility services,23,1326.85,1,30517.55,Invoiced
+PO26-000625,1,A1005,Cleaning visit,Facility services,16,1455.81,1,23292.96,Invoiced
+PO26-000626,1,A1005,Cleaning visit,Facility services,19,1413.6,1,26858.4,Invoiced
+PO26-000627,1,A1001,AC maintenance visit,Facility services,34,966.54,1,32862.36,Invoiced
+PO26-000628,1,A1017,Toner cartridge,Office supplies,23,443.5,1,10200.5,Invoiced
+PO26-000629,1,A1003,CCTV maintenance,Security services,3,2172.64,1,6517.92,Invoiced
+PO26-000630,1,A1009,Monitor 27in,IT hardware,27,1063.05,1,28702.35,Invoiced
+PO26-000631,1,A1014,Ready-mix m3,Building materials,97,259.84,1,25204.48,Invoiced
+PO26-000632,1,A1007,Guard shift,Security services,19,442.11,1,8400.09,Invoiced
+PO26-000633,1,A1015,Rebar ton,Building materials,4,2843.48,1,11373.92,Invoiced
+PO26-000634,1,A1013,Pest control visit,Facility services,57,654.33,1,37296.81,Invoiced
+PO26-000635,1,A1004,Cement bag 50kg,Building materials,2085,1932.0,100,40282.2,Invoiced
+PO26-000636,1,A1014,Ready-mix m3,Building materials,55,276.1,1,15185.5,Invoiced
+PO26-000637,1,A1013,Pest control visit,Facility services,13,601.11,1,7814.43,Invoiced
+PO26-000638,1,A1000,A4 paper box,Office supplies,41,96.23,1,3945.43,Invoiced
+PO26-000639,1,A1001,AC maintenance visit,Facility services,43,935.66,1,40233.38,Invoiced
+PO26-000640,1,A1008,Laptop,IT hardware,6,4430.5,1,26583.0,Invoiced
+PO26-000641,1,A1013,Pest control visit,Facility services,58,695.77,1,40354.66,Invoiced
+PO26-000642,1,A1000,A4 paper box,Office supplies,58,99.32,1,5760.56,Invoiced
+PO26-000643,1,A1018,Water carton,Catering,185,1454.0,100,2689.9,Invoiced
+PO26-000644,1,A1002,Access card batch,Security services,22,1772.64,1,38998.08,Invoiced
+PO26-000645,1,A1017,Toner cartridge,Office supplies,94,411.96,1,38724.24,Invoiced
+PO26-000646,1,A1003,CCTV maintenance,Security services,8,2316.87,1,18534.96,Invoiced
+PO26-000647,1,A1008,Laptop,IT hardware,3,4953.27,1,14859.81,Invoiced
+PO26-000648,1,A1001,AC maintenance visit,Facility services,36,866.72,1,31201.92,Invoiced
+PO26-000649,1,A1008,Laptop,IT hardware,2,4825.04,1,9650.08,Invoiced
+PO26-000650,1,A1009,Monitor 27in,IT hardware,33,1064.76,1,35137.08,Invoiced
+PO26-000651,1,A1009,Monitor 27in,IT hardware,2,1136.39,1,2272.78,Invoiced
+PO26-000652,1,A1005,Cleaning visit,Facility services,2,1327.89,1,2655.78,Invoiced
+PO26-000653,1,A1012,Office chair,Office supplies,12,816.6,1,9799.2,Invoiced
+PO26-000654,1,A1004,Cement bag 50kg,Building materials,1973,1802.0,100,35553.46,Invoiced
+PO26-000655,1,A1002,Access card batch,Security services,20,1688.65,1,33773.0,Invoiced
+PO26-000656,1,A1000,A4 paper box,Office supplies,335,99.39,1,33295.65,Invoiced
+PO26-000657,1,A1014,Ready-mix m3,Building materials,37,259.29,1,9593.73,Invoiced
+PO26-000658,1,A1018,Water carton,Catering,2657,1445.0,100,38393.65,Invoiced
+PO26-000659,1,A1014,Ready-mix m3,Building materials,135,263.82,1,35615.7,Invoiced
+PO26-000660,1,A1003,CCTV maintenance,Security services,17,2080.95,1,35376.15,Invoiced
+PO26-000661,1,A1008,Laptop,IT hardware,7,4267.38,1,29871.66,Invoiced
+PO26-000662,1,A1017,Toner cartridge,Office supplies,93,410.58,1,38183.94,Invoiced
+PO26-000663,1,A1000,A4 paper box,Office supplies,237,101.21,1,23986.77,Invoiced
+PO26-000664,1,A1016,Staff lunch box,Catering,257,3225.0,100,8288.25,Invoiced
+PO26-000665,1,A1015,Rebar ton,Building materials,4,2847.58,1,11390.32,Invoiced
+PO26-000666,1,A1007,Guard shift,Security services,72,503.53,1,36254.16,Invoiced
+PO26-000667,1,A1018,Water carton,Catering,2657,1473.0,100,39137.61,Invoiced
+PO26-000668,1,A1013,Pest control visit,Facility services,42,606.29,1,25464.18,Invoiced
+PO26-000669,1,A1014,Ready-mix m3,Building materials,94,283.91,1,26687.54,Invoiced
+PO26-000670,1,A1004,Cement bag 50kg,Building materials,1325,1928.0,100,25546.0,Invoiced
+PO26-000671,1,A1018,Water carton,Catering,1498,1422.0,100,21301.56,Invoiced
+PO26-000672,1,A1005,Cleaning visit,Facility services,23,1298.45,1,29864.35,Invoiced
+PO26-000673,1,A1009,Monitor 27in,IT hardware,15,1105.12,1,16576.8,Invoiced
+PO26-000674,1,A1000,A4 paper box,Office supplies,318,90.38,1,28740.84,Invoiced
+PO26-000675,1,A1000,A4 paper box,Office supplies,405,96.52,1,39090.6,Invoiced
+PO26-000676,1,A1016,Staff lunch box,Catering,601,3240.0,100,19472.4,Invoiced
+PO26-000676,2,A1016,Staff lunch box,Catering,500,3240.0,100,250000,Canceled
+PO26-000677,1,A1008,Laptop,IT hardware,5,4524.05,1,22620.25,Invoiced
+PO26-000678,1,A1009,Monitor 27in,IT hardware,21,1108.51,1,23278.71,Invoiced
+PO26-000679,1,A1012,Office chair,Office supplies,27,730.97,1,19736.19,Invoiced
+PO26-000680,1,A1013,Pest control visit,Facility services,33,701.85,1,23161.05,Invoiced
+PO26-000681,1,A1011,Network switch,IT hardware,2,3650.98,1,7301.96,Invoiced
+PO26-000682,1,A1003,CCTV maintenance,Security services,4,2153.62,1,8614.48,Invoiced
+PO26-000683,1,A1009,Monitor 27in,IT hardware,2,1095.65,1,2191.3,Invoiced
+PO26-000684,1,A1013,Pest control visit,Facility services,14,693.21,1,9704.94,Invoiced
+PO26-000685,1,A1015,Rebar ton,Building materials,13,2783.03,1,36179.39,Invoiced
+PO26-000686,1,A1013,Pest control visit,Facility services,14,618.94,1,8665.16,Invoiced
+PO26-000687,1,A1005,Cleaning visit,Facility services,3,1388.06,1,4164.18,Invoiced
+PO26-000688,1,A1001,AC maintenance visit,Facility services,22,937.01,1,20614.22,Invoiced
+PO26-000689,1,A1018,Water carton,Catering,2440,1302.0,100,31768.8,Invoiced
+PO26-000690,1,A1008,Laptop,IT hardware,3,4768.05,1,14304.15,Invoiced
+PO26-000691,1,A1015,Rebar ton,Building materials,8,2782.77,1,22262.16,Invoiced
+PO26-000692,1,A1014,Ready-mix m3,Building materials,16,266.82,1,4269.12,Invoiced
+PO26-000693,1,A1017,Toner cartridge,Office supplies,82,397.7,1,32611.4,Invoiced
+PO26-000694,1,A1008,Laptop,IT hardware,1,4461.37,1,4461.37,Invoiced
+PO26-000695,1,A1017,Toner cartridge,Office supplies,69,438.06,1,30226.14,Invoiced
+PO26-000696,1,A1013,Pest control visit,Facility services,13,676.85,1,8799.05,Invoiced
+PO26-000697,1,A1000,A4 paper box,Office supplies,366,96.21,1,35212.86,Invoiced
+PO26-000698,1,A1008,Laptop,IT hardware,1,4683.42,1,4683.42,Invoiced
+PO26-000699,1,A1002,Access card batch,Security services,11,1655.64,1,18212.04,Invoiced
+PO26-000700,1,A1013,Pest control visit,Facility services,6,698.82,1,4192.92,Invoiced
+PO26-000701,1,A1001,AC maintenance visit,Facility services,4,877.08,1,3508.32,Invoiced
+PO26-000702,1,A1003,CCTV maintenance,Security services,7,2294.96,1,16064.72,Invoiced
+PO26-000703,1,A1007,Guard shift,Security services,39,497.58,1,19405.62,Invoiced
+PO26-000704,1,A1015,Rebar ton,Building materials,9,2868.87,1,25819.83,Invoiced
+PO26-000705,1,A1009,Monitor 27in,IT hardware,34,1216.51,1,41361.34,Invoiced
+PO26-000706,1,A1005,Cleaning visit,Facility services,27,1333.03,1,35991.81,Invoiced
+PO26-000707,1,A1007,Guard shift,Security services,36,481.6,1,17337.6,Invoiced
+PO26-000708,1,A1005,Cleaning visit,Facility services,16,1397.11,1,22353.76,Invoiced
+PO26-000709,1,A1017,Toner cartridge,Office supplies,26,400.25,1,10406.5,Invoiced
+PO26-000710,1,A1007,Guard shift,Security services,5,500.44,1,2502.2,Invoiced
+PO26-000711,1,A1006,Event catering per head,Catering,22,139.37,1,3066.14,Invoiced
+PO26-000712,1,A1003,CCTV maintenance,Security services,17,2101.52,1,35725.84,Invoiced
+PO26-000713,1,A1008,Laptop,IT hardware,2,4671.31,1,9342.62,Invoiced
+PO26-000714,1,A1013,Pest control visit,Facility services,2,668.16,1,1336.32,Invoiced
+PO26-000715,1,A1002,Access card batch,Security services,14,1678.37,1,23497.18,Invoiced
+PO26-000716,1,A1000,A4 paper box,Office supplies,98,100.29,1,9828.42,Invoiced
+PO26-000717,1,A1004,Cement bag 50kg,Building materials,428,1835.0,100,7853.8,Invoiced
+PO26-000718,1,A1015,Rebar ton,Building materials,12,2937.34,1,35248.08,Invoiced
+PO26-000719,1,A1003,CCTV maintenance,Security services,6,2061.19,1,12367.14,Invoiced
+PO26-000720,1,A1008,Laptop,IT hardware,4,4499.16,1,17996.64,Invoiced
+PO26-000721,1,A1015,Rebar ton,Building materials,12,2676.75,1,32121.0,Invoiced
+PO26-000722,1,A1007,Guard shift,Security services,30,463.3,1,13899.0,Invoiced
+PO26-000723,1,A1006,Event catering per head,Catering,142,150.32,1,21345.44,Invoiced
+PO26-000724,1,A1004,Cement bag 50kg,Building materials,1386,2025.0,100,28066.5,Invoiced
+PO26-000725,1,A1015,Rebar ton,Building materials,7,2819.13,1,19733.91,Invoiced
+PO26-000726,1,A1009,Monitor 27in,IT hardware,19,1081.88,1,20555.72,Invoiced
+PO26-000727,1,A1011,Network switch,IT hardware,9,3708.65,1,33377.85,Invoiced
+PO26-000728,1,A1012,Office chair,Office supplies,46,764.82,1,35181.72,Invoiced
+PO26-000729,1,A1018,Water carton,Catering,659,1449.0,100,9548.91,Invoiced
+PO26-000730,1,A1013,Pest control visit,Facility services,53,668.79,1,35445.87,Invoiced
+PO26-000731,1,A1006,Event catering per head,Catering,121,156.03,1,18879.63,Invoiced
+PO26-000732,1,A1011,Network switch,IT hardware,3,3926.5,1,11779.5,Invoiced
+PO26-000733,1,A1008,Laptop,IT hardware,1,4598.83,1,4598.83,Invoiced
+PO26-000734,1,A1009,Monitor 27in,IT hardware,21,1233.31,1,25899.51,Invoiced
+PO26-000735,1,A1003,CCTV maintenance,Security services,17,2215.89,1,37670.13,Invoiced
+PO26-000736,1,A1003,CCTV maintenance,Security services,16,2362.61,1,37801.76,Invoiced
+PO26-000737,1,A1005,Cleaning visit,Facility services,1,1323.67,1,1323.67,Invoiced
+PO26-000738,1,A1000,A4 paper box,Office supplies,390,98.14,1,38274.6,Invoiced
+PO26-000739,1,A1011,Network switch,IT hardware,8,3926.29,1,31410.32,Invoiced
+PO26-000740,1,A1018,Water carton,Catering,1232,1300.0,100,16016.0,Invoiced
+PO26-000741,1,A1003,CCTV maintenance,Security services,11,2352.35,1,25875.85,Invoiced
+PO26-000742,1,A1002,Access card batch,Security services,9,1621.72,1,14595.48,Invoiced
+PO26-000743,1,A1009,Monitor 27in,IT hardware,29,1086.56,1,31510.24,Invoiced
+PO26-000744,1,A1016,Staff lunch box,Catering,638,3350.0,100,21373.0,Invoiced
+PO26-000745,1,A1002,Access card batch,Security services,2,1808.44,1,3616.88,Invoiced
+PO26-000746,1,A1016,Staff lunch box,Catering,317,3145.0,100,9969.65,Invoiced
+PO26-000747,1,A1005,Cleaning visit,Facility services,11,1352.28,1,14875.08,Invoiced
+PO26-000748,1,A1006,Event catering per head,Catering,131,154.94,1,20297.14,Invoiced
+PO26-000749,1,A1002,Access card batch,Security services,20,1663.61,1,33272.2,Invoiced
+PO26-000750,1,A1015,Rebar ton,Building materials,10,2952.31,1,29523.1,Invoiced
+PO26-000751,1,A1001,AC maintenance visit,Facility services,32,965.7,1,30902.4,Invoiced
+PO26-000751,2,A1001,AC maintenance visit,Facility services,500,965.7,1,250000,Canceled
+PO26-000752,1,A1002,Access card batch,Security services,21,1815.64,1,38128.44,Invoiced
+PO26-000753,1,A1007,Guard shift,Security services,38,497.57,1,18907.66,Invoiced
+PO26-000754,1,A1012,Office chair,Office supplies,10,740.57,1,7405.7,Invoiced
+PO26-000755,1,A1001,AC maintenance visit,Facility services,18,865.45,1,15578.1,Invoiced
+PO26-000756,1,A1009,Monitor 27in,IT hardware,28,1178.57,1,32999.96,Invoiced
+PO26-000757,1,A1002,Access card batch,Security services,5,1799.0,1,8995.0,Invoiced
+PO26-000758,1,A1014,Ready-mix m3,Building materials,126,247.41,1,31173.66,Invoiced
+PO26-000759,1,A1006,Event catering per head,Catering,96,144.31,1,13853.76,Invoiced
+PO26-000760,1,A1011,Network switch,IT hardware,4,3981.42,1,15925.68,Invoiced
+PO26-000761,1,A1006,Event catering per head,Catering,182,151.12,1,27503.84,Invoiced
+PO26-000762,1,A1003,CCTV maintenance,Security services,5,2084.79,1,10423.95,Invoiced
+PO26-000763,1,A1000,A4 paper box,Office supplies,91,92.98,1,8461.18,Invoiced
+PO26-000764,1,A1014,Ready-mix m3,Building materials,102,280.43,1,28603.86,Invoiced
+PO26-000765,1,A1001,AC maintenance visit,Facility services,29,864.07,1,25058.03,Invoiced
+PO26-000766,1,A1006,Event catering per head,Catering,61,151.43,1,9237.23,Invoiced
+PO26-000767,1,A1007,Guard shift,Security services,53,510.56,1,27059.68,Invoiced
+PO26-000768,1,A1013,Pest control visit,Facility services,61,638.42,1,38943.62,Invoiced
+PO26-000769,1,A1004,Cement bag 50kg,Building materials,1033,1872.0,100,19337.76,Invoiced
+PO26-000770,1,A1013,Pest control visit,Facility services,18,635.49,1,11438.82,Invoiced
+PO26-000771,1,A1007,Guard shift,Security services,56,492.78,1,27595.68,Invoiced
+PO26-000772,1,A1002,Access card batch,Security services,9,1805.81,1,16252.29,Invoiced
+PO26-000773,1,A1018,Water carton,Catering,741,1411.0,100,10455.51,Invoiced
+PO26-000774,1,A1018,Water carton,Catering,1207,1306.0,100,15763.42,Invoiced
+PO26-000775,1,A1005,Cleaning visit,Facility services,7,1419.69,1,9937.83,Invoiced
+PO26-000776,1,A1008,Laptop,IT hardware,2,4939.22,1,9878.44,Invoiced
+PO26-000777,1,A1002,Access card batch,Security services,11,1646.46,1,18111.06,Invoiced
+PO26-000778,1,A1002,Access card batch,Security services,19,1692.63,1,32159.97,Invoiced
+PO26-000779,1,A1001,AC maintenance visit,Facility services,19,896.65,1,17036.35,Invoiced
+PO26-000780,1,A1003,CCTV maintenance,Security services,8,2208.42,1,17667.36,Invoiced
+PO26-000781,1,A1012,Office chair,Office supplies,33,759.07,1,25049.31,Invoiced
+PO26-000782,1,A1012,Office chair,Office supplies,12,732.76,1,8793.12,Invoiced
+PO26-000783,1,A1002,Access card batch,Security services,6,1800.54,1,10803.24,Invoiced
+PO26-000784,1,A1005,Cleaning visit,Facility services,9,1332.55,1,11992.95,Invoiced
+PO26-000785,1,A1001,AC maintenance visit,Facility services,40,949.98,1,37999.2,Invoiced
+PO26-000786,1,A1006,Event catering per head,Catering,196,140.87,1,27610.52,Invoiced
+PO26-000787,1,A1018,Water carton,Catering,2342,1334.0,100,31242.28,Invoiced
+PO26-000788,1,A1014,Ready-mix m3,Building materials,37,251.96,1,9322.52,Invoiced
+PO26-000789,1,A1009,Monitor 27in,IT hardware,3,1111.42,1,3334.26,Invoiced
+PO26-000790,1,A1001,AC maintenance visit,Facility services,11,959.59,1,10555.49,Invoiced
+PO26-000791,1,A1017,Toner cartridge,Office supplies,50,423.43,1,21171.5,Invoiced
+PO26-000792,1,A1005,Cleaning visit,Facility services,20,1426.47,1,28529.4,Invoiced
+PO26-000793,1,A1000,A4 paper box,Office supplies,125,96.8,1,12100.0,Invoiced
+PO26-000794,1,A1003,CCTV maintenance,Security services,10,2074.11,1,20741.1,Invoiced
+PO26-000795,1,A1000,A4 paper box,Office supplies,119,96.22,1,11450.18,Invoiced
+PO26-000796,1,A1004,Cement bag 50kg,Building materials,1114,2032.0,100,22636.48,Invoiced
+PO26-000797,1,A1011,Network switch,IT hardware,8,3869.18,1,30953.44,Invoiced
+PO26-000798,1,A1018,Water carton,Catering,1832,1427.0,100,26142.64,Invoiced
+PO26-000799,1,A1013,Pest control visit,Facility services,49,605.15,1,29652.35,Invoiced
+PO26-000800,1,A1005,Cleaning visit,Facility services,17,1286.25,1,21866.25,Invoiced
+PO26-000801,1,A1015,Rebar ton,Building materials,4,3030.35,1,12121.4,Invoiced
+PO26-000802,1,A1009,Monitor 27in,IT hardware,20,1103.82,1,22076.4,Invoiced
+PO26-000803,1,A1009,Monitor 27in,IT hardware,12,1130.05,1,13560.6,Invoiced
+PO26-000804,1,A1014,Ready-mix m3,Building materials,79,262.02,1,20699.58,Invoiced
+PO26-000805,1,A1015,Rebar ton,Building materials,3,2954.56,1,8863.68,Invoiced
+PO26-000806,1,A1015,Rebar ton,Building materials,7,2906.59,1,20346.13,Invoiced
+PO26-000807,1,A1001,AC maintenance visit,Facility services,17,837.84,1,14243.28,Invoiced
+PO26-000808,1,A1007,Guard shift,Security services,71,453.85,1,32223.35,Invoiced
+PO26-000809,1,A1016,Staff lunch box,Catering,228,3294.0,100,7510.32,Invoiced
+PO26-000810,1,A1004,Cement bag 50kg,Building materials,1981,1891.0,100,37460.71,Invoiced
+PO26-000811,1,A1014,Ready-mix m3,Building materials,113,271.09,1,30633.17,Invoiced
+PO26-000812,1,A1014,Ready-mix m3,Building materials,98,284.7,1,27900.6,Invoiced
+PO26-000813,1,A1008,Laptop,IT hardware,1,4696.61,1,4696.61,Invoiced
+PO26-000814,1,A1016,Staff lunch box,Catering,1058,3270.0,100,34596.6,Invoiced
+PO26-000815,1,A1002,Access card batch,Security services,16,1589.78,1,25436.48,Invoiced
+PO26-000816,1,A1004,Cement bag 50kg,Building materials,942,1818.0,100,17125.56,Invoiced
+PO26-000817,1,A1001,AC maintenance visit,Facility services,15,925.15,1,13877.25,Invoiced
+PO26-000818,1,A1013,Pest control visit,Facility services,5,668.0,1,3340.0,Invoiced
+PO26-000819,1,A1008,Laptop,IT hardware,8,4373.94,1,34991.52,Invoiced
+PO26-000820,1,A1017,Toner cartridge,Office supplies,9,439.99,1,3959.91,Invoiced
+PO26-000821,1,A1001,AC maintenance visit,Facility services,41,890.6,1,36514.6,Invoiced
+PO26-000822,1,A1003,CCTV maintenance,Security services,2,2191.84,1,4383.68,Invoiced
+PO26-000823,1,A1012,Office chair,Office supplies,11,781.96,1,8601.56,Invoiced
+PO26-000824,1,A1008,Laptop,IT hardware,3,4433.08,1,13299.24,Invoiced
+PO26-000825,1,A1004,Cement bag 50kg,Building materials,1327,1959.0,100,25995.93,Invoiced
+PO26-000826,1,A1017,Toner cartridge,Office supplies,91,409.0,1,37219.0,Invoiced
+PO26-000826,2,A1017,Toner cartridge,Office supplies,500,409.0,1,250000,Canceled
+PO26-000827,1,A1001,AC maintenance visit,Facility services,9,924.17,1,8317.53,Invoiced
+PO26-000828,1,A1017,Toner cartridge,Office supplies,19,391.8,1,7444.2,Invoiced
+PO26-000829,1,A1006,Event catering per head,Catering,56,148.71,1,8327.76,Invoiced
+PO26-000830,1,A1016,Staff lunch box,Catering,736,3040.0,100,22374.4,Invoiced
+PO26-000831,1,A1007,Guard shift,Security services,34,489.54,1,16644.36,Invoiced
+PO26-000832,1,A1003,CCTV maintenance,Security services,2,2179.12,1,4358.24,Invoiced
+PO26-000833,1,A1017,Toner cartridge,Office supplies,46,423.66,1,19488.36,Invoiced
+PO26-000834,1,A1013,Pest control visit,Facility services,41,668.69,1,27416.29,Invoiced
+PO26-000835,1,A1013,Pest control visit,Facility services,42,672.62,1,28250.04,Invoiced
+PO26-000836,1,A1012,Office chair,Office supplies,30,781.38,1,23441.4,Invoiced
+PO26-000837,1,A1009,Monitor 27in,IT hardware,28,1103.71,1,30903.88,Invoiced
+PO26-000838,1,A1018,Water carton,Catering,2849,1481.0,100,42193.69,Invoiced
+PO26-000839,1,A1011,Network switch,IT hardware,8,3855.38,1,30843.04,Invoiced
+PO26-000840,1,A1004,Cement bag 50kg,Building materials,1560,1950.0,100,30420.0,Invoiced
+PO26-000841,1,A1015,Rebar ton,Building materials,3,2805.05,1,8415.15,Invoiced
+PO26-000842,1,A1012,Office chair,Office supplies,8,818.71,1,6549.68,Invoiced
+PO26-000843,1,A1000,A4 paper box,Office supplies,60,98.69,1,5921.4,Invoiced
+PO26-000844,1,A1001,AC maintenance visit,Facility services,26,832.68,1,21649.68,Invoiced
+PO26-000845,1,A1006,Event catering per head,Catering,58,144.58,1,8385.64,Invoiced
+PO26-000846,1,A1009,Monitor 27in,IT hardware,23,1067.98,1,24563.54,Invoiced
+PO26-000847,1,A1009,Monitor 27in,IT hardware,17,1143.86,1,19445.62,Invoiced
+PO26-000848,1,A1018,Water carton,Catering,1367,1472.0,100,20122.24,Invoiced
+PO26-000849,1,A1003,CCTV maintenance,Security services,9,2069.73,1,18627.57,Invoiced
+PO26-000850,1,A1000,A4 paper box,Office supplies,91,93.08,1,8470.28,Invoiced
+PO26-000851,1,A1005,Cleaning visit,Facility services,17,1370.53,1,23299.01,Invoiced
+PO26-000852,1,A1013,Pest control visit,Facility services,4,699.82,1,2799.28,Invoiced
+PO26-000853,1,A1005,Cleaning visit,Facility services,6,1274.95,1,7649.7,Invoiced
+PO26-000854,1,A1002,Access card batch,Security services,8,1773.26,1,14186.08,Invoiced
+PO26-000855,1,A1013,Pest control visit,Facility services,9,693.4,1,6240.6,Invoiced
+PO26-000856,1,A1014,Ready-mix m3,Building materials,109,254.83,1,27776.47,Invoiced
+PO26-000857,1,A1008,Laptop,IT hardware,2,4604.65,1,9209.3,Invoiced
+PO26-000858,1,A1006,Event catering per head,Catering,270,145.85,1,39379.5,Invoiced
+PO26-000859,1,A1000,A4 paper box,Office supplies,272,89.49,1,24341.28,Invoiced
+PO26-000860,1,A1009,Monitor 27in,IT hardware,34,1218.91,1,41442.94,Invoiced
+PO26-000861,1,A1012,Office chair,Office supplies,11,755.02,1,8305.22,Invoiced
+PO26-000862,1,A1009,Monitor 27in,IT hardware,5,1110.78,1,5553.9,Invoiced
+PO26-000863,1,A1001,AC maintenance visit,Facility services,14,892.98,1,12501.72,Invoiced
+PO26-000864,1,A1016,Staff lunch box,Catering,814,3356.0,100,27317.84,Invoiced
+PO26-000865,1,A1012,Office chair,Office supplies,33,808.21,1,26670.93,Invoiced
+PO26-000866,1,A1018,Water carton,Catering,1041,1497.0,100,15583.77,Invoiced
+PO26-000867,1,A1018,Water carton,Catering,2696,1495.0,100,40305.2,Invoiced
+PO26-000868,1,A1015,Rebar ton,Building materials,10,3028.14,1,30281.4,Invoiced
+PO26-000869,1,A1013,Pest control visit,Facility services,14,634.86,1,8888.04,Invoiced
+PO26-000870,1,A1003,CCTV maintenance,Security services,14,2259.08,1,31627.12,Invoiced
+PO26-000871,1,A1004,Cement bag 50kg,Building materials,262,1819.0,100,4765.78,Invoiced
+PO26-000872,1,A1016,Staff lunch box,Catering,212,3022.0,100,6406.64,Invoiced
+PO26-000873,1,A1017,Toner cartridge,Office supplies,11,402.8,1,4430.8,Invoiced
+PO26-000874,1,A1004,Cement bag 50kg,Building materials,1078,1811.0,100,19522.58,Invoiced
+PO26-000875,1,A1004,Cement bag 50kg,Building materials,936,1947.0,100,18223.92,Invoiced
+PO26-000876,1,A1012,Office chair,Office supplies,26,817.01,1,21242.26,Invoiced
+PO26-000877,1,A1006,Event catering per head,Catering,239,141.82,1,33894.98,Invoiced
+PO26-000878,1,A1017,Toner cartridge,Office supplies,64,449.74,1,28783.36,Invoiced
+PO26-000879,1,A1003,CCTV maintenance,Security services,1,2304.57,1,2304.57,Invoiced
+PO26-000880,1,A1017,Toner cartridge,Office supplies,84,425.24,1,35720.16,Invoiced
+PO26-000881,1,A1013,Pest control visit,Facility services,12,618.08,1,7416.96,Invoiced
+PO26-000882,1,A1005,Cleaning visit,Facility services,3,1455.98,1,4367.94,Invoiced
+PO26-000883,1,A1006,Event catering per head,Catering,36,147.05,1,5293.8,Invoiced
+PO26-000884,1,A1011,Network switch,IT hardware,4,4181.83,1,16727.32,Invoiced
+PO26-000885,1,A1009,Monitor 27in,IT hardware,1,1165.68,1,1165.68,Invoiced
+PO26-000886,1,A1017,Toner cartridge,Office supplies,27,403.29,1,10888.83,Invoiced
+PO26-000887,1,A1013,Pest control visit,Facility services,12,656.01,1,7872.12,Invoiced
+PO26-000888,1,A1009,Monitor 27in,IT hardware,19,1095.66,1,20817.54,Invoiced
+PO26-000889,1,A1008,Laptop,IT hardware,6,4835.62,1,29013.72,Invoiced
+PO26-000890,1,A1012,Office chair,Office supplies,2,819.43,1,1638.86,Invoiced
+PO26-000891,1,A1004,Cement bag 50kg,Building materials,1047,1772.0,100,18552.84,Invoiced
+PO26-000892,1,A1006,Event catering per head,Catering,257,134.35,1,34527.95,Invoiced
+PO26-000893,1,A1001,AC maintenance visit,Facility services,36,884.06,1,31826.16,Invoiced
+PO26-000894,1,A1012,Office chair,Office supplies,43,767.3,1,32993.9,Invoiced
+PO26-000895,1,A1014,Ready-mix m3,Building materials,67,266.56,1,17859.52,Invoiced
+PO26-000896,1,A1013,Pest control visit,Facility services,37,676.22,1,25020.14,Invoiced
+PO26-000897,1,A1013,Pest control visit,Facility services,23,616.39,1,14176.97,Invoiced
+PO26-000898,1,A1016,Staff lunch box,Catering,1153,2999.0,100,34578.47,Invoiced
+PO26-000899,1,A1011,Network switch,IT hardware,5,3775.44,1,18877.2,Invoiced
+PO26-000900,1,A1016,Staff lunch box,Catering,87,3194.0,100,2778.78,Invoiced
+PO26-000901,1,A1017,Toner cartridge,Office supplies,17,451.91,1,7682.47,Invoiced
+PO26-000901,2,A1017,Toner cartridge,Office supplies,500,451.91,1,250000,Canceled
+PO26-000902,1,A1002,Access card batch,Security services,1,1761.51,1,1761.51,Invoiced
+PO26-000903,1,A1003,CCTV maintenance,Security services,11,2074.12,1,22815.32,Invoiced
+PO26-000904,1,A1017,Toner cartridge,Office supplies,49,397.23,1,19464.27,Invoiced
+PO26-000905,1,A1012,Office chair,Office supplies,28,793.59,1,22220.52,Invoiced
+PO26-000906,1,A1009,Monitor 27in,IT hardware,11,1100.86,1,12109.46,Invoiced
+PO26-000907,1,A1006,Event catering per head,Catering,73,135.14,1,9865.22,Invoiced
+PO26-000908,1,A1001,AC maintenance visit,Facility services,23,899.71,1,20693.33,Invoiced
+PO26-000909,1,A1017,Toner cartridge,Office supplies,28,447.15,1,12520.2,Invoiced
+PO26-000910,1,A1017,Toner cartridge,Office supplies,25,432.75,1,10818.75,Invoiced
+PO26-000911,1,A1002,Access card batch,Security services,19,1708.06,1,32453.14,Invoiced
+PO26-000912,1,A1001,AC maintenance visit,Facility services,44,889.93,1,39156.92,Invoiced
+PO26-000913,1,A1007,Guard shift,Security services,69,463.44,1,31977.36,Invoiced
+PO26-000914,1,A1006,Event catering per head,Catering,75,136.19,1,10214.25,Invoiced
+PO26-000915,1,A1012,Office chair,Office supplies,10,827.89,1,8278.9,Invoiced
+PO26-000916,1,A1008,Laptop,IT hardware,1,4861.64,1,4861.64,Invoiced
+PO26-000917,1,A1016,Staff lunch box,Catering,148,3214.0,100,4756.72,Invoiced
+PO26-000918,1,A1011,Network switch,IT hardware,2,3647.15,1,7294.3,Invoiced
+PO26-000919,1,A1014,Ready-mix m3,Building materials,17,271.2,1,4610.4,Invoiced
+PO26-000920,1,A1011,Network switch,IT hardware,5,3729.46,1,18647.3,Invoiced
+PO26-000921,1,A1017,Toner cartridge,Office supplies,65,436.32,1,28360.8,Invoiced
+PO26-000922,1,A1006,Event catering per head,Catering,187,149.02,1,27866.74,Invoiced
+PO26-000923,1,A1017,Toner cartridge,Office supplies,6,448.36,1,2690.16,Invoiced
+PO26-000924,1,A1007,Guard shift,Security services,63,496.9,1,31304.7,Invoiced
+PO26-000925,1,A1000,A4 paper box,Office supplies,144,94.56,1,13616.64,Invoiced
+PO26-000926,1,A1004,Cement bag 50kg,Building materials,1718,1898.0,100,32607.64,Invoiced
+PO26-000927,1,A1014,Ready-mix m3,Building materials,39,263.81,1,10288.59,Invoiced
+PO26-000928,1,A1001,AC maintenance visit,Facility services,3,830.39,1,2491.17,Invoiced
+PO26-000929,1,A1016,Staff lunch box,Catering,672,3006.0,100,20200.32,Invoiced
+PO26-000930,1,A1008,Laptop,IT hardware,2,4268.87,1,8537.74,Invoiced
+PO26-000931,1,A1014,Ready-mix m3,Building materials,102,279.92,1,28551.84,Invoiced
+PO26-000932,1,A1015,Rebar ton,Building materials,13,2844.74,1,36981.62,Invoiced
+PO26-000933,1,A1015,Rebar ton,Building materials,13,2916.63,1,37916.19,Invoiced
+PO26-000934,1,A1011,Network switch,IT hardware,9,3638.01,1,32742.09,Invoiced
+PO26-000935,1,A1004,Cement bag 50kg,Building materials,1637,1789.0,100,29285.93,Invoiced
+PO26-000936,1,A1005,Cleaning visit,Facility services,2,1417.71,1,2835.42,Invoiced
+PO26-000937,1,A1013,Pest control visit,Facility services,18,687.5,1,12375.0,Invoiced
+PO26-000938,1,A1000,A4 paper box,Office supplies,166,99.16,1,16460.56,Invoiced
+PO26-000939,1,A1014,Ready-mix m3,Building materials,49,248.93,1,12197.57,Invoiced
+PO26-000940,1,A1006,Event catering per head,Catering,133,155.49,1,20680.17,Invoiced
+PO26-000941,1,A1009,Monitor 27in,IT hardware,2,1115.07,1,2230.14,Invoiced
+PO26-000942,1,A1003,CCTV maintenance,Security services,4,2092.86,1,8371.44,Invoiced
+PO26-000943,1,A1008,Laptop,IT hardware,2,4421.31,1,8842.62,Invoiced
+PO26-000944,1,A1004,Cement bag 50kg,Building materials,260,1934.0,100,5028.4,Invoiced
+PO26-000945,1,A1008,Laptop,IT hardware,2,4836.64,1,9673.28,Invoiced
+PO26-000946,1,A1017,Toner cartridge,Office supplies,84,401.66,1,33739.44,Invoiced
+PO26-000947,1,A1018,Water carton,Catering,342,1403.0,100,4798.26,Invoiced
+PO26-000948,1,A1000,A4 paper box,Office supplies,338,92.08,1,31123.04,Invoiced
+PO26-000949,1,A1002,Access card batch,Security services,22,1737.72,1,38229.84,Invoiced
+PO26-000950,1,A1014,Ready-mix m3,Building materials,57,246.93,1,14075.01,Invoiced
+PO26-000951,1,A1013,Pest control visit,Facility services,29,685.97,1,19893.13,Invoiced
+PO26-000952,1,A1000,A4 paper box,Office supplies,354,101.17,1,35814.18,Invoiced
+PO26-000953,1,A1003,CCTV maintenance,Security services,13,2024.87,1,26323.31,Invoiced
+PO26-000954,1,A1003,CCTV maintenance,Security services,13,2087.4,1,27136.2,Invoiced
+PO26-000955,1,A1001,AC maintenance visit,Facility services,28,926.14,1,25931.92,Invoiced
+PO26-000956,1,A1017,Toner cartridge,Office supplies,24,393.94,1,9454.56,Invoiced
+PO26-000957,1,A1007,Guard shift,Security services,29,465.88,1,13510.52,Invoiced
+PO26-000958,1,A1015,Rebar ton,Building materials,9,2839.35,1,25554.15,Invoiced
+PO26-000959,1,A1015,Rebar ton,Building materials,5,3004.08,1,15020.4,Invoiced
+PO26-000960,1,A1002,Access card batch,Security services,15,1720.11,1,25801.65,Invoiced
+PO26-000961,1,A1000,A4 paper box,Office supplies,101,92.4,1,9332.4,Invoiced
+PO26-000962,1,A1007,Guard shift,Security services,9,476.98,1,4292.82,Invoiced
+PO26-000963,1,A1012,Office chair,Office supplies,32,757.45,1,24238.4,Invoiced
+PO26-000964,1,A1015,Rebar ton,Building materials,1,3021.91,1,3021.91,Invoiced
+PO26-000965,1,A1011,Network switch,IT hardware,9,3670.83,1,33037.47,Invoiced
+PO26-000966,1,A1014,Ready-mix m3,Building materials,59,248.79,1,14678.61,Invoiced
+PO26-000967,1,A1011,Network switch,IT hardware,9,3897.71,1,35079.39,Invoiced
+PO26-000968,1,A1013,Pest control visit,Facility services,10,600.03,1,6000.3,Invoiced
+PO26-000969,1,A1007,Guard shift,Security services,62,468.5,1,29047.0,Invoiced
+PO26-000970,1,A1006,Event catering per head,Catering,78,149.87,1,11689.86,Invoiced
+PO26-000971,1,A1012,Office chair,Office supplies,18,833.2,1,14997.6,Invoiced
+PO26-000972,1,A1000,A4 paper box,Office supplies,101,92.41,1,9333.41,Invoiced
+PO26-000973,1,A1007,Guard shift,Security services,32,470.78,1,15064.96,Invoiced
+PO26-000974,1,A1011,Network switch,IT hardware,5,3705.56,1,18527.8,Invoiced
+PO26-000975,1,A1018,Water carton,Catering,1647,1302.0,100,21443.94,Invoiced
+PO26-000976,1,A1011,Network switch,IT hardware,1,4090.65,1,4090.65,Invoiced
+PO26-000976,2,A1011,Network switch,IT hardware,500,4090.65,1,250000,Canceled
+PO26-000977,1,A1015,Rebar ton,Building materials,7,2695.19,1,18866.33,Invoiced
+PO26-000978,1,A1005,Cleaning visit,Facility services,18,1398.59,1,25174.62,Invoiced
+PO26-000979,1,A1016,Staff lunch box,Catering,594,2965.0,100,17612.1,Invoiced
+PO26-000980,1,A1009,Monitor 27in,IT hardware,13,1108.7,1,14413.1,Invoiced
+PO26-000981,1,A1011,Network switch,IT hardware,3,3808.12,1,11424.36,Invoiced
+PO26-000982,1,A1009,Monitor 27in,IT hardware,25,1210.36,1,30259.0,Invoiced
+PO26-000983,1,A1018,Water carton,Catering,2066,1502.0,100,31031.32,Invoiced
+PO26-000984,1,A1005,Cleaning visit,Facility services,8,1339.35,1,10714.8,Invoiced
+PO26-000985,1,A1017,Toner cartridge,Office supplies,71,438.11,1,31105.81,Invoiced
+PO26-000986,1,A1011,Network switch,IT hardware,1,4201.25,1,4201.25,Invoiced
+PO26-000987,1,A1002,Access card batch,Security services,4,1657.73,1,6630.92,Invoiced
+PO26-000988,1,A1009,Monitor 27in,IT hardware,11,1149.7,1,12646.7,Invoiced
+PO26-000989,1,A1007,Guard shift,Security services,8,467.09,1,3736.72,Invoiced
+PO26-000990,1,A1008,Laptop,IT hardware,7,4264.92,1,29854.44,Invoiced
+PO26-000991,1,A1014,Ready-mix m3,Building materials,68,284.88,1,19371.84,Invoiced
+PO26-000992,1,A1017,Toner cartridge,Office supplies,93,445.24,1,41407.32,Invoiced
+PO26-000993,1,A1006,Event catering per head,Catering,154,136.06,1,20953.24,Invoiced
+PO26-000994,1,A1012,Office chair,Office supplies,44,824.66,1,36285.04,Invoiced
+PO26-000995,1,A1011,Network switch,IT hardware,2,3941.8,1,7883.6,Invoiced
+PO26-000996,1,A1009,Monitor 27in,IT hardware,17,1136.12,1,19314.04,Invoiced
+PO26-000997,1,A1003,CCTV maintenance,Security services,12,2315.75,1,27789.0,Invoiced
+PO26-000998,1,A1005,Cleaning visit,Facility services,22,1245.56,1,27402.32,Invoiced
+PO26-000999,1,A1018,Water carton,Catering,579,1463.0,100,8470.77,Invoiced
+PO26-001000,1,A1014,Ready-mix m3,Building materials,47,247.89,1,11650.83,Invoiced
+PO26-001001,1,A1006,Event catering per head,Catering,146,152.79,1,22307.34,Invoiced
+PO26-001002,1,A1006,Event catering per head,Catering,229,138.59,1,31737.11,Invoiced
+PO26-001003,1,A1012,Office chair,Office supplies,12,727.14,1,8725.68,Invoiced
+PO26-001004,1,A1002,Access card batch,Security services,10,1763.84,1,17638.4,Invoiced
+PO26-001005,1,A1011,Network switch,IT hardware,4,4063.62,1,16254.48,Invoiced
+PO26-001006,1,A1009,Monitor 27in,IT hardware,22,1224.37,1,26936.14,Invoiced
+PO26-001007,1,A1000,A4 paper box,Office supplies,295,92.52,1,27293.4,Invoiced
+PO26-001008,1,A1000,A4 paper box,Office supplies,206,94.85,1,19539.1,Invoiced
+PO26-001009,1,A1007,Guard shift,Security services,75,514.31,1,38573.25,Invoiced
+PO26-001010,1,A1007,Guard shift,Security services,41,466.87,1,19141.67,Invoiced
+PO26-001011,1,A1015,Rebar ton,Building materials,6,2927.64,1,17565.84,Invoiced
+PO26-001012,1,A1014,Ready-mix m3,Building materials,100,275.09,1,27509.0,Invoiced
+PO26-001013,1,A1009,Monitor 27in,IT hardware,1,1065.73,1,1065.73,Invoiced
+PO26-001014,1,A1001,AC maintenance visit,Facility services,19,882.45,1,16766.55,Invoiced
+PO26-001015,1,A1017,Toner cartridge,Office supplies,13,443.58,1,5766.54,Invoiced
+PO26-001016,1,A1004,Cement bag 50kg,Building materials,279,1802.0,100,5027.58,Invoiced
+PO26-001017,1,A1016,Staff lunch box,Catering,418,3273.0,100,13681.14,Invoiced
+PO26-001018,1,A1014,Ready-mix m3,Building materials,62,264.8,1,16417.6,Invoiced
+PO26-001019,1,A1007,Guard shift,Security services,53,456.35,1,24186.55,Invoiced
+PO26-001020,1,A1014,Ready-mix m3,Building materials,112,249.52,1,27946.24,Invoiced
+PO26-001021,1,A1007,Guard shift,Security services,52,478.27,1,24870.04,Invoiced
+PO26-001022,1,A1016,Staff lunch box,Catering,129,3412.0,100,4401.48,Invoiced
+PO26-001023,1,A1001,AC maintenance visit,Facility services,23,903.15,1,20772.45,Invoiced
+PO26-001024,1,A1002,Access card batch,Security services,7,1705.77,1,11940.39,Invoiced
+PO26-001025,1,A1008,Laptop,IT hardware,1,4372.32,1,4372.32,Invoiced
+PO26-001026,1,A1018,Water carton,Catering,730,1320.0,100,9636.0,Invoiced
+PO26-001027,1,A1007,Guard shift,Security services,74,457.71,1,33870.54,Invoiced
+PO26-001028,1,A1009,Monitor 27in,IT hardware,19,1114.28,1,21171.32,Invoiced
+PO26-001029,1,A1015,Rebar ton,Building materials,10,2627.35,1,26273.5,Invoiced
+PO26-001030,1,A1017,Toner cartridge,Office supplies,88,452.66,1,39834.08,Invoiced
+PO26-001031,1,A1006,Event catering per head,Catering,86,145.95,1,12551.7,Invoiced
+PO26-001032,1,A1017,Toner cartridge,Office supplies,12,386.76,1,4641.12,Invoiced
+PO26-001033,1,A1013,Pest control visit,Facility services,32,695.99,1,22271.68,Invoiced
+PO26-001034,1,A1016,Staff lunch box,Catering,592,3302.0,100,19547.84,Invoiced
+PO26-001035,1,A1015,Rebar ton,Building materials,2,2945.55,1,5891.1,Invoiced
+PO26-001036,1,A1009,Monitor 27in,IT hardware,6,1103.74,1,6622.44,Invoiced
+PO26-001037,1,A1000,A4 paper box,Office supplies,136,94.17,1,12807.12,Invoiced
+PO26-001038,1,A1000,A4 paper box,Office supplies,42,100.34,1,4214.28,Invoiced
+PO26-001039,1,A1006,Event catering per head,Catering,246,140.06,1,34454.76,Invoiced
+PO26-001040,1,A1014,Ready-mix m3,Building materials,43,266.19,1,11446.17,Invoiced
+PO26-001041,1,A1012,Office chair,Office supplies,37,745.07,1,27567.59,Invoiced
+PO26-001042,1,A1006,Event catering per head,Catering,195,142.16,1,27721.2,Invoiced
+PO26-001043,1,A1004,Cement bag 50kg,Building materials,477,1857.0,100,8857.89,Invoiced
+PO26-001044,1,A1008,Laptop,IT hardware,1,4639.59,1,4639.59,Invoiced
+PO26-001045,1,A1015,Rebar ton,Building materials,6,2854.39,1,17126.34,Invoiced
+PO26-001046,1,A1008,Laptop,IT hardware,5,4346.34,1,21731.7,Invoiced
+PO26-001047,1,A1007,Guard shift,Security services,32,480.1,1,15363.2,Invoiced
+PO26-001048,1,A1008,Laptop,IT hardware,1,4409.89,1,4409.89,Invoiced
+PO26-001049,1,A1018,Water carton,Catering,160,1373.0,100,2196.8,Invoiced
+PO26-001050,1,A1018,Water carton,Catering,1942,1319.0,100,25614.98,Invoiced
+PO26-001051,1,A1003,CCTV maintenance,Security services,14,2193.79,1,30713.06,Invoiced
+PO26-001051,2,A1003,CCTV maintenance,Security services,500,2193.79,1,250000,Canceled
+PO26-001052,1,A1007,Guard shift,Security services,58,504.28,1,29248.24,Invoiced
+PO26-001053,1,A1001,AC maintenance visit,Facility services,40,870.36,1,34814.4,Invoiced
+PO26-001054,1,A1015,Rebar ton,Building materials,10,2921.66,1,29216.6,Invoiced
+PO26-001055,1,A1011,Network switch,IT hardware,1,3857.63,1,3857.63,Invoiced
+PO26-001056,1,A1007,Guard shift,Security services,48,482.82,1,23175.36,Invoiced
+PO26-001057,1,A1006,Event catering per head,Catering,141,137.06,1,19325.46,Invoiced
+PO26-001058,1,A1005,Cleaning visit,Facility services,13,1375.24,1,17878.12,Invoiced
+PO26-001059,1,A1014,Ready-mix m3,Building materials,62,256.03,1,15873.86,Invoiced
+PO26-001060,1,A1011,Network switch,IT hardware,4,3784.96,1,15139.84,Invoiced
+PO26-001061,1,A1012,Office chair,Office supplies,37,798.9,1,29559.3,Invoiced
+PO26-001062,1,A1001,AC maintenance visit,Facility services,4,923.2,1,3692.8,Invoiced
+PO26-001063,1,A1003,CCTV maintenance,Security services,9,2160.03,1,19440.27,Invoiced
+PO26-001064,1,A1014,Ready-mix m3,Building materials,112,251.64,1,28183.68,Invoiced
+PO26-001065,1,A1004,Cement bag 50kg,Building materials,728,1772.0,100,12900.16,Invoiced
+PO26-001066,1,A1004,Cement bag 50kg,Building materials,1066,1898.0,100,20232.68,Invoiced
+PO26-001067,1,A1012,Office chair,Office supplies,21,789.63,1,16582.23,Invoiced
+PO26-001068,1,A1014,Ready-mix m3,Building materials,109,286.18,1,31193.62,Invoiced
+PO26-001069,1,A1004,Cement bag 50kg,Building materials,161,1981.0,100,3189.41,Invoiced
+PO26-001070,1,A1012,Office chair,Office supplies,9,795.82,1,7162.38,Invoiced
+PO26-001071,1,A1016,Staff lunch box,Catering,397,3335.0,100,13239.95,Invoiced
+PO26-001072,1,A1016,Staff lunch box,Catering,409,3219.0,100,13165.71,Invoiced
+PO26-001073,1,A1003,CCTV maintenance,Security services,5,2170.76,1,10853.8,Invoiced
+PO26-001074,1,A1000,A4 paper box,Office supplies,376,88.71,1,33354.96,Invoiced
+PO26-001075,1,A1016,Staff lunch box,Catering,349,3419.0,100,11932.31,Invoiced
+PO26-001076,1,A1017,Toner cartridge,Office supplies,11,448.53,1,4933.83,Invoiced
+PO26-001077,1,A1015,Rebar ton,Building materials,13,2805.8,1,36475.4,Invoiced
+PO26-001078,1,A1017,Toner cartridge,Office supplies,66,411.86,1,27182.76,Invoiced
+PO26-001079,1,A1001,AC maintenance visit,Facility services,20,872.6,1,17452.0,Invoiced
+PO26-001080,1,A1006,Event catering per head,Catering,224,147.85,1,33118.4,Invoiced
+PO26-001081,1,A1007,Guard shift,Security services,3,442.17,1,1326.51,Invoiced
+PO26-001082,1,A1004,Cement bag 50kg,Building materials,1718,1793.0,100,30803.74,Invoiced
+PO26-001083,1,A1007,Guard shift,Security services,48,480.84,1,23080.32,Invoiced
+PO26-001084,1,A1016,Staff lunch box,Catering,495,3403.0,100,16844.85,Invoiced
+PO26-001085,1,A1016,Staff lunch box,Catering,1225,3282.0,100,40204.5,Invoiced
+PO26-001086,1,A1013,Pest control visit,Facility services,18,644.3,1,11597.4,Invoiced
+PO26-001087,1,A1016,Staff lunch box,Catering,1084,3354.0,100,36357.36,Invoiced
+PO26-001088,1,A1011,Network switch,IT hardware,4,3972.69,1,15890.76,Invoiced
+PO26-001089,1,A1007,Guard shift,Security services,60,442.21,1,26532.6,Invoiced
+PO26-001090,1,A1014,Ready-mix m3,Building materials,24,285.65,1,6855.6,Invoiced
+PO26-001091,1,A1011,Network switch,IT hardware,6,3610.67,1,21664.02,Invoiced
+PO26-001092,1,A1004,Cement bag 50kg,Building materials,735,1750.0,100,12862.5,Invoiced
+PO26-001093,1,A1015,Rebar ton,Building materials,4,3055.64,1,12222.56,Invoiced
+PO26-001094,1,A1002,Access card batch,Security services,10,1673.56,1,16735.6,Invoiced
+PO26-001095,1,A1001,AC maintenance visit,Facility services,25,846.98,1,21174.5,Invoiced
+PO26-001096,1,A1005,Cleaning visit,Facility services,4,1327.31,1,5309.24,Invoiced
+PO26-001097,1,A1013,Pest control visit,Facility services,45,631.76,1,28429.2,Invoiced
+PO26-001098,1,A1008,Laptop,IT hardware,5,4403.0,1,22015.0,Invoiced
+PO26-001099,1,A1006,Event catering per head,Catering,32,142.35,1,4555.2,Invoiced
+PO26-001100,1,A1005,Cleaning visit,Facility services,22,1400.09,1,30801.98,Invoiced
+PO26-001101,1,A1000,A4 paper box,Office supplies,463,100.62,1,46587.06,Invoiced
+PO26-001102,1,A1000,A4 paper box,Office supplies,491,97.91,1,48073.81,Invoiced
+PO26-001103,1,A1000,A4 paper box,Office supplies,513,88.9,1,45605.7,Invoiced
+PO26-001104,1,A1004,Cement bag 50kg,Building materials,482,1835.0,100,8844.7,Invoiced
+PO26-001105,1,A1004,Cement bag 50kg,Building materials,444,2043.0,100,9070.92,Invoiced
+PO26-001106,1,A1004,Cement bag 50kg,Building materials,458,1987.0,100,9100.46,Invoiced
+PO26-001107,1,A1008,Laptop,IT hardware,1,4925.78,1,4925.78,Invoiced
+PO26-001108,1,A1005,Cleaning visit,Facility services,23,1442.28,1,33172.44,Invoiced
+PO26-001109,1,A1006,Event catering per head,Catering,233,342.19,1,79730.27,Invoiced
+PO26-001110,1,A1006,Event catering per head,Catering,22,265.19,1,5834.18,Invoiced
+PO26-001111,1,A1018,Water carton,Catering,2676,2495.0,100,66766.2,Invoiced
+PO26-001112,1,A1006,Event catering per head,Catering,216,288.67,1,62352.72,Invoiced
+PO26-001113,1,A1004,Cement bag 50kg,Building materials,84,3231.0,100,2714.04,Invoiced
+PO26-001114,1,A1018,Water carton,Catering,1500,3093.0,100,46395.0,Invoiced
+PO26-001115,1,A1007,Guard shift,Security services,78,515.19,1,40184.82,Invoiced
+PO26-001116,1,A1005,Cleaning visit,Facility services,5,1245.75,1,6228.75,Invoiced
+PO26-001117,1,A1007,Guard shift,Security services,81,479.25,1,38819.25,Invoiced
+PO26-001118,1,A1005,Cleaning visit,Facility services,29,1287.85,1,37347.65,Invoiced
+PO26-001119,1,A1005,Cleaning visit,Facility services,4,1255.22,1,5020.88,Invoiced
+PO26-001120,1,A1010,Monthly maintenance contract,Facility services,1,25000.0,1,25000,Invoiced
+PO26-001121,1,A1010,Monthly maintenance contract,Facility services,1,20000.0,1,20000,Invoiced
+PO26-001122,1,A1010,Monthly maintenance contract,Facility services,1,15000.0,1,15000,Invoiced
+PO26-001123,1,A1010,Monthly maintenance contract,Facility services,1,30000.0,1,30000,Invoiced
+PO26-001124,1,A1010,Monthly maintenance contract,Facility services,1,30000.0,1,30000,Invoiced
+PO26-999999,1,A9999,Cancelled,Other,1,77777.0,1,77777,Canceled

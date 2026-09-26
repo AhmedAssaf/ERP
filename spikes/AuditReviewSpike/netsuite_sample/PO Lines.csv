@@ -1,0 +1,1126 @@
+Document Number,Date,Name,Item,Class,Quantity,Item Rate,Amount,Approval Status,Created By
+PO1,7/2/2026,Bina Taqa Est. (fictional),Event catering per head,Catering,29,148.55,"4,307.95",Approved,Employee E012
+PO2,7/6/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,55,491.62,"27,039.10",Approved,Employee E018
+PO3,8/5/2026,Waha Taqa Services (fictional),Network switch,IT hardware,8,"4,015.97","32,127.76",Approved,Employee E035
+PO4,9/2/2026,Noor Najd Trading (fictional),Rebar ton,Building materials,2,"2,821.85","5,643.70",Approved,Employee E005
+PO5,7/2/2026,Jazeera Qimma Solutions (fictional),Laptop,IT hardware,7,"4,963.20","34,742.40",Approved,Employee E007
+PO6,8/17/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,4,"1,570.01","6,280.04",Approved,Employee E031
+PO7,9/14/2026,Jazeera Noor Supplies (fictional),AC maintenance visit,Facility services,26,901.68,"23,443.68",Approved,Employee E017
+PO8,7/2/2026,Noor Najd Trading (fictional),Rebar ton,Building materials,6,"2,845.56","17,073.36",Approved,Employee E035
+PO9,9/28/2026,Taqa Shams Trading (fictional),Water carton,Catering,2045,14.40,"29,448.00",Approved,Employee E031
+PO10,8/3/2026,Jazeera Noor Supplies (fictional),AC maintenance visit,Facility services,18,855.06,"15,391.08",Approved,Employee E037
+PO11,7/26/2026,Sarh Noor Services (fictional),Cleaning visit,Facility services,9,"1,329.95","11,969.55",Approved,Employee E005
+PO12,8/13/2026,Najd Najd Contracting (fictional),Office chair,Office supplies,39,724.42,"28,252.38",Approved,Employee E002
+PO13,9/14/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,6,"2,268.26","13,609.56",Approved,Employee E003
+PO14,8/27/2026,Buruj Dana Services (fictional),Network switch,IT hardware,5,"4,046.91","20,234.55",Approved,Employee E003
+PO15,9/20/2026,Qimma Waha Est. (fictional),A4 paper box,Office supplies,100,92.33,"9,233.00",Approved,Employee E027
+PO16,8/9/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,11,"1,832.56","20,158.16",Approved,Employee E025
+PO17,9/9/2026,Dana Rimal Trading (fictional),Monitor 27in,IT hardware,34,"1,083.01","36,822.34",Approved,Employee E026
+PO18,8/23/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,69,464.32,"32,038.08",Approved,Employee E011
+PO19,7/27/2026,Taqa Sahab Services (fictional),Cement bag 50kg,Building materials,1247,18.08,"22,545.76",Approved,Employee E027
+PO20,9/7/2026,Shams Bina Solutions (fictional),Cement bag 50kg,Building materials,740,19.86,"14,696.40",Approved,Employee E017
+PO21,9/20/2026,Wadi Dana Solutions (fictional),Staff lunch box,Catering,913,29.56,"26,988.28",Approved,Employee E005
+PO22,8/13/2026,Buruj Waha Supplies (fictional),Water carton,Catering,1189,13.75,"16,348.75",Approved,Employee E028
+PO23,9/8/2026,Bina Sarh Est. (fictional),A4 paper box,Office supplies,162,102.54,"16,611.48",Approved,Employee E037
+PO24,7/29/2026,Noor Najd Trading (fictional),Cement bag 50kg,Building materials,1356,20.44,"27,716.64",Approved,Employee E002
+PO25,7/23/2026,Rawabi Masar Trading (fictional),Rebar ton,Building materials,6,"3,061.21","18,367.26",Approved,Employee E033
+PO26,9/30/2026,Noor Masar Contracting (fictional),Laptop,IT hardware,1,"4,920.43","4,920.43",Approved,Employee E014
+PO27,8/13/2026,Jazeera Noor Supplies (fictional),AC maintenance visit,Facility services,35,858.09,"30,033.15",Approved,Employee E038
+PO28,7/30/2026,Najd Najd Contracting (fictional),A4 paper box,Office supplies,165,99.71,"16,452.15",Approved,Employee E014
+PO29,8/10/2026,Dana Rimal Trading (fictional),Monitor 27in,IT hardware,3,"1,179.67","3,539.01",Approved,Employee E038
+PO30,9/30/2026,Sahab Tamayuz Services (fictional),Toner cartridge,Office supplies,71,389.45,"27,650.95",Approved,Employee E018
+PO31,7/1/2026,Bina Taqa Est. (fictional),Staff lunch box,Catering,219,31.73,"6,948.87",Approved,Employee E014
+PO32,9/9/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,67,516.64,"34,614.88",Approved,Employee E009
+PO33,8/13/2026,Madar Jazeera Trading (fictional),Water carton,Catering,2061,14.69,"30,276.09",Approved,Employee E026
+PO34,7/21/2026,Jazeera Noor Supplies (fictional),Cleaning visit,Facility services,16,"1,364.93","21,838.88",Approved,Employee E025
+PO35,8/23/2026,Rawabi Masar Trading (fictional),Cement bag 50kg,Building materials,2050,18.98,"38,909.00",Approved,Employee E031
+PO36,7/12/2026,Wadi Dana Solutions (fictional),Water carton,Catering,537,13.11,"7,040.07",Approved,Employee E011
+PO37,8/31/2026,Tamayuz Jazeera Trading (fictional),Laptop,IT hardware,5,"4,523.54","22,617.70",Approved,Employee E017
+PO38,9/8/2026,Bina Afaq Contracting (fictional),Pest control visit,Facility services,7,693.26,"4,852.82",Approved,Employee E037
+PO39,7/5/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,38,516.18,"19,614.84",Approved,Employee E030
+PO40,8/31/2026,Taqa Rimal Solutions (fictional),Cement bag 50kg,Building materials,1285,17.84,"22,924.40",Approved,Employee E017
+PO41,7/16/2026,Buruj Dana Trading (fictional),Monitor 27in,IT hardware,20,"1,137.32","22,746.40",Approved,Employee E025
+PO42,8/23/2026,Najd Najd Contracting (fictional),A4 paper box,Office supplies,414,93.31,"38,630.34",Approved,Employee E033
+PO43,8/12/2026,Waha Madar Est. (fictional),Rebar ton,Building materials,4,"2,961.88","11,847.52",Approved,Employee E012
+PO44,8/24/2026,Rimal Sahab Supplies (fictional),AC maintenance visit,Facility services,34,937.87,"31,887.58",Approved,Employee E032
+PO45,7/28/2026,Bina Afaq Contracting (fictional),Cleaning visit,Facility services,15,"1,268.03","19,020.45",Approved,Employee E004
+PO46,7/15/2026,Taqa Shams Trading (fictional),Water carton,Catering,959,14.90,"14,289.10",Approved,Employee E016
+PO47,9/27/2026,Rimal Sahab Supplies (fictional),Pest control visit,Facility services,19,671.58,"12,760.02",Approved,Employee E032
+PO48,9/2/2026,Noor Najd Trading (fictional),Cement bag 50kg,Building materials,1874,19.91,"37,311.34",Approved,Employee E032
+PO49,8/23/2026,Taqa Noor Solutions (fictional),AC maintenance visit,Facility services,7,936.37,"6,554.59",Approved,Employee E002
+PO50,8/27/2026,Bina Rawabi Est. (fictional),Monitor 27in,IT hardware,8,"1,167.83","9,342.64",Approved,Employee E032
+PO51,8/24/2026,Madar Jazeera Trading (fictional),Water carton,Catering,648,13.96,"9,046.08",Approved,Employee E011
+PO52,8/30/2026,Sarh Qimma Services (fictional),Water carton,Catering,2156,13.35,"28,782.60",Approved,Employee E029
+PO53,8/2/2026,Noor Najd Trading (fictional),Ready-mix m3,Building materials,7,271.01,"1,897.07",Approved,Employee E025
+PO54,7/5/2026,Bina Afaq Contracting (fictional),Cleaning visit,Facility services,28,"1,330.84","37,263.52",Approved,Employee E012
+PO55,8/31/2026,Noor Najd Trading (fictional),Cement bag 50kg,Building materials,937,17.78,"16,659.86",Approved,Employee E018
+PO56,8/30/2026,Qimma Waha Est. (fictional),Office chair,Office supplies,4,791.77,"3,167.08",Approved,Employee E002
+PO57,9/1/2026,Buruj Noor Solutions (fictional),Toner cartridge,Office supplies,58,450.81,"26,146.98",Approved,Employee E033
+PO58,9/23/2026,Wadi Dana Solutions (fictional),Staff lunch box,Catering,266,30.91,"8,222.06",Approved,Employee E025
+PO59,9/9/2026,Taqa Sahab Services (fictional),Rebar ton,Building materials,8,"2,959.73","23,677.84",Approved,Employee E032
+PO60,7/30/2026,Bina Taqa Est. (fictional),Event catering per head,Catering,177,155.15,"27,461.55",Approved,Employee E037
+PO61,8/26/2026,Dana Rimal Trading (fictional),Laptop,IT hardware,4,"4,443.06","17,772.24",Approved,Employee E005
+PO62,7/13/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,16,"2,159.61","34,553.76",Approved,Employee E037
+PO63,8/6/2026,Qimma Waha Est. (fictional),A4 paper box,Office supplies,147,90.98,"13,374.06",Approved,Employee E026
+PO64,8/17/2026,Buruj Noor Solutions (fictional),A4 paper box,Office supplies,263,100.59,"26,455.17",Approved,Employee E025
+PO65,7/26/2026,Wadi Dana Solutions (fictional),Staff lunch box,Catering,167,29.51,"4,928.17",Approved,Employee E005
+PO66,9/2/2026,Nakheel Qimma Supplies (fictional),AC maintenance visit,Facility services,39,839.74,"32,749.86",Approved,Employee E037
+PO67,7/26/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,24,444.40,"10,665.60",Approved,Employee E003
+PO68,8/20/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,3,"2,330.95","6,992.85",Approved,Employee E038
+PO69,8/24/2026,Dana Madar Est. (fictional),Staff lunch box,Catering,508,33.00,"16,764.00",Approved,Employee E004
+PO70,8/12/2026,Dana Madar Est. (fictional),Staff lunch box,Catering,705,33.05,"23,300.25",Approved,Employee E001
+PO71,9/28/2026,Shams Noor Trading (fictional),Cement bag 50kg,Building materials,1886,17.87,"33,702.82",Approved,Employee E005
+PO72,7/23/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,21,"1,668.14","35,030.94",Approved,Employee E002
+PO73,7/27/2026,Buruj Dana Trading (fictional),Network switch,IT hardware,1,"3,673.22","3,673.22",Approved,Employee E029
+PO74,8/6/2026,Jazeera Qimma Solutions (fictional),Network switch,IT hardware,6,"3,771.58","22,629.48",Approved,Employee E012
+PO75,7/20/2026,Noor Masar Contracting (fictional),Monitor 27in,IT hardware,25,"1,231.00","30,775.00",Approved,Employee E004
+PO76,8/20/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,14,"1,769.93","24,779.02",Approved,Employee E004
+PO77,7/15/2026,Qimma Waha Est. (fictional),Office chair,Office supplies,5,730.31,"3,651.55",Approved,Employee E018
+PO78,7/14/2026,Nakheel Sarh Solutions (fictional),Laptop,IT hardware,3,"4,310.70","12,932.10",Approved,Employee E018
+PO79,9/9/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,73,510.05,"37,233.65",Approved,Employee E011
+PO80,8/5/2026,Sarh Qimma Services (fictional),Event catering per head,Catering,148,144.73,"21,420.04",Approved,Employee E001
+PO81,7/14/2026,Taqa Sahab Services (fictional),Ready-mix m3,Building materials,97,246.52,"23,912.44",Approved,Employee E029
+PO82,7/5/2026,Nakheel Sarh Solutions (fictional),Network switch,IT hardware,6,"4,086.49","24,518.94",Approved,Employee E012
+PO83,7/5/2026,Sarh Rimal Trading (fictional),Toner cartridge,Office supplies,24,431.81,"10,363.44",Approved,Employee E003
+PO84,8/5/2026,Buruj Noor Solutions (fictional),A4 paper box,Office supplies,177,97.16,"17,197.32",Approved,Employee E005
+PO85,8/12/2026,Sahab Sarh Est. (fictional),Toner cartridge,Office supplies,56,394.92,"22,115.52",Approved,Employee E010
+PO86,7/13/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,3,"1,580.71","4,742.13",Approved,Employee E001
+PO87,9/21/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,17,"1,778.00","30,226.00",Approved,Employee E004
+PO88,8/10/2026,Najd Najd Contracting (fictional),Toner cartridge,Office supplies,46,394.72,"18,157.12",Approved,Employee E029
+PO89,7/12/2026,Rimal Qimma Services (fictional),Water carton,Catering,349,13.43,"4,687.07",Approved,Employee E009
+PO90,8/24/2026,Dana Rimal Trading (fictional),Laptop,IT hardware,1,"4,696.55","4,696.55",Approved,Employee E030
+PO91,9/16/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,69,458.02,"31,603.38",Approved,Employee E035
+PO92,7/13/2026,Wadi Dana Solutions (fictional),Event catering per head,Catering,105,146.71,"15,404.55",Approved,Employee E025
+PO93,9/28/2026,Qimma Waha Est. (fictional),Office chair,Office supplies,42,722.63,"30,350.46",Approved,Employee E014
+PO94,8/17/2026,Buruj Noor Solutions (fictional),Office chair,Office supplies,47,748.51,"35,179.97",Approved,Employee E011
+PO95,8/4/2026,Nakheel Qimma Supplies (fictional),AC maintenance visit,Facility services,42,892.10,"37,468.20",Approved,Employee E011
+PO96,9/28/2026,Jazeera Noor Supplies (fictional),Cleaning visit,Facility services,12,"1,315.41","15,784.92",Approved,Employee E035
+PO97,9/21/2026,Sahab Sarh Est. (fictional),A4 paper box,Office supplies,372,89.72,"33,375.84",Approved,Employee E001
+PO98,7/20/2026,Buruj Dana Trading (fictional),Monitor 27in,IT hardware,11,"1,211.12","13,322.32",Approved,Employee E032
+PO99,9/21/2026,Nakheel Najd Trading (fictional),Toner cartridge,Office supplies,76,393.54,"29,909.04",Approved,Employee E037
+PO100,8/26/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,76,472.93,"35,942.68",Approved,Employee E002
+PO101,8/30/2026,Sarh Noor Services (fictional),AC maintenance visit,Facility services,7,872.83,"6,109.81",Approved,Employee E018
+PO102,8/20/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,15,"2,142.40","32,136.00",Approved,Employee E002
+PO103,9/28/2026,Buruj Noor Solutions (fictional),A4 paper box,Office supplies,372,90.62,"33,710.64",Approved,Employee E030
+PO104,8/3/2026,Dana Madar Est. (fictional),Event catering per head,Catering,22,135.18,"2,973.96",Approved,Employee E007
+PO105,9/6/2026,Tamayuz Shams Solutions (fictional),Rebar ton,Building materials,11,"2,916.21","32,078.31",Approved,Employee E014
+PO106,7/28/2026,Bina Rawabi Est. (fictional),Laptop,IT hardware,5,"4,877.33","24,386.65",Approved,Employee E004
+PO107,7/19/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,71,476.53,"33,833.63",Approved,Employee E003
+PO108,9/28/2026,Sahab Sarh Est. (fictional),A4 paper box,Office supplies,382,91.67,"35,017.94",Approved,Employee E038
+PO109,8/16/2026,Bina Taqa Est. (fictional),Event catering per head,Catering,267,136.92,"36,557.64",Approved,Employee E014
+PO110,9/10/2026,Dana Madar Est. (fictional),Staff lunch box,Catering,810,30.12,"24,397.20",Approved,Employee E017
+PO111,9/14/2026,Taqa Rimal Solutions (fictional),Ready-mix m3,Building materials,49,259.98,"12,739.02",Approved,Employee E033
+PO112,8/19/2026,Buruj Dana Trading (fictional),Network switch,IT hardware,5,"4,204.30","21,021.50",Approved,Employee E038
+PO113,9/21/2026,Nakheel Najd Trading (fictional),A4 paper box,Office supplies,63,93.85,"5,912.55",Approved,Employee E016
+PO114,9/9/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,16,"1,707.64","27,322.24",Approved,Employee E035
+PO115,7/2/2026,Najd Madar Supplies (fictional),Cleaning visit,Facility services,4,"1,409.65","5,638.60",Approved,Employee E014
+PO116,9/15/2026,Rawabi Masar Trading (fictional),Cement bag 50kg,Building materials,1905,18.27,"34,804.35",Approved,Employee E010
+PO117,8/6/2026,Shams Madar Contracting (fictional),Toner cartridge,Office supplies,48,389.68,"18,704.64",Approved,Employee E012
+PO118,7/29/2026,Madar Jazeera Trading (fictional),Event catering per head,Catering,130,139.66,"18,155.80",Approved,Employee E004
+PO119,7/13/2026,Noor Masar Contracting (fictional),Laptop,IT hardware,2,"4,344.37","8,688.74",Approved,Employee E026
+PO120,7/22/2026,Sahab Najd Solutions (fictional),Pest control visit,Facility services,2,614.16,"1,228.32",Approved,Employee E032
+PO121,8/10/2026,Dana Madar Est. (fictional),Staff lunch box,Catering,193,29.83,"5,757.19",Approved,Employee E004
+PO122,8/3/2026,Rimal Qimma Services (fictional),Water carton,Catering,1140,13.46,"15,344.40",Approved,Employee E002
+PO123,8/24/2026,Shams Noor Trading (fictional),Ready-mix m3,Building materials,18,254.79,"4,586.22",Approved,Employee E027
+PO124,9/15/2026,Rimal Sahab Supplies (fictional),AC maintenance visit,Facility services,28,902.06,"25,257.68",Approved,Employee E026
+PO125,8/12/2026,Dana Rimal Trading (fictional),Monitor 27in,IT hardware,30,"1,117.99","33,539.70",Approved,Employee E028
+PO126,8/11/2026,Nakheel Sarh Solutions (fictional),Network switch,IT hardware,1,"3,653.95","3,653.95",Approved,Employee E009
+PO127,8/19/2026,Dana Rimal Trading (fictional),Monitor 27in,IT hardware,22,"1,132.74","24,920.28",Approved,Employee E001
+PO128,8/4/2026,Shams Noor Trading (fictional),Ready-mix m3,Building materials,105,247.41,"25,978.05",Approved,Employee E037
+PO129,9/2/2026,Sarh Noor Services (fictional),Pest control visit,Facility services,4,668.19,"2,672.76",Approved,Employee E002
+PO130,9/13/2026,Buruj Dana Trading (fictional),Network switch,IT hardware,2,"4,136.85","8,273.70",Approved,Employee E005
+PO131,8/20/2026,Jazeera Qimma Solutions (fictional),Network switch,IT hardware,7,"4,104.28","28,729.96",Approved,Employee E031
+PO132,7/5/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,13,"2,117.08","27,522.04",Approved,Employee E016
+PO133,9/2/2026,Sarh Qimma Services (fictional),Water carton,Catering,2653,15.06,"39,954.18",Approved,Employee E010
+PO134,7/6/2026,Qimma Waha Est. (fictional),A4 paper box,Office supplies,218,101.06,"22,031.08",Approved,Employee E037
+PO135,8/23/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,3,"1,695.93","5,087.79",Approved,Employee E032
+PO136,7/27/2026,Wadi Dana Solutions (fictional),Water carton,Catering,1786,13.65,"24,378.90",Approved,Employee E011
+PO137,9/29/2026,Rawabi Masar Trading (fictional),Rebar ton,Building materials,6,"2,652.01","15,912.06",Approved,Employee E010
+PO138,8/31/2026,Jazeera Qimma Solutions (fictional),Laptop,IT hardware,4,"4,815.77","19,263.08",Approved,Employee E029
+PO139,8/5/2026,Nakheel Qimma Supplies (fictional),AC maintenance visit,Facility services,36,928.07,"33,410.52",Approved,Employee E011
+PO140,7/29/2026,Tamayuz Shams Solutions (fictional),Ready-mix m3,Building materials,14,264.56,"3,703.84",Approved,Employee E017
+PO141,8/24/2026,Waha Madar Est. (fictional),Rebar ton,Building materials,9,"2,740.18","24,661.62",Approved,Employee E001
+PO142,8/4/2026,Bina Taqa Est. (fictional),Staff lunch box,Catering,1159,30.45,"35,291.55",Approved,Employee E014
+PO143,7/23/2026,Nakheel Sarh Solutions (fictional),Monitor 27in,IT hardware,9,"1,085.35","9,768.15",Approved,Employee E001
+PO144,8/5/2026,Buruj Dana Services (fictional),Laptop,IT hardware,6,"4,738.48","28,430.88",Approved,Employee E014
+PO145,7/21/2026,Sarh Noor Services (fictional),Cleaning visit,Facility services,22,"1,286.61","28,305.42",Approved,Employee E027
+PO146,7/22/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,43,455.02,"19,565.86",Approved,Employee E027
+PO147,7/6/2026,Masar Wadi Services (fictional),Pest control visit,Facility services,15,631.63,"9,474.45",Approved,Employee E037
+PO148,9/8/2026,Buruj Waha Supplies (fictional),Event catering per head,Catering,22,143.64,"3,160.08",Approved,Employee E012
+PO149,8/9/2026,Najd Sahab Contracting (fictional),Water carton,Catering,1503,14.64,"22,003.92",Approved,Employee E004
+PO150,8/19/2026,Bina Rawabi Est. (fictional),Laptop,IT hardware,3,"4,559.12","13,677.36",Approved,Employee E011
+PO151,7/5/2026,Shams Noor Trading (fictional),Cement bag 50kg,Building materials,1199,18.94,"22,709.06",Approved,Employee E038
+PO152,9/29/2026,Tamayuz Shams Solutions (fictional),Rebar ton,Building materials,7,"2,685.59","18,799.13",Approved,Employee E026
+PO153,7/16/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,10,"2,337.92","23,379.20",Approved,Employee E037
+PO154,8/3/2026,Noor Masar Contracting (fictional),Laptop,IT hardware,1,"4,306.15","4,306.15",Approved,Employee E016
+PO155,7/29/2026,Bina Sarh Est. (fictional),Toner cartridge,Office supplies,92,406.04,"37,355.68",Approved,Employee E001
+PO156,8/12/2026,Wadi Dana Solutions (fictional),Water carton,Catering,805,13.54,"10,899.70",Approved,Employee E031
+PO157,7/13/2026,Taqa Rimal Solutions (fictional),Cement bag 50kg,Building materials,79,20.06,"1,584.74",Approved,Employee E009
+PO158,8/30/2026,Tamayuz Jazeera Trading (fictional),Network switch,IT hardware,1,"3,803.13","3,803.13",Approved,Employee E027
+PO159,9/20/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,19,"1,674.00","31,806.00",Approved,Employee E017
+PO160,8/9/2026,Tamayuz Bina Trading (fictional),Ready-mix m3,Building materials,16,281.98,"4,511.68",Approved,Employee E007
+PO161,8/5/2026,Taqa Rimal Solutions (fictional),Rebar ton,Building materials,2,"2,768.16","5,536.32",Approved,Employee E026
+PO162,9/10/2026,Noor Masar Contracting (fictional),Monitor 27in,IT hardware,10,"1,231.80","12,318.00",Approved,Employee E004
+PO163,8/23/2026,Taqa Shams Trading (fictional),Water carton,Catering,1590,13.05,"20,749.50",Approved,Employee E010
+PO164,7/29/2026,Dana Rimal Trading (fictional),Laptop,IT hardware,1,"4,381.23","4,381.23",Approved,Employee E035
+PO165,9/1/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,15,"2,109.37","31,640.55",Approved,Employee E031
+PO166,9/1/2026,Bina Taqa Est. (fictional),Staff lunch box,Catering,1144,31.43,"35,955.92",Approved,Employee E001
+PO167,9/6/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,66,498.90,"32,927.40",Approved,Employee E018
+PO168,7/26/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,64,498.76,"31,920.64",Approved,Employee E014
+PO169,8/10/2026,Tamayuz Bina Trading (fictional),Cement bag 50kg,Building materials,1422,20.08,"28,553.76",Approved,Employee E038
+PO170,7/20/2026,Buruj Waha Supplies (fictional),Water carton,Catering,2772,13.55,"37,560.60",Approved,Employee E005
+PO171,7/12/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,12,"1,825.65","21,907.80",Approved,Employee E001
+PO172,9/8/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,20,"1,825.84","36,516.80",Approved,Employee E030
+PO173,7/23/2026,Tamayuz Shams Solutions (fictional),Cement bag 50kg,Building materials,1100,18.49,"20,339.00",Approved,Employee E011
+PO174,8/18/2026,Wadi Dana Solutions (fictional),Event catering per head,Catering,135,150.84,"20,363.40",Approved,Employee E031
+PO175,9/10/2026,Waha Madar Est. (fictional),Ready-mix m3,Building materials,81,278.74,"22,577.94",Approved,Employee E003
+PO176,9/29/2026,Taqa Shams Trading (fictional),Event catering per head,Catering,133,136.11,"18,102.63",Approved,Employee E032
+PO177,8/17/2026,Najd Sahab Contracting (fictional),Staff lunch box,Catering,1237,30.42,"37,629.54",Approved,Employee E031
+PO178,8/24/2026,Waha Taqa Services (fictional),Monitor 27in,IT hardware,28,"1,105.03","30,940.84",Approved,Employee E002
+PO179,7/28/2026,Sahab Najd Solutions (fictional),AC maintenance visit,Facility services,38,844.65,"32,096.70",Approved,Employee E011
+PO180,8/9/2026,Taqa Sahab Services (fictional),Cement bag 50kg,Building materials,1198,20.27,"24,283.46",Approved,Employee E007
+PO181,9/22/2026,Bina Afaq Contracting (fictional),Cleaning visit,Facility services,5,"1,335.54","6,677.70",Approved,Employee E001
+PO182,8/11/2026,Tamayuz Jazeera Trading (fictional),Network switch,IT hardware,5,"3,972.94","19,864.70",Approved,Employee E012
+PO183,9/3/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,18,505.39,"9,097.02",Approved,Employee E016
+PO184,7/16/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,55,492.34,"27,078.70",Approved,Employee E038
+PO185,7/2/2026,Noor Najd Trading (fictional),Ready-mix m3,Building materials,12,281.13,"3,373.56",Approved,Employee E032
+PO186,7/2/2026,Nakheel Sarh Solutions (fictional),Laptop,IT hardware,4,"4,539.81","18,159.24",Approved,Employee E010
+PO187,8/6/2026,Bina Afaq Contracting (fictional),Cleaning visit,Facility services,17,"1,244.70","21,159.90",Approved,Employee E003
+PO188,9/1/2026,Tamayuz Jazeera Trading (fictional),Monitor 27in,IT hardware,34,"1,169.60","39,766.40",Approved,Employee E030
+PO189,7/29/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,14,"2,179.25","30,509.50",Approved,Employee E009
+PO190,9/20/2026,Najd Madar Supplies (fictional),Cleaning visit,Facility services,10,"1,274.07","12,740.70",Approved,Employee E005
+PO191,8/9/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,11,"2,358.88","25,947.68",Approved,Employee E004
+PO192,8/17/2026,Buruj Waha Supplies (fictional),Staff lunch box,Catering,394,31.32,"12,340.08",Approved,Employee E010
+PO193,8/6/2026,Najd Najd Contracting (fictional),Toner cartridge,Office supplies,58,388.62,"22,539.96",Approved,Employee E002
+PO194,9/20/2026,Nakheel Qimma Supplies (fictional),AC maintenance visit,Facility services,35,838.09,"29,333.15",Approved,Employee E014
+PO195,7/5/2026,Rimal Sahab Supplies (fictional),AC maintenance visit,Facility services,31,876.15,"27,160.65",Approved,Employee E003
+PO196,9/17/2026,Tamayuz Jazeera Trading (fictional),Network switch,IT hardware,8,"4,144.07","33,152.56",Approved,Employee E038
+PO197,8/25/2026,Nakheel Najd Trading (fictional),Office chair,Office supplies,30,784.39,"23,531.70",Approved,Employee E012
+PO198,9/13/2026,Dana Madar Est. (fictional),Event catering per head,Catering,176,155.98,"27,452.48",Approved,Employee E016
+PO199,8/3/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,4,"2,140.95","8,563.80",Approved,Employee E014
+PO200,8/2/2026,Nakheel Najd Trading (fictional),Toner cartridge,Office supplies,58,448.22,"25,996.76",Approved,Employee E007
+PO201,8/30/2026,Rimal Qimma Services (fictional),Water carton,Catering,2019,14.41,"29,093.79",Approved,Employee E007
+PO202,7/15/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,20,"1,678.20","33,564.00",Approved,Employee E032
+PO203,7/29/2026,Taqa Sahab Services (fictional),Rebar ton,Building materials,2,"2,979.58","5,959.16",Approved,Employee E027
+PO204,8/12/2026,Taqa Sahab Services (fictional),Cement bag 50kg,Building materials,1518,17.86,"27,111.48",Approved,Employee E032
+PO205,8/18/2026,Nakheel Qimma Supplies (fictional),Pest control visit,Facility services,36,691.90,"24,908.40",Approved,Employee E014
+PO206,9/30/2026,Jazeera Qimma Solutions (fictional),Laptop,IT hardware,3,"4,733.45","14,200.35",Approved,Employee E025
+PO207,7/8/2026,Sarh Rimal Trading (fictional),A4 paper box,Office supplies,356,101.25,"36,045.00",Approved,Employee E005
+PO208,9/28/2026,Najd Madar Supplies (fictional),AC maintenance visit,Facility services,13,905.28,"11,768.64",Approved,Employee E017
+PO209,9/10/2026,Madar Jazeera Trading (fictional),Event catering per head,Catering,206,142.11,"29,274.66",Approved,Employee E003
+PO210,8/13/2026,Rimal Sahab Supplies (fictional),Pest control visit,Facility services,7,659.25,"4,614.75",Approved,Employee E010
+PO211,9/30/2026,Sahab Sarh Est. (fictional),Toner cartridge,Office supplies,37,422.27,"15,623.99",Approved,Employee E017
+PO212,8/27/2026,Waha Taqa Services (fictional),Laptop,IT hardware,2,"4,848.57","9,697.14",Approved,Employee E037
+PO213,8/27/2026,Waha Madar Est. (fictional),Rebar ton,Building materials,12,"2,643.65","31,723.80",Approved,Employee E012
+PO214,8/10/2026,Najd Madar Supplies (fictional),Cleaning visit,Facility services,26,"1,353.29","35,185.54",Approved,Employee E025
+PO215,8/4/2026,Tamayuz Jazeera Trading (fictional),Laptop,IT hardware,8,"4,670.04","37,360.32",Approved,Employee E001
+PO216,9/20/2026,Jazeera Noor Supplies (fictional),AC maintenance visit,Facility services,22,866.65,"19,066.30",Approved,Employee E017
+PO217,7/7/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,1,"2,063.35","2,063.35",Approved,Employee E009
+PO218,7/13/2026,Shams Noor Trading (fictional),Ready-mix m3,Building materials,22,269.11,"5,920.42",Approved,Employee E026
+PO219,7/26/2026,Qimma Waha Est. (fictional),Toner cartridge,Office supplies,85,440.98,"37,483.30",Approved,Employee E035
+PO220,9/9/2026,Buruj Noor Solutions (fictional),Office chair,Office supplies,25,786.71,"19,667.75",Approved,Employee E005
+PO221,9/15/2026,Nakheel Qimma Supplies (fictional),AC maintenance visit,Facility services,10,928.84,"9,288.40",Approved,Employee E032
+PO222,9/20/2026,Masar Wadi Services (fictional),AC maintenance visit,Facility services,31,862.14,"26,726.34",Approved,Employee E037
+PO223,8/24/2026,Tamayuz Jazeera Trading (fictional),Laptop,IT hardware,8,"4,661.42","37,291.36",Approved,Employee E035
+PO224,8/19/2026,Sahab Tamayuz Services (fictional),Toner cartridge,Office supplies,31,431.43,"13,374.33",Approved,Employee E027
+PO225,9/23/2026,Bina Sarh Est. (fictional),Office chair,Office supplies,36,820.30,"29,530.80",Approved,Employee E005
+PO226,9/7/2026,Buruj Dana Trading (fictional),Network switch,IT hardware,5,"3,604.94","18,024.70",Approved,Employee E001
+PO227,9/28/2026,Tamayuz Shams Solutions (fictional),Cement bag 50kg,Building materials,1996,20.39,"40,698.44",Approved,Employee E035
+PO228,7/8/2026,Nakheel Najd Trading (fictional),Toner cartridge,Office supplies,53,425.73,"22,563.69",Approved,Employee E026
+PO229,9/27/2026,Taqa Noor Solutions (fictional),AC maintenance visit,Facility services,30,888.70,"26,661.00",Approved,Employee E016
+PO230,8/30/2026,Dana Rimal Trading (fictional),Network switch,IT hardware,8,"3,632.59","29,060.72",Approved,Employee E026
+PO231,9/30/2026,Tamayuz Shams Solutions (fictional),Rebar ton,Building materials,2,"2,925.10","5,850.20",Approved,Employee E017
+PO232,7/2/2026,Dana Madar Est. (fictional),Event catering per head,Catering,266,155.94,"41,480.04",Approved,Employee E026
+PO233,8/13/2026,Nakheel Sarh Solutions (fictional),Laptop,IT hardware,1,"4,274.37","4,274.37",Approved,Employee E010
+PO234,8/26/2026,Bina Sarh Est. (fictional),A4 paper box,Office supplies,84,97.11,"8,157.24",Approved,Employee E010
+PO235,7/2/2026,Noor Najd Trading (fictional),Rebar ton,Building materials,1,"3,003.66","3,003.66",Approved,Employee E027
+PO236,8/31/2026,Noor Masar Contracting (fictional),Laptop,IT hardware,3,"4,691.62","14,074.86",Approved,Employee E002
+PO237,7/22/2026,Najd Madar Supplies (fictional),Pest control visit,Facility services,37,698.64,"25,849.68",Approved,Employee E033
+PO238,9/9/2026,Madar Jazeera Trading (fictional),Staff lunch box,Catering,319,33.03,"10,536.57",Approved,Employee E035
+PO239,7/9/2026,Noor Masar Contracting (fictional),Monitor 27in,IT hardware,2,"1,069.00","2,138.00",Approved,Employee E017
+PO240,8/11/2026,Sarh Qimma Services (fictional),Staff lunch box,Catering,776,29.69,"23,039.44",Approved,Employee E018
+PO241,9/29/2026,Waha Madar Est. (fictional),Ready-mix m3,Building materials,111,256.64,"28,487.04",Approved,Employee E033
+PO242,7/5/2026,Taqa Shams Trading (fictional),Staff lunch box,Catering,1200,31.87,"38,244.00",Approved,Employee E007
+PO243,7/23/2026,Sahab Sarh Est. (fictional),Toner cartridge,Office supplies,62,412.74,"25,589.88",Approved,Employee E018
+PO244,7/30/2026,Sahab Najd Solutions (fictional),Cleaning visit,Facility services,19,"1,296.31","24,629.89",Approved,Employee E005
+PO245,7/30/2026,Sahab Tamayuz Services (fictional),Toner cartridge,Office supplies,83,418.12,"34,703.96",Approved,Employee E035
+PO246,8/13/2026,Taqa Rimal Solutions (fictional),Ready-mix m3,Building materials,36,259.53,"9,343.08",Approved,Employee E002
+PO247,9/13/2026,Taqa Shams Trading (fictional),Staff lunch box,Catering,917,33.18,"30,426.06",Approved,Employee E014
+PO248,7/23/2026,Sarh Noor Services (fictional),AC maintenance visit,Facility services,3,930.96,"2,792.88",Approved,Employee E005
+PO249,9/23/2026,Buruj Noor Solutions (fictional),A4 paper box,Office supplies,303,93.60,"28,360.80",Approved,Employee E035
+PO250,8/13/2026,Qimma Waha Est. (fictional),Toner cartridge,Office supplies,35,433.45,"15,170.75",Approved,Employee E011
+PO251,7/21/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,19,"1,617.00","30,723.00",Approved,Employee E027
+PO252,9/15/2026,Rimal Sahab Supplies (fictional),Pest control visit,Facility services,16,649.97,"10,399.52",Approved,Employee E033
+PO253,8/25/2026,Nakheel Qimma Supplies (fictional),Cleaning visit,Facility services,27,"1,421.62","38,383.74",Approved,Employee E016
+PO254,9/10/2026,Jazeera Noor Supplies (fictional),AC maintenance visit,Facility services,15,915.61,"13,734.15",Approved,Employee E030
+PO255,9/27/2026,Bina Rawabi Est. (fictional),Network switch,IT hardware,8,"4,080.18","32,641.44",Approved,Employee E026
+PO256,7/16/2026,Qimma Waha Est. (fictional),A4 paper box,Office supplies,333,88.28,"29,397.24",Approved,Employee E004
+PO257,8/20/2026,Dana Madar Est. (fictional),Event catering per head,Catering,252,136.30,"34,347.60",Approved,Employee E033
+PO258,8/6/2026,Bina Rawabi Est. (fictional),Laptop,IT hardware,4,"4,706.72","18,826.88",Approved,Employee E026
+PO259,7/21/2026,Wadi Dana Solutions (fictional),Staff lunch box,Catering,353,32.74,"11,557.22",Approved,Employee E030
+PO260,8/17/2026,Shams Bina Solutions (fictional),Cement bag 50kg,Building materials,1854,20.46,"37,932.84",Approved,Employee E002
+PO261,8/16/2026,Shams Bina Solutions (fictional),Ready-mix m3,Building materials,123,268.44,"33,018.12",Approved,Employee E012
+PO262,9/13/2026,Bina Taqa Est. (fictional),Staff lunch box,Catering,943,33.61,"31,694.23",Approved,Employee E003
+PO263,9/9/2026,Sahab Tamayuz Services (fictional),A4 paper box,Office supplies,368,92.55,"34,058.40",Approved,Employee E027
+PO264,9/23/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,11,"2,080.81","22,888.91",Approved,Employee E026
+PO265,8/24/2026,Nakheel Qimma Supplies (fictional),Pest control visit,Facility services,18,665.20,"11,973.60",Approved,Employee E031
+PO266,8/12/2026,Shams Bina Solutions (fictional),Rebar ton,Building materials,1,"2,763.42","2,763.42",Approved,Employee E014
+PO267,9/2/2026,Noor Najd Trading (fictional),Rebar ton,Building materials,2,"2,727.97","5,455.94",Approved,Employee E014
+PO268,7/20/2026,Madar Jazeera Trading (fictional),Water carton,Catering,1511,14.22,"21,486.42",Approved,Employee E003
+PO269,9/27/2026,Rimal Qimma Services (fictional),Event catering per head,Catering,160,148.27,"23,723.20",Approved,Employee E037
+PO270,7/12/2026,Dana Rimal Trading (fictional),Laptop,IT hardware,2,"4,373.88","8,747.76",Approved,Employee E018
+PO271,8/12/2026,Shams Noor Trading (fictional),Ready-mix m3,Building materials,124,258.49,"32,052.76",Approved,Employee E011
+PO272,8/10/2026,Najd Najd Contracting (fictional),Toner cartridge,Office supplies,76,412.76,"31,369.76",Approved,Employee E011
+PO273,9/9/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,31,459.97,"14,259.07",Approved,Employee E038
+PO274,7/29/2026,Rawabi Masar Trading (fictional),Rebar ton,Building materials,11,"2,739.00","30,129.00",Approved,Employee E033
+PO275,9/1/2026,Nakheel Najd Trading (fictional),Toner cartridge,Office supplies,11,432.35,"4,755.85",Approved,Employee E004
+PO276,8/31/2026,Sahab Sarh Est. (fictional),Office chair,Office supplies,15,823.62,"12,354.30",Approved,Employee E026
+PO277,7/16/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,62,496.19,"30,763.78",Approved,Employee E018
+PO278,7/28/2026,Najd Najd Contracting (fictional),Office chair,Office supplies,8,724.20,"5,793.60",Approved,Employee E026
+PO279,8/2/2026,Nakheel Sarh Solutions (fictional),Network switch,IT hardware,1,"3,793.73","3,793.73",Approved,Employee E009
+PO280,9/8/2026,Dana Madar Est. (fictional),Water carton,Catering,499,15.00,"7,485.00",Approved,Employee E030
+PO281,9/20/2026,Nakheel Najd Trading (fictional),Toner cartridge,Office supplies,62,440.52,"27,312.24",Approved,Employee E029
+PO282,7/1/2026,Buruj Dana Trading (fictional),Monitor 27in,IT hardware,13,"1,224.67","15,920.71",Approved,Employee E009
+PO283,7/15/2026,Buruj Noor Solutions (fictional),Toner cartridge,Office supplies,80,395.20,"31,616.00",Approved,Employee E037
+PO284,7/14/2026,Buruj Dana Trading (fictional),Laptop,IT hardware,2,"4,687.81","9,375.62",Approved,Employee E009
+PO285,9/10/2026,Dana Rimal Trading (fictional),Laptop,IT hardware,1,"4,521.77","4,521.77",Approved,Employee E018
+PO286,8/26/2026,Nakheel Najd Trading (fictional),Toner cartridge,Office supplies,77,426.41,"32,833.57",Approved,Employee E012
+PO287,9/7/2026,Sahab Tamayuz Services (fictional),Office chair,Office supplies,46,817.69,"37,613.74",Approved,Employee E031
+PO288,7/9/2026,Taqa Sahab Services (fictional),Cement bag 50kg,Building materials,1373,19.51,"26,787.23",Approved,Employee E035
+PO289,9/7/2026,Sarh Qimma Services (fictional),Event catering per head,Catering,110,154.73,"17,020.30",Approved,Employee E030
+PO290,8/19/2026,Buruj Waha Supplies (fictional),Staff lunch box,Catering,773,34.25,"26,475.25",Approved,Employee E009
+PO291,7/12/2026,Rimal Qimma Services (fictional),Staff lunch box,Catering,755,31.72,"23,948.60",Approved,Employee E026
+PO292,8/4/2026,Sarh Noor Services (fictional),AC maintenance visit,Facility services,20,835.71,"16,714.20",Approved,Employee E012
+PO293,8/16/2026,Bina Afaq Contracting (fictional),Cleaning visit,Facility services,4,"1,315.09","5,260.36",Approved,Employee E007
+PO294,8/27/2026,Noor Najd Trading (fictional),Ready-mix m3,Building materials,23,254.43,"5,851.89",Approved,Employee E003
+PO295,8/12/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,4,"1,636.25","6,545.00",Approved,Employee E037
+PO296,8/27/2026,Nakheel Najd Trading (fictional),Office chair,Office supplies,12,751.35,"9,016.20",Approved,Employee E011
+PO297,9/21/2026,Najd Madar Supplies (fictional),Cleaning visit,Facility services,29,"1,419.25","41,158.25",Approved,Employee E009
+PO298,7/29/2026,Bina Taqa Est. (fictional),Staff lunch box,Catering,574,33.45,"19,200.30",Approved,Employee E027
+PO299,9/2/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,1,"2,083.92","2,083.92",Approved,Employee E038
+PO300,7/12/2026,Bina Taqa Est. (fictional),Water carton,Catering,2674,14.72,"39,361.28",Approved,Employee E028
+PO301,8/16/2026,Noor Masar Contracting (fictional),Monitor 27in,IT hardware,32,"1,149.75","36,792.00",Approved,Employee E004
+PO302,7/1/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,8,"1,768.30","14,146.40",Approved,Employee E011
+PO303,7/21/2026,Bina Taqa Est. (fictional),Water carton,Catering,1650,14.37,"23,710.50",Approved,Employee E001
+PO304,7/20/2026,Nakheel Najd Trading (fictional),A4 paper box,Office supplies,113,101.20,"11,435.60",Approved,Employee E037
+PO305,8/13/2026,Sahab Tamayuz Services (fictional),A4 paper box,Office supplies,152,90.22,"13,713.44",Approved,Employee E029
+PO306,7/9/2026,Najd Madar Supplies (fictional),Cleaning visit,Facility services,13,"1,349.16","17,539.08",Approved,Employee E001
+PO307,7/6/2026,Sahab Tamayuz Services (fictional),Office chair,Office supplies,12,799.13,"9,589.56",Approved,Employee E012
+PO308,7/28/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,69,508.82,"35,108.58",Approved,Employee E032
+PO309,8/30/2026,Sarh Qimma Services (fictional),Event catering per head,Catering,171,154.22,"26,371.62",Approved,Employee E025
+PO310,8/17/2026,Najd Madar Supplies (fictional),Pest control visit,Facility services,27,682.51,"18,427.77",Approved,Employee E032
+PO311,9/27/2026,Najd Najd Contracting (fictional),Toner cartridge,Office supplies,85,407.75,"34,658.75",Approved,Employee E001
+PO312,9/10/2026,Noor Najd Trading (fictional),Cement bag 50kg,Building materials,1828,20.43,"37,346.04",Approved,Employee E005
+PO313,9/16/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,2,"1,615.55","3,231.10",Approved,Employee E032
+PO314,9/2/2026,Noor Masar Contracting (fictional),Laptop,IT hardware,3,"4,334.70","13,004.10",Approved,Employee E002
+PO315,9/22/2026,Waha Madar Est. (fictional),Ready-mix m3,Building materials,106,275.44,"29,196.64",Approved,Employee E029
+PO316,7/7/2026,Noor Najd Trading (fictional),Cement bag 50kg,Building materials,1352,17.61,"23,808.72",Approved,Employee E035
+PO317,9/6/2026,Buruj Noor Solutions (fictional),A4 paper box,Office supplies,379,98.30,"37,255.70",Approved,Employee E010
+PO318,8/27/2026,Taqa Rimal Solutions (fictional),Rebar ton,Building materials,11,"2,787.95","30,667.45",Approved,Employee E011
+PO319,7/29/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,51,481.85,"24,574.35",Approved,Employee E017
+PO320,7/8/2026,Tamayuz Bina Trading (fictional),Rebar ton,Building materials,6,"3,073.96","18,443.76",Approved,Employee E007
+PO321,7/14/2026,Najd Najd Contracting (fictional),A4 paper box,Office supplies,416,100.46,"41,791.36",Approved,Employee E030
+PO322,9/24/2026,Shams Bina Solutions (fictional),Rebar ton,Building materials,2,"2,654.05","5,308.10",Approved,Employee E001
+PO323,8/5/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,13,"1,625.66","21,133.58",Approved,Employee E001
+PO324,7/16/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,1,"1,744.57","1,744.57",Approved,Employee E033
+PO325,7/5/2026,Rawabi Masar Trading (fictional),Rebar ton,Building materials,4,"2,782.23","11,128.92",Approved,Employee E018
+PO326,7/29/2026,Rawabi Masar Trading (fictional),Rebar ton,Building materials,1,"2,734.48","2,734.48",Approved,Employee E029
+PO327,8/5/2026,Noor Najd Trading (fictional),Rebar ton,Building materials,8,"2,630.87","21,046.96",Approved,Employee E004
+PO328,8/6/2026,Noor Masar Contracting (fictional),Monitor 27in,IT hardware,28,"1,210.25","33,887.00",Approved,Employee E004
+PO329,7/9/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,20,"1,732.31","34,646.20",Approved,Employee E007
+PO330,8/19/2026,Jazeera Qimma Solutions (fictional),Network switch,IT hardware,4,"4,120.23","16,480.92",Approved,Employee E026
+PO331,7/16/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,67,513.71,"34,418.57",Approved,Employee E010
+PO332,7/9/2026,Waha Taqa Services (fictional),Network switch,IT hardware,7,"3,917.78","27,424.46",Approved,Employee E014
+PO333,9/23/2026,Rimal Sahab Supplies (fictional),AC maintenance visit,Facility services,17,971.23,"16,510.91",Approved,Employee E030
+PO334,8/18/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,12,"1,573.77","18,885.24",Approved,Employee E038
+PO335,9/13/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,18,"1,791.58","32,248.44",Approved,Employee E035
+PO336,7/15/2026,Shams Bina Solutions (fictional),Cement bag 50kg,Building materials,530,20.01,"10,605.30",Approved,Employee E032
+PO337,8/26/2026,Dana Madar Est. (fictional),Event catering per head,Catering,243,149.48,"36,323.64",Approved,Employee E012
+PO338,8/17/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,8,"1,702.59","13,620.72",Approved,Employee E002
+PO339,8/5/2026,Sarh Noor Services (fictional),AC maintenance visit,Facility services,16,848.88,"13,582.08",Approved,Employee E038
+PO340,7/26/2026,Waha Madar Est. (fictional),Cement bag 50kg,Building materials,2042,18.05,"36,858.10",Approved,Employee E032
+PO341,7/22/2026,Bina Rawabi Est. (fictional),Network switch,IT hardware,8,"3,700.17","29,601.36",Approved,Employee E001
+PO342,7/19/2026,Waha Taqa Services (fictional),Laptop,IT hardware,7,"4,900.13","34,300.91",Approved,Employee E026
+PO343,8/13/2026,Taqa Noor Solutions (fictional),AC maintenance visit,Facility services,40,946.15,"37,846.00",Approved,Employee E017
+PO344,7/2/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,67,506.82,"33,956.94",Approved,Employee E007
+PO345,7/13/2026,Nakheel Najd Trading (fictional),A4 paper box,Office supplies,394,96.80,"38,139.20",Approved,Employee E029
+PO346,7/2/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,12,"2,170.12","26,041.44",Approved,Employee E017
+PO347,7/14/2026,Najd Najd Contracting (fictional),Office chair,Office supplies,21,783.55,"16,454.55",Approved,Employee E038
+PO348,9/7/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,17,"2,098.43","35,673.31",Approved,Employee E037
+PO349,7/19/2026,Sahab Tamayuz Services (fictional),Toner cartridge,Office supplies,37,415.72,"15,381.64",Approved,Employee E031
+PO350,9/9/2026,Noor Najd Trading (fictional),Cement bag 50kg,Building materials,1390,18.28,"25,409.20",Approved,Employee E030
+PO351,9/14/2026,Bina Rawabi Est. (fictional),Laptop,IT hardware,1,"4,796.34","4,796.34",Approved,Employee E032
+PO352,9/16/2026,Wadi Dana Solutions (fictional),Water carton,Catering,723,14.91,"10,779.93",Approved,Employee E012
+PO353,8/11/2026,Taqa Shams Trading (fictional),Staff lunch box,Catering,90,31.65,"2,848.50",Approved,Employee E010
+PO354,7/28/2026,Buruj Waha Supplies (fictional),Event catering per head,Catering,121,149.15,"18,047.15",Approved,Employee E012
+PO355,7/13/2026,Tamayuz Shams Solutions (fictional),Cement bag 50kg,Building materials,824,19.43,"16,010.32",Approved,Employee E038
+PO356,7/29/2026,Tamayuz Shams Solutions (fictional),Rebar ton,Building materials,13,"2,712.14","35,257.82",Approved,Employee E027
+PO357,8/12/2026,Buruj Dana Trading (fictional),Network switch,IT hardware,7,"3,664.22","25,649.54",Approved,Employee E004
+PO358,8/12/2026,Najd Najd Contracting (fictional),Office chair,Office supplies,2,772.87,"1,545.74",Approved,Employee E032
+PO359,7/9/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,17,"2,101.70","35,728.90",Approved,Employee E025
+PO360,9/16/2026,Waha Taqa Services (fictional),Laptop,IT hardware,6,"4,568.39","27,410.34",Approved,Employee E029
+PO361,9/20/2026,Qimma Waha Est. (fictional),A4 paper box,Office supplies,201,97.76,"19,649.76",Approved,Employee E011
+PO362,7/27/2026,Buruj Dana Trading (fictional),Network switch,IT hardware,2,"3,787.33","7,574.66",Approved,Employee E016
+PO363,7/22/2026,Shams Bina Solutions (fictional),Cement bag 50kg,Building materials,451,18.92,"8,532.92",Approved,Employee E003
+PO364,9/14/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,16,454.68,"7,274.88",Approved,Employee E002
+PO365,7/20/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,15,"1,833.72","27,505.80",Approved,Employee E007
+PO366,7/29/2026,Waha Madar Est. (fictional),Cement bag 50kg,Building materials,513,19.29,"9,895.77",Approved,Employee E005
+PO367,8/9/2026,Noor Najd Trading (fictional),Ready-mix m3,Building materials,125,247.40,"30,925.00",Approved,Employee E002
+PO368,8/9/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,21,"1,571.13","32,993.73",Approved,Employee E001
+PO369,9/9/2026,Waha Taqa Services (fictional),Network switch,IT hardware,8,"4,133.49","33,067.92",Approved,Employee E003
+PO370,9/13/2026,Sarh Qimma Services (fictional),Staff lunch box,Catering,162,33.97,"5,503.14",Approved,Employee E030
+PO371,8/27/2026,Buruj Noor Solutions (fictional),A4 paper box,Office supplies,125,95.88,"11,985.00",Approved,Employee E032
+PO372,7/16/2026,Sarh Qimma Services (fictional),Event catering per head,Catering,247,140.70,"34,752.90",Approved,Employee E001
+PO373,8/17/2026,Taqa Shams Trading (fictional),Event catering per head,Catering,122,138.13,"16,851.86",Approved,Employee E028
+PO374,9/21/2026,Shams Bina Solutions (fictional),Rebar ton,Building materials,4,"2,978.25","11,913.00",Approved,Employee E005
+PO375,8/31/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,15,"2,281.76","34,226.40",Approved,Employee E012
+PO376,8/2/2026,Taqa Rimal Solutions (fictional),Cement bag 50kg,Building materials,1610,18.36,"29,559.60",Approved,Employee E018
+PO377,7/12/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,19,"1,657.82","31,498.58",Approved,Employee E037
+PO378,7/5/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,12,"2,267.78","27,213.36",Approved,Employee E007
+PO379,8/24/2026,Waha Madar Est. (fictional),Rebar ton,Building materials,7,"2,814.89","19,704.23",Approved,Employee E028
+PO380,7/9/2026,Madar Jazeera Trading (fictional),Staff lunch box,Catering,701,31.22,"21,885.22",Approved,Employee E031
+PO381,7/30/2026,Jazeera Qimma Solutions (fictional),Network switch,IT hardware,5,"3,845.12","19,225.60",Approved,Employee E032
+PO382,8/23/2026,Bina Sarh Est. (fictional),Office chair,Office supplies,10,816.02,"8,160.20",Approved,Employee E037
+PO383,9/7/2026,Noor Najd Trading (fictional),Rebar ton,Building materials,13,"2,821.39","36,678.07",Approved,Employee E002
+PO384,9/9/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,7,"1,702.62","11,918.34",Approved,Employee E007
+PO385,7/7/2026,Qimma Waha Est. (fictional),Toner cartridge,Office supplies,18,418.71,"7,536.78",Approved,Employee E004
+PO386,8/13/2026,Noor Najd Trading (fictional),Cement bag 50kg,Building materials,398,18.60,"7,402.80",Approved,Employee E009
+PO387,7/14/2026,Noor Najd Trading (fictional),Cement bag 50kg,Building materials,1665,18.50,"30,802.50",Approved,Employee E004
+PO388,7/22/2026,Sarh Noor Services (fictional),Pest control visit,Facility services,14,692.92,"9,700.88",Approved,Employee E026
+PO389,9/15/2026,Sahab Sarh Est. (fictional),Toner cartridge,Office supplies,13,421.79,"5,483.27",Approved,Employee E018
+PO390,9/15/2026,Noor Najd Trading (fictional),Cement bag 50kg,Building materials,1797,19.61,"35,239.17",Approved,Employee E007
+PO391,9/8/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,13,506.12,"6,579.56",Approved,Employee E012
+PO392,9/2/2026,Buruj Waha Supplies (fictional),Event catering per head,Catering,35,141.55,"4,954.25",Approved,Employee E018
+PO393,8/4/2026,Shams Madar Contracting (fictional),A4 paper box,Office supplies,122,88.54,"10,801.88",Approved,Employee E017
+PO394,8/31/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,32,451.38,"14,444.16",Approved,Employee E030
+PO395,7/16/2026,Sahab Sarh Est. (fictional),Office chair,Office supplies,48,769.81,"36,950.88",Approved,Employee E032
+PO396,9/3/2026,Sahab Najd Solutions (fictional),Cleaning visit,Facility services,26,"1,418.87","36,890.62",Approved,Employee E017
+PO397,9/13/2026,Buruj Dana Services (fictional),Network switch,IT hardware,6,"3,704.72","22,228.32",Approved,Employee E009
+PO398,8/11/2026,Bina Sarh Est. (fictional),A4 paper box,Office supplies,289,97.24,"28,102.36",Approved,Employee E026
+PO399,7/20/2026,Buruj Waha Supplies (fictional),Water carton,Catering,2214,14.33,"31,726.62",Approved,Employee E032
+PO400,8/13/2026,Wadi Dana Solutions (fictional),Event catering per head,Catering,261,139.06,"36,294.66",Approved,Employee E004
+PO401,8/13/2026,Bina Rawabi Est. (fictional),Laptop,IT hardware,5,"4,871.47","24,357.35",Approved,Employee E010
+PO402,8/11/2026,Waha Taqa Services (fictional),Laptop,IT hardware,2,"4,635.17","9,270.34",Approved,Employee E025
+PO403,9/9/2026,Sarh Rimal Trading (fictional),A4 paper box,Office supplies,377,90.38,"34,073.26",Approved,Employee E035
+PO404,8/13/2026,Sarh Rimal Trading (fictional),Toner cartridge,Office supplies,18,389.56,"7,012.08",Approved,Employee E029
+PO405,8/3/2026,Buruj Dana Trading (fictional),Monitor 27in,IT hardware,26,"1,148.32","29,856.32",Approved,Employee E035
+PO406,8/5/2026,Nakheel Najd Trading (fictional),A4 paper box,Office supplies,92,95.24,"8,762.08",Approved,Employee E030
+PO407,7/12/2026,Buruj Waha Supplies (fictional),Water carton,Catering,858,14.48,"12,423.84",Approved,Employee E003
+PO408,9/23/2026,Taqa Noor Solutions (fictional),AC maintenance visit,Facility services,3,837.84,"2,513.52",Approved,Employee E011
+PO409,8/16/2026,Sarh Qimma Services (fictional),Event catering per head,Catering,153,148.14,"22,665.42",Approved,Employee E028
+PO410,9/30/2026,Buruj Dana Services (fictional),Monitor 27in,IT hardware,21,"1,139.56","23,930.76",Approved,Employee E007
+PO411,7/14/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,19,"1,572.56","29,878.64",Approved,Employee E037
+PO412,9/28/2026,Tamayuz Shams Solutions (fictional),Cement bag 50kg,Building materials,689,18.41,"12,684.49",Approved,Employee E001
+PO413,9/28/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,18,"2,160.11","38,881.98",Approved,Employee E026
+PO414,8/4/2026,Taqa Rimal Solutions (fictional),Cement bag 50kg,Building materials,720,20.35,"14,652.00",Approved,Employee E002
+PO415,9/27/2026,Qimma Waha Est. (fictional),Toner cartridge,Office supplies,41,434.73,"17,823.93",Approved,Employee E003
+PO416,8/16/2026,Najd Sahab Contracting (fictional),Event catering per head,Catering,204,154.64,"31,546.56",Approved,Employee E031
+PO417,8/3/2026,Buruj Dana Services (fictional),Monitor 27in,IT hardware,11,"1,105.35","12,158.85",Approved,Employee E001
+PO418,7/21/2026,Tamayuz Bina Trading (fictional),Rebar ton,Building materials,11,"2,924.52","32,169.72",Approved,Employee E009
+PO419,9/7/2026,Sahab Tamayuz Services (fictional),Office chair,Office supplies,9,766.91,"6,902.19",Approved,Employee E029
+PO420,7/1/2026,Rimal Sahab Supplies (fictional),Cleaning visit,Facility services,24,"1,318.80","31,651.20",Approved,Employee E017
+PO421,9/29/2026,Taqa Shams Trading (fictional),Event catering per head,Catering,165,143.97,"23,755.05",Approved,Employee E028
+PO422,9/15/2026,Buruj Dana Services (fictional),Monitor 27in,IT hardware,17,"1,239.51","21,071.67",Approved,Employee E031
+PO423,7/13/2026,Shams Madar Contracting (fictional),A4 paper box,Office supplies,70,90.43,"6,330.10",Approved,Employee E026
+PO424,8/24/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,15,"1,773.62","26,604.30",Approved,Employee E001
+PO425,9/21/2026,Sahab Sarh Est. (fictional),Toner cartridge,Office supplies,30,413.35,"12,400.50",Approved,Employee E031
+PO426,8/24/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,73,515.15,"37,605.95",Approved,Employee E027
+PO427,7/22/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,6,"2,072.67","12,436.02",Approved,Employee E004
+PO428,7/30/2026,Rawabi Masar Trading (fictional),Cement bag 50kg,Building materials,782,20.47,"16,007.54",Approved,Employee E005
+PO429,9/16/2026,Shams Bina Solutions (fictional),Cement bag 50kg,Building materials,1920,18.48,"35,481.60",Approved,Employee E033
+PO430,7/9/2026,Taqa Noor Solutions (fictional),Cleaning visit,Facility services,4,"1,372.64","5,490.56",Approved,Employee E018
+PO431,9/13/2026,Shams Noor Trading (fictional),Rebar ton,Building materials,4,"2,663.09","10,652.36",Approved,Employee E025
+PO432,9/28/2026,Sahab Najd Solutions (fictional),Pest control visit,Facility services,37,643.03,"23,792.11",Approved,Employee E026
+PO433,8/4/2026,Sarh Noor Services (fictional),AC maintenance visit,Facility services,8,912.02,"7,296.16",Approved,Employee E026
+PO434,8/4/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,6,"1,748.27","10,489.62",Approved,Employee E028
+PO435,7/6/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,37,461.73,"17,084.01",Approved,Employee E018
+PO436,9/16/2026,Buruj Dana Trading (fictional),Network switch,IT hardware,5,"3,701.24","18,506.20",Approved,Employee E029
+PO437,9/28/2026,Bina Rawabi Est. (fictional),Network switch,IT hardware,6,"3,596.14","21,576.84",Approved,Employee E032
+PO438,9/8/2026,Madar Jazeera Trading (fictional),Staff lunch box,Catering,1065,32.36,"34,463.40",Approved,Employee E011
+PO439,9/28/2026,Sarh Qimma Services (fictional),Water carton,Catering,695,14.60,"10,147.00",Approved,Employee E017
+PO440,9/8/2026,Sahab Sarh Est. (fictional),A4 paper box,Office supplies,350,90.39,"31,636.50",Approved,Employee E033
+PO441,9/3/2026,Rimal Sahab Supplies (fictional),Pest control visit,Facility services,26,692.80,"18,012.80",Approved,Employee E037
+PO442,9/28/2026,Jazeera Qimma Solutions (fictional),Monitor 27in,IT hardware,3,"1,090.86","3,272.58",Approved,Employee E031
+PO443,7/28/2026,Taqa Sahab Services (fictional),Cement bag 50kg,Building materials,1706,18.89,"32,226.34",Approved,Employee E037
+PO444,7/6/2026,Buruj Noor Solutions (fictional),Toner cartridge,Office supplies,35,451.41,"15,799.35",Approved,Employee E007
+PO445,7/21/2026,Wadi Dana Solutions (fictional),Event catering per head,Catering,119,149.34,"17,771.46",Approved,Employee E014
+PO446,7/13/2026,Buruj Dana Trading (fictional),Laptop,IT hardware,1,"4,928.22","4,928.22",Approved,Employee E011
+PO447,9/23/2026,Madar Jazeera Trading (fictional),Water carton,Catering,1310,13.06,"17,108.60",Approved,Employee E029
+PO448,8/2/2026,Nakheel Najd Trading (fictional),Toner cartridge,Office supplies,57,443.68,"25,289.76",Approved,Employee E031
+PO449,9/29/2026,Shams Bina Solutions (fictional),Ready-mix m3,Building materials,121,263.17,"31,843.57",Approved,Employee E014
+PO450,7/16/2026,Qimma Waha Est. (fictional),A4 paper box,Office supplies,102,89.44,"9,122.88",Approved,Employee E012
+PO451,7/6/2026,Taqa Shams Trading (fictional),Water carton,Catering,1333,14.76,"19,675.08",Approved,Employee E029
+PO452,7/7/2026,Shams Noor Trading (fictional),Ready-mix m3,Building materials,14,245.73,"3,440.22",Approved,Employee E009
+PO453,9/2/2026,Bina Rawabi Est. (fictional),Laptop,IT hardware,2,"4,922.16","9,844.32",Approved,Employee E003
+PO454,7/1/2026,Taqa Noor Solutions (fictional),Cleaning visit,Facility services,28,"1,247.05","34,917.40",Approved,Employee E018
+PO455,7/1/2026,Shams Bina Solutions (fictional),Cement bag 50kg,Building materials,1786,18.64,"33,291.04",Approved,Employee E026
+PO456,8/25/2026,Tamayuz Jazeera Trading (fictional),Monitor 27in,IT hardware,3,"1,190.67","3,572.01",Approved,Employee E012
+PO457,9/15/2026,Taqa Rimal Solutions (fictional),Ready-mix m3,Building materials,125,274.45,"34,306.25",Approved,Employee E012
+PO458,9/22/2026,Buruj Dana Services (fictional),Network switch,IT hardware,5,"3,859.49","19,297.45",Approved,Employee E001
+PO459,9/20/2026,Sarh Rimal Trading (fictional),A4 paper box,Office supplies,89,89.93,"8,003.77",Approved,Employee E025
+PO460,9/1/2026,Noor Najd Trading (fictional),Ready-mix m3,Building materials,103,283.59,"29,209.77",Approved,Employee E012
+PO461,9/22/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,13,"2,183.15","28,380.95",Approved,Employee E002
+PO462,8/31/2026,Jazeera Qimma Solutions (fictional),Network switch,IT hardware,3,"3,610.09","10,830.27",Approved,Employee E005
+PO463,8/23/2026,Dana Madar Est. (fictional),Water carton,Catering,655,14.30,"9,366.50",Approved,Employee E035
+PO464,7/22/2026,Jazeera Qimma Solutions (fictional),Monitor 27in,IT hardware,25,"1,180.39","29,509.75",Approved,Employee E027
+PO465,9/21/2026,Rimal Sahab Supplies (fictional),Cleaning visit,Facility services,17,"1,323.55","22,500.35",Approved,Employee E018
+PO466,8/5/2026,Sarh Noor Services (fictional),Cleaning visit,Facility services,26,"1,247.65","32,438.90",Approved,Employee E010
+PO467,7/26/2026,Sarh Noor Services (fictional),AC maintenance visit,Facility services,30,914.23,"27,426.90",Approved,Employee E018
+PO468,7/7/2026,Taqa Noor Solutions (fictional),Cleaning visit,Facility services,8,"1,274.13","10,193.04",Approved,Employee E033
+PO469,9/10/2026,Bina Afaq Contracting (fictional),Cleaning visit,Facility services,24,"1,450.42","34,810.08",Approved,Employee E002
+PO470,7/12/2026,Tamayuz Bina Trading (fictional),Ready-mix m3,Building materials,85,282.52,"24,014.20",Approved,Employee E011
+PO471,8/25/2026,Sarh Rimal Trading (fictional),Toner cartridge,Office supplies,61,405.02,"24,706.22",Approved,Employee E035
+PO472,7/15/2026,Shams Bina Solutions (fictional),Ready-mix m3,Building materials,111,274.47,"30,466.17",Approved,Employee E028
+PO473,9/1/2026,Sahab Tamayuz Services (fictional),Toner cartridge,Office supplies,35,398.88,"13,960.80",Approved,Employee E027
+PO474,8/12/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,20,"1,816.75","36,335.00",Approved,Employee E005
+PO475,8/2/2026,Nakheel Qimma Supplies (fictional),AC maintenance visit,Facility services,27,967.12,"26,112.24",Approved,Employee E037
+PO476,9/14/2026,Najd Madar Supplies (fictional),Cleaning visit,Facility services,6,"1,382.23","8,293.38",Approved,Employee E032
+PO477,9/15/2026,Qimma Waha Est. (fictional),Toner cartridge,Office supplies,52,388.25,"20,189.00",Approved,Employee E017
+PO478,7/6/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,8,515.55,"4,124.40",Approved,Employee E037
+PO479,7/16/2026,Taqa Shams Trading (fictional),Staff lunch box,Catering,1147,33.90,"38,883.30",Approved,Employee E028
+PO480,8/16/2026,Sarh Noor Services (fictional),Pest control visit,Facility services,9,641.33,"5,771.97",Approved,Employee E033
+PO481,9/17/2026,Taqa Rimal Solutions (fictional),Cement bag 50kg,Building materials,805,17.52,"14,103.60",Approved,Employee E031
+PO482,9/17/2026,Tamayuz Shams Solutions (fictional),Ready-mix m3,Building materials,64,249.88,"15,992.32",Approved,Employee E001
+PO483,9/16/2026,Bina Sarh Est. (fictional),Toner cartridge,Office supplies,92,449.82,"41,383.44",Approved,Employee E002
+PO484,8/18/2026,Bina Rawabi Est. (fictional),Monitor 27in,IT hardware,24,"1,060.14","25,443.36",Approved,Employee E018
+PO485,7/28/2026,Buruj Dana Services (fictional),Network switch,IT hardware,4,"3,936.17","15,744.68",Approved,Employee E035
+PO486,9/13/2026,Bina Afaq Contracting (fictional),Cleaning visit,Facility services,20,"1,316.86","26,337.20",Approved,Employee E003
+PO487,8/6/2026,Waha Madar Est. (fictional),Cement bag 50kg,Building materials,237,18.28,"4,332.36",Approved,Employee E018
+PO488,7/27/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,9,"2,321.26","20,891.34",Approved,Employee E025
+PO489,9/8/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,61,481.93,"29,397.73",Approved,Employee E011
+PO490,7/16/2026,Taqa Rimal Solutions (fictional),Rebar ton,Building materials,1,"2,794.57","2,794.57",Approved,Employee E005
+PO491,7/29/2026,Sarh Noor Services (fictional),AC maintenance visit,Facility services,33,943.59,"31,138.47",Approved,Employee E032
+PO492,7/27/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,65,507.64,"32,996.60",Approved,Employee E032
+PO493,8/30/2026,Dana Rimal Trading (fictional),Monitor 27in,IT hardware,23,"1,115.52","25,656.96",Approved,Employee E032
+PO494,8/30/2026,Najd Najd Contracting (fictional),Toner cartridge,Office supplies,67,410.76,"27,520.92",Approved,Employee E030
+PO495,7/14/2026,Buruj Dana Trading (fictional),Laptop,IT hardware,7,"4,538.78","31,771.46",Approved,Employee E004
+PO496,9/20/2026,Sarh Qimma Services (fictional),Staff lunch box,Catering,650,32.56,"21,164.00",Approved,Employee E012
+PO497,8/6/2026,Nakheel Qimma Supplies (fictional),AC maintenance visit,Facility services,27,928.71,"25,075.17",Approved,Employee E035
+PO498,8/19/2026,Sarh Qimma Services (fictional),Staff lunch box,Catering,455,34.05,"15,492.75",Approved,Employee E031
+PO499,9/14/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,11,504.72,"5,551.92",Approved,Employee E032
+PO500,8/18/2026,Tamayuz Jazeera Trading (fictional),Network switch,IT hardware,3,"3,851.95","11,555.85",Approved,Employee E033
+PO501,9/28/2026,Najd Madar Supplies (fictional),AC maintenance visit,Facility services,39,857.51,"33,442.89",Approved,Employee E011
+PO502,9/21/2026,Najd Najd Contracting (fictional),Office chair,Office supplies,43,781.36,"33,598.48",Approved,Employee E004
+PO503,7/29/2026,Rawabi Masar Trading (fictional),Cement bag 50kg,Building materials,512,18.38,"9,410.56",Approved,Employee E002
+PO504,8/16/2026,Rawabi Masar Trading (fictional),Ready-mix m3,Building materials,21,270.31,"5,676.51",Approved,Employee E003
+PO505,9/8/2026,Madar Jazeera Trading (fictional),Event catering per head,Catering,39,148.18,"5,779.02",Approved,Employee E033
+PO506,9/27/2026,Masar Wadi Services (fictional),Cleaning visit,Facility services,21,"1,269.55","26,660.55",Approved,Employee E018
+PO507,7/28/2026,Rawabi Masar Trading (fictional),Cement bag 50kg,Building materials,1569,18.00,"28,242.00",Approved,Employee E003
+PO508,7/27/2026,Nakheel Najd Trading (fictional),Toner cartridge,Office supplies,92,389.41,"35,825.72",Approved,Employee E025
+PO509,7/27/2026,Tamayuz Jazeera Trading (fictional),Monitor 27in,IT hardware,5,"1,127.94","5,639.70",Approved,Employee E011
+PO510,9/14/2026,Waha Taqa Services (fictional),Network switch,IT hardware,10,"3,993.70","39,937.00",Approved,Employee E004
+PO511,8/31/2026,Sahab Sarh Est. (fictional),Office chair,Office supplies,23,754.46,"17,352.58",Approved,Employee E033
+PO512,8/2/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,7,"2,173.58","15,215.06",Approved,Employee E011
+PO513,9/8/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,9,"2,056.78","18,511.02",Approved,Employee E007
+PO514,7/14/2026,Taqa Shams Trading (fictional),Water carton,Catering,1115,14.18,"15,810.70",Approved,Employee E009
+PO515,8/19/2026,Taqa Noor Solutions (fictional),Cleaning visit,Facility services,3,"1,431.54","4,294.62",Approved,Employee E017
+PO516,8/24/2026,Buruj Noor Solutions (fictional),Toner cartridge,Office supplies,35,414.33,"14,501.55",Approved,Employee E025
+PO517,8/6/2026,Taqa Rimal Solutions (fictional),Rebar ton,Building materials,7,"2,929.74","20,508.18",Approved,Employee E035
+PO518,7/2/2026,Tamayuz Jazeera Trading (fictional),Network switch,IT hardware,7,"3,885.54","27,198.78",Approved,Employee E007
+PO519,9/13/2026,Buruj Waha Supplies (fictional),Event catering per head,Catering,47,147.42,"6,928.74",Approved,Employee E032
+PO520,7/29/2026,Noor Masar Contracting (fictional),Network switch,IT hardware,1,"3,724.86","3,724.86",Approved,Employee E003
+PO521,7/7/2026,Masar Wadi Services (fictional),Cleaning visit,Facility services,26,"1,296.34","33,704.84",Approved,Employee E035
+PO522,9/9/2026,Wadi Dana Solutions (fictional),Water carton,Catering,306,13.09,"4,005.54",Approved,Employee E025
+PO523,9/2/2026,Tamayuz Bina Trading (fictional),Cement bag 50kg,Building materials,1593,18.24,"29,056.32",Approved,Employee E011
+PO524,9/28/2026,Jazeera Qimma Solutions (fictional),Network switch,IT hardware,7,"4,004.09","28,028.63",Approved,Employee E017
+PO525,7/5/2026,Taqa Noor Solutions (fictional),Pest control visit,Facility services,55,674.18,"37,079.90",Approved,Employee E003
+PO526,9/30/2026,Noor Masar Contracting (fictional),Laptop,IT hardware,6,"4,864.72","29,188.32",Approved,Employee E031
+PO527,9/30/2026,Waha Taqa Services (fictional),Network switch,IT hardware,5,"3,813.67","19,068.35",Approved,Employee E037
+PO528,8/6/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,77,489.94,"37,725.38",Approved,Employee E007
+PO529,7/26/2026,Waha Madar Est. (fictional),Ready-mix m3,Building materials,135,279.47,"37,728.45",Approved,Employee E018
+PO530,7/16/2026,Dana Madar Est. (fictional),Event catering per head,Catering,146,142.14,"20,752.44",Approved,Employee E009
+PO531,8/5/2026,Dana Rimal Trading (fictional),Network switch,IT hardware,9,"3,752.60","33,773.40",Approved,Employee E009
+PO532,9/17/2026,Dana Rimal Trading (fictional),Network switch,IT hardware,1,"3,972.49","3,972.49",Approved,Employee E032
+PO533,7/29/2026,Buruj Noor Solutions (fictional),A4 paper box,Office supplies,263,99.33,"26,123.79",Approved,Employee E011
+PO534,8/10/2026,Taqa Sahab Services (fictional),Rebar ton,Building materials,5,"3,006.14","15,030.70",Approved,Employee E038
+PO535,9/9/2026,Shams Noor Trading (fictional),Ready-mix m3,Building materials,12,260.28,"3,123.36",Approved,Employee E038
+PO536,8/10/2026,Sahab Najd Solutions (fictional),AC maintenance visit,Facility services,31,922.30,"28,591.30",Approved,Employee E037
+PO537,9/2/2026,Waha Madar Est. (fictional),Cement bag 50kg,Building materials,603,19.28,"11,625.84",Approved,Employee E038
+PO538,9/29/2026,Shams Noor Trading (fictional),Cement bag 50kg,Building materials,240,20.18,"4,843.20",Approved,Employee E027
+PO539,8/30/2026,Tamayuz Shams Solutions (fictional),Cement bag 50kg,Building materials,425,19.36,"8,228.00",Approved,Employee E012
+PO540,7/16/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,8,"1,588.41","12,707.28",Approved,Employee E001
+PO541,7/22/2026,Sarh Qimma Services (fictional),Water carton,Catering,1069,13.83,"14,784.27",Approved,Employee E004
+PO542,8/24/2026,Dana Rimal Trading (fictional),Monitor 27in,IT hardware,13,"1,082.35","14,070.55",Approved,Employee E010
+PO543,8/16/2026,Sarh Noor Services (fictional),AC maintenance visit,Facility services,20,890.54,"17,810.80",Approved,Employee E012
+PO544,8/26/2026,Dana Madar Est. (fictional),Event catering per head,Catering,104,150.81,"15,684.24",Approved,Employee E004
+PO545,7/9/2026,Tamayuz Jazeera Trading (fictional),Monitor 27in,IT hardware,2,"1,176.87","2,353.74",Approved,Employee E030
+PO546,8/3/2026,Sarh Qimma Services (fictional),Staff lunch box,Catering,314,34.21,"10,741.94",Approved,Employee E026
+PO547,9/17/2026,Najd Najd Contracting (fictional),Office chair,Office supplies,4,770.07,"3,080.28",Approved,Employee E011
+PO548,8/11/2026,Sarh Noor Services (fictional),AC maintenance visit,Facility services,3,955.67,"2,867.01",Approved,Employee E030
+PO549,7/29/2026,Buruj Noor Solutions (fictional),A4 paper box,Office supplies,307,89.11,"27,356.77",Approved,Employee E026
+PO550,9/10/2026,Sahab Tamayuz Services (fictional),Toner cartridge,Office supplies,32,438.72,"14,039.04",Approved,Employee E017
+PO551,7/21/2026,Tamayuz Shams Solutions (fictional),Rebar ton,Building materials,6,"3,066.47","18,398.82",Approved,Employee E035
+PO552,8/17/2026,Jazeera Qimma Solutions (fictional),Monitor 27in,IT hardware,25,"1,133.49","28,337.25",Approved,Employee E032
+PO553,9/20/2026,Noor Najd Trading (fictional),Rebar ton,Building materials,8,"2,731.93","21,855.44",Approved,Employee E026
+PO554,9/28/2026,Bina Afaq Contracting (fictional),Cleaning visit,Facility services,2,"1,341.92","2,683.84",Approved,Employee E031
+PO555,9/20/2026,Wadi Dana Solutions (fictional),Water carton,Catering,2308,14.04,"32,404.32",Approved,Employee E030
+PO556,8/2/2026,Waha Madar Est. (fictional),Rebar ton,Building materials,11,"2,845.15","31,296.65",Approved,Employee E007
+PO557,9/22/2026,Sarh Rimal Trading (fictional),Toner cartridge,Office supplies,39,427.12,"16,657.68",Approved,Employee E033
+PO558,7/27/2026,Najd Sahab Contracting (fictional),Event catering per head,Catering,191,151.71,"28,976.61",Approved,Employee E003
+PO559,9/1/2026,Nakheel Sarh Solutions (fictional),Laptop,IT hardware,8,"4,236.81","33,894.48",Approved,Employee E033
+PO560,7/9/2026,Shams Noor Trading (fictional),Rebar ton,Building materials,4,"3,075.38","12,301.52",Approved,Employee E026
+PO561,8/6/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,19,"1,793.17","34,070.23",Approved,Employee E004
+PO562,9/17/2026,Noor Masar Contracting (fictional),Monitor 27in,IT hardware,3,"1,089.15","3,267.45",Approved,Employee E027
+PO563,9/16/2026,Sarh Qimma Services (fictional),Water carton,Catering,918,13.00,"11,934.00",Approved,Employee E032
+PO564,8/12/2026,Wadi Dana Solutions (fictional),Event catering per head,Catering,61,147.82,"9,017.02",Approved,Employee E005
+PO565,8/19/2026,Buruj Dana Services (fictional),Laptop,IT hardware,6,"4,878.73","29,272.38",Approved,Employee E017
+PO566,9/6/2026,Sahab Najd Solutions (fictional),Pest control visit,Facility services,9,633.98,"5,705.82",Approved,Employee E004
+PO567,9/21/2026,Jazeera Qimma Solutions (fictional),Laptop,IT hardware,8,"4,491.07","35,928.56",Approved,Employee E005
+PO568,7/20/2026,Waha Taqa Services (fictional),Monitor 27in,IT hardware,12,"1,240.20","14,882.40",Approved,Employee E027
+PO569,7/29/2026,Nakheel Qimma Supplies (fictional),Cleaning visit,Facility services,24,"1,275.82","30,619.68",Approved,Employee E005
+PO570,8/25/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,12,477.92,"5,735.04",Approved,Employee E007
+PO571,7/22/2026,Rimal Sahab Supplies (fictional),Pest control visit,Facility services,32,643.59,"20,594.88",Approved,Employee E002
+PO572,7/6/2026,Taqa Noor Solutions (fictional),AC maintenance visit,Facility services,11,951.30,"10,464.30",Approved,Employee E038
+PO573,7/21/2026,Buruj Dana Services (fictional),Laptop,IT hardware,7,"4,268.72","29,881.04",Approved,Employee E003
+PO574,7/8/2026,Qimma Waha Est. (fictional),A4 paper box,Office supplies,201,91.21,"18,333.21",Approved,Employee E002
+PO575,9/30/2026,Bina Taqa Est. (fictional),Water carton,Catering,205,13.63,"2,794.15",Approved,Employee E025
+PO576,8/24/2026,Rimal Qimma Services (fictional),Event catering per head,Catering,139,138.37,"19,233.43",Approved,Employee E030
+PO577,7/12/2026,Rimal Sahab Supplies (fictional),Cleaning visit,Facility services,28,"1,258.43","35,236.04",Approved,Employee E033
+PO578,7/16/2026,Rawabi Masar Trading (fictional),Rebar ton,Building materials,13,"3,049.21","39,639.73",Approved,Employee E033
+PO579,8/6/2026,Waha Madar Est. (fictional),Ready-mix m3,Building materials,46,286.15,"13,162.90",Approved,Employee E014
+PO580,9/20/2026,Sarh Qimma Services (fictional),Event catering per head,Catering,19,155.21,"2,948.99",Approved,Employee E009
+PO581,9/15/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,6,"2,213.00","13,278.00",Approved,Employee E011
+PO582,9/16/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,14,"2,103.48","29,448.72",Approved,Employee E011
+PO583,8/19/2026,Taqa Noor Solutions (fictional),Cleaning visit,Facility services,20,"1,360.87","27,217.40",Approved,Employee E033
+PO584,8/20/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,10,"2,173.61","21,736.10",Approved,Employee E014
+PO585,7/5/2026,Buruj Noor Solutions (fictional),Toner cartridge,Office supplies,22,423.56,"9,318.32",Approved,Employee E004
+PO586,7/22/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,11,"2,143.52","23,578.72",Approved,Employee E037
+PO587,7/30/2026,Nakheel Najd Trading (fictional),A4 paper box,Office supplies,318,93.97,"29,882.46",Approved,Employee E038
+PO588,9/8/2026,Noor Masar Contracting (fictional),Laptop,IT hardware,1,"4,397.67","4,397.67",Approved,Employee E037
+PO589,8/3/2026,Nakheel Qimma Supplies (fictional),Cleaning visit,Facility services,25,"1,367.02","34,175.50",Approved,Employee E030
+PO590,7/23/2026,Sahab Tamayuz Services (fictional),Office chair,Office supplies,22,839.23,"18,463.06",Approved,Employee E016
+PO591,7/8/2026,Sahab Tamayuz Services (fictional),Office chair,Office supplies,3,746.38,"2,239.14",Approved,Employee E011
+PO592,9/7/2026,Rimal Qimma Services (fictional),Staff lunch box,Catering,515,30.94,"15,934.10",Approved,Employee E003
+PO593,8/11/2026,Bina Taqa Est. (fictional),Water carton,Catering,639,13.44,"8,588.16",Approved,Employee E018
+PO594,9/30/2026,Bina Sarh Est. (fictional),A4 paper box,Office supplies,223,100.26,"22,357.98",Approved,Employee E003
+PO595,9/28/2026,Dana Rimal Trading (fictional),Monitor 27in,IT hardware,22,"1,103.60","24,279.20",Approved,Employee E028
+PO596,9/7/2026,Bina Rawabi Est. (fictional),Network switch,IT hardware,7,"3,962.06","27,734.42",Approved,Employee E017
+PO597,7/22/2026,Tamayuz Bina Trading (fictional),Rebar ton,Building materials,4,"2,855.16","11,420.64",Approved,Employee E033
+PO598,7/27/2026,Najd Madar Supplies (fictional),AC maintenance visit,Facility services,39,837.58,"32,665.62",Approved,Employee E016
+PO599,9/14/2026,Taqa Sahab Services (fictional),Rebar ton,Building materials,1,"2,708.53","2,708.53",Approved,Employee E002
+PO600,7/14/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,5,"1,583.04","7,915.20",Approved,Employee E018
+PO601,9/8/2026,Rimal Sahab Supplies (fictional),AC maintenance visit,Facility services,43,907.81,"39,035.83",Approved,Employee E033
+PO602,7/22/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,8,"1,593.78","12,750.24",Approved,Employee E032
+PO603,9/17/2026,Sarh Qimma Services (fictional),Staff lunch box,Catering,835,32.55,"27,179.25",Approved,Employee E001
+PO604,7/27/2026,Nakheel Qimma Supplies (fictional),Cleaning visit,Facility services,21,"1,301.65","27,334.65",Approved,Employee E038
+PO605,9/9/2026,Najd Madar Supplies (fictional),Cleaning visit,Facility services,8,"1,272.91","10,183.28",Approved,Employee E002
+PO606,9/20/2026,Sarh Qimma Services (fictional),Staff lunch box,Catering,848,29.68,"25,168.64",Approved,Employee E012
+PO607,9/23/2026,Noor Masar Contracting (fictional),Monitor 27in,IT hardware,17,"1,191.66","20,258.22",Approved,Employee E031
+PO608,8/5/2026,Najd Najd Contracting (fictional),A4 paper box,Office supplies,278,94.85,"26,368.30",Approved,Employee E005
+PO609,7/14/2026,Sahab Najd Solutions (fictional),Pest control visit,Facility services,59,665.65,"39,273.35",Approved,Employee E025
+PO610,9/1/2026,Waha Madar Est. (fictional),Ready-mix m3,Building materials,87,276.52,"24,057.24",Approved,Employee E031
+PO611,9/15/2026,Bina Rawabi Est. (fictional),Laptop,IT hardware,2,"4,817.06","9,634.12",Approved,Employee E014
+PO612,9/3/2026,Waha Taqa Services (fictional),Monitor 27in,IT hardware,22,"1,096.73","24,128.06",Approved,Employee E035
+PO613,8/3/2026,Waha Taqa Services (fictional),Monitor 27in,IT hardware,31,"1,122.09","34,784.79",Approved,Employee E010
+PO614,8/2/2026,Bina Rawabi Est. (fictional),Monitor 27in,IT hardware,23,"1,102.49","25,357.27",Approved,Employee E025
+PO615,9/3/2026,Buruj Noor Solutions (fictional),Toner cartridge,Office supplies,44,440.00,"19,360.00",Approved,Employee E029
+PO616,9/10/2026,Bina Taqa Est. (fictional),Event catering per head,Catering,140,147.53,"20,654.20",Approved,Employee E011
+PO617,7/23/2026,Najd Najd Contracting (fictional),Office chair,Office supplies,29,765.02,"22,185.58",Approved,Employee E033
+PO618,7/5/2026,Rimal Sahab Supplies (fictional),Cleaning visit,Facility services,16,"1,306.95","20,911.20",Approved,Employee E035
+PO619,7/12/2026,Taqa Sahab Services (fictional),Cement bag 50kg,Building materials,244,18.01,"4,394.44",Approved,Employee E003
+PO620,8/31/2026,Sarh Qimma Services (fictional),Water carton,Catering,567,14.50,"8,221.50",Approved,Employee E014
+PO621,7/20/2026,Sahab Tamayuz Services (fictional),A4 paper box,Office supplies,355,102.05,"36,227.75",Approved,Employee E010
+PO622,8/31/2026,Masar Wadi Services (fictional),Cleaning visit,Facility services,19,"1,284.78","24,410.82",Approved,Employee E011
+PO623,7/6/2026,Sahab Sarh Est. (fictional),A4 paper box,Office supplies,233,93.32,"21,743.56",Approved,Employee E007
+PO624,8/12/2026,Najd Madar Supplies (fictional),Cleaning visit,Facility services,23,"1,326.85","30,517.55",Approved,Employee E004
+PO625,9/24/2026,Masar Wadi Services (fictional),Cleaning visit,Facility services,16,"1,455.81","23,292.96",Approved,Employee E011
+PO626,7/2/2026,Nakheel Qimma Supplies (fictional),Cleaning visit,Facility services,19,"1,413.60","26,858.40",Approved,Employee E029
+PO627,7/27/2026,Rimal Sahab Supplies (fictional),AC maintenance visit,Facility services,34,966.54,"32,862.36",Approved,Employee E027
+PO628,7/20/2026,Bina Sarh Est. (fictional),Toner cartridge,Office supplies,23,443.50,"10,200.50",Approved,Employee E009
+PO629,7/14/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,3,"2,172.64","6,517.92",Approved,Employee E012
+PO630,8/23/2026,Bina Rawabi Est. (fictional),Monitor 27in,IT hardware,27,"1,063.05","28,702.35",Approved,Employee E003
+PO631,9/30/2026,Tamayuz Bina Trading (fictional),Ready-mix m3,Building materials,97,259.84,"25,204.48",Approved,Employee E035
+PO632,8/10/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,19,442.11,"8,400.09",Approved,Employee E003
+PO633,8/31/2026,Shams Noor Trading (fictional),Rebar ton,Building materials,4,"2,843.48","11,373.92",Approved,Employee E033
+PO634,7/14/2026,Nakheel Qimma Supplies (fictional),Pest control visit,Facility services,57,654.33,"37,296.81",Approved,Employee E016
+PO635,9/21/2026,Taqa Sahab Services (fictional),Cement bag 50kg,Building materials,2085,19.32,"40,282.20",Approved,Employee E037
+PO636,7/29/2026,Tamayuz Bina Trading (fictional),Ready-mix m3,Building materials,55,276.10,"15,185.50",Approved,Employee E025
+PO637,7/2/2026,Rimal Sahab Supplies (fictional),Pest control visit,Facility services,13,601.11,"7,814.43",Approved,Employee E032
+PO638,7/6/2026,Sarh Rimal Trading (fictional),A4 paper box,Office supplies,41,96.23,"3,945.43",Approved,Employee E007
+PO639,8/6/2026,Sarh Noor Services (fictional),AC maintenance visit,Facility services,43,935.66,"40,233.38",Approved,Employee E010
+PO640,7/9/2026,Nakheel Sarh Solutions (fictional),Laptop,IT hardware,6,"4,430.50","26,583.00",Approved,Employee E004
+PO641,8/5/2026,Bina Afaq Contracting (fictional),Pest control visit,Facility services,58,695.77,"40,354.66",Approved,Employee E011
+PO642,7/16/2026,Sahab Sarh Est. (fictional),A4 paper box,Office supplies,58,99.32,"5,760.56",Approved,Employee E030
+PO643,7/29/2026,Wadi Dana Solutions (fictional),Water carton,Catering,185,14.54,"2,689.90",Approved,Employee E011
+PO644,8/11/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,22,"1,772.64","38,998.08",Approved,Employee E018
+PO645,9/3/2026,Qimma Waha Est. (fictional),Toner cartridge,Office supplies,94,411.96,"38,724.24",Approved,Employee E003
+PO646,7/21/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,8,"2,316.87","18,534.96",Approved,Employee E002
+PO647,8/4/2026,Waha Taqa Services (fictional),Laptop,IT hardware,3,"4,953.27","14,859.81",Approved,Employee E007
+PO648,7/19/2026,Najd Madar Supplies (fictional),AC maintenance visit,Facility services,36,866.72,"31,201.92",Approved,Employee E003
+PO649,9/28/2026,Buruj Dana Services (fictional),Laptop,IT hardware,2,"4,825.04","9,650.08",Approved,Employee E032
+PO650,9/23/2026,Jazeera Qimma Solutions (fictional),Monitor 27in,IT hardware,33,"1,064.76","35,137.08",Approved,Employee E025
+PO651,8/16/2026,Bina Rawabi Est. (fictional),Monitor 27in,IT hardware,2,"1,136.39","2,272.78",Approved,Employee E010
+PO652,8/2/2026,Rimal Sahab Supplies (fictional),Cleaning visit,Facility services,2,"1,327.89","2,655.78",Approved,Employee E031
+PO653,8/27/2026,Sarh Rimal Trading (fictional),Office chair,Office supplies,12,816.60,"9,799.20",Approved,Employee E031
+PO654,8/30/2026,Waha Madar Est. (fictional),Cement bag 50kg,Building materials,1973,18.02,"35,553.46",Approved,Employee E002
+PO655,7/5/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,20,"1,688.65","33,773.00",Approved,Employee E037
+PO656,8/13/2026,Najd Najd Contracting (fictional),A4 paper box,Office supplies,335,99.39,"33,295.65",Approved,Employee E004
+PO657,9/28/2026,Tamayuz Shams Solutions (fictional),Ready-mix m3,Building materials,37,259.29,"9,593.73",Approved,Employee E037
+PO658,9/23/2026,Rimal Qimma Services (fictional),Water carton,Catering,2657,14.45,"38,393.65",Approved,Employee E004
+PO659,9/3/2026,Shams Bina Solutions (fictional),Ready-mix m3,Building materials,135,263.82,"35,615.70",Approved,Employee E025
+PO660,9/22/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,17,"2,080.95","35,376.15",Approved,Employee E018
+PO661,7/6/2026,Bina Rawabi Est. (fictional),Laptop,IT hardware,7,"4,267.38","29,871.66",Approved,Employee E030
+PO662,9/27/2026,Sahab Tamayuz Services (fictional),Toner cartridge,Office supplies,93,410.58,"38,183.94",Approved,Employee E011
+PO663,7/28/2026,Shams Madar Contracting (fictional),A4 paper box,Office supplies,237,101.21,"23,986.77",Approved,Employee E030
+PO664,7/1/2026,Rimal Qimma Services (fictional),Staff lunch box,Catering,257,32.25,"8,288.25",Approved,Employee E027
+PO665,9/20/2026,Noor Najd Trading (fictional),Rebar ton,Building materials,4,"2,847.58","11,390.32",Approved,Employee E035
+PO666,8/16/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,72,503.53,"36,254.16",Approved,Employee E027
+PO667,8/11/2026,Wadi Dana Solutions (fictional),Water carton,Catering,2657,14.73,"39,137.61",Approved,Employee E033
+PO668,7/2/2026,Taqa Noor Solutions (fictional),Pest control visit,Facility services,42,606.29,"25,464.18",Approved,Employee E007
+PO669,8/23/2026,Tamayuz Shams Solutions (fictional),Ready-mix m3,Building materials,94,283.91,"26,687.54",Approved,Employee E009
+PO670,8/31/2026,Tamayuz Bina Trading (fictional),Cement bag 50kg,Building materials,1325,19.28,"25,546.00",Approved,Employee E032
+PO671,7/26/2026,Wadi Dana Solutions (fictional),Water carton,Catering,1498,14.22,"21,301.56",Approved,Employee E018
+PO672,9/17/2026,Sahab Najd Solutions (fictional),Cleaning visit,Facility services,23,"1,298.45","29,864.35",Approved,Employee E011
+PO673,9/10/2026,Jazeera Qimma Solutions (fictional),Monitor 27in,IT hardware,15,"1,105.12","16,576.80",Approved,Employee E005
+PO674,8/2/2026,Sarh Rimal Trading (fictional),A4 paper box,Office supplies,318,90.38,"28,740.84",Approved,Employee E001
+PO675,8/26/2026,Nakheel Najd Trading (fictional),A4 paper box,Office supplies,405,96.52,"39,090.60",Approved,Employee E004
+PO676,7/23/2026,Rimal Qimma Services (fictional),Staff lunch box,Catering,601,32.40,"19,472.40",Approved,Employee E030
+PO677,7/16/2026,Buruj Dana Trading (fictional),Laptop,IT hardware,5,"4,524.05","22,620.25",Approved,Employee E027
+PO678,8/27/2026,Dana Rimal Trading (fictional),Monitor 27in,IT hardware,21,"1,108.51","23,278.71",Approved,Employee E009
+PO679,7/15/2026,Sarh Rimal Trading (fictional),Office chair,Office supplies,27,730.97,"19,736.19",Approved,Employee E027
+PO680,8/24/2026,Sahab Najd Solutions (fictional),Pest control visit,Facility services,33,701.85,"23,161.05",Approved,Employee E018
+PO681,9/7/2026,Nakheel Sarh Solutions (fictional),Network switch,IT hardware,2,"3,650.98","7,301.96",Approved,Employee E002
+PO682,8/30/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,4,"2,153.62","8,614.48",Approved,Employee E011
+PO683,9/21/2026,Tamayuz Jazeera Trading (fictional),Monitor 27in,IT hardware,2,"1,095.65","2,191.30",Approved,Employee E007
+PO684,7/15/2026,Nakheel Qimma Supplies (fictional),Pest control visit,Facility services,14,693.21,"9,704.94",Approved,Employee E018
+PO685,9/17/2026,Shams Bina Solutions (fictional),Rebar ton,Building materials,13,"2,783.03","36,179.39",Approved,Employee E002
+PO686,8/4/2026,Masar Wadi Services (fictional),Pest control visit,Facility services,14,618.94,"8,665.16",Approved,Employee E005
+PO687,7/30/2026,Jazeera Noor Supplies (fictional),Cleaning visit,Facility services,3,"1,388.06","4,164.18",Approved,Employee E010
+PO688,8/31/2026,Najd Madar Supplies (fictional),AC maintenance visit,Facility services,22,937.01,"20,614.22",Approved,Employee E016
+PO689,9/7/2026,Wadi Dana Solutions (fictional),Water carton,Catering,2440,13.02,"31,768.80",Approved,Employee E037
+PO690,8/23/2026,Buruj Dana Services (fictional),Laptop,IT hardware,3,"4,768.05","14,304.15",Approved,Employee E009
+PO691,7/26/2026,Waha Madar Est. (fictional),Rebar ton,Building materials,8,"2,782.77","22,262.16",Approved,Employee E016
+PO692,8/26/2026,Taqa Sahab Services (fictional),Ready-mix m3,Building materials,16,266.82,"4,269.12",Approved,Employee E005
+PO693,7/20/2026,Sahab Sarh Est. (fictional),Toner cartridge,Office supplies,82,397.70,"32,611.40",Approved,Employee E031
+PO694,7/30/2026,Tamayuz Jazeera Trading (fictional),Laptop,IT hardware,1,"4,461.37","4,461.37",Approved,Employee E025
+PO695,7/1/2026,Buruj Noor Solutions (fictional),Toner cartridge,Office supplies,69,438.06,"30,226.14",Approved,Employee E001
+PO696,8/18/2026,Sarh Noor Services (fictional),Pest control visit,Facility services,13,676.85,"8,799.05",Approved,Employee E032
+PO697,9/10/2026,Sarh Rimal Trading (fictional),A4 paper box,Office supplies,366,96.21,"35,212.86",Approved,Employee E025
+PO698,8/9/2026,Buruj Dana Services (fictional),Laptop,IT hardware,1,"4,683.42","4,683.42",Approved,Employee E030
+PO699,9/17/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,11,"1,655.64","18,212.04",Approved,Employee E037
+PO700,7/16/2026,Najd Madar Supplies (fictional),Pest control visit,Facility services,6,698.82,"4,192.92",Approved,Employee E017
+PO701,8/5/2026,Najd Madar Supplies (fictional),AC maintenance visit,Facility services,4,877.08,"3,508.32",Approved,Employee E009
+PO702,9/23/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,7,"2,294.96","16,064.72",Approved,Employee E009
+PO703,9/7/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,39,497.58,"19,405.62",Approved,Employee E026
+PO704,8/25/2026,Tamayuz Shams Solutions (fictional),Rebar ton,Building materials,9,"2,868.87","25,819.83",Approved,Employee E029
+PO705,7/23/2026,Noor Masar Contracting (fictional),Monitor 27in,IT hardware,34,"1,216.51","41,361.34",Approved,Employee E003
+PO706,9/7/2026,Rimal Sahab Supplies (fictional),Cleaning visit,Facility services,27,"1,333.03","35,991.81",Approved,Employee E033
+PO707,7/27/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,36,481.60,"17,337.60",Approved,Employee E032
+PO708,9/15/2026,Nakheel Qimma Supplies (fictional),Cleaning visit,Facility services,16,"1,397.11","22,353.76",Approved,Employee E009
+PO709,8/31/2026,Sarh Rimal Trading (fictional),Toner cartridge,Office supplies,26,400.25,"10,406.50",Approved,Employee E030
+PO710,7/6/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,5,500.44,"2,502.20",Approved,Employee E010
+PO711,9/15/2026,Rimal Qimma Services (fictional),Event catering per head,Catering,22,139.37,"3,066.14",Approved,Employee E001
+PO712,9/10/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,17,"2,101.52","35,725.84",Approved,Employee E033
+PO713,8/18/2026,Dana Rimal Trading (fictional),Laptop,IT hardware,2,"4,671.31","9,342.62",Approved,Employee E014
+PO714,8/19/2026,Sarh Noor Services (fictional),Pest control visit,Facility services,2,668.16,"1,336.32",Approved,Employee E002
+PO715,7/12/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,14,"1,678.37","23,497.18",Approved,Employee E032
+PO716,8/30/2026,Sarh Rimal Trading (fictional),A4 paper box,Office supplies,98,100.29,"9,828.42",Approved,Employee E037
+PO717,8/30/2026,Taqa Rimal Solutions (fictional),Cement bag 50kg,Building materials,428,18.35,"7,853.80",Approved,Employee E014
+PO718,7/15/2026,Waha Madar Est. (fictional),Rebar ton,Building materials,12,"2,937.34","35,248.08",Approved,Employee E018
+PO719,7/30/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,6,"2,061.19","12,367.14",Approved,Employee E010
+PO720,7/20/2026,Buruj Dana Services (fictional),Laptop,IT hardware,4,"4,499.16","17,996.64",Approved,Employee E016
+PO721,8/2/2026,Noor Najd Trading (fictional),Rebar ton,Building materials,12,"2,676.75","32,121.00",Approved,Employee E001
+PO722,9/22/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,30,463.30,"13,899.00",Approved,Employee E002
+PO723,7/20/2026,Bina Taqa Est. (fictional),Event catering per head,Catering,142,150.32,"21,345.44",Approved,Employee E009
+PO724,9/22/2026,Waha Madar Est. (fictional),Cement bag 50kg,Building materials,1386,20.25,"28,066.50",Approved,Employee E038
+PO725,9/10/2026,Waha Madar Est. (fictional),Rebar ton,Building materials,7,"2,819.13","19,733.91",Approved,Employee E037
+PO726,7/22/2026,Nakheel Sarh Solutions (fictional),Monitor 27in,IT hardware,19,"1,081.88","20,555.72",Approved,Employee E001
+PO727,7/26/2026,Buruj Dana Trading (fictional),Network switch,IT hardware,9,"3,708.65","33,377.85",Approved,Employee E031
+PO728,7/16/2026,Buruj Noor Solutions (fictional),Office chair,Office supplies,46,764.82,"35,181.72",Approved,Employee E030
+PO729,7/16/2026,Buruj Waha Supplies (fictional),Water carton,Catering,659,14.49,"9,548.91",Approved,Employee E002
+PO730,8/10/2026,Rimal Sahab Supplies (fictional),Pest control visit,Facility services,53,668.79,"35,445.87",Approved,Employee E038
+PO731,9/6/2026,Najd Sahab Contracting (fictional),Event catering per head,Catering,121,156.03,"18,879.63",Approved,Employee E010
+PO732,9/15/2026,Waha Taqa Services (fictional),Network switch,IT hardware,3,"3,926.50","11,779.50",Approved,Employee E017
+PO733,8/6/2026,Jazeera Qimma Solutions (fictional),Laptop,IT hardware,1,"4,598.83","4,598.83",Approved,Employee E010
+PO734,9/15/2026,Buruj Dana Trading (fictional),Monitor 27in,IT hardware,21,"1,233.31","25,899.51",Approved,Employee E031
+PO735,8/30/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,17,"2,215.89","37,670.13",Approved,Employee E025
+PO736,8/9/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,16,"2,362.61","37,801.76",Approved,Employee E004
+PO737,9/3/2026,Nakheel Qimma Supplies (fictional),Cleaning visit,Facility services,1,"1,323.67","1,323.67",Approved,Employee E029
+PO738,7/12/2026,Nakheel Najd Trading (fictional),A4 paper box,Office supplies,390,98.14,"38,274.60",Approved,Employee E031
+PO739,7/13/2026,Waha Taqa Services (fictional),Network switch,IT hardware,8,"3,926.29","31,410.32",Approved,Employee E010
+PO740,7/26/2026,Bina Taqa Est. (fictional),Water carton,Catering,1232,13.00,"16,016.00",Approved,Employee E003
+PO741,7/14/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,11,"2,352.35","25,875.85",Approved,Employee E025
+PO742,7/27/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,9,"1,621.72","14,595.48",Approved,Employee E032
+PO743,9/21/2026,Waha Taqa Services (fictional),Monitor 27in,IT hardware,29,"1,086.56","31,510.24",Approved,Employee E005
+PO744,7/13/2026,Sarh Qimma Services (fictional),Staff lunch box,Catering,638,33.50,"21,373.00",Approved,Employee E003
+PO745,9/2/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,2,"1,808.44","3,616.88",Approved,Employee E014
+PO746,9/13/2026,Madar Jazeera Trading (fictional),Staff lunch box,Catering,317,31.45,"9,969.65",Approved,Employee E004
+PO747,7/5/2026,Najd Madar Supplies (fictional),Cleaning visit,Facility services,11,"1,352.28","14,875.08",Approved,Employee E004
+PO748,8/19/2026,Dana Madar Est. (fictional),Event catering per head,Catering,131,154.94,"20,297.14",Approved,Employee E009
+PO749,8/18/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,20,"1,663.61","33,272.20",Approved,Employee E012
+PO750,7/5/2026,Rawabi Masar Trading (fictional),Rebar ton,Building materials,10,"2,952.31","29,523.10",Approved,Employee E031
+PO751,8/9/2026,Taqa Noor Solutions (fictional),AC maintenance visit,Facility services,32,965.70,"30,902.40",Approved,Employee E009
+PO752,9/1/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,21,"1,815.64","38,128.44",Approved,Employee E002
+PO753,9/28/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,38,497.57,"18,907.66",Approved,Employee E026
+PO754,8/11/2026,Qimma Waha Est. (fictional),Office chair,Office supplies,10,740.57,"7,405.70",Approved,Employee E027
+PO755,7/2/2026,Taqa Noor Solutions (fictional),AC maintenance visit,Facility services,18,865.45,"15,578.10",Approved,Employee E011
+PO756,9/7/2026,Noor Masar Contracting (fictional),Monitor 27in,IT hardware,28,"1,178.57","32,999.96",Approved,Employee E038
+PO757,9/29/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,5,"1,799.00","8,995.00",Approved,Employee E037
+PO758,9/20/2026,Rawabi Masar Trading (fictional),Ready-mix m3,Building materials,126,247.41,"31,173.66",Approved,Employee E018
+PO759,9/17/2026,Najd Sahab Contracting (fictional),Event catering per head,Catering,96,144.31,"13,853.76",Approved,Employee E037
+PO760,7/6/2026,Buruj Dana Trading (fictional),Network switch,IT hardware,4,"3,981.42","15,925.68",Approved,Employee E003
+PO761,8/12/2026,Madar Jazeera Trading (fictional),Event catering per head,Catering,182,151.12,"27,503.84",Approved,Employee E026
+PO762,9/14/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,5,"2,084.79","10,423.95",Approved,Employee E005
+PO763,9/10/2026,Shams Madar Contracting (fictional),A4 paper box,Office supplies,91,92.98,"8,461.18",Approved,Employee E012
+PO764,7/9/2026,Shams Noor Trading (fictional),Ready-mix m3,Building materials,102,280.43,"28,603.86",Approved,Employee E012
+PO765,7/21/2026,Bina Afaq Contracting (fictional),AC maintenance visit,Facility services,29,864.07,"25,058.03",Approved,Employee E025
+PO766,8/4/2026,Madar Jazeera Trading (fictional),Event catering per head,Catering,61,151.43,"9,237.23",Approved,Employee E017
+PO767,9/24/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,53,510.56,"27,059.68",Approved,Employee E025
+PO768,7/27/2026,Bina Afaq Contracting (fictional),Pest control visit,Facility services,61,638.42,"38,943.62",Approved,Employee E012
+PO769,9/15/2026,Shams Noor Trading (fictional),Cement bag 50kg,Building materials,1033,18.72,"19,337.76",Approved,Employee E002
+PO770,8/25/2026,Taqa Noor Solutions (fictional),Pest control visit,Facility services,18,635.49,"11,438.82",Approved,Employee E014
+PO771,7/16/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,56,492.78,"27,595.68",Approved,Employee E026
+PO772,8/3/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,9,"1,805.81","16,252.29",Approved,Employee E018
+PO773,7/16/2026,Bina Taqa Est. (fictional),Water carton,Catering,741,14.11,"10,455.51",Approved,Employee E018
+PO774,9/3/2026,Buruj Waha Supplies (fictional),Water carton,Catering,1207,13.06,"15,763.42",Approved,Employee E011
+PO775,7/26/2026,Sahab Najd Solutions (fictional),Cleaning visit,Facility services,7,"1,419.69","9,937.83",Approved,Employee E027
+PO776,9/3/2026,Noor Masar Contracting (fictional),Laptop,IT hardware,2,"4,939.22","9,878.44",Approved,Employee E010
+PO777,8/17/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,11,"1,646.46","18,111.06",Approved,Employee E010
+PO778,9/22/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,19,"1,692.63","32,159.97",Approved,Employee E012
+PO779,7/6/2026,Sahab Najd Solutions (fictional),AC maintenance visit,Facility services,19,896.65,"17,036.35",Approved,Employee E009
+PO780,8/17/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,8,"2,208.42","17,667.36",Approved,Employee E035
+PO781,7/2/2026,Sahab Sarh Est. (fictional),Office chair,Office supplies,33,759.07,"25,049.31",Approved,Employee E017
+PO782,8/27/2026,Shams Madar Contracting (fictional),Office chair,Office supplies,12,732.76,"8,793.12",Approved,Employee E029
+PO783,9/2/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,6,"1,800.54","10,803.24",Approved,Employee E030
+PO784,7/16/2026,Sarh Noor Services (fictional),Cleaning visit,Facility services,9,"1,332.55","11,992.95",Approved,Employee E025
+PO785,7/22/2026,Jazeera Noor Supplies (fictional),AC maintenance visit,Facility services,40,949.98,"37,999.20",Approved,Employee E025
+PO786,9/3/2026,Dana Madar Est. (fictional),Event catering per head,Catering,196,140.87,"27,610.52",Approved,Employee E002
+PO787,9/21/2026,Wadi Dana Solutions (fictional),Water carton,Catering,2342,13.34,"31,242.28",Approved,Employee E038
+PO788,7/9/2026,Noor Najd Trading (fictional),Ready-mix m3,Building materials,37,251.96,"9,322.52",Approved,Employee E014
+PO789,8/9/2026,Bina Rawabi Est. (fictional),Monitor 27in,IT hardware,3,"1,111.42","3,334.26",Approved,Employee E037
+PO790,8/5/2026,Bina Afaq Contracting (fictional),AC maintenance visit,Facility services,11,959.59,"10,555.49",Approved,Employee E032
+PO791,9/6/2026,Shams Madar Contracting (fictional),Toner cartridge,Office supplies,50,423.43,"21,171.50",Approved,Employee E007
+PO792,8/3/2026,Bina Afaq Contracting (fictional),Cleaning visit,Facility services,20,"1,426.47","28,529.40",Approved,Employee E027
+PO793,8/30/2026,Bina Sarh Est. (fictional),A4 paper box,Office supplies,125,96.80,"12,100.00",Approved,Employee E002
+PO794,9/23/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,10,"2,074.11","20,741.10",Approved,Employee E016
+PO795,8/4/2026,Sahab Sarh Est. (fictional),A4 paper box,Office supplies,119,96.22,"11,450.18",Approved,Employee E007
+PO796,8/17/2026,Rawabi Masar Trading (fictional),Cement bag 50kg,Building materials,1114,20.32,"22,636.48",Approved,Employee E010
+PO797,8/23/2026,Jazeera Qimma Solutions (fictional),Network switch,IT hardware,8,"3,869.18","30,953.44",Approved,Employee E010
+PO798,8/2/2026,Najd Sahab Contracting (fictional),Water carton,Catering,1832,14.27,"26,142.64",Approved,Employee E026
+PO799,9/21/2026,Najd Madar Supplies (fictional),Pest control visit,Facility services,49,605.15,"29,652.35",Approved,Employee E038
+PO800,8/20/2026,Najd Madar Supplies (fictional),Cleaning visit,Facility services,17,"1,286.25","21,866.25",Approved,Employee E004
+PO801,8/18/2026,Taqa Sahab Services (fictional),Rebar ton,Building materials,4,"3,030.35","12,121.40",Approved,Employee E016
+PO802,7/26/2026,Buruj Dana Trading (fictional),Monitor 27in,IT hardware,20,"1,103.82","22,076.40",Approved,Employee E014
+PO803,8/30/2026,Buruj Dana Trading (fictional),Monitor 27in,IT hardware,12,"1,130.05","13,560.60",Approved,Employee E018
+PO804,8/25/2026,Taqa Rimal Solutions (fictional),Ready-mix m3,Building materials,79,262.02,"20,699.58",Approved,Employee E032
+PO805,8/19/2026,Waha Madar Est. (fictional),Rebar ton,Building materials,3,"2,954.56","8,863.68",Approved,Employee E014
+PO806,9/27/2026,Taqa Sahab Services (fictional),Rebar ton,Building materials,7,"2,906.59","20,346.13",Approved,Employee E025
+PO807,9/16/2026,Bina Afaq Contracting (fictional),AC maintenance visit,Facility services,17,837.84,"14,243.28",Approved,Employee E010
+PO808,8/6/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,71,453.85,"32,223.35",Approved,Employee E011
+PO809,7/15/2026,Buruj Waha Supplies (fictional),Staff lunch box,Catering,228,32.94,"7,510.32",Approved,Employee E031
+PO810,9/14/2026,Rawabi Masar Trading (fictional),Cement bag 50kg,Building materials,1981,18.91,"37,460.71",Approved,Employee E011
+PO811,8/9/2026,Waha Madar Est. (fictional),Ready-mix m3,Building materials,113,271.09,"30,633.17",Approved,Employee E005
+PO812,8/10/2026,Tamayuz Shams Solutions (fictional),Ready-mix m3,Building materials,98,284.70,"27,900.60",Approved,Employee E010
+PO813,7/8/2026,Noor Masar Contracting (fictional),Laptop,IT hardware,1,"4,696.61","4,696.61",Approved,Employee E027
+PO814,7/20/2026,Najd Sahab Contracting (fictional),Staff lunch box,Catering,1058,32.70,"34,596.60",Approved,Employee E010
+PO815,8/18/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,16,"1,589.78","25,436.48",Approved,Employee E016
+PO816,8/2/2026,Taqa Rimal Solutions (fictional),Cement bag 50kg,Building materials,942,18.18,"17,125.56",Approved,Employee E011
+PO817,7/20/2026,Najd Madar Supplies (fictional),AC maintenance visit,Facility services,15,925.15,"13,877.25",Approved,Employee E005
+PO818,8/13/2026,Nakheel Qimma Supplies (fictional),Pest control visit,Facility services,5,668.00,"3,340.00",Approved,Employee E004
+PO819,8/23/2026,Buruj Dana Services (fictional),Laptop,IT hardware,8,"4,373.94","34,991.52",Approved,Employee E030
+PO820,7/28/2026,Qimma Waha Est. (fictional),Toner cartridge,Office supplies,9,439.99,"3,959.91",Approved,Employee E010
+PO821,9/8/2026,Nakheel Qimma Supplies (fictional),AC maintenance visit,Facility services,41,890.60,"36,514.60",Approved,Employee E012
+PO822,9/2/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,2,"2,191.84","4,383.68",Approved,Employee E011
+PO823,8/27/2026,Nakheel Najd Trading (fictional),Office chair,Office supplies,11,781.96,"8,601.56",Approved,Employee E031
+PO824,7/2/2026,Waha Taqa Services (fictional),Laptop,IT hardware,3,"4,433.08","13,299.24",Approved,Employee E007
+PO825,8/16/2026,Taqa Rimal Solutions (fictional),Cement bag 50kg,Building materials,1327,19.59,"25,995.93",Approved,Employee E018
+PO826,8/9/2026,Qimma Waha Est. (fictional),Toner cartridge,Office supplies,91,409.00,"37,219.00",Approved,Employee E014
+PO827,7/30/2026,Bina Afaq Contracting (fictional),AC maintenance visit,Facility services,9,924.17,"8,317.53",Approved,Employee E037
+PO828,9/20/2026,Qimma Waha Est. (fictional),Toner cartridge,Office supplies,19,391.80,"7,444.20",Approved,Employee E012
+PO829,9/21/2026,Madar Jazeera Trading (fictional),Event catering per head,Catering,56,148.71,"8,327.76",Approved,Employee E018
+PO830,9/27/2026,Dana Madar Est. (fictional),Staff lunch box,Catering,736,30.40,"22,374.40",Approved,Employee E010
+PO831,7/26/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,34,489.54,"16,644.36",Approved,Employee E037
+PO832,8/9/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,2,"2,179.12","4,358.24",Approved,Employee E031
+PO833,9/28/2026,Qimma Waha Est. (fictional),Toner cartridge,Office supplies,46,423.66,"19,488.36",Approved,Employee E010
+PO834,9/7/2026,Jazeera Noor Supplies (fictional),Pest control visit,Facility services,41,668.69,"27,416.29",Approved,Employee E033
+PO835,7/27/2026,Rimal Sahab Supplies (fictional),Pest control visit,Facility services,42,672.62,"28,250.04",Approved,Employee E003
+PO836,7/9/2026,Nakheel Najd Trading (fictional),Office chair,Office supplies,30,781.38,"23,441.40",Approved,Employee E001
+PO837,8/26/2026,Dana Rimal Trading (fictional),Monitor 27in,IT hardware,28,"1,103.71","30,903.88",Approved,Employee E029
+PO838,9/14/2026,Taqa Shams Trading (fictional),Water carton,Catering,2849,14.81,"42,193.69",Approved,Employee E016
+PO839,9/30/2026,Buruj Dana Services (fictional),Network switch,IT hardware,8,"3,855.38","30,843.04",Approved,Employee E016
+PO840,7/8/2026,Taqa Sahab Services (fictional),Cement bag 50kg,Building materials,1560,19.50,"30,420.00",Approved,Employee E025
+PO841,7/12/2026,Shams Noor Trading (fictional),Rebar ton,Building materials,3,"2,805.05","8,415.15",Approved,Employee E004
+PO842,9/27/2026,Shams Madar Contracting (fictional),Office chair,Office supplies,8,818.71,"6,549.68",Approved,Employee E005
+PO843,9/13/2026,Sahab Tamayuz Services (fictional),A4 paper box,Office supplies,60,98.69,"5,921.40",Approved,Employee E017
+PO844,8/17/2026,Taqa Noor Solutions (fictional),AC maintenance visit,Facility services,26,832.68,"21,649.68",Approved,Employee E003
+PO845,7/19/2026,Madar Jazeera Trading (fictional),Event catering per head,Catering,58,144.58,"8,385.64",Approved,Employee E004
+PO846,7/13/2026,Jazeera Qimma Solutions (fictional),Monitor 27in,IT hardware,23,"1,067.98","24,563.54",Approved,Employee E025
+PO847,7/1/2026,Jazeera Qimma Solutions (fictional),Monitor 27in,IT hardware,17,"1,143.86","19,445.62",Approved,Employee E026
+PO848,7/2/2026,Rimal Qimma Services (fictional),Water carton,Catering,1367,14.72,"20,122.24",Approved,Employee E007
+PO849,8/2/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,9,"2,069.73","18,627.57",Approved,Employee E028
+PO850,9/17/2026,Shams Madar Contracting (fictional),A4 paper box,Office supplies,91,93.08,"8,470.28",Approved,Employee E037
+PO851,7/28/2026,Sahab Najd Solutions (fictional),Cleaning visit,Facility services,17,"1,370.53","23,299.01",Approved,Employee E029
+PO852,8/27/2026,Najd Madar Supplies (fictional),Pest control visit,Facility services,4,699.82,"2,799.28",Approved,Employee E028
+PO853,7/30/2026,Najd Madar Supplies (fictional),Cleaning visit,Facility services,6,"1,274.95","7,649.70",Approved,Employee E033
+PO854,8/6/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,8,"1,773.26","14,186.08",Approved,Employee E030
+PO855,8/9/2026,Najd Madar Supplies (fictional),Pest control visit,Facility services,9,693.40,"6,240.60",Approved,Employee E037
+PO856,9/22/2026,Rawabi Masar Trading (fictional),Ready-mix m3,Building materials,109,254.83,"27,776.47",Approved,Employee E028
+PO857,9/27/2026,Waha Taqa Services (fictional),Laptop,IT hardware,2,"4,604.65","9,209.30",Approved,Employee E029
+PO858,9/2/2026,Taqa Shams Trading (fictional),Event catering per head,Catering,270,145.85,"39,379.50",Approved,Employee E027
+PO859,8/20/2026,Shams Madar Contracting (fictional),A4 paper box,Office supplies,272,89.49,"24,341.28",Approved,Employee E017
+PO860,8/3/2026,Buruj Dana Trading (fictional),Monitor 27in,IT hardware,34,"1,218.91","41,442.94",Approved,Employee E016
+PO861,8/12/2026,Qimma Waha Est. (fictional),Office chair,Office supplies,11,755.02,"8,305.22",Approved,Employee E001
+PO862,9/24/2026,Waha Taqa Services (fictional),Monitor 27in,IT hardware,5,"1,110.78","5,553.90",Approved,Employee E025
+PO863,7/16/2026,Nakheel Qimma Supplies (fictional),AC maintenance visit,Facility services,14,892.98,"12,501.72",Approved,Employee E004
+PO864,9/14/2026,Dana Madar Est. (fictional),Staff lunch box,Catering,814,33.56,"27,317.84",Approved,Employee E038
+PO865,7/21/2026,Buruj Noor Solutions (fictional),Office chair,Office supplies,33,808.21,"26,670.93",Approved,Employee E016
+PO866,7/6/2026,Najd Sahab Contracting (fictional),Water carton,Catering,1041,14.97,"15,583.77",Approved,Employee E014
+PO867,9/16/2026,Taqa Shams Trading (fictional),Water carton,Catering,2696,14.95,"40,305.20",Approved,Employee E011
+PO868,8/17/2026,Rawabi Masar Trading (fictional),Rebar ton,Building materials,10,"3,028.14","30,281.40",Approved,Employee E012
+PO869,8/13/2026,Sahab Najd Solutions (fictional),Pest control visit,Facility services,14,634.86,"8,888.04",Approved,Employee E035
+PO870,7/14/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,14,"2,259.08","31,627.12",Approved,Employee E017
+PO871,9/13/2026,Taqa Sahab Services (fictional),Cement bag 50kg,Building materials,262,18.19,"4,765.78",Approved,Employee E030
+PO872,7/30/2026,Wadi Dana Solutions (fictional),Staff lunch box,Catering,212,30.22,"6,406.64",Approved,Employee E028
+PO873,8/24/2026,Sahab Tamayuz Services (fictional),Toner cartridge,Office supplies,11,402.80,"4,430.80",Approved,Employee E002
+PO874,9/16/2026,Waha Madar Est. (fictional),Cement bag 50kg,Building materials,1078,18.11,"19,522.58",Approved,Employee E031
+PO875,9/14/2026,Noor Najd Trading (fictional),Cement bag 50kg,Building materials,936,19.47,"18,223.92",Approved,Employee E016
+PO876,9/14/2026,Najd Najd Contracting (fictional),Office chair,Office supplies,26,817.01,"21,242.26",Approved,Employee E003
+PO877,9/15/2026,Wadi Dana Solutions (fictional),Event catering per head,Catering,239,141.82,"33,894.98",Approved,Employee E018
+PO878,8/19/2026,Shams Madar Contracting (fictional),Toner cartridge,Office supplies,64,449.74,"28,783.36",Approved,Employee E005
+PO879,9/29/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,1,"2,304.57","2,304.57",Approved,Employee E017
+PO880,9/8/2026,Sahab Tamayuz Services (fictional),Toner cartridge,Office supplies,84,425.24,"35,720.16",Approved,Employee E003
+PO881,9/8/2026,Jazeera Noor Supplies (fictional),Pest control visit,Facility services,12,618.08,"7,416.96",Approved,Employee E025
+PO882,9/9/2026,Sarh Noor Services (fictional),Cleaning visit,Facility services,3,"1,455.98","4,367.94",Approved,Employee E009
+PO883,8/4/2026,Rimal Qimma Services (fictional),Event catering per head,Catering,36,147.05,"5,293.80",Approved,Employee E033
+PO884,9/24/2026,Waha Taqa Services (fictional),Network switch,IT hardware,4,"4,181.83","16,727.32",Approved,Employee E012
+PO885,9/3/2026,Noor Masar Contracting (fictional),Monitor 27in,IT hardware,1,"1,165.68","1,165.68",Approved,Employee E001
+PO886,9/13/2026,Qimma Waha Est. (fictional),Toner cartridge,Office supplies,27,403.29,"10,888.83",Approved,Employee E001
+PO887,7/29/2026,Masar Wadi Services (fictional),Pest control visit,Facility services,12,656.01,"7,872.12",Approved,Employee E029
+PO888,7/30/2026,Buruj Dana Trading (fictional),Monitor 27in,IT hardware,19,"1,095.66","20,817.54",Approved,Employee E028
+PO889,9/6/2026,Bina Rawabi Est. (fictional),Laptop,IT hardware,6,"4,835.62","29,013.72",Approved,Employee E030
+PO890,8/24/2026,Shams Madar Contracting (fictional),Office chair,Office supplies,2,819.43,"1,638.86",Approved,Employee E011
+PO891,9/16/2026,Taqa Rimal Solutions (fictional),Cement bag 50kg,Building materials,1047,17.72,"18,552.84",Approved,Employee E009
+PO892,7/30/2026,Buruj Waha Supplies (fictional),Event catering per head,Catering,257,134.35,"34,527.95",Approved,Employee E009
+PO893,7/19/2026,Taqa Noor Solutions (fictional),AC maintenance visit,Facility services,36,884.06,"31,826.16",Approved,Employee E005
+PO894,7/27/2026,Sahab Sarh Est. (fictional),Office chair,Office supplies,43,767.30,"32,993.90",Approved,Employee E011
+PO895,8/27/2026,Shams Noor Trading (fictional),Ready-mix m3,Building materials,67,266.56,"17,859.52",Approved,Employee E001
+PO896,8/4/2026,Jazeera Noor Supplies (fictional),Pest control visit,Facility services,37,676.22,"25,020.14",Approved,Employee E018
+PO897,9/15/2026,Nakheel Qimma Supplies (fictional),Pest control visit,Facility services,23,616.39,"14,176.97",Approved,Employee E033
+PO898,7/26/2026,Rimal Qimma Services (fictional),Staff lunch box,Catering,1153,29.99,"34,578.47",Approved,Employee E028
+PO899,9/30/2026,Waha Taqa Services (fictional),Network switch,IT hardware,5,"3,775.44","18,877.20",Approved,Employee E025
+PO900,7/20/2026,Wadi Dana Solutions (fictional),Staff lunch box,Catering,87,31.94,"2,778.78",Approved,Employee E002
+PO901,8/20/2026,Sarh Rimal Trading (fictional),Toner cartridge,Office supplies,17,451.91,"7,682.47",Approved,Employee E018
+PO902,7/2/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,1,"1,761.51","1,761.51",Approved,Employee E031
+PO903,7/8/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,11,"2,074.12","22,815.32",Approved,Employee E033
+PO904,7/16/2026,Najd Najd Contracting (fictional),Toner cartridge,Office supplies,49,397.23,"19,464.27",Approved,Employee E018
+PO905,9/23/2026,Sarh Rimal Trading (fictional),Office chair,Office supplies,28,793.59,"22,220.52",Approved,Employee E004
+PO906,8/5/2026,Dana Rimal Trading (fictional),Monitor 27in,IT hardware,11,"1,100.86","12,109.46",Approved,Employee E030
+PO907,7/20/2026,Buruj Waha Supplies (fictional),Event catering per head,Catering,73,135.14,"9,865.22",Approved,Employee E018
+PO908,8/23/2026,Masar Wadi Services (fictional),AC maintenance visit,Facility services,23,899.71,"20,693.33",Approved,Employee E001
+PO909,7/14/2026,Sarh Rimal Trading (fictional),Toner cartridge,Office supplies,28,447.15,"12,520.20",Approved,Employee E017
+PO910,8/30/2026,Qimma Waha Est. (fictional),Toner cartridge,Office supplies,25,432.75,"10,818.75",Approved,Employee E009
+PO911,7/7/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,19,"1,708.06","32,453.14",Approved,Employee E031
+PO912,9/15/2026,Taqa Noor Solutions (fictional),AC maintenance visit,Facility services,44,889.93,"39,156.92",Approved,Employee E033
+PO913,8/20/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,69,463.44,"31,977.36",Approved,Employee E012
+PO914,9/30/2026,Madar Jazeera Trading (fictional),Event catering per head,Catering,75,136.19,"10,214.25",Approved,Employee E025
+PO915,8/19/2026,Qimma Waha Est. (fictional),Office chair,Office supplies,10,827.89,"8,278.90",Approved,Employee E033
+PO916,9/20/2026,Buruj Dana Trading (fictional),Laptop,IT hardware,1,"4,861.64","4,861.64",Approved,Employee E014
+PO917,7/5/2026,Madar Jazeera Trading (fictional),Staff lunch box,Catering,148,32.14,"4,756.72",Approved,Employee E009
+PO918,8/4/2026,Dana Rimal Trading (fictional),Network switch,IT hardware,2,"3,647.15","7,294.30",Approved,Employee E010
+PO919,7/16/2026,Taqa Rimal Solutions (fictional),Ready-mix m3,Building materials,17,271.20,"4,610.40",Approved,Employee E007
+PO920,9/8/2026,Tamayuz Jazeera Trading (fictional),Network switch,IT hardware,5,"3,729.46","18,647.30",Approved,Employee E012
+PO921,8/3/2026,Buruj Noor Solutions (fictional),Toner cartridge,Office supplies,65,436.32,"28,360.80",Approved,Employee E007
+PO922,9/6/2026,Madar Jazeera Trading (fictional),Event catering per head,Catering,187,149.02,"27,866.74",Approved,Employee E030
+PO923,7/9/2026,Buruj Noor Solutions (fictional),Toner cartridge,Office supplies,6,448.36,"2,690.16",Approved,Employee E028
+PO924,7/27/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,63,496.90,"31,304.70",Approved,Employee E009
+PO925,7/16/2026,Qimma Waha Est. (fictional),A4 paper box,Office supplies,144,94.56,"13,616.64",Approved,Employee E016
+PO926,9/27/2026,Tamayuz Bina Trading (fictional),Cement bag 50kg,Building materials,1718,18.98,"32,607.64",Approved,Employee E014
+PO927,8/20/2026,Noor Najd Trading (fictional),Ready-mix m3,Building materials,39,263.81,"10,288.59",Approved,Employee E007
+PO928,7/5/2026,Nakheel Qimma Supplies (fictional),AC maintenance visit,Facility services,3,830.39,"2,491.17",Approved,Employee E011
+PO929,9/14/2026,Wadi Dana Solutions (fictional),Staff lunch box,Catering,672,30.06,"20,200.32",Approved,Employee E005
+PO930,9/10/2026,Jazeera Qimma Solutions (fictional),Laptop,IT hardware,2,"4,268.87","8,537.74",Approved,Employee E027
+PO931,8/3/2026,Shams Noor Trading (fictional),Ready-mix m3,Building materials,102,279.92,"28,551.84",Approved,Employee E025
+PO932,7/12/2026,Waha Madar Est. (fictional),Rebar ton,Building materials,13,"2,844.74","36,981.62",Approved,Employee E026
+PO933,7/6/2026,Taqa Sahab Services (fictional),Rebar ton,Building materials,13,"2,916.63","37,916.19",Approved,Employee E028
+PO934,8/10/2026,Waha Taqa Services (fictional),Network switch,IT hardware,9,"3,638.01","32,742.09",Approved,Employee E037
+PO935,9/6/2026,Tamayuz Bina Trading (fictional),Cement bag 50kg,Building materials,1637,17.89,"29,285.93",Approved,Employee E031
+PO936,7/13/2026,Rimal Sahab Supplies (fictional),Cleaning visit,Facility services,2,"1,417.71","2,835.42",Approved,Employee E037
+PO937,9/21/2026,Najd Madar Supplies (fictional),Pest control visit,Facility services,18,687.50,"12,375.00",Approved,Employee E014
+PO938,8/27/2026,Bina Sarh Est. (fictional),A4 paper box,Office supplies,166,99.16,"16,460.56",Approved,Employee E012
+PO939,9/24/2026,Tamayuz Shams Solutions (fictional),Ready-mix m3,Building materials,49,248.93,"12,197.57",Approved,Employee E016
+PO940,7/7/2026,Najd Sahab Contracting (fictional),Event catering per head,Catering,133,155.49,"20,680.17",Approved,Employee E004
+PO941,7/19/2026,Buruj Dana Trading (fictional),Monitor 27in,IT hardware,2,"1,115.07","2,230.14",Approved,Employee E007
+PO942,7/30/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,4,"2,092.86","8,371.44",Approved,Employee E010
+PO943,9/22/2026,Bina Rawabi Est. (fictional),Laptop,IT hardware,2,"4,421.31","8,842.62",Approved,Employee E004
+PO944,8/5/2026,Noor Najd Trading (fictional),Cement bag 50kg,Building materials,260,19.34,"5,028.40",Approved,Employee E007
+PO945,7/23/2026,Jazeera Qimma Solutions (fictional),Laptop,IT hardware,2,"4,836.64","9,673.28",Approved,Employee E014
+PO946,9/20/2026,Nakheel Najd Trading (fictional),Toner cartridge,Office supplies,84,401.66,"33,739.44",Approved,Employee E033
+PO947,7/20/2026,Buruj Waha Supplies (fictional),Water carton,Catering,342,14.03,"4,798.26",Approved,Employee E029
+PO948,7/15/2026,Qimma Waha Est. (fictional),A4 paper box,Office supplies,338,92.08,"31,123.04",Approved,Employee E029
+PO949,7/1/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,22,"1,737.72","38,229.84",Approved,Employee E009
+PO950,7/28/2026,Shams Bina Solutions (fictional),Ready-mix m3,Building materials,57,246.93,"14,075.01",Approved,Employee E003
+PO951,7/22/2026,Sarh Noor Services (fictional),Pest control visit,Facility services,29,685.97,"19,893.13",Approved,Employee E007
+PO952,9/14/2026,Sahab Tamayuz Services (fictional),A4 paper box,Office supplies,354,101.17,"35,814.18",Approved,Employee E033
+PO953,8/19/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,13,"2,024.87","26,323.31",Approved,Employee E025
+PO954,7/9/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,13,"2,087.40","27,136.20",Approved,Employee E001
+PO955,8/17/2026,Sarh Noor Services (fictional),AC maintenance visit,Facility services,28,926.14,"25,931.92",Approved,Employee E018
+PO956,9/30/2026,Qimma Waha Est. (fictional),Toner cartridge,Office supplies,24,393.94,"9,454.56",Approved,Employee E002
+PO957,7/21/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,29,465.88,"13,510.52",Approved,Employee E035
+PO958,7/6/2026,Shams Bina Solutions (fictional),Rebar ton,Building materials,9,"2,839.35","25,554.15",Approved,Employee E027
+PO959,7/13/2026,Shams Bina Solutions (fictional),Rebar ton,Building materials,5,"3,004.08","15,020.40",Approved,Employee E035
+PO960,7/30/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,15,"1,720.11","25,801.65",Approved,Employee E004
+PO961,8/10/2026,Qimma Waha Est. (fictional),A4 paper box,Office supplies,101,92.40,"9,332.40",Approved,Employee E005
+PO962,9/30/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,9,476.98,"4,292.82",Approved,Employee E027
+PO963,9/16/2026,Bina Sarh Est. (fictional),Office chair,Office supplies,32,757.45,"24,238.40",Approved,Employee E002
+PO964,9/22/2026,Taqa Sahab Services (fictional),Rebar ton,Building materials,1,"3,021.91","3,021.91",Approved,Employee E009
+PO965,8/10/2026,Jazeera Qimma Solutions (fictional),Network switch,IT hardware,9,"3,670.83","33,037.47",Approved,Employee E025
+PO966,7/30/2026,Rawabi Masar Trading (fictional),Ready-mix m3,Building materials,59,248.79,"14,678.61",Approved,Employee E004
+PO967,9/1/2026,Dana Rimal Trading (fictional),Network switch,IT hardware,9,"3,897.71","35,079.39",Approved,Employee E002
+PO968,9/13/2026,Jazeera Noor Supplies (fictional),Pest control visit,Facility services,10,600.03,"6,000.30",Approved,Employee E030
+PO969,9/7/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,62,468.50,"29,047.00",Approved,Employee E003
+PO970,7/8/2026,Dana Madar Est. (fictional),Event catering per head,Catering,78,149.87,"11,689.86",Approved,Employee E009
+PO971,9/21/2026,Shams Madar Contracting (fictional),Office chair,Office supplies,18,833.20,"14,997.60",Approved,Employee E001
+PO972,9/14/2026,Qimma Waha Est. (fictional),A4 paper box,Office supplies,101,92.41,"9,333.41",Approved,Employee E005
+PO973,7/20/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,32,470.78,"15,064.96",Approved,Employee E033
+PO974,7/23/2026,Tamayuz Jazeera Trading (fictional),Network switch,IT hardware,5,"3,705.56","18,527.80",Approved,Employee E001
+PO975,9/1/2026,Madar Jazeera Trading (fictional),Water carton,Catering,1647,13.02,"21,443.94",Approved,Employee E035
+PO976,8/4/2026,Nakheel Sarh Solutions (fictional),Network switch,IT hardware,1,"4,090.65","4,090.65",Approved,Employee E017
+PO977,8/31/2026,Rawabi Masar Trading (fictional),Rebar ton,Building materials,7,"2,695.19","18,866.33",Approved,Employee E029
+PO978,8/11/2026,Nakheel Qimma Supplies (fictional),Cleaning visit,Facility services,18,"1,398.59","25,174.62",Approved,Employee E032
+PO979,9/8/2026,Wadi Dana Solutions (fictional),Staff lunch box,Catering,594,29.65,"17,612.10",Approved,Employee E011
+PO980,8/6/2026,Waha Taqa Services (fictional),Monitor 27in,IT hardware,13,"1,108.70","14,413.10",Approved,Employee E032
+PO981,8/25/2026,Dana Rimal Trading (fictional),Network switch,IT hardware,3,"3,808.12","11,424.36",Approved,Employee E035
+PO982,7/19/2026,Dana Rimal Trading (fictional),Monitor 27in,IT hardware,25,"1,210.36","30,259.00",Approved,Employee E032
+PO983,9/14/2026,Bina Taqa Est. (fictional),Water carton,Catering,2066,15.02,"31,031.32",Approved,Employee E033
+PO984,7/27/2026,Sarh Noor Services (fictional),Cleaning visit,Facility services,8,"1,339.35","10,714.80",Approved,Employee E028
+PO985,9/2/2026,Shams Madar Contracting (fictional),Toner cartridge,Office supplies,71,438.11,"31,105.81",Approved,Employee E004
+PO986,7/20/2026,Nakheel Sarh Solutions (fictional),Network switch,IT hardware,1,"4,201.25","4,201.25",Approved,Employee E002
+PO987,9/30/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,4,"1,657.73","6,630.92",Approved,Employee E025
+PO988,8/23/2026,Nakheel Sarh Solutions (fictional),Monitor 27in,IT hardware,11,"1,149.70","12,646.70",Approved,Employee E029
+PO989,7/27/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,8,467.09,"3,736.72",Approved,Employee E004
+PO990,7/2/2026,Dana Rimal Trading (fictional),Laptop,IT hardware,7,"4,264.92","29,854.44",Approved,Employee E028
+PO991,7/15/2026,Rawabi Masar Trading (fictional),Ready-mix m3,Building materials,68,284.88,"19,371.84",Approved,Employee E032
+PO992,7/15/2026,Sahab Sarh Est. (fictional),Toner cartridge,Office supplies,93,445.24,"41,407.32",Approved,Employee E026
+PO993,9/2/2026,Dana Madar Est. (fictional),Event catering per head,Catering,154,136.06,"20,953.24",Approved,Employee E011
+PO994,9/7/2026,Sarh Rimal Trading (fictional),Office chair,Office supplies,44,824.66,"36,285.04",Approved,Employee E028
+PO995,8/27/2026,Dana Rimal Trading (fictional),Network switch,IT hardware,2,"3,941.80","7,883.60",Approved,Employee E032
+PO996,8/31/2026,Dana Rimal Trading (fictional),Monitor 27in,IT hardware,17,"1,136.12","19,314.04",Approved,Employee E002
+PO997,7/13/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,12,"2,315.75","27,789.00",Approved,Employee E026
+PO998,9/2/2026,Jazeera Noor Supplies (fictional),Cleaning visit,Facility services,22,"1,245.56","27,402.32",Approved,Employee E025
+PO999,9/23/2026,Madar Jazeera Trading (fictional),Water carton,Catering,579,14.63,"8,470.77",Approved,Employee E014
+PO1000,9/16/2026,Rawabi Masar Trading (fictional),Ready-mix m3,Building materials,47,247.89,"11,650.83",Approved,Employee E026
+PO1001,9/6/2026,Wadi Dana Solutions (fictional),Event catering per head,Catering,146,152.79,"22,307.34",Approved,Employee E018
+PO1002,7/7/2026,Wadi Dana Solutions (fictional),Event catering per head,Catering,229,138.59,"31,737.11",Approved,Employee E038
+PO1003,8/17/2026,Nakheel Najd Trading (fictional),Office chair,Office supplies,12,727.14,"8,725.68",Approved,Employee E038
+PO1004,9/14/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,10,"1,763.84","17,638.40",Approved,Employee E012
+PO1005,9/27/2026,Waha Taqa Services (fictional),Network switch,IT hardware,4,"4,063.62","16,254.48",Approved,Employee E014
+PO1006,9/9/2026,Bina Rawabi Est. (fictional),Monitor 27in,IT hardware,22,"1,224.37","26,936.14",Approved,Employee E033
+PO1007,9/6/2026,Sarh Rimal Trading (fictional),A4 paper box,Office supplies,295,92.52,"27,293.40",Approved,Employee E033
+PO1008,7/26/2026,Nakheel Najd Trading (fictional),A4 paper box,Office supplies,206,94.85,"19,539.10",Approved,Employee E014
+PO1009,8/18/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,75,514.31,"38,573.25",Approved,Employee E009
+PO1010,8/23/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,41,466.87,"19,141.67",Approved,Employee E004
+PO1011,8/11/2026,Rawabi Masar Trading (fictional),Rebar ton,Building materials,6,"2,927.64","17,565.84",Approved,Employee E027
+PO1012,9/3/2026,Waha Madar Est. (fictional),Ready-mix m3,Building materials,100,275.09,"27,509.00",Approved,Employee E004
+PO1013,8/6/2026,Buruj Dana Services (fictional),Monitor 27in,IT hardware,1,"1,065.73","1,065.73",Approved,Employee E028
+PO1014,7/13/2026,Rimal Sahab Supplies (fictional),AC maintenance visit,Facility services,19,882.45,"16,766.55",Approved,Employee E007
+PO1015,8/5/2026,Sahab Tamayuz Services (fictional),Toner cartridge,Office supplies,13,443.58,"5,766.54",Approved,Employee E026
+PO1016,7/22/2026,Rawabi Masar Trading (fictional),Cement bag 50kg,Building materials,279,18.02,"5,027.58",Approved,Employee E001
+PO1017,8/24/2026,Taqa Shams Trading (fictional),Staff lunch box,Catering,418,32.73,"13,681.14",Approved,Employee E005
+PO1018,8/11/2026,Waha Madar Est. (fictional),Ready-mix m3,Building materials,62,264.80,"16,417.60",Approved,Employee E025
+PO1019,8/17/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,53,456.35,"24,186.55",Approved,Employee E033
+PO1020,7/21/2026,Tamayuz Shams Solutions (fictional),Ready-mix m3,Building materials,112,249.52,"27,946.24",Approved,Employee E011
+PO1021,8/23/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,52,478.27,"24,870.04",Approved,Employee E025
+PO1022,8/11/2026,Dana Madar Est. (fictional),Staff lunch box,Catering,129,34.12,"4,401.48",Approved,Employee E037
+PO1023,7/16/2026,Nakheel Qimma Supplies (fictional),AC maintenance visit,Facility services,23,903.15,"20,772.45",Approved,Employee E027
+PO1024,7/22/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,7,"1,705.77","11,940.39",Approved,Employee E011
+PO1025,8/4/2026,Dana Rimal Trading (fictional),Laptop,IT hardware,1,"4,372.32","4,372.32",Approved,Employee E017
+PO1026,8/25/2026,Madar Jazeera Trading (fictional),Water carton,Catering,730,13.20,"9,636.00",Approved,Employee E007
+PO1027,8/18/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,74,457.71,"33,870.54",Approved,Employee E037
+PO1028,9/29/2026,Waha Taqa Services (fictional),Monitor 27in,IT hardware,19,"1,114.28","21,171.32",Approved,Employee E027
+PO1029,9/2/2026,Taqa Rimal Solutions (fictional),Rebar ton,Building materials,10,"2,627.35","26,273.50",Approved,Employee E003
+PO1030,7/22/2026,Sahab Tamayuz Services (fictional),Toner cartridge,Office supplies,88,452.66,"39,834.08",Approved,Employee E002
+PO1031,9/6/2026,Sarh Qimma Services (fictional),Event catering per head,Catering,86,145.95,"12,551.70",Approved,Employee E025
+PO1032,7/21/2026,Shams Madar Contracting (fictional),Toner cartridge,Office supplies,12,386.76,"4,641.12",Approved,Employee E003
+PO1033,9/29/2026,Masar Wadi Services (fictional),Pest control visit,Facility services,32,695.99,"22,271.68",Approved,Employee E009
+PO1034,8/12/2026,Buruj Waha Supplies (fictional),Staff lunch box,Catering,592,33.02,"19,547.84",Approved,Employee E007
+PO1035,9/28/2026,Taqa Rimal Solutions (fictional),Rebar ton,Building materials,2,"2,945.55","5,891.10",Approved,Employee E025
+PO1036,8/24/2026,Nakheel Sarh Solutions (fictional),Monitor 27in,IT hardware,6,"1,103.74","6,622.44",Approved,Employee E002
+PO1037,7/13/2026,Qimma Waha Est. (fictional),A4 paper box,Office supplies,136,94.17,"12,807.12",Approved,Employee E005
+PO1038,7/6/2026,Nakheel Najd Trading (fictional),A4 paper box,Office supplies,42,100.34,"4,214.28",Approved,Employee E028
+PO1039,7/5/2026,Sarh Qimma Services (fictional),Event catering per head,Catering,246,140.06,"34,454.76",Approved,Employee E009
+PO1040,8/13/2026,Taqa Rimal Solutions (fictional),Ready-mix m3,Building materials,43,266.19,"11,446.17",Approved,Employee E033
+PO1041,7/30/2026,Sahab Tamayuz Services (fictional),Office chair,Office supplies,37,745.07,"27,567.59",Approved,Employee E035
+PO1042,7/9/2026,Bina Taqa Est. (fictional),Event catering per head,Catering,195,142.16,"27,721.20",Approved,Employee E016
+PO1043,8/18/2026,Taqa Rimal Solutions (fictional),Cement bag 50kg,Building materials,477,18.57,"8,857.89",Approved,Employee E028
+PO1044,8/18/2026,Jazeera Qimma Solutions (fictional),Laptop,IT hardware,1,"4,639.59","4,639.59",Approved,Employee E005
+PO1045,8/10/2026,Waha Madar Est. (fictional),Rebar ton,Building materials,6,"2,854.39","17,126.34",Approved,Employee E012
+PO1046,7/16/2026,Noor Masar Contracting (fictional),Laptop,IT hardware,5,"4,346.34","21,731.70",Approved,Employee E007
+PO1047,9/21/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,32,480.10,"15,363.20",Approved,Employee E004
+PO1048,9/16/2026,Buruj Dana Services (fictional),Laptop,IT hardware,1,"4,409.89","4,409.89",Approved,Employee E029
+PO1049,7/12/2026,Taqa Shams Trading (fictional),Water carton,Catering,160,13.73,"2,196.80",Approved,Employee E004
+PO1050,8/13/2026,Najd Sahab Contracting (fictional),Water carton,Catering,1942,13.19,"25,614.98",Approved,Employee E025
+PO1051,7/15/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,14,"2,193.79","30,713.06",Approved,Employee E001
+PO1052,8/23/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,58,504.28,"29,248.24",Approved,Employee E038
+PO1053,9/7/2026,Rimal Sahab Supplies (fictional),AC maintenance visit,Facility services,40,870.36,"34,814.40",Approved,Employee E012
+PO1054,7/29/2026,Taqa Sahab Services (fictional),Rebar ton,Building materials,10,"2,921.66","29,216.60",Approved,Employee E001
+PO1055,9/24/2026,Dana Rimal Trading (fictional),Network switch,IT hardware,1,"3,857.63","3,857.63",Approved,Employee E012
+PO1056,7/28/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,48,482.82,"23,175.36",Approved,Employee E010
+PO1057,8/18/2026,Sarh Qimma Services (fictional),Event catering per head,Catering,141,137.06,"19,325.46",Approved,Employee E003
+PO1058,8/25/2026,Jazeera Noor Supplies (fictional),Cleaning visit,Facility services,13,"1,375.24","17,878.12",Approved,Employee E038
+PO1059,8/24/2026,Rawabi Masar Trading (fictional),Ready-mix m3,Building materials,62,256.03,"15,873.86",Approved,Employee E038
+PO1060,9/24/2026,Tamayuz Jazeera Trading (fictional),Network switch,IT hardware,4,"3,784.96","15,139.84",Approved,Employee E004
+PO1061,8/13/2026,Sahab Tamayuz Services (fictional),Office chair,Office supplies,37,798.90,"29,559.30",Approved,Employee E012
+PO1062,8/31/2026,Nakheel Qimma Supplies (fictional),AC maintenance visit,Facility services,4,923.20,"3,692.80",Approved,Employee E027
+PO1063,9/9/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,9,"2,160.03","19,440.27",Approved,Employee E010
+PO1064,7/22/2026,Shams Bina Solutions (fictional),Ready-mix m3,Building materials,112,251.64,"28,183.68",Approved,Employee E032
+PO1065,8/20/2026,Noor Najd Trading (fictional),Cement bag 50kg,Building materials,728,17.72,"12,900.16",Approved,Employee E025
+PO1066,8/5/2026,Waha Madar Est. (fictional),Cement bag 50kg,Building materials,1066,18.98,"20,232.68",Approved,Employee E007
+PO1067,7/22/2026,Nakheel Najd Trading (fictional),Office chair,Office supplies,21,789.63,"16,582.23",Approved,Employee E038
+PO1068,9/15/2026,Shams Noor Trading (fictional),Ready-mix m3,Building materials,109,286.18,"31,193.62",Approved,Employee E001
+PO1069,7/9/2026,Rawabi Masar Trading (fictional),Cement bag 50kg,Building materials,161,19.81,"3,189.41",Approved,Employee E004
+PO1070,9/15/2026,Qimma Waha Est. (fictional),Office chair,Office supplies,9,795.82,"7,162.38",Approved,Employee E011
+PO1071,9/13/2026,Taqa Shams Trading (fictional),Staff lunch box,Catering,397,33.35,"13,239.95",Approved,Employee E002
+PO1072,9/8/2026,Sarh Qimma Services (fictional),Staff lunch box,Catering,409,32.19,"13,165.71",Approved,Employee E002
+PO1073,9/15/2026,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,5,"2,170.76","10,853.80",Approved,Employee E003
+PO1074,8/27/2026,Sahab Tamayuz Services (fictional),A4 paper box,Office supplies,376,88.71,"33,354.96",Approved,Employee E032
+PO1075,7/5/2026,Madar Jazeera Trading (fictional),Staff lunch box,Catering,349,34.19,"11,932.31",Approved,Employee E025
+PO1076,9/24/2026,Bina Sarh Est. (fictional),Toner cartridge,Office supplies,11,448.53,"4,933.83",Approved,Employee E010
+PO1077,7/15/2026,Tamayuz Shams Solutions (fictional),Rebar ton,Building materials,13,"2,805.80","36,475.40",Approved,Employee E002
+PO1078,7/21/2026,Sahab Tamayuz Services (fictional),Toner cartridge,Office supplies,66,411.86,"27,182.76",Approved,Employee E001
+PO1079,9/1/2026,Jazeera Noor Supplies (fictional),AC maintenance visit,Facility services,20,872.60,"17,452.00",Approved,Employee E010
+PO1080,7/2/2026,Taqa Shams Trading (fictional),Event catering per head,Catering,224,147.85,"33,118.40",Approved,Employee E005
+PO1081,8/23/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,3,442.17,"1,326.51",Approved,Employee E038
+PO1082,7/22/2026,Tamayuz Bina Trading (fictional),Cement bag 50kg,Building materials,1718,17.93,"30,803.74",Approved,Employee E029
+PO1083,9/21/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,48,480.84,"23,080.32",Approved,Employee E002
+PO1084,8/3/2026,Bina Taqa Est. (fictional),Staff lunch box,Catering,495,34.03,"16,844.85",Approved,Employee E009
+PO1085,8/13/2026,Najd Sahab Contracting (fictional),Staff lunch box,Catering,1225,32.82,"40,204.50",Approved,Employee E003
+PO1086,9/16/2026,Jazeera Noor Supplies (fictional),Pest control visit,Facility services,18,644.30,"11,597.40",Approved,Employee E012
+PO1087,8/10/2026,Madar Jazeera Trading (fictional),Staff lunch box,Catering,1084,33.54,"36,357.36",Approved,Employee E005
+PO1088,7/26/2026,Noor Masar Contracting (fictional),Network switch,IT hardware,4,"3,972.69","15,890.76",Approved,Employee E032
+PO1089,9/27/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,60,442.21,"26,532.60",Approved,Employee E016
+PO1090,8/20/2026,Tamayuz Shams Solutions (fictional),Ready-mix m3,Building materials,24,285.65,"6,855.60",Approved,Employee E004
+PO1091,8/5/2026,Dana Rimal Trading (fictional),Network switch,IT hardware,6,"3,610.67","21,664.02",Approved,Employee E033
+PO1092,7/14/2026,Taqa Rimal Solutions (fictional),Cement bag 50kg,Building materials,735,17.50,"12,862.50",Approved,Employee E011
+PO1093,8/12/2026,Taqa Sahab Services (fictional),Rebar ton,Building materials,4,"3,055.64","12,222.56",Approved,Employee E038
+PO1094,8/23/2026,Rimal Madar Contracting (fictional),Access card batch,Security services,10,"1,673.56","16,735.60",Approved,Employee E038
+PO1095,7/16/2026,Sarh Noor Services (fictional),AC maintenance visit,Facility services,25,846.98,"21,174.50",Approved,Employee E033
+PO1096,9/7/2026,Bina Afaq Contracting (fictional),Cleaning visit,Facility services,4,"1,327.31","5,309.24",Approved,Employee E029
+PO1097,8/31/2026,Bina Afaq Contracting (fictional),Pest control visit,Facility services,45,631.76,"28,429.20",Approved,Employee E010
+PO1098,9/20/2026,Buruj Dana Trading (fictional),Laptop,IT hardware,5,"4,403.00","22,015.00",Approved,Employee E026
+PO1099,9/24/2026,Najd Sahab Contracting (fictional),Event catering per head,Catering,32,142.35,"4,555.20",Approved,Employee E037
+PO1100,8/11/2026,Masar Wadi Services (fictional),Cleaning visit,Facility services,22,"1,400.09","30,801.98",Approved,Employee E010
+PO1101,7/22/2026,Nakheel Najd Trading (fictional),A4 paper box,Office supplies,463,100.62,"46,587.06",Approved,Employee E017
+PO1102,7/26/2026,Nakheel Najd Trading (fictional),A4 paper box,Office supplies,491,97.91,"48,073.81",Approved,Employee E017
+PO1103,7/26/2026,Nakheel Najd Trading (fictional),A4 paper box,Office supplies,513,88.90,"45,605.70",Approved,Employee E017
+PO1104,9/16/2026,Waha Madar Est. (fictional),Cement bag 50kg,Building materials,482,18.35,"8,844.70",Approved,Employee E025
+PO1105,9/20/2026,Waha Madar Est. (fictional),Cement bag 50kg,Building materials,444,20.43,"9,070.92",Approved,Employee E025
+PO1106,9/20/2026,Waha Madar Est. (fictional),Cement bag 50kg,Building materials,458,19.87,"9,100.46",Approved,Employee E025
+PO1107,8/3/2026,Taqa Quick Est. (fictional),Laptop,IT hardware,1,"4,925.78","4,925.78",Approved,Employee E017
+PO1108,8/17/2026,Dana Quick Contracting (fictional),Cleaning visit,Facility services,23,"1,442.28","33,172.44",Approved,Employee E018
+PO1109,7/30/2026,Bina Taqa Est. (fictional),Event catering per head,Catering,233,342.19,"79,730.27",Approved,Employee E035
+PO1110,9/13/2026,Bina Taqa Est. (fictional),Event catering per head,Catering,22,265.19,"5,834.18",Approved,Employee E035
+PO1111,9/8/2026,Rimal Qimma Services (fictional),Water carton,Catering,2676,24.95,"66,766.20",Approved,Employee E032
+PO1112,8/17/2026,Najd Sahab Contracting (fictional),Event catering per head,Catering,216,288.67,"62,352.72",Approved,Employee E029
+PO1113,8/4/2026,Shams Noor Trading (fictional),Cement bag 50kg,Building materials,84,32.31,"2,714.04",Approved,Employee E010
+PO1114,7/14/2026,Dana Madar Est. (fictional),Water carton,Catering,1500,30.93,"46,395.00",Approved,Employee E007
+PO1115,7/21/2026,Dana Rawabi Est. (fictional),Guard shift,Security services,78,515.19,"40,184.82",Approved,Employee E015
+PO1116,9/10/2026,Jazeera Noor Supplies (fictional),Cleaning visit,Facility services,5,"1,245.75","6,228.75",Approved,Employee E023
+PO1117,8/30/2026,Rimal Madar Contracting (fictional),Guard shift,Security services,81,479.25,"38,819.25",Approved,Employee E038
+PO1118,8/5/2026,Bina Afaq Contracting (fictional),Cleaning visit,Facility services,29,"1,287.85","37,347.65",Approved,Employee E038
+PO1119,7/20/2026,Rimal Sahab Supplies (fictional),Cleaning visit,Facility services,4,"1,255.22","5,020.88",Approved,Employee E004
+PO1120,7/8/2026,Najd Madar Supplies (fictional),Monthly maintenance contract,Facility services,1,"25,000.00","25,000.00",Approved,Employee E004
+PO1121,7/5/2026,Najd Madar Supplies (fictional),Monthly maintenance contract,Facility services,1,"20,000.00","20,000.00",Approved,Employee E004
+PO1122,9/6/2026,Najd Madar Supplies (fictional),Monthly maintenance contract,Facility services,1,"15,000.00","15,000.00",Approved,Employee E007
+PO1123,9/28/2026,Najd Madar Supplies (fictional),Monthly maintenance contract,Facility services,1,"30,000.00","30,000.00",Approved,Employee E007
+PO1124,8/27/2026,Najd Madar Supplies (fictional),Monthly maintenance contract,Facility services,1,"30,000.00","30,000.00",Approved,Employee E012
+PO99999,7/2/2026,Bina Taqa Est. (fictional),Event catering per head,Catering,29,148.55,"99,999.00",Pending Supervisor Approval,Employee E012

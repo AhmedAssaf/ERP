@@ -89,7 +89,10 @@ def r1_split(pos, limits):
     pos = po_totals(pos)
     for limit in sorted(limits["limit_sar"]):
         band = pos[(pos["amount"] >= limit * SPLIT_BAND) & (pos["amount"] < limit)]
-        for (vendor, requester), g in band.groupby(["vendor_id", "requester_id"]):
+        for (vendor, requester), g in band.groupby(["vendor_id", "requester_id"], dropna=False):
+            # Without a requester, orders from different people look alike: ask for three, not two.
+            known = pd.notna(requester) and str(requester) != ""
+            who = requester if known else "an unknown requester"
             g = g.sort_values("po_date")
             used = set()
             for i, row in g.iterrows():
@@ -97,10 +100,10 @@ def r1_split(pos, limits):
                     continue
                 window = g[(g["po_date"] >= row["po_date"]) &
                            (g["po_date"] <= row["po_date"] + pd.Timedelta(days=SPLIT_WINDOW_DAYS))]
-                if len(window) >= 2 and window["amount"].sum() >= limit:
+                if len(window) >= (2 if known else 3) and window["amount"].sum() >= limit:
                     used.update(window.index)
                     out.append(finding("R1", ";".join(window["po_id"]), vendor, window["amount"].sum(),
-                                       f"{len(window)} POs by {requester} within {SPLIT_WINDOW_DAYS} days, "
+                                       f"{len(window)} POs by {who} within {SPLIT_WINDOW_DAYS} days, "
                                        f"each just under the SAR {limit:,.0f} limit, together "
                                        f"SAR {window['amount'].sum():,.0f}"))
     return out
@@ -159,7 +162,7 @@ def r5_new_vendor(ven, inv):
     first_paid = inv.groupby("vendor_id")["paid_date"].min()
     for _, v in ven.iterrows():
         paid = first_paid.get(v["vendor_id"])
-        if pd.notna(paid) and pd.notna(v["created_date"]) and (paid - v["created_date"]).days <= NEW_VENDOR_DAYS:
+        if pd.notna(paid) and pd.notna(v["created_date"]) and 0 <= (paid - v["created_date"]).days <= NEW_VENDOR_DAYS:
             amount = inv.loc[inv["vendor_id"] == v["vendor_id"], "amount"].sum()
             out.append(finding("R5", v["vendor_id"], v["vendor_id"], amount,
                                f"Created {v['created_date']:%Y-%m-%d}, first paid {paid:%Y-%m-%d} "
@@ -228,15 +231,16 @@ def run(inp, out_dir):
     df["vendor_name"] = df["vendor_id"].map(names)
     df = df.sort_values(["amount_sar"], ascending=False).reset_index(drop=True)
     df.insert(0, "finding", [f"F-{i + 1:03d}" for i in range(len(df))])
-    out_dir.mkdir(exist_ok=True)
+    out_dir.mkdir(parents=True, exist_ok=True)
     df.to_csv(out_dir / "findings.csv", index=False, encoding="utf-8-sig")
     stats = {"pos": pos["po_id"].nunique(), "spend": pos["amount"].sum(), "invoices": len(inv), "vendors": len(ven),
              "from": pos["po_date"].min(), "to": pos["po_date"].max()}
     (out_dir / "report.html").write_text(report(df, stats), encoding="utf-8")
     check = inp / "answer_key.csv"
-    if check.exists():
-        score(df, pd.read_csv(check, dtype=str))
+    scored = score(df, pd.read_csv(check, dtype=str)) if check.exists() else None
     print(f"{len(df)} findings, SAR {df['amount_sar'].sum():,.0f} involved -> {out_dir / 'report.html'}")
+    return {"findings": len(df), "amount": df["amount_sar"].sum(), "rules": df.groupby("rule").size().to_dict(),
+            "hit": scored[0] if scored else None, "planted": scored[1] if scored else None}
 
 
 def score(df, key):
@@ -252,6 +256,7 @@ def score(df, key):
         if not found:
             print(f"  MISSED {k['rule']}: {k['reference']}")
     print(f"Answer key: {hit} of {len(key)} planted anomalies found")
+    return hit, len(key)
 
 
 CSS = """

@@ -1,0 +1,1126 @@
+Purchase Order Date,Purchase Order Number,Purchase Order Status,Vendor Name,Item Name,Account,QuantityOrdered,Rate,Item Total
+2026-07-02,PO-00001,Billed,Bina Taqa Est. (fictional),Event catering per head,Catering,29,148.55,4307.95
+2026-07-06,PO-00002,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,55,491.62,27039.1
+2026-08-05,PO-00003,Billed,Waha Taqa Services (fictional),Network switch,IT hardware,8,4015.97,32127.76
+2026-09-02,PO-00004,Billed,Noor Najd Trading (fictional),Rebar ton,Building materials,2,2821.85,5643.7
+2026-07-02,PO-00005,Billed,Jazeera Qimma Solutions (fictional),Laptop,IT hardware,7,4963.2,34742.4
+2026-08-17,PO-00006,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,4,1570.01,6280.04
+2026-09-14,PO-00007,Billed,Jazeera Noor Supplies (fictional),AC maintenance visit,Facility services,26,901.68,23443.68
+2026-07-02,PO-00008,Billed,Noor Najd Trading (fictional),Rebar ton,Building materials,6,2845.56,17073.36
+2026-09-28,PO-00009,Billed,Taqa Shams Trading (fictional),Water carton,Catering,2045,14.4,29448.0
+2026-08-03,PO-00010,Billed,Jazeera Noor Supplies (fictional),AC maintenance visit,Facility services,18,855.06,15391.08
+2026-07-26,PO-00011,Billed,Sarh Noor Services (fictional),Cleaning visit,Facility services,9,1329.95,11969.55
+2026-08-13,PO-00012,Billed,Najd Najd Contracting (fictional),Office chair,Office supplies,39,724.42,28252.38
+2026-09-14,PO-00013,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,6,2268.26,13609.56
+2026-08-27,PO-00014,Billed,Buruj Dana Services (fictional),Network switch,IT hardware,5,4046.91,20234.55
+2026-09-20,PO-00015,Billed,Qimma Waha Est. (fictional),A4 paper box,Office supplies,100,92.33,9233.0
+2026-08-09,PO-00016,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,11,1832.56,20158.16
+2026-09-09,PO-00017,Billed,Dana Rimal Trading (fictional),Monitor 27in,IT hardware,34,1083.01,36822.34
+2026-08-23,PO-00018,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,69,464.32,32038.08
+2026-07-27,PO-00019,Billed,Taqa Sahab Services (fictional),Cement bag 50kg,Building materials,1247,18.08,22545.76
+2026-09-07,PO-00020,Billed,Shams Bina Solutions (fictional),Cement bag 50kg,Building materials,740,19.86,14696.4
+2026-09-20,PO-00021,Billed,Wadi Dana Solutions (fictional),Staff lunch box,Catering,913,29.56,26988.28
+2026-08-13,PO-00022,Billed,Buruj Waha Supplies (fictional),Water carton,Catering,1189,13.75,16348.75
+2026-09-08,PO-00023,Billed,Bina Sarh Est. (fictional),A4 paper box,Office supplies,162,102.54,16611.48
+2026-07-29,PO-00024,Billed,Noor Najd Trading (fictional),Cement bag 50kg,Building materials,1356,20.44,27716.64
+2026-07-23,PO-00025,Billed,Rawabi Masar Trading (fictional),Rebar ton,Building materials,6,3061.21,18367.26
+2026-09-30,PO-00026,Billed,Noor Masar Contracting (fictional),Laptop,IT hardware,1,4920.43,4920.43
+2026-08-13,PO-00027,Billed,Jazeera Noor Supplies (fictional),AC maintenance visit,Facility services,35,858.09,30033.15
+2026-07-30,PO-00028,Billed,Najd Najd Contracting (fictional),A4 paper box,Office supplies,165,99.71,16452.15
+2026-08-10,PO-00029,Billed,Dana Rimal Trading (fictional),Monitor 27in,IT hardware,3,1179.67,3539.01
+2026-09-30,PO-00030,Billed,Sahab Tamayuz Services (fictional),Toner cartridge,Office supplies,71,389.45,27650.95
+2026-07-01,PO-00031,Billed,Bina Taqa Est. (fictional),Staff lunch box,Catering,219,31.73,6948.87
+2026-09-09,PO-00032,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,67,516.64,34614.88
+2026-08-13,PO-00033,Billed,Madar Jazeera Trading (fictional),Water carton,Catering,2061,14.69,30276.09
+2026-07-21,PO-00034,Billed,Jazeera Noor Supplies (fictional),Cleaning visit,Facility services,16,1364.93,21838.88
+2026-08-23,PO-00035,Billed,Rawabi Masar Trading (fictional),Cement bag 50kg,Building materials,2050,18.98,38909.0
+2026-07-12,PO-00036,Billed,Wadi Dana Solutions (fictional),Water carton,Catering,537,13.11,7040.07
+2026-08-31,PO-00037,Billed,Tamayuz Jazeera Trading (fictional),Laptop,IT hardware,5,4523.54,22617.7
+2026-09-08,PO-00038,Billed,Bina Afaq Contracting (fictional),Pest control visit,Facility services,7,693.26,4852.82
+2026-07-05,PO-00039,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,38,516.18,19614.84
+2026-08-31,PO-00040,Billed,Taqa Rimal Solutions (fictional),Cement bag 50kg,Building materials,1285,17.84,22924.4
+2026-07-16,PO-00041,Billed,Buruj Dana Trading (fictional),Monitor 27in,IT hardware,20,1137.32,22746.4
+2026-08-23,PO-00042,Billed,Najd Najd Contracting (fictional),A4 paper box,Office supplies,414,93.31,38630.34
+2026-08-12,PO-00043,Billed,Waha Madar Est. (fictional),Rebar ton,Building materials,4,2961.88,11847.52
+2026-08-24,PO-00044,Billed,Rimal Sahab Supplies (fictional),AC maintenance visit,Facility services,34,937.87,31887.58
+2026-07-28,PO-00045,Billed,Bina Afaq Contracting (fictional),Cleaning visit,Facility services,15,1268.03,19020.45
+2026-07-15,PO-00046,Billed,Taqa Shams Trading (fictional),Water carton,Catering,959,14.9,14289.1
+2026-09-27,PO-00047,Billed,Rimal Sahab Supplies (fictional),Pest control visit,Facility services,19,671.58,12760.02
+2026-09-02,PO-00048,Billed,Noor Najd Trading (fictional),Cement bag 50kg,Building materials,1874,19.91,37311.34
+2026-08-23,PO-00049,Billed,Taqa Noor Solutions (fictional),AC maintenance visit,Facility services,7,936.37,6554.59
+2026-08-27,PO-00050,Billed,Bina Rawabi Est. (fictional),Monitor 27in,IT hardware,8,1167.83,9342.64
+2026-08-24,PO-00051,Billed,Madar Jazeera Trading (fictional),Water carton,Catering,648,13.96,9046.08
+2026-08-30,PO-00052,Billed,Sarh Qimma Services (fictional),Water carton,Catering,2156,13.35,28782.6
+2026-08-02,PO-00053,Billed,Noor Najd Trading (fictional),Ready-mix m3,Building materials,7,271.01,1897.07
+2026-07-05,PO-00054,Billed,Bina Afaq Contracting (fictional),Cleaning visit,Facility services,28,1330.84,37263.52
+2026-08-31,PO-00055,Billed,Noor Najd Trading (fictional),Cement bag 50kg,Building materials,937,17.78,16659.86
+2026-08-30,PO-00056,Billed,Qimma Waha Est. (fictional),Office chair,Office supplies,4,791.77,3167.08
+2026-09-01,PO-00057,Billed,Buruj Noor Solutions (fictional),Toner cartridge,Office supplies,58,450.81,26146.98
+2026-09-23,PO-00058,Billed,Wadi Dana Solutions (fictional),Staff lunch box,Catering,266,30.91,8222.06
+2026-09-09,PO-00059,Billed,Taqa Sahab Services (fictional),Rebar ton,Building materials,8,2959.73,23677.84
+2026-07-30,PO-00060,Billed,Bina Taqa Est. (fictional),Event catering per head,Catering,177,155.15,27461.55
+2026-08-26,PO-00061,Billed,Dana Rimal Trading (fictional),Laptop,IT hardware,4,4443.06,17772.24
+2026-07-13,PO-00062,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,16,2159.61,34553.76
+2026-08-06,PO-00063,Billed,Qimma Waha Est. (fictional),A4 paper box,Office supplies,147,90.98,13374.06
+2026-08-17,PO-00064,Billed,Buruj Noor Solutions (fictional),A4 paper box,Office supplies,263,100.59,26455.17
+2026-07-26,PO-00065,Billed,Wadi Dana Solutions (fictional),Staff lunch box,Catering,167,29.51,4928.17
+2026-09-02,PO-00066,Billed,Nakheel Qimma Supplies (fictional),AC maintenance visit,Facility services,39,839.74,32749.86
+2026-07-26,PO-00067,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,24,444.4,10665.6
+2026-08-20,PO-00068,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,3,2330.95,6992.85
+2026-08-24,PO-00069,Billed,Dana Madar Est. (fictional),Staff lunch box,Catering,508,33.0,16764.0
+2026-08-12,PO-00070,Billed,Dana Madar Est. (fictional),Staff lunch box,Catering,705,33.05,23300.25
+2026-09-28,PO-00071,Billed,Shams Noor Trading (fictional),Cement bag 50kg,Building materials,1886,17.87,33702.82
+2026-07-23,PO-00072,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,21,1668.14,35030.94
+2026-07-27,PO-00073,Billed,Buruj Dana Trading (fictional),Network switch,IT hardware,1,3673.22,3673.22
+2026-08-06,PO-00074,Billed,Jazeera Qimma Solutions (fictional),Network switch,IT hardware,6,3771.58,22629.48
+2026-07-20,PO-00075,Billed,Noor Masar Contracting (fictional),Monitor 27in,IT hardware,25,1231.0,30775.0
+2026-08-20,PO-00076,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,14,1769.93,24779.02
+2026-07-15,PO-00077,Billed,Qimma Waha Est. (fictional),Office chair,Office supplies,5,730.31,3651.55
+2026-07-14,PO-00078,Billed,Nakheel Sarh Solutions (fictional),Laptop,IT hardware,3,4310.7,12932.1
+2026-09-09,PO-00079,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,73,510.05,37233.65
+2026-08-05,PO-00080,Billed,Sarh Qimma Services (fictional),Event catering per head,Catering,148,144.73,21420.04
+2026-07-14,PO-00081,Billed,Taqa Sahab Services (fictional),Ready-mix m3,Building materials,97,246.52,23912.44
+2026-07-05,PO-00082,Billed,Nakheel Sarh Solutions (fictional),Network switch,IT hardware,6,4086.49,24518.94
+2026-07-05,PO-00083,Billed,Sarh Rimal Trading (fictional),Toner cartridge,Office supplies,24,431.81,10363.44
+2026-08-05,PO-00084,Billed,Buruj Noor Solutions (fictional),A4 paper box,Office supplies,177,97.16,17197.32
+2026-08-12,PO-00085,Billed,Sahab Sarh Est. (fictional),Toner cartridge,Office supplies,56,394.92,22115.52
+2026-07-13,PO-00086,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,3,1580.71,4742.13
+2026-09-21,PO-00087,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,17,1778.0,30226.0
+2026-08-10,PO-00088,Billed,Najd Najd Contracting (fictional),Toner cartridge,Office supplies,46,394.72,18157.12
+2026-07-12,PO-00089,Billed,Rimal Qimma Services (fictional),Water carton,Catering,349,13.43,4687.07
+2026-08-24,PO-00090,Billed,Dana Rimal Trading (fictional),Laptop,IT hardware,1,4696.55,4696.55
+2026-09-16,PO-00091,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,69,458.02,31603.38
+2026-07-13,PO-00092,Billed,Wadi Dana Solutions (fictional),Event catering per head,Catering,105,146.71,15404.55
+2026-09-28,PO-00093,Billed,Qimma Waha Est. (fictional),Office chair,Office supplies,42,722.63,30350.46
+2026-08-17,PO-00094,Billed,Buruj Noor Solutions (fictional),Office chair,Office supplies,47,748.51,35179.97
+2026-08-04,PO-00095,Billed,Nakheel Qimma Supplies (fictional),AC maintenance visit,Facility services,42,892.1,37468.2
+2026-09-28,PO-00096,Billed,Jazeera Noor Supplies (fictional),Cleaning visit,Facility services,12,1315.41,15784.92
+2026-09-21,PO-00097,Billed,Sahab Sarh Est. (fictional),A4 paper box,Office supplies,372,89.72,33375.84
+2026-07-20,PO-00098,Billed,Buruj Dana Trading (fictional),Monitor 27in,IT hardware,11,1211.12,13322.32
+2026-09-21,PO-00099,Billed,Nakheel Najd Trading (fictional),Toner cartridge,Office supplies,76,393.54,29909.04
+2026-08-26,PO-00100,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,76,472.93,35942.68
+2026-08-30,PO-00101,Billed,Sarh Noor Services (fictional),AC maintenance visit,Facility services,7,872.83,6109.81
+2026-08-20,PO-00102,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,15,2142.4,32136.0
+2026-09-28,PO-00103,Billed,Buruj Noor Solutions (fictional),A4 paper box,Office supplies,372,90.62,33710.64
+2026-08-03,PO-00104,Billed,Dana Madar Est. (fictional),Event catering per head,Catering,22,135.18,2973.96
+2026-09-06,PO-00105,Billed,Tamayuz Shams Solutions (fictional),Rebar ton,Building materials,11,2916.21,32078.31
+2026-07-28,PO-00106,Billed,Bina Rawabi Est. (fictional),Laptop,IT hardware,5,4877.33,24386.65
+2026-07-19,PO-00107,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,71,476.53,33833.63
+2026-09-28,PO-00108,Billed,Sahab Sarh Est. (fictional),A4 paper box,Office supplies,382,91.67,35017.94
+2026-08-16,PO-00109,Billed,Bina Taqa Est. (fictional),Event catering per head,Catering,267,136.92,36557.64
+2026-09-10,PO-00110,Billed,Dana Madar Est. (fictional),Staff lunch box,Catering,810,30.12,24397.2
+2026-09-14,PO-00111,Billed,Taqa Rimal Solutions (fictional),Ready-mix m3,Building materials,49,259.98,12739.02
+2026-08-19,PO-00112,Billed,Buruj Dana Trading (fictional),Network switch,IT hardware,5,4204.3,21021.5
+2026-09-21,PO-00113,Billed,Nakheel Najd Trading (fictional),A4 paper box,Office supplies,63,93.85,5912.55
+2026-09-09,PO-00114,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,16,1707.64,27322.24
+2026-07-02,PO-00115,Billed,Najd Madar Supplies (fictional),Cleaning visit,Facility services,4,1409.65,5638.6
+2026-09-15,PO-00116,Billed,Rawabi Masar Trading (fictional),Cement bag 50kg,Building materials,1905,18.27,34804.35
+2026-08-06,PO-00117,Billed,Shams Madar Contracting (fictional),Toner cartridge,Office supplies,48,389.68,18704.64
+2026-07-29,PO-00118,Billed,Madar Jazeera Trading (fictional),Event catering per head,Catering,130,139.66,18155.8
+2026-07-13,PO-00119,Billed,Noor Masar Contracting (fictional),Laptop,IT hardware,2,4344.37,8688.74
+2026-07-22,PO-00120,Billed,Sahab Najd Solutions (fictional),Pest control visit,Facility services,2,614.16,1228.32
+2026-08-10,PO-00121,Billed,Dana Madar Est. (fictional),Staff lunch box,Catering,193,29.83,5757.19
+2026-08-03,PO-00122,Billed,Rimal Qimma Services (fictional),Water carton,Catering,1140,13.46,15344.4
+2026-08-24,PO-00123,Billed,Shams Noor Trading (fictional),Ready-mix m3,Building materials,18,254.79,4586.22
+2026-09-15,PO-00124,Billed,Rimal Sahab Supplies (fictional),AC maintenance visit,Facility services,28,902.06,25257.68
+2026-08-12,PO-00125,Billed,Dana Rimal Trading (fictional),Monitor 27in,IT hardware,30,1117.99,33539.7
+2026-08-11,PO-00126,Billed,Nakheel Sarh Solutions (fictional),Network switch,IT hardware,1,3653.95,3653.95
+2026-08-19,PO-00127,Billed,Dana Rimal Trading (fictional),Monitor 27in,IT hardware,22,1132.74,24920.28
+2026-08-04,PO-00128,Billed,Shams Noor Trading (fictional),Ready-mix m3,Building materials,105,247.41,25978.05
+2026-09-02,PO-00129,Billed,Sarh Noor Services (fictional),Pest control visit,Facility services,4,668.19,2672.76
+2026-09-13,PO-00130,Billed,Buruj Dana Trading (fictional),Network switch,IT hardware,2,4136.85,8273.7
+2026-08-20,PO-00131,Billed,Jazeera Qimma Solutions (fictional),Network switch,IT hardware,7,4104.28,28729.96
+2026-07-05,PO-00132,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,13,2117.08,27522.04
+2026-09-02,PO-00133,Billed,Sarh Qimma Services (fictional),Water carton,Catering,2653,15.06,39954.18
+2026-07-06,PO-00134,Billed,Qimma Waha Est. (fictional),A4 paper box,Office supplies,218,101.06,22031.08
+2026-08-23,PO-00135,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,3,1695.93,5087.79
+2026-07-27,PO-00136,Billed,Wadi Dana Solutions (fictional),Water carton,Catering,1786,13.65,24378.9
+2026-09-29,PO-00137,Billed,Rawabi Masar Trading (fictional),Rebar ton,Building materials,6,2652.01,15912.06
+2026-08-31,PO-00138,Billed,Jazeera Qimma Solutions (fictional),Laptop,IT hardware,4,4815.77,19263.08
+2026-08-05,PO-00139,Billed,Nakheel Qimma Supplies (fictional),AC maintenance visit,Facility services,36,928.07,33410.52
+2026-07-29,PO-00140,Billed,Tamayuz Shams Solutions (fictional),Ready-mix m3,Building materials,14,264.56,3703.84
+2026-08-24,PO-00141,Billed,Waha Madar Est. (fictional),Rebar ton,Building materials,9,2740.18,24661.62
+2026-08-04,PO-00142,Billed,Bina Taqa Est. (fictional),Staff lunch box,Catering,1159,30.45,35291.55
+2026-07-23,PO-00143,Billed,Nakheel Sarh Solutions (fictional),Monitor 27in,IT hardware,9,1085.35,9768.15
+2026-08-05,PO-00144,Billed,Buruj Dana Services (fictional),Laptop,IT hardware,6,4738.48,28430.88
+2026-07-21,PO-00145,Billed,Sarh Noor Services (fictional),Cleaning visit,Facility services,22,1286.61,28305.42
+2026-07-22,PO-00146,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,43,455.02,19565.86
+2026-07-06,PO-00147,Billed,Masar Wadi Services (fictional),Pest control visit,Facility services,15,631.63,9474.45
+2026-09-08,PO-00148,Billed,Buruj Waha Supplies (fictional),Event catering per head,Catering,22,143.64,3160.08
+2026-08-09,PO-00149,Billed,Najd Sahab Contracting (fictional),Water carton,Catering,1503,14.64,22003.92
+2026-08-19,PO-00150,Billed,Bina Rawabi Est. (fictional),Laptop,IT hardware,3,4559.12,13677.36
+2026-07-05,PO-00151,Billed,Shams Noor Trading (fictional),Cement bag 50kg,Building materials,1199,18.94,22709.06
+2026-09-29,PO-00152,Billed,Tamayuz Shams Solutions (fictional),Rebar ton,Building materials,7,2685.59,18799.13
+2026-07-16,PO-00153,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,10,2337.92,23379.2
+2026-08-03,PO-00154,Billed,Noor Masar Contracting (fictional),Laptop,IT hardware,1,4306.15,4306.15
+2026-07-29,PO-00155,Billed,Bina Sarh Est. (fictional),Toner cartridge,Office supplies,92,406.04,37355.68
+2026-08-12,PO-00156,Billed,Wadi Dana Solutions (fictional),Water carton,Catering,805,13.54,10899.7
+2026-07-13,PO-00157,Billed,Taqa Rimal Solutions (fictional),Cement bag 50kg,Building materials,79,20.06,1584.74
+2026-08-30,PO-00158,Billed,Tamayuz Jazeera Trading (fictional),Network switch,IT hardware,1,3803.13,3803.13
+2026-09-20,PO-00159,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,19,1674.0,31806.0
+2026-08-09,PO-00160,Billed,Tamayuz Bina Trading (fictional),Ready-mix m3,Building materials,16,281.98,4511.68
+2026-08-05,PO-00161,Billed,Taqa Rimal Solutions (fictional),Rebar ton,Building materials,2,2768.16,5536.32
+2026-09-10,PO-00162,Billed,Noor Masar Contracting (fictional),Monitor 27in,IT hardware,10,1231.8,12318.0
+2026-08-23,PO-00163,Billed,Taqa Shams Trading (fictional),Water carton,Catering,1590,13.05,20749.5
+2026-07-29,PO-00164,Billed,Dana Rimal Trading (fictional),Laptop,IT hardware,1,4381.23,4381.23
+2026-09-01,PO-00165,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,15,2109.37,31640.55
+2026-09-01,PO-00166,Billed,Bina Taqa Est. (fictional),Staff lunch box,Catering,1144,31.43,35955.92
+2026-09-06,PO-00167,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,66,498.9,32927.4
+2026-07-26,PO-00168,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,64,498.76,31920.64
+2026-08-10,PO-00169,Billed,Tamayuz Bina Trading (fictional),Cement bag 50kg,Building materials,1422,20.08,28553.76
+2026-07-20,PO-00170,Billed,Buruj Waha Supplies (fictional),Water carton,Catering,2772,13.55,37560.6
+2026-07-12,PO-00171,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,12,1825.65,21907.8
+2026-09-08,PO-00172,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,20,1825.84,36516.8
+2026-07-23,PO-00173,Billed,Tamayuz Shams Solutions (fictional),Cement bag 50kg,Building materials,1100,18.49,20339.0
+2026-08-18,PO-00174,Billed,Wadi Dana Solutions (fictional),Event catering per head,Catering,135,150.84,20363.4
+2026-09-10,PO-00175,Billed,Waha Madar Est. (fictional),Ready-mix m3,Building materials,81,278.74,22577.94
+2026-09-29,PO-00176,Billed,Taqa Shams Trading (fictional),Event catering per head,Catering,133,136.11,18102.63
+2026-08-17,PO-00177,Billed,Najd Sahab Contracting (fictional),Staff lunch box,Catering,1237,30.42,37629.54
+2026-08-24,PO-00178,Billed,Waha Taqa Services (fictional),Monitor 27in,IT hardware,28,1105.03,30940.84
+2026-07-28,PO-00179,Billed,Sahab Najd Solutions (fictional),AC maintenance visit,Facility services,38,844.65,32096.7
+2026-08-09,PO-00180,Billed,Taqa Sahab Services (fictional),Cement bag 50kg,Building materials,1198,20.27,24283.46
+2026-09-22,PO-00181,Billed,Bina Afaq Contracting (fictional),Cleaning visit,Facility services,5,1335.54,6677.7
+2026-08-11,PO-00182,Billed,Tamayuz Jazeera Trading (fictional),Network switch,IT hardware,5,3972.94,19864.7
+2026-09-03,PO-00183,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,18,505.39,9097.02
+2026-07-16,PO-00184,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,55,492.34,27078.7
+2026-07-02,PO-00185,Billed,Noor Najd Trading (fictional),Ready-mix m3,Building materials,12,281.13,3373.56
+2026-07-02,PO-00186,Billed,Nakheel Sarh Solutions (fictional),Laptop,IT hardware,4,4539.81,18159.24
+2026-08-06,PO-00187,Billed,Bina Afaq Contracting (fictional),Cleaning visit,Facility services,17,1244.7,21159.9
+2026-09-01,PO-00188,Billed,Tamayuz Jazeera Trading (fictional),Monitor 27in,IT hardware,34,1169.6,39766.4
+2026-07-29,PO-00189,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,14,2179.25,30509.5
+2026-09-20,PO-00190,Billed,Najd Madar Supplies (fictional),Cleaning visit,Facility services,10,1274.07,12740.7
+2026-08-09,PO-00191,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,11,2358.88,25947.68
+2026-08-17,PO-00192,Billed,Buruj Waha Supplies (fictional),Staff lunch box,Catering,394,31.32,12340.08
+2026-08-06,PO-00193,Billed,Najd Najd Contracting (fictional),Toner cartridge,Office supplies,58,388.62,22539.96
+2026-09-20,PO-00194,Billed,Nakheel Qimma Supplies (fictional),AC maintenance visit,Facility services,35,838.09,29333.15
+2026-07-05,PO-00195,Billed,Rimal Sahab Supplies (fictional),AC maintenance visit,Facility services,31,876.15,27160.65
+2026-09-17,PO-00196,Billed,Tamayuz Jazeera Trading (fictional),Network switch,IT hardware,8,4144.07,33152.56
+2026-08-25,PO-00197,Billed,Nakheel Najd Trading (fictional),Office chair,Office supplies,30,784.39,23531.7
+2026-09-13,PO-00198,Billed,Dana Madar Est. (fictional),Event catering per head,Catering,176,155.98,27452.48
+2026-08-03,PO-00199,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,4,2140.95,8563.8
+2026-08-02,PO-00200,Billed,Nakheel Najd Trading (fictional),Toner cartridge,Office supplies,58,448.22,25996.76
+2026-08-30,PO-00201,Billed,Rimal Qimma Services (fictional),Water carton,Catering,2019,14.41,29093.79
+2026-07-15,PO-00202,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,20,1678.2,33564.0
+2026-07-29,PO-00203,Billed,Taqa Sahab Services (fictional),Rebar ton,Building materials,2,2979.58,5959.16
+2026-08-12,PO-00204,Billed,Taqa Sahab Services (fictional),Cement bag 50kg,Building materials,1518,17.86,27111.48
+2026-08-18,PO-00205,Billed,Nakheel Qimma Supplies (fictional),Pest control visit,Facility services,36,691.9,24908.4
+2026-09-30,PO-00206,Billed,Jazeera Qimma Solutions (fictional),Laptop,IT hardware,3,4733.45,14200.35
+2026-07-08,PO-00207,Billed,Sarh Rimal Trading (fictional),A4 paper box,Office supplies,356,101.25,36045.0
+2026-09-28,PO-00208,Billed,Najd Madar Supplies (fictional),AC maintenance visit,Facility services,13,905.28,11768.64
+2026-09-10,PO-00209,Billed,Madar Jazeera Trading (fictional),Event catering per head,Catering,206,142.11,29274.66
+2026-08-13,PO-00210,Billed,Rimal Sahab Supplies (fictional),Pest control visit,Facility services,7,659.25,4614.75
+2026-09-30,PO-00211,Billed,Sahab Sarh Est. (fictional),Toner cartridge,Office supplies,37,422.27,15623.99
+2026-08-27,PO-00212,Billed,Waha Taqa Services (fictional),Laptop,IT hardware,2,4848.57,9697.14
+2026-08-27,PO-00213,Billed,Waha Madar Est. (fictional),Rebar ton,Building materials,12,2643.65,31723.8
+2026-08-10,PO-00214,Billed,Najd Madar Supplies (fictional),Cleaning visit,Facility services,26,1353.29,35185.54
+2026-08-04,PO-00215,Billed,Tamayuz Jazeera Trading (fictional),Laptop,IT hardware,8,4670.04,37360.32
+2026-09-20,PO-00216,Billed,Jazeera Noor Supplies (fictional),AC maintenance visit,Facility services,22,866.65,19066.3
+2026-07-07,PO-00217,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,1,2063.35,2063.35
+2026-07-13,PO-00218,Billed,Shams Noor Trading (fictional),Ready-mix m3,Building materials,22,269.11,5920.42
+2026-07-26,PO-00219,Billed,Qimma Waha Est. (fictional),Toner cartridge,Office supplies,85,440.98,37483.3
+2026-09-09,PO-00220,Billed,Buruj Noor Solutions (fictional),Office chair,Office supplies,25,786.71,19667.75
+2026-09-15,PO-00221,Billed,Nakheel Qimma Supplies (fictional),AC maintenance visit,Facility services,10,928.84,9288.4
+2026-09-20,PO-00222,Billed,Masar Wadi Services (fictional),AC maintenance visit,Facility services,31,862.14,26726.34
+2026-08-24,PO-00223,Billed,Tamayuz Jazeera Trading (fictional),Laptop,IT hardware,8,4661.42,37291.36
+2026-08-19,PO-00224,Billed,Sahab Tamayuz Services (fictional),Toner cartridge,Office supplies,31,431.43,13374.33
+2026-09-23,PO-00225,Billed,Bina Sarh Est. (fictional),Office chair,Office supplies,36,820.3,29530.8
+2026-09-07,PO-00226,Billed,Buruj Dana Trading (fictional),Network switch,IT hardware,5,3604.94,18024.7
+2026-09-28,PO-00227,Billed,Tamayuz Shams Solutions (fictional),Cement bag 50kg,Building materials,1996,20.39,40698.44
+2026-07-08,PO-00228,Billed,Nakheel Najd Trading (fictional),Toner cartridge,Office supplies,53,425.73,22563.69
+2026-09-27,PO-00229,Billed,Taqa Noor Solutions (fictional),AC maintenance visit,Facility services,30,888.7,26661.0
+2026-08-30,PO-00230,Billed,Dana Rimal Trading (fictional),Network switch,IT hardware,8,3632.59,29060.72
+2026-09-30,PO-00231,Billed,Tamayuz Shams Solutions (fictional),Rebar ton,Building materials,2,2925.1,5850.2
+2026-07-02,PO-00232,Billed,Dana Madar Est. (fictional),Event catering per head,Catering,266,155.94,41480.04
+2026-08-13,PO-00233,Billed,Nakheel Sarh Solutions (fictional),Laptop,IT hardware,1,4274.37,4274.37
+2026-08-26,PO-00234,Billed,Bina Sarh Est. (fictional),A4 paper box,Office supplies,84,97.11,8157.24
+2026-07-02,PO-00235,Billed,Noor Najd Trading (fictional),Rebar ton,Building materials,1,3003.66,3003.66
+2026-08-31,PO-00236,Billed,Noor Masar Contracting (fictional),Laptop,IT hardware,3,4691.62,14074.86
+2026-07-22,PO-00237,Billed,Najd Madar Supplies (fictional),Pest control visit,Facility services,37,698.64,25849.68
+2026-09-09,PO-00238,Billed,Madar Jazeera Trading (fictional),Staff lunch box,Catering,319,33.03,10536.57
+2026-07-09,PO-00239,Billed,Noor Masar Contracting (fictional),Monitor 27in,IT hardware,2,1069.0,2138.0
+2026-08-11,PO-00240,Billed,Sarh Qimma Services (fictional),Staff lunch box,Catering,776,29.69,23039.44
+2026-09-29,PO-00241,Billed,Waha Madar Est. (fictional),Ready-mix m3,Building materials,111,256.64,28487.04
+2026-07-05,PO-00242,Billed,Taqa Shams Trading (fictional),Staff lunch box,Catering,1200,31.87,38244.0
+2026-07-23,PO-00243,Billed,Sahab Sarh Est. (fictional),Toner cartridge,Office supplies,62,412.74,25589.88
+2026-07-30,PO-00244,Billed,Sahab Najd Solutions (fictional),Cleaning visit,Facility services,19,1296.31,24629.89
+2026-07-30,PO-00245,Billed,Sahab Tamayuz Services (fictional),Toner cartridge,Office supplies,83,418.12,34703.96
+2026-08-13,PO-00246,Billed,Taqa Rimal Solutions (fictional),Ready-mix m3,Building materials,36,259.53,9343.08
+2026-09-13,PO-00247,Billed,Taqa Shams Trading (fictional),Staff lunch box,Catering,917,33.18,30426.06
+2026-07-23,PO-00248,Billed,Sarh Noor Services (fictional),AC maintenance visit,Facility services,3,930.96,2792.88
+2026-09-23,PO-00249,Billed,Buruj Noor Solutions (fictional),A4 paper box,Office supplies,303,93.6,28360.8
+2026-08-13,PO-00250,Billed,Qimma Waha Est. (fictional),Toner cartridge,Office supplies,35,433.45,15170.75
+2026-07-21,PO-00251,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,19,1617.0,30723.0
+2026-09-15,PO-00252,Billed,Rimal Sahab Supplies (fictional),Pest control visit,Facility services,16,649.97,10399.52
+2026-08-25,PO-00253,Billed,Nakheel Qimma Supplies (fictional),Cleaning visit,Facility services,27,1421.62,38383.74
+2026-09-10,PO-00254,Billed,Jazeera Noor Supplies (fictional),AC maintenance visit,Facility services,15,915.61,13734.15
+2026-09-27,PO-00255,Billed,Bina Rawabi Est. (fictional),Network switch,IT hardware,8,4080.18,32641.44
+2026-07-16,PO-00256,Billed,Qimma Waha Est. (fictional),A4 paper box,Office supplies,333,88.28,29397.24
+2026-08-20,PO-00257,Billed,Dana Madar Est. (fictional),Event catering per head,Catering,252,136.3,34347.6
+2026-08-06,PO-00258,Billed,Bina Rawabi Est. (fictional),Laptop,IT hardware,4,4706.72,18826.88
+2026-07-21,PO-00259,Billed,Wadi Dana Solutions (fictional),Staff lunch box,Catering,353,32.74,11557.22
+2026-08-17,PO-00260,Billed,Shams Bina Solutions (fictional),Cement bag 50kg,Building materials,1854,20.46,37932.84
+2026-08-16,PO-00261,Billed,Shams Bina Solutions (fictional),Ready-mix m3,Building materials,123,268.44,33018.12
+2026-09-13,PO-00262,Billed,Bina Taqa Est. (fictional),Staff lunch box,Catering,943,33.61,31694.23
+2026-09-09,PO-00263,Billed,Sahab Tamayuz Services (fictional),A4 paper box,Office supplies,368,92.55,34058.4
+2026-09-23,PO-00264,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,11,2080.81,22888.91
+2026-08-24,PO-00265,Billed,Nakheel Qimma Supplies (fictional),Pest control visit,Facility services,18,665.2,11973.6
+2026-08-12,PO-00266,Billed,Shams Bina Solutions (fictional),Rebar ton,Building materials,1,2763.42,2763.42
+2026-09-02,PO-00267,Billed,Noor Najd Trading (fictional),Rebar ton,Building materials,2,2727.97,5455.94
+2026-07-20,PO-00268,Billed,Madar Jazeera Trading (fictional),Water carton,Catering,1511,14.22,21486.42
+2026-09-27,PO-00269,Billed,Rimal Qimma Services (fictional),Event catering per head,Catering,160,148.27,23723.2
+2026-07-12,PO-00270,Billed,Dana Rimal Trading (fictional),Laptop,IT hardware,2,4373.88,8747.76
+2026-08-12,PO-00271,Billed,Shams Noor Trading (fictional),Ready-mix m3,Building materials,124,258.49,32052.76
+2026-08-10,PO-00272,Billed,Najd Najd Contracting (fictional),Toner cartridge,Office supplies,76,412.76,31369.76
+2026-09-09,PO-00273,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,31,459.97,14259.07
+2026-07-29,PO-00274,Billed,Rawabi Masar Trading (fictional),Rebar ton,Building materials,11,2739.0,30129.0
+2026-09-01,PO-00275,Billed,Nakheel Najd Trading (fictional),Toner cartridge,Office supplies,11,432.35,4755.85
+2026-08-31,PO-00276,Billed,Sahab Sarh Est. (fictional),Office chair,Office supplies,15,823.62,12354.3
+2026-07-16,PO-00277,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,62,496.19,30763.78
+2026-07-28,PO-00278,Billed,Najd Najd Contracting (fictional),Office chair,Office supplies,8,724.2,5793.6
+2026-08-02,PO-00279,Billed,Nakheel Sarh Solutions (fictional),Network switch,IT hardware,1,3793.73,3793.73
+2026-09-08,PO-00280,Billed,Dana Madar Est. (fictional),Water carton,Catering,499,15.0,7485.0
+2026-09-20,PO-00281,Billed,Nakheel Najd Trading (fictional),Toner cartridge,Office supplies,62,440.52,27312.24
+2026-07-01,PO-00282,Billed,Buruj Dana Trading (fictional),Monitor 27in,IT hardware,13,1224.67,15920.71
+2026-07-15,PO-00283,Billed,Buruj Noor Solutions (fictional),Toner cartridge,Office supplies,80,395.2,31616.0
+2026-07-14,PO-00284,Billed,Buruj Dana Trading (fictional),Laptop,IT hardware,2,4687.81,9375.62
+2026-09-10,PO-00285,Billed,Dana Rimal Trading (fictional),Laptop,IT hardware,1,4521.77,4521.77
+2026-08-26,PO-00286,Billed,Nakheel Najd Trading (fictional),Toner cartridge,Office supplies,77,426.41,32833.57
+2026-09-07,PO-00287,Billed,Sahab Tamayuz Services (fictional),Office chair,Office supplies,46,817.69,37613.74
+2026-07-09,PO-00288,Billed,Taqa Sahab Services (fictional),Cement bag 50kg,Building materials,1373,19.51,26787.23
+2026-09-07,PO-00289,Billed,Sarh Qimma Services (fictional),Event catering per head,Catering,110,154.73,17020.3
+2026-08-19,PO-00290,Billed,Buruj Waha Supplies (fictional),Staff lunch box,Catering,773,34.25,26475.25
+2026-07-12,PO-00291,Billed,Rimal Qimma Services (fictional),Staff lunch box,Catering,755,31.72,23948.6
+2026-08-04,PO-00292,Billed,Sarh Noor Services (fictional),AC maintenance visit,Facility services,20,835.71,16714.2
+2026-08-16,PO-00293,Billed,Bina Afaq Contracting (fictional),Cleaning visit,Facility services,4,1315.09,5260.36
+2026-08-27,PO-00294,Billed,Noor Najd Trading (fictional),Ready-mix m3,Building materials,23,254.43,5851.89
+2026-08-12,PO-00295,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,4,1636.25,6545.0
+2026-08-27,PO-00296,Billed,Nakheel Najd Trading (fictional),Office chair,Office supplies,12,751.35,9016.2
+2026-09-21,PO-00297,Billed,Najd Madar Supplies (fictional),Cleaning visit,Facility services,29,1419.25,41158.25
+2026-07-29,PO-00298,Billed,Bina Taqa Est. (fictional),Staff lunch box,Catering,574,33.45,19200.3
+2026-09-02,PO-00299,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,1,2083.92,2083.92
+2026-07-12,PO-00300,Billed,Bina Taqa Est. (fictional),Water carton,Catering,2674,14.72,39361.28
+2026-08-16,PO-00301,Billed,Noor Masar Contracting (fictional),Monitor 27in,IT hardware,32,1149.75,36792.0
+2026-07-01,PO-00302,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,8,1768.3,14146.4
+2026-07-21,PO-00303,Billed,Bina Taqa Est. (fictional),Water carton,Catering,1650,14.37,23710.5
+2026-07-20,PO-00304,Billed,Nakheel Najd Trading (fictional),A4 paper box,Office supplies,113,101.2,11435.6
+2026-08-13,PO-00305,Billed,Sahab Tamayuz Services (fictional),A4 paper box,Office supplies,152,90.22,13713.44
+2026-07-09,PO-00306,Billed,Najd Madar Supplies (fictional),Cleaning visit,Facility services,13,1349.16,17539.08
+2026-07-06,PO-00307,Billed,Sahab Tamayuz Services (fictional),Office chair,Office supplies,12,799.13,9589.56
+2026-07-28,PO-00308,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,69,508.82,35108.58
+2026-08-30,PO-00309,Billed,Sarh Qimma Services (fictional),Event catering per head,Catering,171,154.22,26371.62
+2026-08-17,PO-00310,Billed,Najd Madar Supplies (fictional),Pest control visit,Facility services,27,682.51,18427.77
+2026-09-27,PO-00311,Billed,Najd Najd Contracting (fictional),Toner cartridge,Office supplies,85,407.75,34658.75
+2026-09-10,PO-00312,Billed,Noor Najd Trading (fictional),Cement bag 50kg,Building materials,1828,20.43,37346.04
+2026-09-16,PO-00313,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,2,1615.55,3231.1
+2026-09-02,PO-00314,Billed,Noor Masar Contracting (fictional),Laptop,IT hardware,3,4334.7,13004.1
+2026-09-22,PO-00315,Billed,Waha Madar Est. (fictional),Ready-mix m3,Building materials,106,275.44,29196.64
+2026-07-07,PO-00316,Billed,Noor Najd Trading (fictional),Cement bag 50kg,Building materials,1352,17.61,23808.72
+2026-09-06,PO-00317,Billed,Buruj Noor Solutions (fictional),A4 paper box,Office supplies,379,98.3,37255.7
+2026-08-27,PO-00318,Billed,Taqa Rimal Solutions (fictional),Rebar ton,Building materials,11,2787.95,30667.45
+2026-07-29,PO-00319,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,51,481.85,24574.35
+2026-07-08,PO-00320,Billed,Tamayuz Bina Trading (fictional),Rebar ton,Building materials,6,3073.96,18443.76
+2026-07-14,PO-00321,Billed,Najd Najd Contracting (fictional),A4 paper box,Office supplies,416,100.46,41791.36
+2026-09-24,PO-00322,Billed,Shams Bina Solutions (fictional),Rebar ton,Building materials,2,2654.05,5308.1
+2026-08-05,PO-00323,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,13,1625.66,21133.58
+2026-07-16,PO-00324,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,1,1744.57,1744.57
+2026-07-05,PO-00325,Billed,Rawabi Masar Trading (fictional),Rebar ton,Building materials,4,2782.23,11128.92
+2026-07-29,PO-00326,Billed,Rawabi Masar Trading (fictional),Rebar ton,Building materials,1,2734.48,2734.48
+2026-08-05,PO-00327,Billed,Noor Najd Trading (fictional),Rebar ton,Building materials,8,2630.87,21046.96
+2026-08-06,PO-00328,Billed,Noor Masar Contracting (fictional),Monitor 27in,IT hardware,28,1210.25,33887.0
+2026-07-09,PO-00329,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,20,1732.31,34646.2
+2026-08-19,PO-00330,Billed,Jazeera Qimma Solutions (fictional),Network switch,IT hardware,4,4120.23,16480.92
+2026-07-16,PO-00331,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,67,513.71,34418.57
+2026-07-09,PO-00332,Billed,Waha Taqa Services (fictional),Network switch,IT hardware,7,3917.78,27424.46
+2026-09-23,PO-00333,Billed,Rimal Sahab Supplies (fictional),AC maintenance visit,Facility services,17,971.23,16510.91
+2026-08-18,PO-00334,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,12,1573.77,18885.24
+2026-09-13,PO-00335,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,18,1791.58,32248.44
+2026-07-15,PO-00336,Billed,Shams Bina Solutions (fictional),Cement bag 50kg,Building materials,530,20.01,10605.3
+2026-08-26,PO-00337,Billed,Dana Madar Est. (fictional),Event catering per head,Catering,243,149.48,36323.64
+2026-08-17,PO-00338,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,8,1702.59,13620.72
+2026-08-05,PO-00339,Billed,Sarh Noor Services (fictional),AC maintenance visit,Facility services,16,848.88,13582.08
+2026-07-26,PO-00340,Billed,Waha Madar Est. (fictional),Cement bag 50kg,Building materials,2042,18.05,36858.1
+2026-07-22,PO-00341,Billed,Bina Rawabi Est. (fictional),Network switch,IT hardware,8,3700.17,29601.36
+2026-07-19,PO-00342,Billed,Waha Taqa Services (fictional),Laptop,IT hardware,7,4900.13,34300.91
+2026-08-13,PO-00343,Billed,Taqa Noor Solutions (fictional),AC maintenance visit,Facility services,40,946.15,37846.0
+2026-07-02,PO-00344,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,67,506.82,33956.94
+2026-07-13,PO-00345,Billed,Nakheel Najd Trading (fictional),A4 paper box,Office supplies,394,96.8,38139.2
+2026-07-02,PO-00346,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,12,2170.12,26041.44
+2026-07-14,PO-00347,Billed,Najd Najd Contracting (fictional),Office chair,Office supplies,21,783.55,16454.55
+2026-09-07,PO-00348,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,17,2098.43,35673.31
+2026-07-19,PO-00349,Billed,Sahab Tamayuz Services (fictional),Toner cartridge,Office supplies,37,415.72,15381.64
+2026-09-09,PO-00350,Billed,Noor Najd Trading (fictional),Cement bag 50kg,Building materials,1390,18.28,25409.2
+2026-09-14,PO-00351,Billed,Bina Rawabi Est. (fictional),Laptop,IT hardware,1,4796.34,4796.34
+2026-09-16,PO-00352,Billed,Wadi Dana Solutions (fictional),Water carton,Catering,723,14.91,10779.93
+2026-08-11,PO-00353,Billed,Taqa Shams Trading (fictional),Staff lunch box,Catering,90,31.65,2848.5
+2026-07-28,PO-00354,Billed,Buruj Waha Supplies (fictional),Event catering per head,Catering,121,149.15,18047.15
+2026-07-13,PO-00355,Billed,Tamayuz Shams Solutions (fictional),Cement bag 50kg,Building materials,824,19.43,16010.32
+2026-07-29,PO-00356,Billed,Tamayuz Shams Solutions (fictional),Rebar ton,Building materials,13,2712.14,35257.82
+2026-08-12,PO-00357,Billed,Buruj Dana Trading (fictional),Network switch,IT hardware,7,3664.22,25649.54
+2026-08-12,PO-00358,Billed,Najd Najd Contracting (fictional),Office chair,Office supplies,2,772.87,1545.74
+2026-07-09,PO-00359,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,17,2101.7,35728.9
+2026-09-16,PO-00360,Billed,Waha Taqa Services (fictional),Laptop,IT hardware,6,4568.39,27410.34
+2026-09-20,PO-00361,Billed,Qimma Waha Est. (fictional),A4 paper box,Office supplies,201,97.76,19649.76
+2026-07-27,PO-00362,Billed,Buruj Dana Trading (fictional),Network switch,IT hardware,2,3787.33,7574.66
+2026-07-22,PO-00363,Billed,Shams Bina Solutions (fictional),Cement bag 50kg,Building materials,451,18.92,8532.92
+2026-09-14,PO-00364,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,16,454.68,7274.88
+2026-07-20,PO-00365,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,15,1833.72,27505.8
+2026-07-29,PO-00366,Billed,Waha Madar Est. (fictional),Cement bag 50kg,Building materials,513,19.29,9895.77
+2026-08-09,PO-00367,Billed,Noor Najd Trading (fictional),Ready-mix m3,Building materials,125,247.4,30925.0
+2026-08-09,PO-00368,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,21,1571.13,32993.73
+2026-09-09,PO-00369,Billed,Waha Taqa Services (fictional),Network switch,IT hardware,8,4133.49,33067.92
+2026-09-13,PO-00370,Billed,Sarh Qimma Services (fictional),Staff lunch box,Catering,162,33.97,5503.14
+2026-08-27,PO-00371,Billed,Buruj Noor Solutions (fictional),A4 paper box,Office supplies,125,95.88,11985.0
+2026-07-16,PO-00372,Billed,Sarh Qimma Services (fictional),Event catering per head,Catering,247,140.7,34752.9
+2026-08-17,PO-00373,Billed,Taqa Shams Trading (fictional),Event catering per head,Catering,122,138.13,16851.86
+2026-09-21,PO-00374,Billed,Shams Bina Solutions (fictional),Rebar ton,Building materials,4,2978.25,11913.0
+2026-08-31,PO-00375,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,15,2281.76,34226.4
+2026-08-02,PO-00376,Billed,Taqa Rimal Solutions (fictional),Cement bag 50kg,Building materials,1610,18.36,29559.6
+2026-07-12,PO-00377,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,19,1657.82,31498.58
+2026-07-05,PO-00378,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,12,2267.78,27213.36
+2026-08-24,PO-00379,Billed,Waha Madar Est. (fictional),Rebar ton,Building materials,7,2814.89,19704.23
+2026-07-09,PO-00380,Billed,Madar Jazeera Trading (fictional),Staff lunch box,Catering,701,31.22,21885.22
+2026-07-30,PO-00381,Billed,Jazeera Qimma Solutions (fictional),Network switch,IT hardware,5,3845.12,19225.6
+2026-08-23,PO-00382,Billed,Bina Sarh Est. (fictional),Office chair,Office supplies,10,816.02,8160.2
+2026-09-07,PO-00383,Billed,Noor Najd Trading (fictional),Rebar ton,Building materials,13,2821.39,36678.07
+2026-09-09,PO-00384,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,7,1702.62,11918.34
+2026-07-07,PO-00385,Billed,Qimma Waha Est. (fictional),Toner cartridge,Office supplies,18,418.71,7536.78
+2026-08-13,PO-00386,Billed,Noor Najd Trading (fictional),Cement bag 50kg,Building materials,398,18.6,7402.8
+2026-07-14,PO-00387,Billed,Noor Najd Trading (fictional),Cement bag 50kg,Building materials,1665,18.5,30802.5
+2026-07-22,PO-00388,Billed,Sarh Noor Services (fictional),Pest control visit,Facility services,14,692.92,9700.88
+2026-09-15,PO-00389,Billed,Sahab Sarh Est. (fictional),Toner cartridge,Office supplies,13,421.79,5483.27
+2026-09-15,PO-00390,Billed,Noor Najd Trading (fictional),Cement bag 50kg,Building materials,1797,19.61,35239.17
+2026-09-08,PO-00391,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,13,506.12,6579.56
+2026-09-02,PO-00392,Billed,Buruj Waha Supplies (fictional),Event catering per head,Catering,35,141.55,4954.25
+2026-08-04,PO-00393,Billed,Shams Madar Contracting (fictional),A4 paper box,Office supplies,122,88.54,10801.88
+2026-08-31,PO-00394,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,32,451.38,14444.16
+2026-07-16,PO-00395,Billed,Sahab Sarh Est. (fictional),Office chair,Office supplies,48,769.81,36950.88
+2026-09-03,PO-00396,Billed,Sahab Najd Solutions (fictional),Cleaning visit,Facility services,26,1418.87,36890.62
+2026-09-13,PO-00397,Billed,Buruj Dana Services (fictional),Network switch,IT hardware,6,3704.72,22228.32
+2026-08-11,PO-00398,Billed,Bina Sarh Est. (fictional),A4 paper box,Office supplies,289,97.24,28102.36
+2026-07-20,PO-00399,Billed,Buruj Waha Supplies (fictional),Water carton,Catering,2214,14.33,31726.62
+2026-08-13,PO-00400,Billed,Wadi Dana Solutions (fictional),Event catering per head,Catering,261,139.06,36294.66
+2026-08-13,PO-00401,Billed,Bina Rawabi Est. (fictional),Laptop,IT hardware,5,4871.47,24357.35
+2026-08-11,PO-00402,Billed,Waha Taqa Services (fictional),Laptop,IT hardware,2,4635.17,9270.34
+2026-09-09,PO-00403,Billed,Sarh Rimal Trading (fictional),A4 paper box,Office supplies,377,90.38,34073.26
+2026-08-13,PO-00404,Billed,Sarh Rimal Trading (fictional),Toner cartridge,Office supplies,18,389.56,7012.08
+2026-08-03,PO-00405,Billed,Buruj Dana Trading (fictional),Monitor 27in,IT hardware,26,1148.32,29856.32
+2026-08-05,PO-00406,Billed,Nakheel Najd Trading (fictional),A4 paper box,Office supplies,92,95.24,8762.08
+2026-07-12,PO-00407,Billed,Buruj Waha Supplies (fictional),Water carton,Catering,858,14.48,12423.84
+2026-09-23,PO-00408,Billed,Taqa Noor Solutions (fictional),AC maintenance visit,Facility services,3,837.84,2513.52
+2026-08-16,PO-00409,Billed,Sarh Qimma Services (fictional),Event catering per head,Catering,153,148.14,22665.42
+2026-09-30,PO-00410,Billed,Buruj Dana Services (fictional),Monitor 27in,IT hardware,21,1139.56,23930.76
+2026-07-14,PO-00411,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,19,1572.56,29878.64
+2026-09-28,PO-00412,Billed,Tamayuz Shams Solutions (fictional),Cement bag 50kg,Building materials,689,18.41,12684.49
+2026-09-28,PO-00413,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,18,2160.11,38881.98
+2026-08-04,PO-00414,Billed,Taqa Rimal Solutions (fictional),Cement bag 50kg,Building materials,720,20.35,14652.0
+2026-09-27,PO-00415,Billed,Qimma Waha Est. (fictional),Toner cartridge,Office supplies,41,434.73,17823.93
+2026-08-16,PO-00416,Billed,Najd Sahab Contracting (fictional),Event catering per head,Catering,204,154.64,31546.56
+2026-08-03,PO-00417,Billed,Buruj Dana Services (fictional),Monitor 27in,IT hardware,11,1105.35,12158.85
+2026-07-21,PO-00418,Billed,Tamayuz Bina Trading (fictional),Rebar ton,Building materials,11,2924.52,32169.72
+2026-09-07,PO-00419,Billed,Sahab Tamayuz Services (fictional),Office chair,Office supplies,9,766.91,6902.19
+2026-07-01,PO-00420,Billed,Rimal Sahab Supplies (fictional),Cleaning visit,Facility services,24,1318.8,31651.2
+2026-09-29,PO-00421,Billed,Taqa Shams Trading (fictional),Event catering per head,Catering,165,143.97,23755.05
+2026-09-15,PO-00422,Billed,Buruj Dana Services (fictional),Monitor 27in,IT hardware,17,1239.51,21071.67
+2026-07-13,PO-00423,Billed,Shams Madar Contracting (fictional),A4 paper box,Office supplies,70,90.43,6330.1
+2026-08-24,PO-00424,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,15,1773.62,26604.3
+2026-09-21,PO-00425,Billed,Sahab Sarh Est. (fictional),Toner cartridge,Office supplies,30,413.35,12400.5
+2026-08-24,PO-00426,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,73,515.15,37605.95
+2026-07-22,PO-00427,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,6,2072.67,12436.02
+2026-07-30,PO-00428,Billed,Rawabi Masar Trading (fictional),Cement bag 50kg,Building materials,782,20.47,16007.54
+2026-09-16,PO-00429,Billed,Shams Bina Solutions (fictional),Cement bag 50kg,Building materials,1920,18.48,35481.6
+2026-07-09,PO-00430,Billed,Taqa Noor Solutions (fictional),Cleaning visit,Facility services,4,1372.64,5490.56
+2026-09-13,PO-00431,Billed,Shams Noor Trading (fictional),Rebar ton,Building materials,4,2663.09,10652.36
+2026-09-28,PO-00432,Billed,Sahab Najd Solutions (fictional),Pest control visit,Facility services,37,643.03,23792.11
+2026-08-04,PO-00433,Billed,Sarh Noor Services (fictional),AC maintenance visit,Facility services,8,912.02,7296.16
+2026-08-04,PO-00434,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,6,1748.27,10489.62
+2026-07-06,PO-00435,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,37,461.73,17084.01
+2026-09-16,PO-00436,Billed,Buruj Dana Trading (fictional),Network switch,IT hardware,5,3701.24,18506.2
+2026-09-28,PO-00437,Billed,Bina Rawabi Est. (fictional),Network switch,IT hardware,6,3596.14,21576.84
+2026-09-08,PO-00438,Billed,Madar Jazeera Trading (fictional),Staff lunch box,Catering,1065,32.36,34463.4
+2026-09-28,PO-00439,Billed,Sarh Qimma Services (fictional),Water carton,Catering,695,14.6,10147.0
+2026-09-08,PO-00440,Billed,Sahab Sarh Est. (fictional),A4 paper box,Office supplies,350,90.39,31636.5
+2026-09-03,PO-00441,Billed,Rimal Sahab Supplies (fictional),Pest control visit,Facility services,26,692.8,18012.8
+2026-09-28,PO-00442,Billed,Jazeera Qimma Solutions (fictional),Monitor 27in,IT hardware,3,1090.86,3272.58
+2026-07-28,PO-00443,Billed,Taqa Sahab Services (fictional),Cement bag 50kg,Building materials,1706,18.89,32226.34
+2026-07-06,PO-00444,Billed,Buruj Noor Solutions (fictional),Toner cartridge,Office supplies,35,451.41,15799.35
+2026-07-21,PO-00445,Billed,Wadi Dana Solutions (fictional),Event catering per head,Catering,119,149.34,17771.46
+2026-07-13,PO-00446,Billed,Buruj Dana Trading (fictional),Laptop,IT hardware,1,4928.22,4928.22
+2026-09-23,PO-00447,Billed,Madar Jazeera Trading (fictional),Water carton,Catering,1310,13.06,17108.6
+2026-08-02,PO-00448,Billed,Nakheel Najd Trading (fictional),Toner cartridge,Office supplies,57,443.68,25289.76
+2026-09-29,PO-00449,Billed,Shams Bina Solutions (fictional),Ready-mix m3,Building materials,121,263.17,31843.57
+2026-07-16,PO-00450,Billed,Qimma Waha Est. (fictional),A4 paper box,Office supplies,102,89.44,9122.88
+2026-07-06,PO-00451,Billed,Taqa Shams Trading (fictional),Water carton,Catering,1333,14.76,19675.08
+2026-07-07,PO-00452,Billed,Shams Noor Trading (fictional),Ready-mix m3,Building materials,14,245.73,3440.22
+2026-09-02,PO-00453,Billed,Bina Rawabi Est. (fictional),Laptop,IT hardware,2,4922.16,9844.32
+2026-07-01,PO-00454,Billed,Taqa Noor Solutions (fictional),Cleaning visit,Facility services,28,1247.05,34917.4
+2026-07-01,PO-00455,Billed,Shams Bina Solutions (fictional),Cement bag 50kg,Building materials,1786,18.64,33291.04
+2026-08-25,PO-00456,Billed,Tamayuz Jazeera Trading (fictional),Monitor 27in,IT hardware,3,1190.67,3572.01
+2026-09-15,PO-00457,Billed,Taqa Rimal Solutions (fictional),Ready-mix m3,Building materials,125,274.45,34306.25
+2026-09-22,PO-00458,Billed,Buruj Dana Services (fictional),Network switch,IT hardware,5,3859.49,19297.45
+2026-09-20,PO-00459,Billed,Sarh Rimal Trading (fictional),A4 paper box,Office supplies,89,89.93,8003.77
+2026-09-01,PO-00460,Billed,Noor Najd Trading (fictional),Ready-mix m3,Building materials,103,283.59,29209.77
+2026-09-22,PO-00461,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,13,2183.15,28380.95
+2026-08-31,PO-00462,Billed,Jazeera Qimma Solutions (fictional),Network switch,IT hardware,3,3610.09,10830.27
+2026-08-23,PO-00463,Billed,Dana Madar Est. (fictional),Water carton,Catering,655,14.3,9366.5
+2026-07-22,PO-00464,Billed,Jazeera Qimma Solutions (fictional),Monitor 27in,IT hardware,25,1180.39,29509.75
+2026-09-21,PO-00465,Billed,Rimal Sahab Supplies (fictional),Cleaning visit,Facility services,17,1323.55,22500.35
+2026-08-05,PO-00466,Billed,Sarh Noor Services (fictional),Cleaning visit,Facility services,26,1247.65,32438.9
+2026-07-26,PO-00467,Billed,Sarh Noor Services (fictional),AC maintenance visit,Facility services,30,914.23,27426.9
+2026-07-07,PO-00468,Billed,Taqa Noor Solutions (fictional),Cleaning visit,Facility services,8,1274.13,10193.04
+2026-09-10,PO-00469,Billed,Bina Afaq Contracting (fictional),Cleaning visit,Facility services,24,1450.42,34810.08
+2026-07-12,PO-00470,Billed,Tamayuz Bina Trading (fictional),Ready-mix m3,Building materials,85,282.52,24014.2
+2026-08-25,PO-00471,Billed,Sarh Rimal Trading (fictional),Toner cartridge,Office supplies,61,405.02,24706.22
+2026-07-15,PO-00472,Billed,Shams Bina Solutions (fictional),Ready-mix m3,Building materials,111,274.47,30466.17
+2026-09-01,PO-00473,Billed,Sahab Tamayuz Services (fictional),Toner cartridge,Office supplies,35,398.88,13960.8
+2026-08-12,PO-00474,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,20,1816.75,36335.0
+2026-08-02,PO-00475,Billed,Nakheel Qimma Supplies (fictional),AC maintenance visit,Facility services,27,967.12,26112.24
+2026-09-14,PO-00476,Billed,Najd Madar Supplies (fictional),Cleaning visit,Facility services,6,1382.23,8293.38
+2026-09-15,PO-00477,Billed,Qimma Waha Est. (fictional),Toner cartridge,Office supplies,52,388.25,20189.0
+2026-07-06,PO-00478,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,8,515.55,4124.4
+2026-07-16,PO-00479,Billed,Taqa Shams Trading (fictional),Staff lunch box,Catering,1147,33.9,38883.3
+2026-08-16,PO-00480,Billed,Sarh Noor Services (fictional),Pest control visit,Facility services,9,641.33,5771.97
+2026-09-17,PO-00481,Billed,Taqa Rimal Solutions (fictional),Cement bag 50kg,Building materials,805,17.52,14103.6
+2026-09-17,PO-00482,Billed,Tamayuz Shams Solutions (fictional),Ready-mix m3,Building materials,64,249.88,15992.32
+2026-09-16,PO-00483,Billed,Bina Sarh Est. (fictional),Toner cartridge,Office supplies,92,449.82,41383.44
+2026-08-18,PO-00484,Billed,Bina Rawabi Est. (fictional),Monitor 27in,IT hardware,24,1060.14,25443.36
+2026-07-28,PO-00485,Billed,Buruj Dana Services (fictional),Network switch,IT hardware,4,3936.17,15744.68
+2026-09-13,PO-00486,Billed,Bina Afaq Contracting (fictional),Cleaning visit,Facility services,20,1316.86,26337.2
+2026-08-06,PO-00487,Billed,Waha Madar Est. (fictional),Cement bag 50kg,Building materials,237,18.28,4332.36
+2026-07-27,PO-00488,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,9,2321.26,20891.34
+2026-09-08,PO-00489,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,61,481.93,29397.73
+2026-07-16,PO-00490,Billed,Taqa Rimal Solutions (fictional),Rebar ton,Building materials,1,2794.57,2794.57
+2026-07-29,PO-00491,Billed,Sarh Noor Services (fictional),AC maintenance visit,Facility services,33,943.59,31138.47
+2026-07-27,PO-00492,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,65,507.64,32996.6
+2026-08-30,PO-00493,Billed,Dana Rimal Trading (fictional),Monitor 27in,IT hardware,23,1115.52,25656.96
+2026-08-30,PO-00494,Billed,Najd Najd Contracting (fictional),Toner cartridge,Office supplies,67,410.76,27520.92
+2026-07-14,PO-00495,Billed,Buruj Dana Trading (fictional),Laptop,IT hardware,7,4538.78,31771.46
+2026-09-20,PO-00496,Billed,Sarh Qimma Services (fictional),Staff lunch box,Catering,650,32.56,21164.0
+2026-08-06,PO-00497,Billed,Nakheel Qimma Supplies (fictional),AC maintenance visit,Facility services,27,928.71,25075.17
+2026-08-19,PO-00498,Billed,Sarh Qimma Services (fictional),Staff lunch box,Catering,455,34.05,15492.75
+2026-09-14,PO-00499,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,11,504.72,5551.92
+2026-08-18,PO-00500,Billed,Tamayuz Jazeera Trading (fictional),Network switch,IT hardware,3,3851.95,11555.85
+2026-09-28,PO-00501,Billed,Najd Madar Supplies (fictional),AC maintenance visit,Facility services,39,857.51,33442.89
+2026-09-21,PO-00502,Billed,Najd Najd Contracting (fictional),Office chair,Office supplies,43,781.36,33598.48
+2026-07-29,PO-00503,Billed,Rawabi Masar Trading (fictional),Cement bag 50kg,Building materials,512,18.38,9410.56
+2026-08-16,PO-00504,Billed,Rawabi Masar Trading (fictional),Ready-mix m3,Building materials,21,270.31,5676.51
+2026-09-08,PO-00505,Billed,Madar Jazeera Trading (fictional),Event catering per head,Catering,39,148.18,5779.02
+2026-09-27,PO-00506,Billed,Masar Wadi Services (fictional),Cleaning visit,Facility services,21,1269.55,26660.55
+2026-07-28,PO-00507,Billed,Rawabi Masar Trading (fictional),Cement bag 50kg,Building materials,1569,18.0,28242.0
+2026-07-27,PO-00508,Billed,Nakheel Najd Trading (fictional),Toner cartridge,Office supplies,92,389.41,35825.72
+2026-07-27,PO-00509,Billed,Tamayuz Jazeera Trading (fictional),Monitor 27in,IT hardware,5,1127.94,5639.7
+2026-09-14,PO-00510,Billed,Waha Taqa Services (fictional),Network switch,IT hardware,10,3993.7,39937.0
+2026-08-31,PO-00511,Billed,Sahab Sarh Est. (fictional),Office chair,Office supplies,23,754.46,17352.58
+2026-08-02,PO-00512,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,7,2173.58,15215.06
+2026-09-08,PO-00513,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,9,2056.78,18511.02
+2026-07-14,PO-00514,Billed,Taqa Shams Trading (fictional),Water carton,Catering,1115,14.18,15810.7
+2026-08-19,PO-00515,Billed,Taqa Noor Solutions (fictional),Cleaning visit,Facility services,3,1431.54,4294.62
+2026-08-24,PO-00516,Billed,Buruj Noor Solutions (fictional),Toner cartridge,Office supplies,35,414.33,14501.55
+2026-08-06,PO-00517,Billed,Taqa Rimal Solutions (fictional),Rebar ton,Building materials,7,2929.74,20508.18
+2026-07-02,PO-00518,Billed,Tamayuz Jazeera Trading (fictional),Network switch,IT hardware,7,3885.54,27198.78
+2026-09-13,PO-00519,Billed,Buruj Waha Supplies (fictional),Event catering per head,Catering,47,147.42,6928.74
+2026-07-29,PO-00520,Billed,Noor Masar Contracting (fictional),Network switch,IT hardware,1,3724.86,3724.86
+2026-07-07,PO-00521,Billed,Masar Wadi Services (fictional),Cleaning visit,Facility services,26,1296.34,33704.84
+2026-09-09,PO-00522,Billed,Wadi Dana Solutions (fictional),Water carton,Catering,306,13.09,4005.54
+2026-09-02,PO-00523,Billed,Tamayuz Bina Trading (fictional),Cement bag 50kg,Building materials,1593,18.24,29056.32
+2026-09-28,PO-00524,Billed,Jazeera Qimma Solutions (fictional),Network switch,IT hardware,7,4004.09,28028.63
+2026-07-05,PO-00525,Billed,Taqa Noor Solutions (fictional),Pest control visit,Facility services,55,674.18,37079.9
+2026-09-30,PO-00526,Billed,Noor Masar Contracting (fictional),Laptop,IT hardware,6,4864.72,29188.32
+2026-09-30,PO-00527,Billed,Waha Taqa Services (fictional),Network switch,IT hardware,5,3813.67,19068.35
+2026-08-06,PO-00528,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,77,489.94,37725.38
+2026-07-26,PO-00529,Billed,Waha Madar Est. (fictional),Ready-mix m3,Building materials,135,279.47,37728.45
+2026-07-16,PO-00530,Billed,Dana Madar Est. (fictional),Event catering per head,Catering,146,142.14,20752.44
+2026-08-05,PO-00531,Billed,Dana Rimal Trading (fictional),Network switch,IT hardware,9,3752.6,33773.4
+2026-09-17,PO-00532,Billed,Dana Rimal Trading (fictional),Network switch,IT hardware,1,3972.49,3972.49
+2026-07-29,PO-00533,Billed,Buruj Noor Solutions (fictional),A4 paper box,Office supplies,263,99.33,26123.79
+2026-08-10,PO-00534,Billed,Taqa Sahab Services (fictional),Rebar ton,Building materials,5,3006.14,15030.7
+2026-09-09,PO-00535,Billed,Shams Noor Trading (fictional),Ready-mix m3,Building materials,12,260.28,3123.36
+2026-08-10,PO-00536,Billed,Sahab Najd Solutions (fictional),AC maintenance visit,Facility services,31,922.3,28591.3
+2026-09-02,PO-00537,Billed,Waha Madar Est. (fictional),Cement bag 50kg,Building materials,603,19.28,11625.84
+2026-09-29,PO-00538,Billed,Shams Noor Trading (fictional),Cement bag 50kg,Building materials,240,20.18,4843.2
+2026-08-30,PO-00539,Billed,Tamayuz Shams Solutions (fictional),Cement bag 50kg,Building materials,425,19.36,8228.0
+2026-07-16,PO-00540,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,8,1588.41,12707.28
+2026-07-22,PO-00541,Billed,Sarh Qimma Services (fictional),Water carton,Catering,1069,13.83,14784.27
+2026-08-24,PO-00542,Billed,Dana Rimal Trading (fictional),Monitor 27in,IT hardware,13,1082.35,14070.55
+2026-08-16,PO-00543,Billed,Sarh Noor Services (fictional),AC maintenance visit,Facility services,20,890.54,17810.8
+2026-08-26,PO-00544,Billed,Dana Madar Est. (fictional),Event catering per head,Catering,104,150.81,15684.24
+2026-07-09,PO-00545,Billed,Tamayuz Jazeera Trading (fictional),Monitor 27in,IT hardware,2,1176.87,2353.74
+2026-08-03,PO-00546,Billed,Sarh Qimma Services (fictional),Staff lunch box,Catering,314,34.21,10741.94
+2026-09-17,PO-00547,Billed,Najd Najd Contracting (fictional),Office chair,Office supplies,4,770.07,3080.28
+2026-08-11,PO-00548,Billed,Sarh Noor Services (fictional),AC maintenance visit,Facility services,3,955.67,2867.01
+2026-07-29,PO-00549,Billed,Buruj Noor Solutions (fictional),A4 paper box,Office supplies,307,89.11,27356.77
+2026-09-10,PO-00550,Billed,Sahab Tamayuz Services (fictional),Toner cartridge,Office supplies,32,438.72,14039.04
+2026-07-21,PO-00551,Billed,Tamayuz Shams Solutions (fictional),Rebar ton,Building materials,6,3066.47,18398.82
+2026-08-17,PO-00552,Billed,Jazeera Qimma Solutions (fictional),Monitor 27in,IT hardware,25,1133.49,28337.25
+2026-09-20,PO-00553,Billed,Noor Najd Trading (fictional),Rebar ton,Building materials,8,2731.93,21855.44
+2026-09-28,PO-00554,Billed,Bina Afaq Contracting (fictional),Cleaning visit,Facility services,2,1341.92,2683.84
+2026-09-20,PO-00555,Billed,Wadi Dana Solutions (fictional),Water carton,Catering,2308,14.04,32404.32
+2026-08-02,PO-00556,Billed,Waha Madar Est. (fictional),Rebar ton,Building materials,11,2845.15,31296.65
+2026-09-22,PO-00557,Billed,Sarh Rimal Trading (fictional),Toner cartridge,Office supplies,39,427.12,16657.68
+2026-07-27,PO-00558,Billed,Najd Sahab Contracting (fictional),Event catering per head,Catering,191,151.71,28976.61
+2026-09-01,PO-00559,Billed,Nakheel Sarh Solutions (fictional),Laptop,IT hardware,8,4236.81,33894.48
+2026-07-09,PO-00560,Billed,Shams Noor Trading (fictional),Rebar ton,Building materials,4,3075.38,12301.52
+2026-08-06,PO-00561,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,19,1793.17,34070.23
+2026-09-17,PO-00562,Billed,Noor Masar Contracting (fictional),Monitor 27in,IT hardware,3,1089.15,3267.45
+2026-09-16,PO-00563,Billed,Sarh Qimma Services (fictional),Water carton,Catering,918,13.0,11934.0
+2026-08-12,PO-00564,Billed,Wadi Dana Solutions (fictional),Event catering per head,Catering,61,147.82,9017.02
+2026-08-19,PO-00565,Billed,Buruj Dana Services (fictional),Laptop,IT hardware,6,4878.73,29272.38
+2026-09-06,PO-00566,Billed,Sahab Najd Solutions (fictional),Pest control visit,Facility services,9,633.98,5705.82
+2026-09-21,PO-00567,Billed,Jazeera Qimma Solutions (fictional),Laptop,IT hardware,8,4491.07,35928.56
+2026-07-20,PO-00568,Billed,Waha Taqa Services (fictional),Monitor 27in,IT hardware,12,1240.2,14882.4
+2026-07-29,PO-00569,Billed,Nakheel Qimma Supplies (fictional),Cleaning visit,Facility services,24,1275.82,30619.68
+2026-08-25,PO-00570,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,12,477.92,5735.04
+2026-07-22,PO-00571,Billed,Rimal Sahab Supplies (fictional),Pest control visit,Facility services,32,643.59,20594.88
+2026-07-06,PO-00572,Billed,Taqa Noor Solutions (fictional),AC maintenance visit,Facility services,11,951.3,10464.3
+2026-07-21,PO-00573,Billed,Buruj Dana Services (fictional),Laptop,IT hardware,7,4268.72,29881.04
+2026-07-08,PO-00574,Billed,Qimma Waha Est. (fictional),A4 paper box,Office supplies,201,91.21,18333.21
+2026-09-30,PO-00575,Billed,Bina Taqa Est. (fictional),Water carton,Catering,205,13.63,2794.15
+2026-08-24,PO-00576,Billed,Rimal Qimma Services (fictional),Event catering per head,Catering,139,138.37,19233.43
+2026-07-12,PO-00577,Billed,Rimal Sahab Supplies (fictional),Cleaning visit,Facility services,28,1258.43,35236.04
+2026-07-16,PO-00578,Billed,Rawabi Masar Trading (fictional),Rebar ton,Building materials,13,3049.21,39639.73
+2026-08-06,PO-00579,Billed,Waha Madar Est. (fictional),Ready-mix m3,Building materials,46,286.15,13162.9
+2026-09-20,PO-00580,Billed,Sarh Qimma Services (fictional),Event catering per head,Catering,19,155.21,2948.99
+2026-09-15,PO-00581,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,6,2213.0,13278.0
+2026-09-16,PO-00582,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,14,2103.48,29448.72
+2026-08-19,PO-00583,Billed,Taqa Noor Solutions (fictional),Cleaning visit,Facility services,20,1360.87,27217.4
+2026-08-20,PO-00584,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,10,2173.61,21736.1
+2026-07-05,PO-00585,Billed,Buruj Noor Solutions (fictional),Toner cartridge,Office supplies,22,423.56,9318.32
+2026-07-22,PO-00586,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,11,2143.52,23578.72
+2026-07-30,PO-00587,Billed,Nakheel Najd Trading (fictional),A4 paper box,Office supplies,318,93.97,29882.46
+2026-09-08,PO-00588,Billed,Noor Masar Contracting (fictional),Laptop,IT hardware,1,4397.67,4397.67
+2026-08-03,PO-00589,Billed,Nakheel Qimma Supplies (fictional),Cleaning visit,Facility services,25,1367.02,34175.5
+2026-07-23,PO-00590,Billed,Sahab Tamayuz Services (fictional),Office chair,Office supplies,22,839.23,18463.06
+2026-07-08,PO-00591,Billed,Sahab Tamayuz Services (fictional),Office chair,Office supplies,3,746.38,2239.14
+2026-09-07,PO-00592,Billed,Rimal Qimma Services (fictional),Staff lunch box,Catering,515,30.94,15934.1
+2026-08-11,PO-00593,Billed,Bina Taqa Est. (fictional),Water carton,Catering,639,13.44,8588.16
+2026-09-30,PO-00594,Billed,Bina Sarh Est. (fictional),A4 paper box,Office supplies,223,100.26,22357.98
+2026-09-28,PO-00595,Billed,Dana Rimal Trading (fictional),Monitor 27in,IT hardware,22,1103.6,24279.2
+2026-09-07,PO-00596,Billed,Bina Rawabi Est. (fictional),Network switch,IT hardware,7,3962.06,27734.42
+2026-07-22,PO-00597,Billed,Tamayuz Bina Trading (fictional),Rebar ton,Building materials,4,2855.16,11420.64
+2026-07-27,PO-00598,Billed,Najd Madar Supplies (fictional),AC maintenance visit,Facility services,39,837.58,32665.62
+2026-09-14,PO-00599,Billed,Taqa Sahab Services (fictional),Rebar ton,Building materials,1,2708.53,2708.53
+2026-07-14,PO-00600,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,5,1583.04,7915.2
+2026-09-08,PO-00601,Billed,Rimal Sahab Supplies (fictional),AC maintenance visit,Facility services,43,907.81,39035.83
+2026-07-22,PO-00602,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,8,1593.78,12750.24
+2026-09-17,PO-00603,Billed,Sarh Qimma Services (fictional),Staff lunch box,Catering,835,32.55,27179.25
+2026-07-27,PO-00604,Billed,Nakheel Qimma Supplies (fictional),Cleaning visit,Facility services,21,1301.65,27334.65
+2026-09-09,PO-00605,Billed,Najd Madar Supplies (fictional),Cleaning visit,Facility services,8,1272.91,10183.28
+2026-09-20,PO-00606,Billed,Sarh Qimma Services (fictional),Staff lunch box,Catering,848,29.68,25168.64
+2026-09-23,PO-00607,Billed,Noor Masar Contracting (fictional),Monitor 27in,IT hardware,17,1191.66,20258.22
+2026-08-05,PO-00608,Billed,Najd Najd Contracting (fictional),A4 paper box,Office supplies,278,94.85,26368.3
+2026-07-14,PO-00609,Billed,Sahab Najd Solutions (fictional),Pest control visit,Facility services,59,665.65,39273.35
+2026-09-01,PO-00610,Billed,Waha Madar Est. (fictional),Ready-mix m3,Building materials,87,276.52,24057.24
+2026-09-15,PO-00611,Billed,Bina Rawabi Est. (fictional),Laptop,IT hardware,2,4817.06,9634.12
+2026-09-03,PO-00612,Billed,Waha Taqa Services (fictional),Monitor 27in,IT hardware,22,1096.73,24128.06
+2026-08-03,PO-00613,Billed,Waha Taqa Services (fictional),Monitor 27in,IT hardware,31,1122.09,34784.79
+2026-08-02,PO-00614,Billed,Bina Rawabi Est. (fictional),Monitor 27in,IT hardware,23,1102.49,25357.27
+2026-09-03,PO-00615,Billed,Buruj Noor Solutions (fictional),Toner cartridge,Office supplies,44,440.0,19360.0
+2026-09-10,PO-00616,Billed,Bina Taqa Est. (fictional),Event catering per head,Catering,140,147.53,20654.2
+2026-07-23,PO-00617,Billed,Najd Najd Contracting (fictional),Office chair,Office supplies,29,765.02,22185.58
+2026-07-05,PO-00618,Billed,Rimal Sahab Supplies (fictional),Cleaning visit,Facility services,16,1306.95,20911.2
+2026-07-12,PO-00619,Billed,Taqa Sahab Services (fictional),Cement bag 50kg,Building materials,244,18.01,4394.44
+2026-08-31,PO-00620,Billed,Sarh Qimma Services (fictional),Water carton,Catering,567,14.5,8221.5
+2026-07-20,PO-00621,Billed,Sahab Tamayuz Services (fictional),A4 paper box,Office supplies,355,102.05,36227.75
+2026-08-31,PO-00622,Billed,Masar Wadi Services (fictional),Cleaning visit,Facility services,19,1284.78,24410.82
+2026-07-06,PO-00623,Billed,Sahab Sarh Est. (fictional),A4 paper box,Office supplies,233,93.32,21743.56
+2026-08-12,PO-00624,Billed,Najd Madar Supplies (fictional),Cleaning visit,Facility services,23,1326.85,30517.55
+2026-09-24,PO-00625,Billed,Masar Wadi Services (fictional),Cleaning visit,Facility services,16,1455.81,23292.96
+2026-07-02,PO-00626,Billed,Nakheel Qimma Supplies (fictional),Cleaning visit,Facility services,19,1413.6,26858.4
+2026-07-27,PO-00627,Billed,Rimal Sahab Supplies (fictional),AC maintenance visit,Facility services,34,966.54,32862.36
+2026-07-20,PO-00628,Billed,Bina Sarh Est. (fictional),Toner cartridge,Office supplies,23,443.5,10200.5
+2026-07-14,PO-00629,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,3,2172.64,6517.92
+2026-08-23,PO-00630,Billed,Bina Rawabi Est. (fictional),Monitor 27in,IT hardware,27,1063.05,28702.35
+2026-09-30,PO-00631,Billed,Tamayuz Bina Trading (fictional),Ready-mix m3,Building materials,97,259.84,25204.48
+2026-08-10,PO-00632,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,19,442.11,8400.09
+2026-08-31,PO-00633,Billed,Shams Noor Trading (fictional),Rebar ton,Building materials,4,2843.48,11373.92
+2026-07-14,PO-00634,Billed,Nakheel Qimma Supplies (fictional),Pest control visit,Facility services,57,654.33,37296.81
+2026-09-21,PO-00635,Billed,Taqa Sahab Services (fictional),Cement bag 50kg,Building materials,2085,19.32,40282.2
+2026-07-29,PO-00636,Billed,Tamayuz Bina Trading (fictional),Ready-mix m3,Building materials,55,276.1,15185.5
+2026-07-02,PO-00637,Billed,Rimal Sahab Supplies (fictional),Pest control visit,Facility services,13,601.11,7814.43
+2026-07-06,PO-00638,Billed,Sarh Rimal Trading (fictional),A4 paper box,Office supplies,41,96.23,3945.43
+2026-08-06,PO-00639,Billed,Sarh Noor Services (fictional),AC maintenance visit,Facility services,43,935.66,40233.38
+2026-07-09,PO-00640,Billed,Nakheel Sarh Solutions (fictional),Laptop,IT hardware,6,4430.5,26583.0
+2026-08-05,PO-00641,Billed,Bina Afaq Contracting (fictional),Pest control visit,Facility services,58,695.77,40354.66
+2026-07-16,PO-00642,Billed,Sahab Sarh Est. (fictional),A4 paper box,Office supplies,58,99.32,5760.56
+2026-07-29,PO-00643,Billed,Wadi Dana Solutions (fictional),Water carton,Catering,185,14.54,2689.9
+2026-08-11,PO-00644,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,22,1772.64,38998.08
+2026-09-03,PO-00645,Billed,Qimma Waha Est. (fictional),Toner cartridge,Office supplies,94,411.96,38724.24
+2026-07-21,PO-00646,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,8,2316.87,18534.96
+2026-08-04,PO-00647,Billed,Waha Taqa Services (fictional),Laptop,IT hardware,3,4953.27,14859.81
+2026-07-19,PO-00648,Billed,Najd Madar Supplies (fictional),AC maintenance visit,Facility services,36,866.72,31201.92
+2026-09-28,PO-00649,Billed,Buruj Dana Services (fictional),Laptop,IT hardware,2,4825.04,9650.08
+2026-09-23,PO-00650,Billed,Jazeera Qimma Solutions (fictional),Monitor 27in,IT hardware,33,1064.76,35137.08
+2026-08-16,PO-00651,Billed,Bina Rawabi Est. (fictional),Monitor 27in,IT hardware,2,1136.39,2272.78
+2026-08-02,PO-00652,Billed,Rimal Sahab Supplies (fictional),Cleaning visit,Facility services,2,1327.89,2655.78
+2026-08-27,PO-00653,Billed,Sarh Rimal Trading (fictional),Office chair,Office supplies,12,816.6,9799.2
+2026-08-30,PO-00654,Billed,Waha Madar Est. (fictional),Cement bag 50kg,Building materials,1973,18.02,35553.46
+2026-07-05,PO-00655,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,20,1688.65,33773.0
+2026-08-13,PO-00656,Billed,Najd Najd Contracting (fictional),A4 paper box,Office supplies,335,99.39,33295.65
+2026-09-28,PO-00657,Billed,Tamayuz Shams Solutions (fictional),Ready-mix m3,Building materials,37,259.29,9593.73
+2026-09-23,PO-00658,Billed,Rimal Qimma Services (fictional),Water carton,Catering,2657,14.45,38393.65
+2026-09-03,PO-00659,Billed,Shams Bina Solutions (fictional),Ready-mix m3,Building materials,135,263.82,35615.7
+2026-09-22,PO-00660,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,17,2080.95,35376.15
+2026-07-06,PO-00661,Billed,Bina Rawabi Est. (fictional),Laptop,IT hardware,7,4267.38,29871.66
+2026-09-27,PO-00662,Billed,Sahab Tamayuz Services (fictional),Toner cartridge,Office supplies,93,410.58,38183.94
+2026-07-28,PO-00663,Billed,Shams Madar Contracting (fictional),A4 paper box,Office supplies,237,101.21,23986.77
+2026-07-01,PO-00664,Billed,Rimal Qimma Services (fictional),Staff lunch box,Catering,257,32.25,8288.25
+2026-09-20,PO-00665,Billed,Noor Najd Trading (fictional),Rebar ton,Building materials,4,2847.58,11390.32
+2026-08-16,PO-00666,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,72,503.53,36254.16
+2026-08-11,PO-00667,Billed,Wadi Dana Solutions (fictional),Water carton,Catering,2657,14.73,39137.61
+2026-07-02,PO-00668,Billed,Taqa Noor Solutions (fictional),Pest control visit,Facility services,42,606.29,25464.18
+2026-08-23,PO-00669,Billed,Tamayuz Shams Solutions (fictional),Ready-mix m3,Building materials,94,283.91,26687.54
+2026-08-31,PO-00670,Billed,Tamayuz Bina Trading (fictional),Cement bag 50kg,Building materials,1325,19.28,25546.0
+2026-07-26,PO-00671,Billed,Wadi Dana Solutions (fictional),Water carton,Catering,1498,14.22,21301.56
+2026-09-17,PO-00672,Billed,Sahab Najd Solutions (fictional),Cleaning visit,Facility services,23,1298.45,29864.35
+2026-09-10,PO-00673,Billed,Jazeera Qimma Solutions (fictional),Monitor 27in,IT hardware,15,1105.12,16576.8
+2026-08-02,PO-00674,Billed,Sarh Rimal Trading (fictional),A4 paper box,Office supplies,318,90.38,28740.84
+2026-08-26,PO-00675,Billed,Nakheel Najd Trading (fictional),A4 paper box,Office supplies,405,96.52,39090.6
+2026-07-23,PO-00676,Billed,Rimal Qimma Services (fictional),Staff lunch box,Catering,601,32.4,19472.4
+2026-07-16,PO-00677,Billed,Buruj Dana Trading (fictional),Laptop,IT hardware,5,4524.05,22620.25
+2026-08-27,PO-00678,Billed,Dana Rimal Trading (fictional),Monitor 27in,IT hardware,21,1108.51,23278.71
+2026-07-15,PO-00679,Billed,Sarh Rimal Trading (fictional),Office chair,Office supplies,27,730.97,19736.19
+2026-08-24,PO-00680,Billed,Sahab Najd Solutions (fictional),Pest control visit,Facility services,33,701.85,23161.05
+2026-09-07,PO-00681,Billed,Nakheel Sarh Solutions (fictional),Network switch,IT hardware,2,3650.98,7301.96
+2026-08-30,PO-00682,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,4,2153.62,8614.48
+2026-09-21,PO-00683,Billed,Tamayuz Jazeera Trading (fictional),Monitor 27in,IT hardware,2,1095.65,2191.3
+2026-07-15,PO-00684,Billed,Nakheel Qimma Supplies (fictional),Pest control visit,Facility services,14,693.21,9704.94
+2026-09-17,PO-00685,Billed,Shams Bina Solutions (fictional),Rebar ton,Building materials,13,2783.03,36179.39
+2026-08-04,PO-00686,Billed,Masar Wadi Services (fictional),Pest control visit,Facility services,14,618.94,8665.16
+2026-07-30,PO-00687,Billed,Jazeera Noor Supplies (fictional),Cleaning visit,Facility services,3,1388.06,4164.18
+2026-08-31,PO-00688,Billed,Najd Madar Supplies (fictional),AC maintenance visit,Facility services,22,937.01,20614.22
+2026-09-07,PO-00689,Billed,Wadi Dana Solutions (fictional),Water carton,Catering,2440,13.02,31768.8
+2026-08-23,PO-00690,Billed,Buruj Dana Services (fictional),Laptop,IT hardware,3,4768.05,14304.15
+2026-07-26,PO-00691,Billed,Waha Madar Est. (fictional),Rebar ton,Building materials,8,2782.77,22262.16
+2026-08-26,PO-00692,Billed,Taqa Sahab Services (fictional),Ready-mix m3,Building materials,16,266.82,4269.12
+2026-07-20,PO-00693,Billed,Sahab Sarh Est. (fictional),Toner cartridge,Office supplies,82,397.7,32611.4
+2026-07-30,PO-00694,Billed,Tamayuz Jazeera Trading (fictional),Laptop,IT hardware,1,4461.37,4461.37
+2026-07-01,PO-00695,Billed,Buruj Noor Solutions (fictional),Toner cartridge,Office supplies,69,438.06,30226.14
+2026-08-18,PO-00696,Billed,Sarh Noor Services (fictional),Pest control visit,Facility services,13,676.85,8799.05
+2026-09-10,PO-00697,Billed,Sarh Rimal Trading (fictional),A4 paper box,Office supplies,366,96.21,35212.86
+2026-08-09,PO-00698,Billed,Buruj Dana Services (fictional),Laptop,IT hardware,1,4683.42,4683.42
+2026-09-17,PO-00699,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,11,1655.64,18212.04
+2026-07-16,PO-00700,Billed,Najd Madar Supplies (fictional),Pest control visit,Facility services,6,698.82,4192.92
+2026-08-05,PO-00701,Billed,Najd Madar Supplies (fictional),AC maintenance visit,Facility services,4,877.08,3508.32
+2026-09-23,PO-00702,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,7,2294.96,16064.72
+2026-09-07,PO-00703,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,39,497.58,19405.62
+2026-08-25,PO-00704,Billed,Tamayuz Shams Solutions (fictional),Rebar ton,Building materials,9,2868.87,25819.83
+2026-07-23,PO-00705,Billed,Noor Masar Contracting (fictional),Monitor 27in,IT hardware,34,1216.51,41361.34
+2026-09-07,PO-00706,Billed,Rimal Sahab Supplies (fictional),Cleaning visit,Facility services,27,1333.03,35991.81
+2026-07-27,PO-00707,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,36,481.6,17337.6
+2026-09-15,PO-00708,Billed,Nakheel Qimma Supplies (fictional),Cleaning visit,Facility services,16,1397.11,22353.76
+2026-08-31,PO-00709,Billed,Sarh Rimal Trading (fictional),Toner cartridge,Office supplies,26,400.25,10406.5
+2026-07-06,PO-00710,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,5,500.44,2502.2
+2026-09-15,PO-00711,Billed,Rimal Qimma Services (fictional),Event catering per head,Catering,22,139.37,3066.14
+2026-09-10,PO-00712,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,17,2101.52,35725.84
+2026-08-18,PO-00713,Billed,Dana Rimal Trading (fictional),Laptop,IT hardware,2,4671.31,9342.62
+2026-08-19,PO-00714,Billed,Sarh Noor Services (fictional),Pest control visit,Facility services,2,668.16,1336.32
+2026-07-12,PO-00715,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,14,1678.37,23497.18
+2026-08-30,PO-00716,Billed,Sarh Rimal Trading (fictional),A4 paper box,Office supplies,98,100.29,9828.42
+2026-08-30,PO-00717,Billed,Taqa Rimal Solutions (fictional),Cement bag 50kg,Building materials,428,18.35,7853.8
+2026-07-15,PO-00718,Billed,Waha Madar Est. (fictional),Rebar ton,Building materials,12,2937.34,35248.08
+2026-07-30,PO-00719,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,6,2061.19,12367.14
+2026-07-20,PO-00720,Billed,Buruj Dana Services (fictional),Laptop,IT hardware,4,4499.16,17996.64
+2026-08-02,PO-00721,Billed,Noor Najd Trading (fictional),Rebar ton,Building materials,12,2676.75,32121.0
+2026-09-22,PO-00722,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,30,463.3,13899.0
+2026-07-20,PO-00723,Billed,Bina Taqa Est. (fictional),Event catering per head,Catering,142,150.32,21345.44
+2026-09-22,PO-00724,Billed,Waha Madar Est. (fictional),Cement bag 50kg,Building materials,1386,20.25,28066.5
+2026-09-10,PO-00725,Billed,Waha Madar Est. (fictional),Rebar ton,Building materials,7,2819.13,19733.91
+2026-07-22,PO-00726,Billed,Nakheel Sarh Solutions (fictional),Monitor 27in,IT hardware,19,1081.88,20555.72
+2026-07-26,PO-00727,Billed,Buruj Dana Trading (fictional),Network switch,IT hardware,9,3708.65,33377.85
+2026-07-16,PO-00728,Billed,Buruj Noor Solutions (fictional),Office chair,Office supplies,46,764.82,35181.72
+2026-07-16,PO-00729,Billed,Buruj Waha Supplies (fictional),Water carton,Catering,659,14.49,9548.91
+2026-08-10,PO-00730,Billed,Rimal Sahab Supplies (fictional),Pest control visit,Facility services,53,668.79,35445.87
+2026-09-06,PO-00731,Billed,Najd Sahab Contracting (fictional),Event catering per head,Catering,121,156.03,18879.63
+2026-09-15,PO-00732,Billed,Waha Taqa Services (fictional),Network switch,IT hardware,3,3926.5,11779.5
+2026-08-06,PO-00733,Billed,Jazeera Qimma Solutions (fictional),Laptop,IT hardware,1,4598.83,4598.83
+2026-09-15,PO-00734,Billed,Buruj Dana Trading (fictional),Monitor 27in,IT hardware,21,1233.31,25899.51
+2026-08-30,PO-00735,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,17,2215.89,37670.13
+2026-08-09,PO-00736,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,16,2362.61,37801.76
+2026-09-03,PO-00737,Billed,Nakheel Qimma Supplies (fictional),Cleaning visit,Facility services,1,1323.67,1323.67
+2026-07-12,PO-00738,Billed,Nakheel Najd Trading (fictional),A4 paper box,Office supplies,390,98.14,38274.6
+2026-07-13,PO-00739,Billed,Waha Taqa Services (fictional),Network switch,IT hardware,8,3926.29,31410.32
+2026-07-26,PO-00740,Billed,Bina Taqa Est. (fictional),Water carton,Catering,1232,13.0,16016.0
+2026-07-14,PO-00741,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,11,2352.35,25875.85
+2026-07-27,PO-00742,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,9,1621.72,14595.48
+2026-09-21,PO-00743,Billed,Waha Taqa Services (fictional),Monitor 27in,IT hardware,29,1086.56,31510.24
+2026-07-13,PO-00744,Billed,Sarh Qimma Services (fictional),Staff lunch box,Catering,638,33.5,21373.0
+2026-09-02,PO-00745,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,2,1808.44,3616.88
+2026-09-13,PO-00746,Billed,Madar Jazeera Trading (fictional),Staff lunch box,Catering,317,31.45,9969.65
+2026-07-05,PO-00747,Billed,Najd Madar Supplies (fictional),Cleaning visit,Facility services,11,1352.28,14875.08
+2026-08-19,PO-00748,Billed,Dana Madar Est. (fictional),Event catering per head,Catering,131,154.94,20297.14
+2026-08-18,PO-00749,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,20,1663.61,33272.2
+2026-07-05,PO-00750,Billed,Rawabi Masar Trading (fictional),Rebar ton,Building materials,10,2952.31,29523.1
+2026-08-09,PO-00751,Billed,Taqa Noor Solutions (fictional),AC maintenance visit,Facility services,32,965.7,30902.4
+2026-09-01,PO-00752,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,21,1815.64,38128.44
+2026-09-28,PO-00753,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,38,497.57,18907.66
+2026-08-11,PO-00754,Billed,Qimma Waha Est. (fictional),Office chair,Office supplies,10,740.57,7405.7
+2026-07-02,PO-00755,Billed,Taqa Noor Solutions (fictional),AC maintenance visit,Facility services,18,865.45,15578.1
+2026-09-07,PO-00756,Billed,Noor Masar Contracting (fictional),Monitor 27in,IT hardware,28,1178.57,32999.96
+2026-09-29,PO-00757,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,5,1799.0,8995.0
+2026-09-20,PO-00758,Billed,Rawabi Masar Trading (fictional),Ready-mix m3,Building materials,126,247.41,31173.66
+2026-09-17,PO-00759,Billed,Najd Sahab Contracting (fictional),Event catering per head,Catering,96,144.31,13853.76
+2026-07-06,PO-00760,Billed,Buruj Dana Trading (fictional),Network switch,IT hardware,4,3981.42,15925.68
+2026-08-12,PO-00761,Billed,Madar Jazeera Trading (fictional),Event catering per head,Catering,182,151.12,27503.84
+2026-09-14,PO-00762,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,5,2084.79,10423.95
+2026-09-10,PO-00763,Billed,Shams Madar Contracting (fictional),A4 paper box,Office supplies,91,92.98,8461.18
+2026-07-09,PO-00764,Billed,Shams Noor Trading (fictional),Ready-mix m3,Building materials,102,280.43,28603.86
+2026-07-21,PO-00765,Billed,Bina Afaq Contracting (fictional),AC maintenance visit,Facility services,29,864.07,25058.03
+2026-08-04,PO-00766,Billed,Madar Jazeera Trading (fictional),Event catering per head,Catering,61,151.43,9237.23
+2026-09-24,PO-00767,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,53,510.56,27059.68
+2026-07-27,PO-00768,Billed,Bina Afaq Contracting (fictional),Pest control visit,Facility services,61,638.42,38943.62
+2026-09-15,PO-00769,Billed,Shams Noor Trading (fictional),Cement bag 50kg,Building materials,1033,18.72,19337.76
+2026-08-25,PO-00770,Billed,Taqa Noor Solutions (fictional),Pest control visit,Facility services,18,635.49,11438.82
+2026-07-16,PO-00771,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,56,492.78,27595.68
+2026-08-03,PO-00772,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,9,1805.81,16252.29
+2026-07-16,PO-00773,Billed,Bina Taqa Est. (fictional),Water carton,Catering,741,14.11,10455.51
+2026-09-03,PO-00774,Billed,Buruj Waha Supplies (fictional),Water carton,Catering,1207,13.06,15763.42
+2026-07-26,PO-00775,Billed,Sahab Najd Solutions (fictional),Cleaning visit,Facility services,7,1419.69,9937.83
+2026-09-03,PO-00776,Billed,Noor Masar Contracting (fictional),Laptop,IT hardware,2,4939.22,9878.44
+2026-08-17,PO-00777,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,11,1646.46,18111.06
+2026-09-22,PO-00778,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,19,1692.63,32159.97
+2026-07-06,PO-00779,Billed,Sahab Najd Solutions (fictional),AC maintenance visit,Facility services,19,896.65,17036.35
+2026-08-17,PO-00780,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,8,2208.42,17667.36
+2026-07-02,PO-00781,Billed,Sahab Sarh Est. (fictional),Office chair,Office supplies,33,759.07,25049.31
+2026-08-27,PO-00782,Billed,Shams Madar Contracting (fictional),Office chair,Office supplies,12,732.76,8793.12
+2026-09-02,PO-00783,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,6,1800.54,10803.24
+2026-07-16,PO-00784,Billed,Sarh Noor Services (fictional),Cleaning visit,Facility services,9,1332.55,11992.95
+2026-07-22,PO-00785,Billed,Jazeera Noor Supplies (fictional),AC maintenance visit,Facility services,40,949.98,37999.2
+2026-09-03,PO-00786,Billed,Dana Madar Est. (fictional),Event catering per head,Catering,196,140.87,27610.52
+2026-09-21,PO-00787,Billed,Wadi Dana Solutions (fictional),Water carton,Catering,2342,13.34,31242.28
+2026-07-09,PO-00788,Billed,Noor Najd Trading (fictional),Ready-mix m3,Building materials,37,251.96,9322.52
+2026-08-09,PO-00789,Billed,Bina Rawabi Est. (fictional),Monitor 27in,IT hardware,3,1111.42,3334.26
+2026-08-05,PO-00790,Billed,Bina Afaq Contracting (fictional),AC maintenance visit,Facility services,11,959.59,10555.49
+2026-09-06,PO-00791,Billed,Shams Madar Contracting (fictional),Toner cartridge,Office supplies,50,423.43,21171.5
+2026-08-03,PO-00792,Billed,Bina Afaq Contracting (fictional),Cleaning visit,Facility services,20,1426.47,28529.4
+2026-08-30,PO-00793,Billed,Bina Sarh Est. (fictional),A4 paper box,Office supplies,125,96.8,12100.0
+2026-09-23,PO-00794,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,10,2074.11,20741.1
+2026-08-04,PO-00795,Billed,Sahab Sarh Est. (fictional),A4 paper box,Office supplies,119,96.22,11450.18
+2026-08-17,PO-00796,Billed,Rawabi Masar Trading (fictional),Cement bag 50kg,Building materials,1114,20.32,22636.48
+2026-08-23,PO-00797,Billed,Jazeera Qimma Solutions (fictional),Network switch,IT hardware,8,3869.18,30953.44
+2026-08-02,PO-00798,Billed,Najd Sahab Contracting (fictional),Water carton,Catering,1832,14.27,26142.64
+2026-09-21,PO-00799,Billed,Najd Madar Supplies (fictional),Pest control visit,Facility services,49,605.15,29652.35
+2026-08-20,PO-00800,Billed,Najd Madar Supplies (fictional),Cleaning visit,Facility services,17,1286.25,21866.25
+2026-08-18,PO-00801,Billed,Taqa Sahab Services (fictional),Rebar ton,Building materials,4,3030.35,12121.4
+2026-07-26,PO-00802,Billed,Buruj Dana Trading (fictional),Monitor 27in,IT hardware,20,1103.82,22076.4
+2026-08-30,PO-00803,Billed,Buruj Dana Trading (fictional),Monitor 27in,IT hardware,12,1130.05,13560.6
+2026-08-25,PO-00804,Billed,Taqa Rimal Solutions (fictional),Ready-mix m3,Building materials,79,262.02,20699.58
+2026-08-19,PO-00805,Billed,Waha Madar Est. (fictional),Rebar ton,Building materials,3,2954.56,8863.68
+2026-09-27,PO-00806,Billed,Taqa Sahab Services (fictional),Rebar ton,Building materials,7,2906.59,20346.13
+2026-09-16,PO-00807,Billed,Bina Afaq Contracting (fictional),AC maintenance visit,Facility services,17,837.84,14243.28
+2026-08-06,PO-00808,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,71,453.85,32223.35
+2026-07-15,PO-00809,Billed,Buruj Waha Supplies (fictional),Staff lunch box,Catering,228,32.94,7510.32
+2026-09-14,PO-00810,Billed,Rawabi Masar Trading (fictional),Cement bag 50kg,Building materials,1981,18.91,37460.71
+2026-08-09,PO-00811,Billed,Waha Madar Est. (fictional),Ready-mix m3,Building materials,113,271.09,30633.17
+2026-08-10,PO-00812,Billed,Tamayuz Shams Solutions (fictional),Ready-mix m3,Building materials,98,284.7,27900.6
+2026-07-08,PO-00813,Billed,Noor Masar Contracting (fictional),Laptop,IT hardware,1,4696.61,4696.61
+2026-07-20,PO-00814,Billed,Najd Sahab Contracting (fictional),Staff lunch box,Catering,1058,32.7,34596.6
+2026-08-18,PO-00815,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,16,1589.78,25436.48
+2026-08-02,PO-00816,Billed,Taqa Rimal Solutions (fictional),Cement bag 50kg,Building materials,942,18.18,17125.56
+2026-07-20,PO-00817,Billed,Najd Madar Supplies (fictional),AC maintenance visit,Facility services,15,925.15,13877.25
+2026-08-13,PO-00818,Billed,Nakheel Qimma Supplies (fictional),Pest control visit,Facility services,5,668.0,3340.0
+2026-08-23,PO-00819,Billed,Buruj Dana Services (fictional),Laptop,IT hardware,8,4373.94,34991.52
+2026-07-28,PO-00820,Billed,Qimma Waha Est. (fictional),Toner cartridge,Office supplies,9,439.99,3959.91
+2026-09-08,PO-00821,Billed,Nakheel Qimma Supplies (fictional),AC maintenance visit,Facility services,41,890.6,36514.6
+2026-09-02,PO-00822,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,2,2191.84,4383.68
+2026-08-27,PO-00823,Billed,Nakheel Najd Trading (fictional),Office chair,Office supplies,11,781.96,8601.56
+2026-07-02,PO-00824,Billed,Waha Taqa Services (fictional),Laptop,IT hardware,3,4433.08,13299.24
+2026-08-16,PO-00825,Billed,Taqa Rimal Solutions (fictional),Cement bag 50kg,Building materials,1327,19.59,25995.93
+2026-08-09,PO-00826,Billed,Qimma Waha Est. (fictional),Toner cartridge,Office supplies,91,409.0,37219.0
+2026-07-30,PO-00827,Billed,Bina Afaq Contracting (fictional),AC maintenance visit,Facility services,9,924.17,8317.53
+2026-09-20,PO-00828,Billed,Qimma Waha Est. (fictional),Toner cartridge,Office supplies,19,391.8,7444.2
+2026-09-21,PO-00829,Billed,Madar Jazeera Trading (fictional),Event catering per head,Catering,56,148.71,8327.76
+2026-09-27,PO-00830,Billed,Dana Madar Est. (fictional),Staff lunch box,Catering,736,30.4,22374.4
+2026-07-26,PO-00831,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,34,489.54,16644.36
+2026-08-09,PO-00832,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,2,2179.12,4358.24
+2026-09-28,PO-00833,Billed,Qimma Waha Est. (fictional),Toner cartridge,Office supplies,46,423.66,19488.36
+2026-09-07,PO-00834,Billed,Jazeera Noor Supplies (fictional),Pest control visit,Facility services,41,668.69,27416.29
+2026-07-27,PO-00835,Billed,Rimal Sahab Supplies (fictional),Pest control visit,Facility services,42,672.62,28250.04
+2026-07-09,PO-00836,Billed,Nakheel Najd Trading (fictional),Office chair,Office supplies,30,781.38,23441.4
+2026-08-26,PO-00837,Billed,Dana Rimal Trading (fictional),Monitor 27in,IT hardware,28,1103.71,30903.88
+2026-09-14,PO-00838,Billed,Taqa Shams Trading (fictional),Water carton,Catering,2849,14.81,42193.69
+2026-09-30,PO-00839,Billed,Buruj Dana Services (fictional),Network switch,IT hardware,8,3855.38,30843.04
+2026-07-08,PO-00840,Billed,Taqa Sahab Services (fictional),Cement bag 50kg,Building materials,1560,19.5,30420.0
+2026-07-12,PO-00841,Billed,Shams Noor Trading (fictional),Rebar ton,Building materials,3,2805.05,8415.15
+2026-09-27,PO-00842,Billed,Shams Madar Contracting (fictional),Office chair,Office supplies,8,818.71,6549.68
+2026-09-13,PO-00843,Billed,Sahab Tamayuz Services (fictional),A4 paper box,Office supplies,60,98.69,5921.4
+2026-08-17,PO-00844,Billed,Taqa Noor Solutions (fictional),AC maintenance visit,Facility services,26,832.68,21649.68
+2026-07-19,PO-00845,Billed,Madar Jazeera Trading (fictional),Event catering per head,Catering,58,144.58,8385.64
+2026-07-13,PO-00846,Billed,Jazeera Qimma Solutions (fictional),Monitor 27in,IT hardware,23,1067.98,24563.54
+2026-07-01,PO-00847,Billed,Jazeera Qimma Solutions (fictional),Monitor 27in,IT hardware,17,1143.86,19445.62
+2026-07-02,PO-00848,Billed,Rimal Qimma Services (fictional),Water carton,Catering,1367,14.72,20122.24
+2026-08-02,PO-00849,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,9,2069.73,18627.57
+2026-09-17,PO-00850,Billed,Shams Madar Contracting (fictional),A4 paper box,Office supplies,91,93.08,8470.28
+2026-07-28,PO-00851,Billed,Sahab Najd Solutions (fictional),Cleaning visit,Facility services,17,1370.53,23299.01
+2026-08-27,PO-00852,Billed,Najd Madar Supplies (fictional),Pest control visit,Facility services,4,699.82,2799.28
+2026-07-30,PO-00853,Billed,Najd Madar Supplies (fictional),Cleaning visit,Facility services,6,1274.95,7649.7
+2026-08-06,PO-00854,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,8,1773.26,14186.08
+2026-08-09,PO-00855,Billed,Najd Madar Supplies (fictional),Pest control visit,Facility services,9,693.4,6240.6
+2026-09-22,PO-00856,Billed,Rawabi Masar Trading (fictional),Ready-mix m3,Building materials,109,254.83,27776.47
+2026-09-27,PO-00857,Billed,Waha Taqa Services (fictional),Laptop,IT hardware,2,4604.65,9209.3
+2026-09-02,PO-00858,Billed,Taqa Shams Trading (fictional),Event catering per head,Catering,270,145.85,39379.5
+2026-08-20,PO-00859,Billed,Shams Madar Contracting (fictional),A4 paper box,Office supplies,272,89.49,24341.28
+2026-08-03,PO-00860,Billed,Buruj Dana Trading (fictional),Monitor 27in,IT hardware,34,1218.91,41442.94
+2026-08-12,PO-00861,Billed,Qimma Waha Est. (fictional),Office chair,Office supplies,11,755.02,8305.22
+2026-09-24,PO-00862,Billed,Waha Taqa Services (fictional),Monitor 27in,IT hardware,5,1110.78,5553.9
+2026-07-16,PO-00863,Billed,Nakheel Qimma Supplies (fictional),AC maintenance visit,Facility services,14,892.98,12501.72
+2026-09-14,PO-00864,Billed,Dana Madar Est. (fictional),Staff lunch box,Catering,814,33.56,27317.84
+2026-07-21,PO-00865,Billed,Buruj Noor Solutions (fictional),Office chair,Office supplies,33,808.21,26670.93
+2026-07-06,PO-00866,Billed,Najd Sahab Contracting (fictional),Water carton,Catering,1041,14.97,15583.77
+2026-09-16,PO-00867,Billed,Taqa Shams Trading (fictional),Water carton,Catering,2696,14.95,40305.2
+2026-08-17,PO-00868,Billed,Rawabi Masar Trading (fictional),Rebar ton,Building materials,10,3028.14,30281.4
+2026-08-13,PO-00869,Billed,Sahab Najd Solutions (fictional),Pest control visit,Facility services,14,634.86,8888.04
+2026-07-14,PO-00870,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,14,2259.08,31627.12
+2026-09-13,PO-00871,Billed,Taqa Sahab Services (fictional),Cement bag 50kg,Building materials,262,18.19,4765.78
+2026-07-30,PO-00872,Billed,Wadi Dana Solutions (fictional),Staff lunch box,Catering,212,30.22,6406.64
+2026-08-24,PO-00873,Billed,Sahab Tamayuz Services (fictional),Toner cartridge,Office supplies,11,402.8,4430.8
+2026-09-16,PO-00874,Billed,Waha Madar Est. (fictional),Cement bag 50kg,Building materials,1078,18.11,19522.58
+2026-09-14,PO-00875,Billed,Noor Najd Trading (fictional),Cement bag 50kg,Building materials,936,19.47,18223.92
+2026-09-14,PO-00876,Billed,Najd Najd Contracting (fictional),Office chair,Office supplies,26,817.01,21242.26
+2026-09-15,PO-00877,Billed,Wadi Dana Solutions (fictional),Event catering per head,Catering,239,141.82,33894.98
+2026-08-19,PO-00878,Billed,Shams Madar Contracting (fictional),Toner cartridge,Office supplies,64,449.74,28783.36
+2026-09-29,PO-00879,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,1,2304.57,2304.57
+2026-09-08,PO-00880,Billed,Sahab Tamayuz Services (fictional),Toner cartridge,Office supplies,84,425.24,35720.16
+2026-09-08,PO-00881,Billed,Jazeera Noor Supplies (fictional),Pest control visit,Facility services,12,618.08,7416.96
+2026-09-09,PO-00882,Billed,Sarh Noor Services (fictional),Cleaning visit,Facility services,3,1455.98,4367.94
+2026-08-04,PO-00883,Billed,Rimal Qimma Services (fictional),Event catering per head,Catering,36,147.05,5293.8
+2026-09-24,PO-00884,Billed,Waha Taqa Services (fictional),Network switch,IT hardware,4,4181.83,16727.32
+2026-09-03,PO-00885,Billed,Noor Masar Contracting (fictional),Monitor 27in,IT hardware,1,1165.68,1165.68
+2026-09-13,PO-00886,Billed,Qimma Waha Est. (fictional),Toner cartridge,Office supplies,27,403.29,10888.83
+2026-07-29,PO-00887,Billed,Masar Wadi Services (fictional),Pest control visit,Facility services,12,656.01,7872.12
+2026-07-30,PO-00888,Billed,Buruj Dana Trading (fictional),Monitor 27in,IT hardware,19,1095.66,20817.54
+2026-09-06,PO-00889,Billed,Bina Rawabi Est. (fictional),Laptop,IT hardware,6,4835.62,29013.72
+2026-08-24,PO-00890,Billed,Shams Madar Contracting (fictional),Office chair,Office supplies,2,819.43,1638.86
+2026-09-16,PO-00891,Billed,Taqa Rimal Solutions (fictional),Cement bag 50kg,Building materials,1047,17.72,18552.84
+2026-07-30,PO-00892,Billed,Buruj Waha Supplies (fictional),Event catering per head,Catering,257,134.35,34527.95
+2026-07-19,PO-00893,Billed,Taqa Noor Solutions (fictional),AC maintenance visit,Facility services,36,884.06,31826.16
+2026-07-27,PO-00894,Billed,Sahab Sarh Est. (fictional),Office chair,Office supplies,43,767.3,32993.9
+2026-08-27,PO-00895,Billed,Shams Noor Trading (fictional),Ready-mix m3,Building materials,67,266.56,17859.52
+2026-08-04,PO-00896,Billed,Jazeera Noor Supplies (fictional),Pest control visit,Facility services,37,676.22,25020.14
+2026-09-15,PO-00897,Billed,Nakheel Qimma Supplies (fictional),Pest control visit,Facility services,23,616.39,14176.97
+2026-07-26,PO-00898,Billed,Rimal Qimma Services (fictional),Staff lunch box,Catering,1153,29.99,34578.47
+2026-09-30,PO-00899,Billed,Waha Taqa Services (fictional),Network switch,IT hardware,5,3775.44,18877.2
+2026-07-20,PO-00900,Billed,Wadi Dana Solutions (fictional),Staff lunch box,Catering,87,31.94,2778.78
+2026-08-20,PO-00901,Billed,Sarh Rimal Trading (fictional),Toner cartridge,Office supplies,17,451.91,7682.47
+2026-07-02,PO-00902,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,1,1761.51,1761.51
+2026-07-08,PO-00903,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,11,2074.12,22815.32
+2026-07-16,PO-00904,Billed,Najd Najd Contracting (fictional),Toner cartridge,Office supplies,49,397.23,19464.27
+2026-09-23,PO-00905,Billed,Sarh Rimal Trading (fictional),Office chair,Office supplies,28,793.59,22220.52
+2026-08-05,PO-00906,Billed,Dana Rimal Trading (fictional),Monitor 27in,IT hardware,11,1100.86,12109.46
+2026-07-20,PO-00907,Billed,Buruj Waha Supplies (fictional),Event catering per head,Catering,73,135.14,9865.22
+2026-08-23,PO-00908,Billed,Masar Wadi Services (fictional),AC maintenance visit,Facility services,23,899.71,20693.33
+2026-07-14,PO-00909,Billed,Sarh Rimal Trading (fictional),Toner cartridge,Office supplies,28,447.15,12520.2
+2026-08-30,PO-00910,Billed,Qimma Waha Est. (fictional),Toner cartridge,Office supplies,25,432.75,10818.75
+2026-07-07,PO-00911,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,19,1708.06,32453.14
+2026-09-15,PO-00912,Billed,Taqa Noor Solutions (fictional),AC maintenance visit,Facility services,44,889.93,39156.92
+2026-08-20,PO-00913,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,69,463.44,31977.36
+2026-09-30,PO-00914,Billed,Madar Jazeera Trading (fictional),Event catering per head,Catering,75,136.19,10214.25
+2026-08-19,PO-00915,Billed,Qimma Waha Est. (fictional),Office chair,Office supplies,10,827.89,8278.9
+2026-09-20,PO-00916,Billed,Buruj Dana Trading (fictional),Laptop,IT hardware,1,4861.64,4861.64
+2026-07-05,PO-00917,Billed,Madar Jazeera Trading (fictional),Staff lunch box,Catering,148,32.14,4756.72
+2026-08-04,PO-00918,Billed,Dana Rimal Trading (fictional),Network switch,IT hardware,2,3647.15,7294.3
+2026-07-16,PO-00919,Billed,Taqa Rimal Solutions (fictional),Ready-mix m3,Building materials,17,271.2,4610.4
+2026-09-08,PO-00920,Billed,Tamayuz Jazeera Trading (fictional),Network switch,IT hardware,5,3729.46,18647.3
+2026-08-03,PO-00921,Billed,Buruj Noor Solutions (fictional),Toner cartridge,Office supplies,65,436.32,28360.8
+2026-09-06,PO-00922,Billed,Madar Jazeera Trading (fictional),Event catering per head,Catering,187,149.02,27866.74
+2026-07-09,PO-00923,Billed,Buruj Noor Solutions (fictional),Toner cartridge,Office supplies,6,448.36,2690.16
+2026-07-27,PO-00924,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,63,496.9,31304.7
+2026-07-16,PO-00925,Billed,Qimma Waha Est. (fictional),A4 paper box,Office supplies,144,94.56,13616.64
+2026-09-27,PO-00926,Billed,Tamayuz Bina Trading (fictional),Cement bag 50kg,Building materials,1718,18.98,32607.64
+2026-08-20,PO-00927,Billed,Noor Najd Trading (fictional),Ready-mix m3,Building materials,39,263.81,10288.59
+2026-07-05,PO-00928,Billed,Nakheel Qimma Supplies (fictional),AC maintenance visit,Facility services,3,830.39,2491.17
+2026-09-14,PO-00929,Billed,Wadi Dana Solutions (fictional),Staff lunch box,Catering,672,30.06,20200.32
+2026-09-10,PO-00930,Billed,Jazeera Qimma Solutions (fictional),Laptop,IT hardware,2,4268.87,8537.74
+2026-08-03,PO-00931,Billed,Shams Noor Trading (fictional),Ready-mix m3,Building materials,102,279.92,28551.84
+2026-07-12,PO-00932,Billed,Waha Madar Est. (fictional),Rebar ton,Building materials,13,2844.74,36981.62
+2026-07-06,PO-00933,Billed,Taqa Sahab Services (fictional),Rebar ton,Building materials,13,2916.63,37916.19
+2026-08-10,PO-00934,Billed,Waha Taqa Services (fictional),Network switch,IT hardware,9,3638.01,32742.09
+2026-09-06,PO-00935,Billed,Tamayuz Bina Trading (fictional),Cement bag 50kg,Building materials,1637,17.89,29285.93
+2026-07-13,PO-00936,Billed,Rimal Sahab Supplies (fictional),Cleaning visit,Facility services,2,1417.71,2835.42
+2026-09-21,PO-00937,Billed,Najd Madar Supplies (fictional),Pest control visit,Facility services,18,687.5,12375.0
+2026-08-27,PO-00938,Billed,Bina Sarh Est. (fictional),A4 paper box,Office supplies,166,99.16,16460.56
+2026-09-24,PO-00939,Billed,Tamayuz Shams Solutions (fictional),Ready-mix m3,Building materials,49,248.93,12197.57
+2026-07-07,PO-00940,Billed,Najd Sahab Contracting (fictional),Event catering per head,Catering,133,155.49,20680.17
+2026-07-19,PO-00941,Billed,Buruj Dana Trading (fictional),Monitor 27in,IT hardware,2,1115.07,2230.14
+2026-07-30,PO-00942,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,4,2092.86,8371.44
+2026-09-22,PO-00943,Billed,Bina Rawabi Est. (fictional),Laptop,IT hardware,2,4421.31,8842.62
+2026-08-05,PO-00944,Billed,Noor Najd Trading (fictional),Cement bag 50kg,Building materials,260,19.34,5028.4
+2026-07-23,PO-00945,Billed,Jazeera Qimma Solutions (fictional),Laptop,IT hardware,2,4836.64,9673.28
+2026-09-20,PO-00946,Billed,Nakheel Najd Trading (fictional),Toner cartridge,Office supplies,84,401.66,33739.44
+2026-07-20,PO-00947,Billed,Buruj Waha Supplies (fictional),Water carton,Catering,342,14.03,4798.26
+2026-07-15,PO-00948,Billed,Qimma Waha Est. (fictional),A4 paper box,Office supplies,338,92.08,31123.04
+2026-07-01,PO-00949,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,22,1737.72,38229.84
+2026-07-28,PO-00950,Billed,Shams Bina Solutions (fictional),Ready-mix m3,Building materials,57,246.93,14075.01
+2026-07-22,PO-00951,Billed,Sarh Noor Services (fictional),Pest control visit,Facility services,29,685.97,19893.13
+2026-09-14,PO-00952,Billed,Sahab Tamayuz Services (fictional),A4 paper box,Office supplies,354,101.17,35814.18
+2026-08-19,PO-00953,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,13,2024.87,26323.31
+2026-07-09,PO-00954,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,13,2087.4,27136.2
+2026-08-17,PO-00955,Billed,Sarh Noor Services (fictional),AC maintenance visit,Facility services,28,926.14,25931.92
+2026-09-30,PO-00956,Billed,Qimma Waha Est. (fictional),Toner cartridge,Office supplies,24,393.94,9454.56
+2026-07-21,PO-00957,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,29,465.88,13510.52
+2026-07-06,PO-00958,Billed,Shams Bina Solutions (fictional),Rebar ton,Building materials,9,2839.35,25554.15
+2026-07-13,PO-00959,Billed,Shams Bina Solutions (fictional),Rebar ton,Building materials,5,3004.08,15020.4
+2026-07-30,PO-00960,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,15,1720.11,25801.65
+2026-08-10,PO-00961,Billed,Qimma Waha Est. (fictional),A4 paper box,Office supplies,101,92.4,9332.4
+2026-09-30,PO-00962,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,9,476.98,4292.82
+2026-09-16,PO-00963,Billed,Bina Sarh Est. (fictional),Office chair,Office supplies,32,757.45,24238.4
+2026-09-22,PO-00964,Billed,Taqa Sahab Services (fictional),Rebar ton,Building materials,1,3021.91,3021.91
+2026-08-10,PO-00965,Billed,Jazeera Qimma Solutions (fictional),Network switch,IT hardware,9,3670.83,33037.47
+2026-07-30,PO-00966,Billed,Rawabi Masar Trading (fictional),Ready-mix m3,Building materials,59,248.79,14678.61
+2026-09-01,PO-00967,Billed,Dana Rimal Trading (fictional),Network switch,IT hardware,9,3897.71,35079.39
+2026-09-13,PO-00968,Billed,Jazeera Noor Supplies (fictional),Pest control visit,Facility services,10,600.03,6000.3
+2026-09-07,PO-00969,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,62,468.5,29047.0
+2026-07-08,PO-00970,Billed,Dana Madar Est. (fictional),Event catering per head,Catering,78,149.87,11689.86
+2026-09-21,PO-00971,Billed,Shams Madar Contracting (fictional),Office chair,Office supplies,18,833.2,14997.6
+2026-09-14,PO-00972,Billed,Qimma Waha Est. (fictional),A4 paper box,Office supplies,101,92.41,9333.41
+2026-07-20,PO-00973,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,32,470.78,15064.96
+2026-07-23,PO-00974,Billed,Tamayuz Jazeera Trading (fictional),Network switch,IT hardware,5,3705.56,18527.8
+2026-09-01,PO-00975,Billed,Madar Jazeera Trading (fictional),Water carton,Catering,1647,13.02,21443.94
+2026-08-04,PO-00976,Billed,Nakheel Sarh Solutions (fictional),Network switch,IT hardware,1,4090.65,4090.65
+2026-08-31,PO-00977,Billed,Rawabi Masar Trading (fictional),Rebar ton,Building materials,7,2695.19,18866.33
+2026-08-11,PO-00978,Billed,Nakheel Qimma Supplies (fictional),Cleaning visit,Facility services,18,1398.59,25174.62
+2026-09-08,PO-00979,Billed,Wadi Dana Solutions (fictional),Staff lunch box,Catering,594,29.65,17612.1
+2026-08-06,PO-00980,Billed,Waha Taqa Services (fictional),Monitor 27in,IT hardware,13,1108.7,14413.1
+2026-08-25,PO-00981,Billed,Dana Rimal Trading (fictional),Network switch,IT hardware,3,3808.12,11424.36
+2026-07-19,PO-00982,Billed,Dana Rimal Trading (fictional),Monitor 27in,IT hardware,25,1210.36,30259.0
+2026-09-14,PO-00983,Billed,Bina Taqa Est. (fictional),Water carton,Catering,2066,15.02,31031.32
+2026-07-27,PO-00984,Billed,Sarh Noor Services (fictional),Cleaning visit,Facility services,8,1339.35,10714.8
+2026-09-02,PO-00985,Billed,Shams Madar Contracting (fictional),Toner cartridge,Office supplies,71,438.11,31105.81
+2026-07-20,PO-00986,Billed,Nakheel Sarh Solutions (fictional),Network switch,IT hardware,1,4201.25,4201.25
+2026-09-30,PO-00987,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,4,1657.73,6630.92
+2026-08-23,PO-00988,Billed,Nakheel Sarh Solutions (fictional),Monitor 27in,IT hardware,11,1149.7,12646.7
+2026-07-27,PO-00989,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,8,467.09,3736.72
+2026-07-02,PO-00990,Billed,Dana Rimal Trading (fictional),Laptop,IT hardware,7,4264.92,29854.44
+2026-07-15,PO-00991,Billed,Rawabi Masar Trading (fictional),Ready-mix m3,Building materials,68,284.88,19371.84
+2026-07-15,PO-00992,Billed,Sahab Sarh Est. (fictional),Toner cartridge,Office supplies,93,445.24,41407.32
+2026-09-02,PO-00993,Billed,Dana Madar Est. (fictional),Event catering per head,Catering,154,136.06,20953.24
+2026-09-07,PO-00994,Billed,Sarh Rimal Trading (fictional),Office chair,Office supplies,44,824.66,36285.04
+2026-08-27,PO-00995,Billed,Dana Rimal Trading (fictional),Network switch,IT hardware,2,3941.8,7883.6
+2026-08-31,PO-00996,Billed,Dana Rimal Trading (fictional),Monitor 27in,IT hardware,17,1136.12,19314.04
+2026-07-13,PO-00997,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,12,2315.75,27789.0
+2026-09-02,PO-00998,Billed,Jazeera Noor Supplies (fictional),Cleaning visit,Facility services,22,1245.56,27402.32
+2026-09-23,PO-00999,Billed,Madar Jazeera Trading (fictional),Water carton,Catering,579,14.63,8470.77
+2026-09-16,PO-01000,Billed,Rawabi Masar Trading (fictional),Ready-mix m3,Building materials,47,247.89,11650.83
+2026-09-06,PO-01001,Billed,Wadi Dana Solutions (fictional),Event catering per head,Catering,146,152.79,22307.34
+2026-07-07,PO-01002,Billed,Wadi Dana Solutions (fictional),Event catering per head,Catering,229,138.59,31737.11
+2026-08-17,PO-01003,Billed,Nakheel Najd Trading (fictional),Office chair,Office supplies,12,727.14,8725.68
+2026-09-14,PO-01004,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,10,1763.84,17638.4
+2026-09-27,PO-01005,Billed,Waha Taqa Services (fictional),Network switch,IT hardware,4,4063.62,16254.48
+2026-09-09,PO-01006,Billed,Bina Rawabi Est. (fictional),Monitor 27in,IT hardware,22,1224.37,26936.14
+2026-09-06,PO-01007,Billed,Sarh Rimal Trading (fictional),A4 paper box,Office supplies,295,92.52,27293.4
+2026-07-26,PO-01008,Billed,Nakheel Najd Trading (fictional),A4 paper box,Office supplies,206,94.85,19539.1
+2026-08-18,PO-01009,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,75,514.31,38573.25
+2026-08-23,PO-01010,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,41,466.87,19141.67
+2026-08-11,PO-01011,Billed,Rawabi Masar Trading (fictional),Rebar ton,Building materials,6,2927.64,17565.84
+2026-09-03,PO-01012,Billed,Waha Madar Est. (fictional),Ready-mix m3,Building materials,100,275.09,27509.0
+2026-08-06,PO-01013,Billed,Buruj Dana Services (fictional),Monitor 27in,IT hardware,1,1065.73,1065.73
+2026-07-13,PO-01014,Billed,Rimal Sahab Supplies (fictional),AC maintenance visit,Facility services,19,882.45,16766.55
+2026-08-05,PO-01015,Billed,Sahab Tamayuz Services (fictional),Toner cartridge,Office supplies,13,443.58,5766.54
+2026-07-22,PO-01016,Billed,Rawabi Masar Trading (fictional),Cement bag 50kg,Building materials,279,18.02,5027.58
+2026-08-24,PO-01017,Billed,Taqa Shams Trading (fictional),Staff lunch box,Catering,418,32.73,13681.14
+2026-08-11,PO-01018,Billed,Waha Madar Est. (fictional),Ready-mix m3,Building materials,62,264.8,16417.6
+2026-08-17,PO-01019,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,53,456.35,24186.55
+2026-07-21,PO-01020,Billed,Tamayuz Shams Solutions (fictional),Ready-mix m3,Building materials,112,249.52,27946.24
+2026-08-23,PO-01021,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,52,478.27,24870.04
+2026-08-11,PO-01022,Billed,Dana Madar Est. (fictional),Staff lunch box,Catering,129,34.12,4401.48
+2026-07-16,PO-01023,Billed,Nakheel Qimma Supplies (fictional),AC maintenance visit,Facility services,23,903.15,20772.45
+2026-07-22,PO-01024,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,7,1705.77,11940.39
+2026-08-04,PO-01025,Billed,Dana Rimal Trading (fictional),Laptop,IT hardware,1,4372.32,4372.32
+2026-08-25,PO-01026,Billed,Madar Jazeera Trading (fictional),Water carton,Catering,730,13.2,9636.0
+2026-08-18,PO-01027,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,74,457.71,33870.54
+2026-09-29,PO-01028,Billed,Waha Taqa Services (fictional),Monitor 27in,IT hardware,19,1114.28,21171.32
+2026-09-02,PO-01029,Billed,Taqa Rimal Solutions (fictional),Rebar ton,Building materials,10,2627.35,26273.5
+2026-07-22,PO-01030,Billed,Sahab Tamayuz Services (fictional),Toner cartridge,Office supplies,88,452.66,39834.08
+2026-09-06,PO-01031,Billed,Sarh Qimma Services (fictional),Event catering per head,Catering,86,145.95,12551.7
+2026-07-21,PO-01032,Billed,Shams Madar Contracting (fictional),Toner cartridge,Office supplies,12,386.76,4641.12
+2026-09-29,PO-01033,Billed,Masar Wadi Services (fictional),Pest control visit,Facility services,32,695.99,22271.68
+2026-08-12,PO-01034,Billed,Buruj Waha Supplies (fictional),Staff lunch box,Catering,592,33.02,19547.84
+2026-09-28,PO-01035,Billed,Taqa Rimal Solutions (fictional),Rebar ton,Building materials,2,2945.55,5891.1
+2026-08-24,PO-01036,Billed,Nakheel Sarh Solutions (fictional),Monitor 27in,IT hardware,6,1103.74,6622.44
+2026-07-13,PO-01037,Billed,Qimma Waha Est. (fictional),A4 paper box,Office supplies,136,94.17,12807.12
+2026-07-06,PO-01038,Billed,Nakheel Najd Trading (fictional),A4 paper box,Office supplies,42,100.34,4214.28
+2026-07-05,PO-01039,Billed,Sarh Qimma Services (fictional),Event catering per head,Catering,246,140.06,34454.76
+2026-08-13,PO-01040,Billed,Taqa Rimal Solutions (fictional),Ready-mix m3,Building materials,43,266.19,11446.17
+2026-07-30,PO-01041,Billed,Sahab Tamayuz Services (fictional),Office chair,Office supplies,37,745.07,27567.59
+2026-07-09,PO-01042,Billed,Bina Taqa Est. (fictional),Event catering per head,Catering,195,142.16,27721.2
+2026-08-18,PO-01043,Billed,Taqa Rimal Solutions (fictional),Cement bag 50kg,Building materials,477,18.57,8857.89
+2026-08-18,PO-01044,Billed,Jazeera Qimma Solutions (fictional),Laptop,IT hardware,1,4639.59,4639.59
+2026-08-10,PO-01045,Billed,Waha Madar Est. (fictional),Rebar ton,Building materials,6,2854.39,17126.34
+2026-07-16,PO-01046,Billed,Noor Masar Contracting (fictional),Laptop,IT hardware,5,4346.34,21731.7
+2026-09-21,PO-01047,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,32,480.1,15363.2
+2026-09-16,PO-01048,Billed,Buruj Dana Services (fictional),Laptop,IT hardware,1,4409.89,4409.89
+2026-07-12,PO-01049,Billed,Taqa Shams Trading (fictional),Water carton,Catering,160,13.73,2196.8
+2026-08-13,PO-01050,Billed,Najd Sahab Contracting (fictional),Water carton,Catering,1942,13.19,25614.98
+2026-07-15,PO-01051,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,14,2193.79,30713.06
+2026-08-23,PO-01052,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,58,504.28,29248.24
+2026-09-07,PO-01053,Billed,Rimal Sahab Supplies (fictional),AC maintenance visit,Facility services,40,870.36,34814.4
+2026-07-29,PO-01054,Billed,Taqa Sahab Services (fictional),Rebar ton,Building materials,10,2921.66,29216.6
+2026-09-24,PO-01055,Billed,Dana Rimal Trading (fictional),Network switch,IT hardware,1,3857.63,3857.63
+2026-07-28,PO-01056,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,48,482.82,23175.36
+2026-08-18,PO-01057,Billed,Sarh Qimma Services (fictional),Event catering per head,Catering,141,137.06,19325.46
+2026-08-25,PO-01058,Billed,Jazeera Noor Supplies (fictional),Cleaning visit,Facility services,13,1375.24,17878.12
+2026-08-24,PO-01059,Billed,Rawabi Masar Trading (fictional),Ready-mix m3,Building materials,62,256.03,15873.86
+2026-09-24,PO-01060,Billed,Tamayuz Jazeera Trading (fictional),Network switch,IT hardware,4,3784.96,15139.84
+2026-08-13,PO-01061,Billed,Sahab Tamayuz Services (fictional),Office chair,Office supplies,37,798.9,29559.3
+2026-08-31,PO-01062,Billed,Nakheel Qimma Supplies (fictional),AC maintenance visit,Facility services,4,923.2,3692.8
+2026-09-09,PO-01063,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,9,2160.03,19440.27
+2026-07-22,PO-01064,Billed,Shams Bina Solutions (fictional),Ready-mix m3,Building materials,112,251.64,28183.68
+2026-08-20,PO-01065,Billed,Noor Najd Trading (fictional),Cement bag 50kg,Building materials,728,17.72,12900.16
+2026-08-05,PO-01066,Billed,Waha Madar Est. (fictional),Cement bag 50kg,Building materials,1066,18.98,20232.68
+2026-07-22,PO-01067,Billed,Nakheel Najd Trading (fictional),Office chair,Office supplies,21,789.63,16582.23
+2026-09-15,PO-01068,Billed,Shams Noor Trading (fictional),Ready-mix m3,Building materials,109,286.18,31193.62
+2026-07-09,PO-01069,Billed,Rawabi Masar Trading (fictional),Cement bag 50kg,Building materials,161,19.81,3189.41
+2026-09-15,PO-01070,Billed,Qimma Waha Est. (fictional),Office chair,Office supplies,9,795.82,7162.38
+2026-09-13,PO-01071,Billed,Taqa Shams Trading (fictional),Staff lunch box,Catering,397,33.35,13239.95
+2026-09-08,PO-01072,Billed,Sarh Qimma Services (fictional),Staff lunch box,Catering,409,32.19,13165.71
+2026-09-15,PO-01073,Billed,Rimal Madar Contracting (fictional),CCTV maintenance,Security services,5,2170.76,10853.8
+2026-08-27,PO-01074,Billed,Sahab Tamayuz Services (fictional),A4 paper box,Office supplies,376,88.71,33354.96
+2026-07-05,PO-01075,Billed,Madar Jazeera Trading (fictional),Staff lunch box,Catering,349,34.19,11932.31
+2026-09-24,PO-01076,Billed,Bina Sarh Est. (fictional),Toner cartridge,Office supplies,11,448.53,4933.83
+2026-07-15,PO-01077,Billed,Tamayuz Shams Solutions (fictional),Rebar ton,Building materials,13,2805.8,36475.4
+2026-07-21,PO-01078,Billed,Sahab Tamayuz Services (fictional),Toner cartridge,Office supplies,66,411.86,27182.76
+2026-09-01,PO-01079,Billed,Jazeera Noor Supplies (fictional),AC maintenance visit,Facility services,20,872.6,17452.0
+2026-07-02,PO-01080,Billed,Taqa Shams Trading (fictional),Event catering per head,Catering,224,147.85,33118.4
+2026-08-23,PO-01081,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,3,442.17,1326.51
+2026-07-22,PO-01082,Billed,Tamayuz Bina Trading (fictional),Cement bag 50kg,Building materials,1718,17.93,30803.74
+2026-09-21,PO-01083,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,48,480.84,23080.32
+2026-08-03,PO-01084,Billed,Bina Taqa Est. (fictional),Staff lunch box,Catering,495,34.03,16844.85
+2026-08-13,PO-01085,Billed,Najd Sahab Contracting (fictional),Staff lunch box,Catering,1225,32.82,40204.5
+2026-09-16,PO-01086,Billed,Jazeera Noor Supplies (fictional),Pest control visit,Facility services,18,644.3,11597.4
+2026-08-10,PO-01087,Billed,Madar Jazeera Trading (fictional),Staff lunch box,Catering,1084,33.54,36357.36
+2026-07-26,PO-01088,Billed,Noor Masar Contracting (fictional),Network switch,IT hardware,4,3972.69,15890.76
+2026-09-27,PO-01089,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,60,442.21,26532.6
+2026-08-20,PO-01090,Billed,Tamayuz Shams Solutions (fictional),Ready-mix m3,Building materials,24,285.65,6855.6
+2026-08-05,PO-01091,Billed,Dana Rimal Trading (fictional),Network switch,IT hardware,6,3610.67,21664.02
+2026-07-14,PO-01092,Billed,Taqa Rimal Solutions (fictional),Cement bag 50kg,Building materials,735,17.5,12862.5
+2026-08-12,PO-01093,Billed,Taqa Sahab Services (fictional),Rebar ton,Building materials,4,3055.64,12222.56
+2026-08-23,PO-01094,Billed,Rimal Madar Contracting (fictional),Access card batch,Security services,10,1673.56,16735.6
+2026-07-16,PO-01095,Billed,Sarh Noor Services (fictional),AC maintenance visit,Facility services,25,846.98,21174.5
+2026-09-07,PO-01096,Billed,Bina Afaq Contracting (fictional),Cleaning visit,Facility services,4,1327.31,5309.24
+2026-08-31,PO-01097,Billed,Bina Afaq Contracting (fictional),Pest control visit,Facility services,45,631.76,28429.2
+2026-09-20,PO-01098,Billed,Buruj Dana Trading (fictional),Laptop,IT hardware,5,4403.0,22015.0
+2026-09-24,PO-01099,Billed,Najd Sahab Contracting (fictional),Event catering per head,Catering,32,142.35,4555.2
+2026-08-11,PO-01100,Billed,Masar Wadi Services (fictional),Cleaning visit,Facility services,22,1400.09,30801.98
+2026-07-22,PO-01101,Billed,Nakheel Najd Trading (fictional),A4 paper box,Office supplies,463,100.62,46587.06
+2026-07-26,PO-01102,Billed,Nakheel Najd Trading (fictional),A4 paper box,Office supplies,491,97.91,48073.81
+2026-07-26,PO-01103,Billed,Nakheel Najd Trading (fictional),A4 paper box,Office supplies,513,88.9,45605.7
+2026-09-16,PO-01104,Billed,Waha Madar Est. (fictional),Cement bag 50kg,Building materials,482,18.35,8844.7
+2026-09-20,PO-01105,Billed,Waha Madar Est. (fictional),Cement bag 50kg,Building materials,444,20.43,9070.92
+2026-09-20,PO-01106,Billed,Waha Madar Est. (fictional),Cement bag 50kg,Building materials,458,19.87,9100.46
+2026-08-03,PO-01107,Billed,Taqa Quick Est. (fictional),Laptop,IT hardware,1,4925.78,4925.78
+2026-08-17,PO-01108,Billed,Dana Quick Contracting (fictional),Cleaning visit,Facility services,23,1442.28,33172.44
+2026-07-30,PO-01109,Billed,Bina Taqa Est. (fictional),Event catering per head,Catering,233,342.19,79730.27
+2026-09-13,PO-01110,Billed,Bina Taqa Est. (fictional),Event catering per head,Catering,22,265.19,5834.18
+2026-09-08,PO-01111,Billed,Rimal Qimma Services (fictional),Water carton,Catering,2676,24.95,66766.2
+2026-08-17,PO-01112,Billed,Najd Sahab Contracting (fictional),Event catering per head,Catering,216,288.67,62352.72
+2026-08-04,PO-01113,Billed,Shams Noor Trading (fictional),Cement bag 50kg,Building materials,84,32.31,2714.04
+2026-07-14,PO-01114,Billed,Dana Madar Est. (fictional),Water carton,Catering,1500,30.93,46395.0
+2026-07-21,PO-01115,Billed,Dana Rawabi Est. (fictional),Guard shift,Security services,78,515.19,40184.82
+2026-09-10,PO-01116,Billed,Jazeera Noor Supplies (fictional),Cleaning visit,Facility services,5,1245.75,6228.75
+2026-08-30,PO-01117,Billed,Rimal Madar Contracting (fictional),Guard shift,Security services,81,479.25,38819.25
+2026-08-05,PO-01118,Billed,Bina Afaq Contracting (fictional),Cleaning visit,Facility services,29,1287.85,37347.65
+2026-07-20,PO-01119,Billed,Rimal Sahab Supplies (fictional),Cleaning visit,Facility services,4,1255.22,5020.88
+2026-07-08,PO-01120,Billed,Najd Madar Supplies (fictional),Monthly maintenance contract,Facility services,1,25000,25000
+2026-07-05,PO-01121,Billed,Najd Madar Supplies (fictional),Monthly maintenance contract,Facility services,1,20000,20000
+2026-09-06,PO-01122,Billed,Najd Madar Supplies (fictional),Monthly maintenance contract,Facility services,1,15000,15000
+2026-09-28,PO-01123,Billed,Najd Madar Supplies (fictional),Monthly maintenance contract,Facility services,1,30000,30000
+2026-08-27,PO-01124,Billed,Najd Madar Supplies (fictional),Monthly maintenance contract,Facility services,1,30000,30000
+2026-07-02,PO-99999,Draft,Bina Taqa Est. (fictional),Event catering per head,Catering,29,148.55,44444

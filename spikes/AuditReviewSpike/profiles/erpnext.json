@@ -1,0 +1,149 @@
+{
+  "name": "ERPNext (Frappe)",
+  "status": "Draft profile: column names follow ERPNext Report Builder exports, where child-table fields carry the child doctype in brackets; confirm against the customer's first export and edit here, not in code.",
+  "how_to_export": [
+    "In each list, open Report view, pick the columns below (child fields from Pick Columns > child table), filter to the quarter, then Menu > Export as CSV with the file name below.",
+    "Purchase Order: ID, Supplier, Date, Status, Owner, and from Purchase Order Item: Item Code, Item Group, Quantity, Rate, Amount.",
+    "Purchase Invoice: ID, Supplier, Supplier Invoice No, Supplier Invoice Date, Grand Total, Status, and from Purchase Invoice Item: Purchase Order.",
+    "Payment Entry: Posting Date, Status, and from Payment Entry Reference: Reference Name.",
+    "Supplier: ID, Supplier Name, Tax Id, Created On.",
+    "Bank Account: Party Type, Party, IBAN (export once; the profile splits suppliers and employees).",
+    "ERPNext has no standard approval history export: rule R7 runs only if the customer adds a workflow and exports Workflow Action or Version. The profile leaves approvals empty."
+  ],
+  "utc_offset_hours": 0,
+  "limits_hint": "ERPNext Authorization Rule amounts",
+  "sources": {
+    "po_lines": {
+      "file": "Purchase Order",
+      "fill_down": [
+        "ID",
+        "Supplier",
+        "Date",
+        "Status",
+        "Owner"
+      ],
+      "drop": {
+        "Status": [
+          "Draft",
+          "Cancelled"
+        ]
+      }
+    },
+    "bills": {
+      "file": "Purchase Invoice",
+      "fill_down": [
+        "ID",
+        "Supplier",
+        "Supplier Invoice No",
+        "Supplier Invoice Date",
+        "Grand Total",
+        "Status"
+      ],
+      "drop": {
+        "Status": [
+          "Draft",
+          "Cancelled",
+          "Return"
+        ]
+      }
+    },
+    "payments": {
+      "file": "Payment Entry",
+      "optional": true,
+      "fill_down": [
+        "Posting Date",
+        "Status"
+      ],
+      "keep": {
+        "Status": [
+          "Submitted"
+        ]
+      }
+    },
+    "vendors": {
+      "file": "Supplier",
+      "optional": true
+    },
+    "vendor_banks": {
+      "file": "Bank Account",
+      "optional": true,
+      "keep": {
+        "Party Type": [
+          "Supplier"
+        ]
+      }
+    },
+    "staff": {
+      "file": "Bank Account",
+      "optional": true,
+      "keep": {
+        "Party Type": [
+          "Employee"
+        ]
+      }
+    }
+  },
+  "purchase_orders": {
+    "source": "po_lines",
+    "columns": {
+      "po_id": "ID",
+      "po_date": "Date",
+      "vendor_id": "Supplier",
+      "category": "Item Group (Purchase Order Item)",
+      "item": "Item Code (Purchase Order Item)",
+      "quantity": "Quantity (Purchase Order Item)",
+      "unit_price": "Rate (Purchase Order Item)",
+      "amount": "Amount (Purchase Order Item)",
+      "requester_id": "Owner",
+      "approver_id": null,
+      "approved_at": null
+    }
+  },
+  "invoices": {
+    "source": "bills",
+    "unique_by": "ID",
+    "columns": {
+      "invoice_no": [
+        "Supplier Invoice No",
+        "ID"
+      ],
+      "vendor_id": "Supplier",
+      "po_id": "Purchase Order (Purchase Invoice Item)",
+      "invoice_date": [
+        "Supplier Invoice Date",
+        "Date"
+      ],
+      "amount": "Grand Total",
+      "paid_date": null
+    },
+    "paid_date_lookup": {
+      "source": "payments",
+      "key": "Reference Name (Payment Entry Reference)",
+      "date": "Posting Date",
+      "match": "ID"
+    }
+  },
+  "vendors": {
+    "source": "vendors",
+    "columns": {
+      "vendor_id": "ID",
+      "name": "Supplier Name",
+      "cr_number": "Tax Id",
+      "bank_iban": null,
+      "created_date": "Created On"
+    }
+  },
+  "vendor_banks": {
+    "source": "vendor_banks",
+    "key": "Party",
+    "iban": "IBAN"
+  },
+  "staff": {
+    "source": "staff",
+    "columns": {
+      "staff_id": "Party",
+      "bank_iban": "IBAN"
+    }
+  },
+  "date_order": "auto"
+}

@@ -1,0 +1,102 @@
+{
+  "name": "Zoho Books",
+  "status": "Draft profile: column names follow Zoho Books module exports (Settings > Export Data); confirm against the customer's first export and edit here, not in code.",
+  "how_to_export": [
+    "Export each module as CSV for the quarter and keep Zoho's file names: Purchase_Order, Bill, Vendor_Payment, Contacts.",
+    "Zoho Books exports have no approval history and no vendor bank accounts: rules R4 (bank match) and R7 (approvals) cannot run; the report says so.",
+    "Line-item exports repeat the header on every line, so no fill-down is needed."
+  ],
+  "utc_offset_hours": 0,
+  "limits_hint": "Zoho Books purchase order approval settings",
+  "sources": {
+    "po_lines": {
+      "file": "Purchase_Order",
+      "drop": {
+        "Purchase Order Status": [
+          "Draft",
+          "Cancelled",
+          "Pending Approval",
+          "Rejected"
+        ]
+      }
+    },
+    "bills": {
+      "file": "Bill",
+      "drop": {
+        "Bill Status": [
+          "Draft",
+          "Void"
+        ]
+      }
+    },
+    "payments": {
+      "file": "Vendor_Payment",
+      "optional": true
+    },
+    "vendors": {
+      "file": "Contacts",
+      "optional": true,
+      "keep": {
+        "Contact Type": [
+          "vendor"
+        ]
+      }
+    }
+  },
+  "purchase_orders": {
+    "source": "po_lines",
+    "columns": {
+      "po_id": "Purchase Order Number",
+      "po_date": "Purchase Order Date",
+      "vendor_id": "Vendor Name",
+      "category": "Account",
+      "item": "Item Name",
+      "quantity": "QuantityOrdered",
+      "unit_price": "Rate",
+      "amount": "Item Total",
+      "requester_id": null,
+      "approver_id": null,
+      "approved_at": null
+    }
+  },
+  "invoices": {
+    "source": "bills",
+    "unique_by": "Bill ID",
+    "columns": {
+      "invoice_no": "Bill Number",
+      "vendor_id": "Vendor Name",
+      "po_id": "Purchase Order Number",
+      "invoice_date": "Bill Date",
+      "amount": "Total",
+      "paid_date": null
+    },
+    "paid_date_lookup": {
+      "source": "payments",
+      "key": {
+        "all": [
+          "Bill Number",
+          "Vendor Name"
+        ]
+      },
+      "date": "Date",
+      "match": {
+        "all": [
+          "Bill Number",
+          "Vendor Name"
+        ]
+      },
+      "split": ","
+    }
+  },
+  "vendors": {
+    "source": "vendors",
+    "columns": {
+      "vendor_id": "Display Name",
+      "name": "Display Name",
+      "cr_number": "Tax Registration Number",
+      "bank_iban": null,
+      "created_date": "Created Time"
+    }
+  },
+  "date_order": "auto"
+}

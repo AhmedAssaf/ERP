@@ -20,7 +20,18 @@ Needs Python 3.11+ and pandas. Open `output/report.html` in a browser and print 
 | `staff.csv` (optional) | staff_id, name, department, bank_iban |
 | `approval_limits.csv` | level, limit_sar |
 
-A real ERP export needs mapping into these columns first. SAP, Oracle, Odoo and local ERPs name them differently. For SAP there is a mapper (next section).
+A real ERP export needs mapping into these columns first. Every ERP names them differently, so there is a mapper per ERP family:
+
+| Customer's ERP | Command (then `python review.py <mapped> <report>`) | Section |
+|---|---|---|
+| SAP ECC or S/4HANA | `python map_sap.py <folder> <mapped>` | SAP exports |
+| Odoo 16, 17, 18 | `python map_odoo.py <folder> <mapped>` | Odoo exports |
+| Oracle E-Business Suite / Fusion Cloud | `python map_oracle.py <folder> <mapped>` (Fusion: add `3`) | Oracle exports |
+| Dynamics 365 Finance and Operations / Business Central | `python map_dynamics.py <folder> <mapped>` | Microsoft Dynamics exports |
+| NetSuite, ERPNext, Zoho Books | `python map_generic.py profiles/<erp>.json <folder> <mapped>` | Any other ERP: profiles |
+| Anything else (Sage, Qoyod, Daftra, Infor, a local ERP) | copy `profiles/template.json`, fill in the column names | Any other ERP: profiles |
+
+Every mapper writes `mapping_report.txt`: rows dropped and why, and which rules cannot run because a file or column is missing. Read it before trusting the findings. `python test_mappers.py` checks all of them end to end.
 
 ## SAP exports
 
@@ -113,15 +124,89 @@ The mapper keeps approved STANDARD orders that are not cancelled, drops cancelle
 
 Test it without Oracle: `python to_oracle.py` writes `oracle_sample/` (DD-MON-RR dates, internal IDs, SUBMIT, FORWARD and APPROVE history, an incomplete and a cancelled order, a cancelled line, a cancelled invoice, a credit memo, a voided payment); mapping it and running the review finds all 21 planted red flags again.
 
+## Microsoft Dynamics exports
+
+```
+python map_dynamics.py <folder> <mapped_folder> [fo|bc] [utc_offset_hours]
+python review.py <mapped_folder> <report_folder>
+```
+
+The edition is detected from the file names. Finance and Operations stores UTC (default offset +3); Business Central's Excel exports show local time (default 0). Dates in Excel exports follow the user's locale; the mapper decides day-first or month-first per column from the values themselves.
+
+**Dynamics 365 Finance and Operations** (also AX 2012 with the same fields). The admin exports the entities from Data management (Export, CSV, file named after the entity) and two inquiries with Export to Excel:
+
+| File | Source | Fields | Feeds |
+|---|---|---|---|
+| PurchPurchaseOrderHeaderV2Entity | Data management | PURCHASEORDERNUMBER, ORDERVENDORACCOUNTNUMBER, ACCOUNTINGDATE, PURCHASEORDERSTATUS, DOCUMENTAPPROVALSTATUS, ORDERERPERSONNELNUMBER | All PO rules |
+| PurchPurchaseOrderLineV2Entity | Data management | PURCHASEORDERNUMBER, LINENUMBER, ITEMNUMBER, LINEDESCRIPTION, PROCUREMENTCATEGORYNAME, ORDEREDPURCHASEQUANTITY, PURCHASEPRICE, PURCHASEPRICEQUANTITY, LINEAMOUNT, PURCHASEORDERLINESTATUS | R1, R2, R6 |
+| WorkflowHistory | a flattened export of the purchase order workflow tracking, one row per step | DOCUMENT (PO number), TRACKINGTYPE (Submission, Approval, ...), USERID, CREATEDDATETIME | R7 |
+| VendVendorV2Entity | Data management, with CREATEDDATETIME added | VENDORACCOUNTNUMBER, VENDORORGANIZATIONNAME, TAXEXEMPTNUMBER, CREATEDDATETIME | Names, R5 |
+| VendVendorBankAccountEntity | Data management | VENDORACCOUNTNUMBER, IBAN, BANKACCOUNTNUMBER | R4 |
+| VendorInvoiceJournal | Accounts payable > Inquiries > Invoice journal, Export to Excel | Invoice, Invoice account, Purchase order, Invoice date, Invoice amount | R3, R8 |
+| VendorTransactions | Vendor > Transactions, Export to Excel | Vendor account, Invoice, Transaction type, Date, Amount in transaction currency, Closed | R5: paid date is Closed on the invoice row |
+| StaffBankAccounts (optional) | HR | PERSONNELNUMBER, IBAN | R4 |
+
+Cancelled orders and lines and orders not approved or confirmed are dropped; the price is divided by the price unit. The workflow history file is the least standard: agree its four columns with the customer's admin.
+
+**Dynamics 365 Business Central** (also NAV). Export each list page with Open in Excel, English captions, file named after the page. Fully invoiced orders are deleted in Business Central and survive only in Purchase Order Archives, so ask for those (turn on Archive Orders in Purchases & Payables Setup if it is off):
+
+| File | Captions | Feeds |
+|---|---|---|
+| Purchase Order Archives, Purchase Line Archives | No., Version No., Buy-from Vendor No., Order Date, Status, Assigned User ID; Document No., Version No., Type, No., Description, Item Category Code, Quantity, Direct Unit Cost Excl. VAT, Line Amount Excl. VAT | All PO rules; the latest version of each order counts |
+| Purchase Orders, Purchase Lines | the same captions, for orders still open | Released orders only |
+| Posted Approval Entries (and Approval Entries) | Table ID, Document No., Sender ID, Approver ID, Status, Last Date-Time Modified | R7 |
+| Item Categories (optional) | Code, Description | Category names |
+| Vendors | No., Name, VAT Registration No., System Created At (add the column to the page) | Names, R5 |
+| Vendor Bank Accounts | Vendor No., IBAN, Bank Account No. | R4 |
+| Posted Purchase Invoices | No., Buy-from Vendor No., Vendor Invoice No., Document Date, Amount Including VAT, Order No., Cancelled | R3, R8 |
+| Vendor Ledger Entries | Document Type, Document No., Open, Closed at Date | R5 |
+| Employees (optional) | No., IBAN | R4 |
+
+## Any other ERP: profiles
+
+```
+python map_generic.py profiles/<erp>.json <folder> <mapped_folder>
+```
+
+For ERPs whose exports are flat lists, a JSON profile says which file and column feeds each review field, which rows to keep or drop, and how to look up the paid date. The column spec forms are listed at the top of `map_generic.py`. Each profile carries `how_to_export`: the instructions to send the customer's admin.
+
+| Profile | Covers | Rules that cannot run from standard exports |
+|---|---|---|
+| `profiles/netsuite.json` | Five saved searches (PO lines, approvals from System Notes, bills, bill payments, vendors) | none |
+| `profiles/erpnext.json` | Report Builder exports of Purchase Order, Purchase Invoice, Payment Entry, Supplier, Bank Account | R7 (no standard approval history) |
+| `profiles/zoho_books.json` | Module exports of Purchase_Order, Bill, Vendor_Payment, Contacts | R7 (no approvals), R4 (no bank accounts) |
+| `profiles/template.json` | Copy for Sage, Qoyod, Daftra, Infor or a local ERP | depends on the exports |
+
+The three product profiles are drafts: column names follow each product's standard exports and must be checked against the first customer's real files. When a column differs, edit the profile, not the code. Invoice numbers are often unique only per vendor, so a paid-date lookup can match on several columns with `{"all": [...]}` (see the Zoho Books profile). Set `date_order` to `dmy` or `mdy` when the customer's date format is known; with `auto` the mapper decides from all date columns of the export together and warns when no value proves the order. Credit notes (zero or negative amounts) are left out of the invoice rules; set `"invoice_amounts": "negative"` for ledgers that show vendor invoices as negative amounts. A filter whose column is missing is reported in the mapping report, not skipped silently.
+
+When an ERP has no requester, rule R1 cannot tell who split an order, so it asks for three orders to the same vendor within 14 days instead of two. Expect a few more questions for the reviewer on those exports.
+
 ## Testing the mappers
 
-`python to_sap.py` turns the fictional sample into `sap_sample/` in SAP format (German number format, price units, a two-line PO, a reversed invoice, change documents that are not releases). Mapping it and running the review finds all 21 planted red flags again.
+```
+python test_mappers.py
+```
+
+It regenerates every sample, maps it, runs the review, and compares the findings with the answer key:
+
+| Sample | Generator | Quirks it contains | Expected |
+|---|---|---|---|
+| `sap_sample/` | `to_sap.py` | German numbers, price units, a two-line PO, a reversed invoice, change documents that are not releases | 21 of 21 |
+| `odoo_sample/` | `to_odoo.py` | UTC datetimes, a cancelled order, a reversed bill, continuation rows | 21 of 21 |
+| `oracle_sample/` | `to_oracle.py` | DD-MON-RR dates, SUBMIT, FORWARD, APPROVE history, cancelled documents, a voided payment | 21 of 21 |
+| `dynamics_fo_sample/` | `to_dynamics.py` | UTC workflow times, US dates, price units, cancelled orders and lines | 21 of 21 |
+| `dynamics_bc_sample/` | `to_dynamics.py` | archived order versions, an unreleased order, a rejection before approval, a cancelled invoice | 21 of 21 |
+| `netsuite_sample/` | `to_generic.py` | US dates, thousands separators, "Purchase Order #" links, System Notes | 21 of 21 |
+| `erpnext_sample/` | `to_generic.py` | child-table rows with blank parent cells, draft and cancelled documents | 16 of 21 (no approvals) |
+| `zoho_books_sample/` | `to_generic.py` | repeated line rows, one payment for two bills, void bills | 15 of 21 (no approvals, no banks) |
+
+All samples are generated, not taken from real systems: expect a small adjustment on each ERP's first real export.
 
 ## The eight rules
 
 | Rule | Flags | Amount shown |
 |---|---|---|
-| R1 | 2+ POs from one requester to one vendor within 14 days, each 80 to 100% of an approval limit, together over it | The POs together |
+| R1 | 2+ POs from one requester to one vendor within 14 days (3+ when the requester is unknown), each 80 to 100% of an approval limit, together over it | The POs together |
 | R2 | One vendor takes 90%+ of a category's spend over 5+ POs | That vendor's spend |
 | R3 | Same invoice number paid twice, or same vendor and amount within 3 days | The extra payment |
 | R4 | Vendor bank account equals a staff bank account | Total paid to the vendor |
