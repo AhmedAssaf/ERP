@@ -1,4 +1,25 @@
 @page "/"
+@inject IStringLocalizer<SharedResource> T
+@inject ITenantAccessor Tenants
 
-<PageTitle>Home</PageTitle>
-<h1>Home</h1>
+<PageTitle>@T["Home.Title"]</PageTitle>
+
+<header class="bg-primary text-on-primary px-6 py-4">
+    <p class="text-heading font-semibold">@PortalName</p>
+</header>
+
+<main class="mx-auto max-w-3xl px-6 py-8">
+    <h1 class="text-display font-semibold">@T["Home.Welcome", PortalName]</h1>
+    <AuthorizeView>
+        <Authorized>
+            <p class="mt-4 text-ink-muted">@T["Home.SignedInAs", context.User.Identity?.Name ?? string.Empty]</p>
+        </Authorized>
+    </AuthorizeView>
+    <p class="mt-6">
+        <a class="text-action underline" href="@($"/culture/set?culture={T["Language.OtherCulture"]}&returnUrl=/")">@T["Language.Other"]</a>
+    </p>
+</main>
+
+@code {
+    private string PortalName => Tenants.Current?.Branding.PortalName ?? string.Empty;
+}

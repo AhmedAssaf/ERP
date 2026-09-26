@@ -1,0 +1,7 @@
+@* Overrides the primary token with the tenant's colour (F-02). A database check constraint validates the colour. *@
+@inject ITenantAccessor Tenants
+
+@if (Tenants.Current is { } tenant)
+{
+    <style>:root { --color-primary: @tenant.Branding.PrimaryColor; }</style>
+}

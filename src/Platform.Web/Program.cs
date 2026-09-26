@@ -8,7 +8,9 @@ using Platform.Modules.Identity.Contracts;
 using Platform.Modules.Tenancy;
 using Platform.Modules.Workflow;
 using Platform.Shared;
+using Platform.UI;
 using Platform.Web.Components;
+using Platform.Web.Localization;
 using Platform.Web.Tenancy;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -77,6 +79,7 @@ builder.Services
     });
 builder.Services.AddAuthorization(options => options.FallbackPolicy = IdentityModule.SameTenantPolicy);
 builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddPlatformLocalization();
 
 var app = builder.Build();
 
@@ -88,10 +91,12 @@ if (!app.Environment.IsDevelopment())
 
 app.UseMiddleware<TenantMiddleware>();
 app.UseAuthentication();
+app.UseRequestLocalization();
 app.UseAuthorization();
 app.UseAntiforgery();
 app.MapStaticAssets().AllowAnonymous();
 app.MapHealthChecks("/health").AllowAnonymous();
+app.MapCultureEndpoints();
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 
 app.Run();

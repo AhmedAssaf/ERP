@@ -43,7 +43,7 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 | W-04 | Keycloak realm export with Organizations, web client, worker client; OIDC wiring in the host | P0 | M | Done 2026-09-26 except the browser login end to end, which Task 16 of the foundation plan proves; worker client with W-08; tenants match the organization alias, not the id (spec section 7) | W-01, W-02 |
 | W-05 | Tailwind build: standalone CLI in MSBuild, `@theme` tokens, fonts self-hosted, physical-utility lint | P0 | S | Done | W-02 |
 | W-06 | `Platform.UI` components for the MVP (document 08 section 6) with the gallery page in both directions | P0 | L | Backlog | W-05 |
-| W-07 | Localisation: `IStringLocalizer` setup, `ar-SA` and `en-US` resources, culture switch, `dir` on `<html>` | P0 | S | Backlog | W-02 |
+| W-07 | Localisation: `IStringLocalizer` setup, `ar-SA` and `en-US` resources, culture switch, `dir` on `<html>` | P0 | S | Done | W-02 |
 | W-08 | Hangfire with PostgreSQL storage, dashboard behind admin role, deadline job skeleton | P0 | S | Backlog | W-02, W-03 |
 | W-09 | CI workflow: build, test with Testcontainers, format, Trivy, lint, Mermaid render check for docs | P0 | M | Backlog | W-02 |
 | W-10 | Observability: OpenTelemetry, Serilog, health endpoints, Sentry | P1 | S | Backlog | W-02 |
