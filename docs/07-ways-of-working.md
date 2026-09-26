@@ -81,12 +81,13 @@ Reset everything: `docker compose down -v` then `up -d` again. ClamAV takes up t
 
 ### Run the app locally
 
-With the Compose stack up and the two `WASLABID_*` values filled in `infra/compose/.env`, run these once from the repository root (Git Bash). The commands read the values from `.env` into shell variables and never print them (N-10); user secrets live outside the repository.
+With the Compose stack up and the three `WASLABID_*` values filled in `infra/compose/.env`, run these once from the repository root (Git Bash). The commands read the values from `.env` into shell variables and never print them (N-10); user secrets live outside the repository.
 
 ```bash
 env_value() { grep "^$1=" infra/compose/.env | cut -d= -f2- | tr -d '\r'; }
 PGPW=$(env_value POSTGRES_PASSWORD)
 WEB_SECRET=$(env_value WASLABID_WEB_CLIENT_SECRET)
+PLATFORM_SECRET=$(env_value WASLABID_PLATFORM_CLIENT_SECRET)
 # erp_app's password is the development value from infra/compose/postgres/init/01-databases.sql.
 APP_DB="Host=localhost;Port=5432;Database=platform;Username=erp_app;Password=erp_app_dev_password"
 
@@ -95,7 +96,8 @@ dotnet user-secrets set "ConnectionStrings:Platform" "$APP_DB" --project src/Pla
 dotnet user-secrets set "ConnectionStrings:Platform" "$APP_DB" --project src/Platform.Web > /dev/null
 dotnet user-secrets set "ConnectionStrings:Platform" "$APP_DB" --project src/Platform.Worker > /dev/null
 dotnet user-secrets set "Oidc:ClientSecret" "$WEB_SECRET" --project src/Platform.Web > /dev/null
-unset PGPW WEB_SECRET
+dotnet user-secrets set "PlatformOidc:ClientSecret" "$PLATFORM_SECRET" --project src/Platform.Web > /dev/null
+unset PGPW WEB_SECRET PLATFORM_SECRET
 ```
 
 Then migrate, seed the development tenants `acme` and `beta`, and start the app:
@@ -147,6 +149,30 @@ is still no default recipient, so no alert leaves a fresh checkout until one is 
 Compose stack) catches every alert in Development.
 
 Open `https://acme.localhost:8443` (or the port in `CADDY_HTTPS_PORT`). Login only works through Caddy: it terminates TLS, which the OIDC correlation cookies need, and forwards the host with its port so the redirect URI is right. Plain `http://localhost:5273` cannot complete an OIDC login. Keycloak answers on `http://localhost:8080`; sign in as `acme.admin` or `beta.admin` with `WASLABID_DEV_USER_PASSWORD` from `.env`.
+
+#### Platform console host (D-1, D-2)
+
+The platform console lives on its own host, `https://platform.localhost:8443` (Caddy's `*.localhost` rule already
+covers it; `Platform:Host` is `platform.localhost` in `appsettings.Development.json`). On that host only `/platform/*`,
+the platform sign-in callbacks (`/signin-platform`, `/signout-callback-platform`, `/signout-platform`), `/health` and
+the shared framework paths (`/_framework`, `/_content`, `/_blazor`, `/culture`) answer; every tenant page is a 404 there,
+and `/platform/*` is a 404 on every tenant host. Platform staff sign in to the separate Keycloak realm
+`waslabid-platform` (client `waslabid-platform-web`, cookie `waslabid.platform`, same hardening as the tenant cookie),
+never to `waslabid`. The `PlatformAdmin` policy needs the realm role `platform-admin` and an `acr` of at least 2, which
+only a login with a one-time code produces; a password-only session gets a 403.
+
+Sign in as the platform admin the first time:
+
+1. Make sure the realm exists: Keycloak imports `waslabid-platform-realm.json` only on a start where the realm is
+   missing. On a stack that was already running before this realm was added, `docker compose up -d --force-recreate keycloak`
+   (the tenant realm is kept, since it already exists).
+2. Set the platform client secret as a user secret (the block above does it).
+3. Open `https://platform.localhost:8443/platform`. Keycloak shows the platform realm's login: user `platform.admin`,
+   password `WASLABID_DEV_USER_PASSWORD` from `.env`.
+4. Keycloak asks you to set up a mobile authenticator (required action `CONFIGURE_TOTP`). Scan the QR code with any TOTP
+   app (Google Authenticator, Microsoft Authenticator, FreeOTP) and enter a code.
+5. Every later sign-in asks for the password and then a six-digit code. Remove the credential in the admin console
+   (realm `waslabid-platform`, Users, `platform.admin`, Credentials) to enrol a new device.
 
 ## 5. Branches, commits, pull requests
 

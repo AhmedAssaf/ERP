@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
@@ -13,6 +14,7 @@ using Platform.Shared;
 using Platform.UI;
 using Platform.Web.Components;
 using Platform.Web.Localization;
+using Platform.Web.PlatformHost;
 using Platform.Web.Tenancy;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,7 +26,7 @@ if (string.IsNullOrWhiteSpace(platformDb))
 
 if (!builder.Environment.IsDevelopment() && !builder.Environment.IsEnvironment("Testing"))
 {
-    foreach (var key in new[] { "Oidc:Authority", "Oidc:ClientSecret" })
+    foreach (var key in new[] { "Oidc:Authority", "Oidc:ClientSecret", "Platform:Host", "PlatformOidc:Authority", "PlatformOidc:ClientSecret" })
     {
         if (string.IsNullOrWhiteSpace(builder.Configuration[key]))
         {
@@ -44,13 +46,16 @@ builder.Services.AddWorkflowModule(platformDb);
 builder.Services.AddOperationsModule(platformDb);
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<CircuitHandler, TenantCircuitHandler>();
+builder.Services.Configure<PlatformHostOptions>(builder.Configuration.GetSection(PlatformHostOptions.Section));
 
+// Two sign-ins side by side (spec 3.1): tenant hosts use the tenant realm and cookie, the platform host the platform
+// realm and its own cookie. The default scheme only forwards, by the host mark PlatformHostMiddleware sets, so neither
+// cookie is ever read on the other kind of host.
+const string hostScheme = "ByHost";
 builder.Services
-    .AddAuthentication(options =>
-    {
-        options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
-    })
+    .AddAuthentication(hostScheme)
+    .AddPolicyScheme(hostScheme, null, options => options.ForwardDefaultSelector = context =>
+        PlatformRequest.IsPlatform(context) ? PlatformAuthentication.CookieScheme : CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
         options.Cookie.Name = "waslabid.auth";
@@ -60,6 +65,7 @@ builder.Services
         // Fixed 30-minute lifetime, no sliding, until W-21 revalidates membership against Keycloak.
         options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
         options.SlidingExpiration = false;
+        options.ForwardChallenge = OpenIdConnectDefaults.AuthenticationScheme;
         options.Events.OnRedirectToAccessDenied = context =>
         {
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
@@ -69,6 +75,7 @@ builder.Services
     .AddOpenIdConnect(options =>
     {
         builder.Configuration.GetSection("Oidc").Bind(options);
+        options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
         options.ResponseType = OpenIdConnectResponseType.Code;
         options.UsePkce = true;
         options.MapInboundClaims = false;
@@ -79,13 +86,17 @@ builder.Services
         options.Scope.Add("profile");
         options.Scope.Add("organization");
         options.TokenValidationParameters.NameClaimType = IdentityClaims.Username;
-    });
+    })
+    .AddPlatformAuthentication(builder.Configuration);
 builder.Services.AddAuthorization(options =>
 {
-    // Fallback covers endpoints with no metadata; default covers [Authorize] and RequireAuthorization().
+    // Fallback covers endpoints with no metadata; default covers [Authorize] and RequireAuthorization(). Both are the
+    // tenant policy here; HostAwareAuthorizationPolicyProvider swaps in PlatformAdmin on the platform host.
     options.FallbackPolicy = IdentityModule.SameTenantPolicy;
     options.DefaultPolicy = IdentityModule.SameTenantPolicy;
+    options.AddPolicy(PlatformAuthentication.PolicyName, PlatformAuthentication.AdminPolicy);
 });
+builder.Services.AddSingleton<IAuthorizationPolicyProvider, HostAwareAuthorizationPolicyProvider>();
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddPlatformLocalization();
 builder.Services.AddPlatformUI();
@@ -114,6 +125,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+app.UseMiddleware<PlatformHostMiddleware>();
 app.UseMiddleware<TenantMiddleware>();
 if (!app.Environment.IsDevelopment())
 {

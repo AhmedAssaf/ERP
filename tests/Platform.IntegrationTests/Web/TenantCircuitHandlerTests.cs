@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Platform.IntegrationTests.Infrastructure;
 using Platform.Modules.Tenancy.Contracts;
 using Platform.Shared.Tenancy;
+using Platform.Web.PlatformHost;
 using Platform.Web.Tenancy;
 
 namespace Platform.IntegrationTests.Web;
@@ -65,6 +66,34 @@ public class TenantCircuitHandlerTests
         var accessor = new TenantAccessor();
         var handler = new TenantCircuitHandler(
             new FixedNavigation("https://nobody.localhost:8443/"), ConnectionFrom("nobody.localhost"), new TwoTenantDirectory(), accessor);
+
+        await Should.ThrowAsync<InvalidOperationException>(() => handler.OnCircuitOpenedAsync(null!, Ct));
+
+        accessor.Current.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Circuit_on_the_platform_host_has_no_tenant()
+    {
+        var accessor = new TenantAccessor();
+        var connection = ConnectionFrom("platform.localhost");
+        PlatformRequest.Mark(connection.HttpContext!);
+        var handler = new TenantCircuitHandler(
+            new FixedNavigation("https://platform.localhost:8443/"), connection, new TwoTenantDirectory(), accessor);
+
+        await handler.OnCircuitOpenedAsync(null!, Ct);
+
+        accessor.Current.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Platform_circuit_still_refuses_a_base_uri_for_another_host()
+    {
+        var accessor = new TenantAccessor();
+        var connection = ConnectionFrom("platform.localhost");
+        PlatformRequest.Mark(connection.HttpContext!);
+        var handler = new TenantCircuitHandler(
+            new FixedNavigation("https://acme.localhost:8443/"), connection, new TwoTenantDirectory(), accessor);
 
         await Should.ThrowAsync<InvalidOperationException>(() => handler.OnCircuitOpenedAsync(null!, Ct));
 

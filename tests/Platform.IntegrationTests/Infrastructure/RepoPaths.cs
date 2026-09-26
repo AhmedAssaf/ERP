@@ -8,6 +8,8 @@ internal static class RepoPaths
 
     public static string KeycloakRealm => Path.Combine(Root, "infra", "compose", "keycloak", "import", "waslabid-realm.json");
 
+    public static string KeycloakPlatformRealm => Path.Combine(Root, "infra", "compose", "keycloak", "import", "waslabid-platform-realm.json");
+
     private static string FindRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);

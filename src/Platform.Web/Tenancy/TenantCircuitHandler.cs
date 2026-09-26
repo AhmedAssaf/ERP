@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using Platform.Modules.Tenancy.Contracts;
 using Platform.Shared.Tenancy;
+using Platform.Web.PlatformHost;
 
 namespace Platform.Web.Tenancy;
 
@@ -10,7 +11,8 @@ namespace Platform.Web.Tenancy;
 /// circuit's tenant when the circuit opens, before any other circuit handler runs and before any component renders.
 /// The host comes from the <c>/_blazor</c> connection request, which already passed <see cref="TenantMiddleware"/> and
 /// authorization. <see cref="NavigationManager.BaseUri"/> is supplied by the browser in the circuit start message, so
-/// it is only checked against the connection host, never trusted on its own.
+/// it is only checked against the connection host, never trusted on its own. A circuit on the platform console's host
+/// (its connection request was marked by <see cref="PlatformHostMiddleware"/>) has no tenant.
 /// </summary>
 internal sealed class TenantCircuitHandler(
     NavigationManager navigation,
@@ -33,6 +35,11 @@ internal sealed class TenantCircuitHandler(
         {
             throw new InvalidOperationException(
                 $"The circuit base URI host '{baseUriHost}' does not match the connection host '{connectionHost}'.");
+        }
+
+        if (PlatformRequest.IsPlatform(httpContextAccessor.HttpContext!))
+        {
+            return;
         }
 
         var tenant = await directory.FindByHostAsync(connectionHost, cancellationToken)

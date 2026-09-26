@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Platform.Modules.Tenancy.Contracts;
 using Platform.Shared.Tenancy;
+using Platform.Web.PlatformHost;
 using Platform.Web.Tenancy;
 
 namespace Platform.IntegrationTests.Web;
@@ -24,6 +25,27 @@ public class TenantMiddlewareTests
 
         context.Response.StatusCode.ShouldBe(StatusCodes.Status404NotFound);
         nextCalled.ShouldBeFalse();
+        accessor.Current.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Platform_request_skips_tenant_resolution()
+    {
+        var nextCalled = false;
+        var middleware = new TenantMiddleware(_ =>
+        {
+            nextCalled = true;
+            return Task.CompletedTask;
+        });
+        var context = new DefaultHttpContext();
+        context.Request.Host = new HostString("platform.localhost");
+        context.Request.Path = "/platform";
+        PlatformRequest.Mark(context);
+        var accessor = new TenantAccessor();
+
+        await middleware.InvokeAsync(context, new ThrowingDirectory(), accessor);
+
+        nextCalled.ShouldBeTrue();
         accessor.Current.ShouldBeNull();
     }
 
