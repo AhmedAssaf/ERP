@@ -1,6 +1,9 @@
 using System.Text.Json;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.Extensions.Options;
+using Platform.Modules.Vendors;
 using Platform.Modules.Vendors.Contracts;
 using Platform.Shared.Results;
 using Platform.Shared.Tenancy;
@@ -20,19 +23,53 @@ namespace Platform.Web.Vendor;
 /// Every request needs the Vendor policy and the antiforgery token in the <c>RequestVerificationToken</c> header (with its
 /// cookie); a refused one gets 400 (antiforgery), 401 or 403. Size limits are checked from <c>Content-Length</c> and set
 /// on the request before any body is read. Expected failures answer <c>{code}</c> (see <see cref="VendorDocumentErrors"/>):
-/// 400 input, 404 an upload that is not the caller's company's (or older than a day), 409 state, 422 infected.
+/// 400 input, 404 an upload that is not the caller's company's (or older than a day), 409 state, 422 infected, 429
+/// <c>vendor.too_many_uploads</c> while the company has 10 open uploads. Requests are limited per vendor company to
+/// <c>Vendors:UploadRequestsPerMinute</c> (120) in a fixed one-minute window; over it, 429 without a body.
 /// </summary>
 internal static class UploadEndpoints
 {
     public const string BasePath = "/vendor/uploads";
     public const string ChunkHashHeader = "X-Chunk-Sha256";
 
+    /// <summary>The rate limiter policy of the upload API: a fixed window per vendor company.</summary>
+    public const string RateLimitPolicy = "vendor-uploads";
+
     /// <summary>The JSON bodies are small; anything larger is not a start or complete request.</summary>
     internal const long MaxJsonBytes = 4 * 1024;
 
+    /// <summary>
+    /// The upload API's rate limit (V-9): per vendor company, <c>Vendors:UploadRequestsPerMinute</c> requests in a fixed
+    /// one-minute window, no queue. The company is the vendor context the Vendor policy set, so the limiter must run
+    /// after the vendor context middleware; a request without one is refused by the policy before it gets here.
+    /// </summary>
+    public static IServiceCollection AddVendorUploadRateLimit(this IServiceCollection services)
+    {
+        services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            options.AddPolicy(RateLimitPolicy, context =>
+            {
+                if (context.RequestServices.GetRequiredService<IVendorAccessor>().Current?.CompanyId is not { } companyId)
+                {
+                    return RateLimitPartition.GetNoLimiter(Guid.Empty);
+                }
+
+                var permits = context.RequestServices.GetRequiredService<IOptions<VendorsOptions>>().Value.UploadRequestsPerMinute;
+                return RateLimitPartition.GetFixedWindowLimiter(companyId, _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = permits,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0,
+                });
+            });
+        });
+        return services;
+    }
+
     public static IEndpointRouteBuilder MapVendorUploadEndpoints(this IEndpointRouteBuilder app)
     {
-        var uploads = app.MapGroup(BasePath).RequireAuthorization(VendorPolicies.Vendor);
+        var uploads = app.MapGroup(BasePath).RequireAuthorization(VendorPolicies.Vendor).RequireRateLimiting(RateLimitPolicy);
         uploads.MapPost(string.Empty, StartAsync);
         uploads.MapPut("{uploadId:guid}/chunks/{index:int}", PutChunkAsync);
         uploads.MapPost("{uploadId:guid}/complete", CompleteAsync);
@@ -167,7 +204,7 @@ internal static class UploadEndpoints
 
     private static IResult Failure(Error error) => Results.Json(
         new FailureResponse(error.Code),
-        statusCode: error.Kind switch
+        statusCode: error.Code == VendorDocumentErrors.TooManyUploads ? StatusCodes.Status429TooManyRequests : error.Kind switch
         {
             ErrorKind.NotFound => StatusCodes.Status404NotFound,
             ErrorKind.Conflict => StatusCodes.Status409Conflict,

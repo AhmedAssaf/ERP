@@ -63,7 +63,9 @@ builder.Services.AddOperationsModule(platformDb);
 // Vendor slice (ADR-0008): one vendor company across tenants.
 builder.Services.AddVendorsModule(platformDb);
 // Vendor pages (F-11): registration, the Vendor policy's company check, and the vendor context after that policy passes.
-builder.Services.AddVendorPortal();
+builder.Services.AddVendorPortal(builder.Configuration);
+// V-9: the upload API is limited per vendor company (Vendors:UploadRequestsPerMinute).
+builder.Services.AddVendorUploadRateLimit();
 builder.Services.AddScoped<VendorContextResolver>();
 // The web host only enqueues and reads jobs (D-6): Hangfire storage without a server, plus the dashboard (task 7).
 builder.Services.AddJobClient(platformDb);
@@ -194,6 +196,8 @@ app.UseAuthorization();
 app.UseMiddleware<PlatformAdminEverywhereMiddleware>();
 app.UseMiddleware<VendorContextMiddleware>();
 app.UseAntiforgery();
+// After the vendor context: the upload API's limit is partitioned by the vendor company.
+app.UseRateLimiter();
 app.MapStaticAssets().AllowAnonymous();
 app.MapHealthChecks("/health").AllowAnonymous();
 app.MapCultureEndpoints();

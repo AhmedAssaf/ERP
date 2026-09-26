@@ -1,6 +1,4 @@
 using System.Data.Common;
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Npgsql;
@@ -18,7 +16,7 @@ namespace Platform.Modules.Vendors.Registration;
 /// <summary>
 /// Vendor self-registration through a tenant host (F-11, V-3 to V-7, V-14). The order keeps every refusal before any
 /// change: the input, a user who already has a company, a staff member of the host tenant, a user limited for testing CR
-/// numbers, a CR number already on the platform (V-6, audited in the platform audit under its SHA-256), and the Keycloak
+/// numbers, a CR number already on the platform (V-6, audited in the platform audit under its keyed HMAC), and the Keycloak
 /// account: a member of any organization is refused as staff, unless it holds the realm role <c>vendor</c> and belongs
 /// only to the host tenant's organization, which is a registration that stopped half way and may finish. Then Keycloak
 /// (the role, then the organization), then the company, its first vendor admin and the pending relationship in one
@@ -37,6 +35,7 @@ internal sealed partial class VendorRegistrationService(
     IAuditWriter audit,
     IPlatformAudit platformAudit,
     DuplicateCrThrottle duplicates,
+    CrNumberAudit crAudit,
     ILogger<VendorRegistrationService> logger) : IVendorRegistration
 {
     /// <summary>V-6: the same words whatever the company, so the form tells nothing about it.</summary>
@@ -217,23 +216,21 @@ internal sealed partial class VendorRegistrationService(
     }
 
     /// <summary>
-    /// V-6: refused with the neutral message and audited in the platform audit under the SHA-256 of the CR number, never
-    /// the number itself and never in a tenant's log (the host tenant need not learn which companies its visitors tried).
-    /// Counts towards the user's limit (<see cref="DuplicateCrThrottle"/>).
+    /// V-6: refused with the neutral message and audited in the platform audit under the keyed HMAC-SHA256 of the CR
+    /// number (<see cref="CrNumberAudit"/>), never the number itself and never in a tenant's log (the host tenant need
+    /// not learn which companies its visitors tried). Counts towards the user's limit (<see cref="DuplicateCrThrottle"/>).
     /// </summary>
     private async Task<Result<Guid>> DuplicateAsync(TenantContext tenant, string userId, string crNumber, CancellationToken cancellationToken)
     {
         duplicates.Record(userId);
         await platformAudit.WriteAsync(
-            new PlatformAuditEntry(userId, "vendor.duplicate_cr_refused", "cr_number_sha256", Sha256(crNumber), new Dictionary<string, string?>
+            new PlatformAuditEntry(userId, "vendor.duplicate_cr_refused", CrNumberAudit.SubjectType, crAudit.Hmac(crNumber), new Dictionary<string, string?>
             {
                 ["tenant"] = tenant.Slug,
             }),
             cancellationToken);
         return DuplicateAnswer();
     }
-
-    private static string Sha256(string value) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
 
     private static Result<Guid> DuplicateAnswer() => Result.Failure<Guid>(Error.Conflict(VendorErrors.DuplicateCr, DuplicateMessage));
 

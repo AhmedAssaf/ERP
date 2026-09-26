@@ -84,6 +84,10 @@ public sealed record VendorUploadStarted(Guid UploadId, int ChunkSize, int Chunk
 /// </summary>
 public interface IVendorUploads
 {
+    /// <summary>
+    /// Starts an upload of a declared file. Refused with <see cref="VendorDocumentErrors.TooManyUploads"/> while the
+    /// company already has 10 open uploads (not completed, under a day old).
+    /// </summary>
     Task<Result<VendorUploadStarted>> StartAsync(VendorUploadStart start, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -93,8 +97,9 @@ public interface IVendorUploads
     Task<Result<int>> PutChunkAsync(Guid uploadId, int index, ReadOnlyMemory<byte> content, string? sha256, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Assembles every chunk in order, checks the total size and hands the file to <see cref="IVendorDocuments.AddAsync"/>.
-    /// Completing an upload again returns its first outcome.
+    /// Assembles every chunk in order and checks, scans and stores the file as <see cref="IVendorDocuments.AddAsync"/>
+    /// does, recording the document and the upload's outcome together. Completing an upload again returns its first
+    /// outcome; while another completion of it is running, <see cref="VendorDocumentErrors.UploadInProgress"/>.
     /// </summary>
     Task<Result<VendorDocumentAdded>> CompleteAsync(Guid uploadId, DateOnly expiresOn, CancellationToken cancellationToken = default);
 }
@@ -138,6 +143,7 @@ public static class VendorDocumentErrors
     public const string UploadIncomplete = "vendor.upload_incomplete";
     public const string UploadCompleted = "vendor.upload_completed";
     public const string UploadInProgress = "vendor.upload_in_progress";
+    public const string TooManyUploads = "vendor.too_many_uploads";
     public const string ChunkOutOfRange = "vendor.chunk_out_of_range";
     public const string ChunkWrongSize = "vendor.chunk_wrong_size";
     public const string ChunkHashMismatch = "vendor.chunk_hash_mismatch";

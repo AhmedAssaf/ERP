@@ -66,10 +66,21 @@ public sealed class ClamAvScannerTests
     [Theory]
     [InlineData("INSTREAM size limit exceeded. ERROR\0")]
     [InlineData("stream: Can't allocate memory ERROR\0")]
-    [InlineData("")]
-    public async Task An_error_or_empty_reply_is_unavailable(string reply)
+    [InlineData("stream: Heuristics.Limits.Exceeded ERROR\0")]
+    public async Task An_error_answer_about_the_content_is_failed_not_unavailable(string reply)
     {
         await using var server = FakeClamd.Start(reply);
+
+        var result = await Scanner(server.Port).ScanAsync(new MemoryStream([1, 2, 3]), Ct);
+
+        // clamd was reached and answered for this content: other content may still get a verdict.
+        result.ShouldBe(ScanResult.Failed);
+    }
+
+    [Fact]
+    public async Task A_connection_closed_without_an_answer_is_unavailable()
+    {
+        await using var server = FakeClamd.Start(string.Empty);
 
         var result = await Scanner(server.Port).ScanAsync(new MemoryStream([1, 2, 3]), Ct);
 

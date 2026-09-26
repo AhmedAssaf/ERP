@@ -2,14 +2,22 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Platform.IntegrationTests.Infrastructure;
 using Platform.Modules.Identity.Contracts;
 using Platform.Modules.Vendors;
 using Platform.Modules.Vendors.Contracts;
 using Platform.Modules.Vendors.Documents;
+using Platform.Modules.Vendors.Persistence;
 using Platform.Shared;
+using Platform.Shared.Results;
+using Platform.Shared.Scanning;
+using Platform.Shared.Storage;
 using Platform.Shared.Tenancy;
 
 namespace Platform.IntegrationTests.Vendors;
@@ -350,6 +358,362 @@ public sealed class VendorDocumentUploadTests(DatabaseFixture db, MinioFixture m
         anonymous.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
     }
 
+    [Fact]
+    public async Task A_full_length_chunk_with_a_wrong_or_missing_hash_is_refused_as_damaged()
+    {
+        var (vendor, _) = await VendorAsync();
+        await using var factory = Factory();
+        var uploads = new Uploads(factory, vendor);
+        var file = VendorDocumentRows.Pdf(Megabyte + 1000);
+        var uploadId = await uploads.StartAsync(VendorDocumentTypes.CrCertificate, "cr.pdf", file.Length, "application/pdf", expectedChunks: 2);
+        var chunk = Slice(file, 0);
+
+        // The right length, so only the hash can tell the chunk is not the one the browser sent.
+        using (var wrong = await uploads.PutChunkAsync(uploadId, 0, chunk, VendorDocumentRows.Sha256(Slice(file, 1))))
+        {
+            wrong.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+            (await Json(wrong)).GetProperty("code").GetString().ShouldBe(VendorDocumentErrors.ChunkHashMismatch);
+        }
+
+        using (var missing = await uploads.PutChunkAsync(uploadId, 0, chunk, withHash: false))
+        {
+            missing.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+            (await Json(missing)).GetProperty("code").GetString().ShouldBe(VendorDocumentErrors.ChunkHashMismatch);
+        }
+
+        (await minio.ReadAsync($"staging/{uploadId}/0", Ct)).ShouldBeNull();
+        (await uploads.PutChunkAsync(uploadId, 0, chunk)).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+    }
+
+    [Fact]
+    public async Task Two_parallel_completions_store_one_document()
+    {
+        var (vendor, companyId) = await VendorAsync();
+        await using var factory = Factory();
+        var uploads = new Uploads(factory, vendor);
+        var file = VendorDocumentRows.Pdf((3 * Megabyte) + 777);
+        var uploadId = await uploads.StartAsync(VendorDocumentTypes.CrCertificate, "cr.pdf", file.Length, "application/pdf", expectedChunks: 4);
+        await uploads.SendAllAsync(uploadId, file);
+
+        var responses = await Task.WhenAll(uploads.CompleteAsync(uploadId, NextYear), uploads.CompleteAsync(uploadId, NextYear));
+
+        var documentIds = new List<Guid>();
+        foreach (var response in responses)
+        {
+            using (response)
+            {
+                response.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.Conflict);
+                var body = await Json(response);
+                if (response.StatusCode == HttpStatusCode.Conflict)
+                {
+                    body.GetProperty("code").GetString().ShouldBe(VendorDocumentErrors.UploadInProgress);
+                }
+                else
+                {
+                    documentIds.Add(body.GetProperty("documentId").GetGuid());
+                }
+            }
+        }
+
+        documentIds.ShouldNotBeEmpty();
+        documentIds.Distinct().ShouldHaveSingleItem();
+        (await VendorDocumentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct)).ShouldHaveSingleItem().Id.ShouldBe(documentIds[0]);
+    }
+
+    [Fact]
+    public async Task Chunk_and_complete_requests_without_the_antiforgery_token_are_refused()
+    {
+        var (vendor, companyId) = await VendorAsync();
+        await using var factory = Factory();
+        var uploads = new Uploads(factory, vendor);
+        var file = VendorDocumentRows.Pdf(80_000);
+        var uploadId = await uploads.StartAsync(VendorDocumentTypes.CrCertificate, "cr.pdf", file.Length, "application/pdf", expectedChunks: 1);
+
+        using (var chunk = await uploads.PutChunkAsync(uploadId, 0, file, withAntiforgery: false))
+        {
+            chunk.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        }
+
+        (await minio.ReadAsync($"staging/{uploadId}/0", Ct)).ShouldBeNull();
+        await uploads.SendAllAsync(uploadId, file);
+        using (var complete = await uploads.CompleteAsync(uploadId, NextYear, withAntiforgery: false))
+        {
+            complete.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        }
+
+        (await VendorDocumentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct)).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task The_eleventh_open_upload_of_a_company_is_refused_with_429()
+    {
+        var (vendor, _) = await VendorAsync();
+        await using var factory = Factory();
+        var uploads = new Uploads(factory, vendor);
+        // A completed upload is not open.
+        await uploads.UploadAsync(VendorDocumentTypes.CrCertificate, VendorDocumentRows.Pdf(20_000), NextYear);
+        var open = new List<Guid>();
+        for (var i = 0; i < 10; i++)
+        {
+            open.Add(await uploads.StartAsync(VendorDocumentTypes.CrCertificate, "cr.pdf", 1000, "application/pdf", expectedChunks: 1));
+        }
+
+        using (var eleventh = await uploads.StartRawAsync(VendorDocumentTypes.CrCertificate, "cr.pdf", 1000, "application/pdf"))
+        {
+            eleventh.StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
+            (await Json(eleventh)).GetProperty("code").GetString().ShouldBe(VendorDocumentErrors.TooManyUploads);
+        }
+
+        // Another company is not limited by this one; an upload older than a day is no longer open.
+        var (other, _) = await VendorAsync();
+        await new Uploads(factory, other).StartAsync(VendorDocumentTypes.CrCertificate, "cr.pdf", 1000, "application/pdf", expectedChunks: 1);
+        await VendorDocumentRows.AgeUploadAsync(db.OwnerConnectionString, open[0], TimeSpan.FromHours(25), Ct);
+        await uploads.StartAsync(VendorDocumentTypes.CrCertificate, "cr.pdf", 1000, "application/pdf", expectedChunks: 1);
+    }
+
+    [Fact]
+    public async Task Upload_requests_over_the_per_company_rate_limit_get_429()
+    {
+        var (vendor, _) = await VendorAsync();
+        var (other, _) = await VendorAsync();
+        await using var factory = Factory(settings: new Dictionary<string, string?> { ["Vendors:UploadRequestsPerMinute"] = "3" });
+        var uploads = new Uploads(factory, vendor);
+
+        for (var i = 0; i < 3; i++)
+        {
+            await uploads.StartAsync(VendorDocumentTypes.CrCertificate, "cr.pdf", 1000, "application/pdf", expectedChunks: 1);
+        }
+
+        using (var limited = await uploads.StartRawAsync(VendorDocumentTypes.CrCertificate, "cr.pdf", 1000, "application/pdf"))
+        {
+            limited.StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
+        }
+
+        await new Uploads(factory, other).StartAsync(VendorDocumentTypes.CrCertificate, "cr.pdf", 1000, "application/pdf", expectedChunks: 1);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task A_failure_after_the_scan_then_completing_again_leaves_one_outcome(bool infected)
+    {
+        var (vendor, companyId) = await VendorAsync();
+        var failOnce = new FailFirstOutcomeUpdate();
+        await using var host = ServiceHost(clamAv.Settings, services =>
+            services.ConfigureDbContext<VendorsDbContext>((_, options) => options.AddInterceptors(failOnce)));
+        var file = infected ? VendorDocumentRows.InfectedPdf() : VendorDocumentRows.Pdf(150_000);
+        var uploadId = await StartAndSendAsync(host, companyId, vendor.Subject, file);
+
+        await Should.ThrowAsync<Exception>(() => CompleteThroughServiceAsync(host, companyId, vendor.Subject, uploadId, Ct));
+        failOnce.Failed.ShouldBeTrue();
+
+        var again = await CompleteThroughServiceAsync(host, companyId, vendor.Subject, uploadId, Ct);
+        var rows = await VendorDocumentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct);
+        var audits = await PlatformAuditsForCompanyAsync(companyId);
+        if (infected)
+        {
+            again.Error.ShouldNotBeNull().Code.ShouldBe(VendorDocumentErrors.Infected);
+            rows.ShouldBeEmpty();
+            audits.ShouldHaveSingleItem();
+        }
+        else
+        {
+            again.IsSuccess.ShouldBeTrue();
+            rows.ShouldHaveSingleItem().Id.ShouldBe(again.Value.DocumentId);
+            audits.ShouldBeEmpty();
+        }
+
+        // And once more: the first recorded outcome, nothing added.
+        var third = await CompleteThroughServiceAsync(host, companyId, vendor.Subject, uploadId, Ct);
+        third.IsSuccess.ShouldBe(!infected);
+        (await VendorDocumentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct)).Count.ShouldBe(rows.Count);
+        (await PlatformAuditsForCompanyAsync(companyId)).Count.ShouldBe(audits.Count);
+    }
+
+    [Fact]
+    public async Task A_request_aborted_after_the_scan_still_records_the_document_and_the_outcome()
+    {
+        var (vendor, companyId) = await VendorAsync();
+        using var abort = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        await using var host = ServiceHost(clamAv.Settings, services =>
+            services.Replace(ServiceDescriptor.Singleton<IVirusScanner>(new CancelAfterScan(RealScanner(), abort))));
+        var file = VendorDocumentRows.Pdf(120_000);
+        var uploadId = await StartAndSendAsync(host, companyId, vendor.Subject, file);
+
+        var completed = await CompleteThroughServiceAsync(host, companyId, vendor.Subject, uploadId, abort.Token);
+
+        abort.IsCancellationRequested.ShouldBeTrue();
+        completed.IsSuccess.ShouldBeTrue();
+        var row = (await VendorDocumentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct)).ShouldHaveSingleItem();
+        row.Id.ShouldBe(completed.Value.DocumentId);
+        (await minio.ReadAsync(row.ObjectKey, Ct)).ShouldBe(file);
+        var again = await CompleteThroughServiceAsync(host, companyId, vendor.Subject, uploadId, Ct);
+        again.Value.DocumentId.ShouldBe(row.Id);
+    }
+
+    [Fact]
+    public async Task A_file_the_scanner_errors_on_does_not_block_a_later_clean_pending_document()
+    {
+        var (vendor, companyId) = await VendorAsync();
+        await using var factory = Factory(scannerUp: false);
+        var uploads = new Uploads(factory, vendor);
+        var bad = VendorDocumentRows.Pdf(30_000);
+        var good = VendorDocumentRows.Pdf(31_000);
+        var badId = await PendingAsync(uploads, VendorDocumentTypes.CrCertificate, bad);
+        var goodId = await PendingAsync(uploads, VendorDocumentTypes.VatCertificate, good);
+
+        await RunRescanJobAsync(new ScriptedScanner(content => content.AsSpan().SequenceEqual(bad) ? ScanResult.Failed : ScanResult.Clean));
+
+        var rows = await VendorDocumentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct);
+        rows.Single(r => r.Id == badId).ScanStatus.ShouldBe("pending_scan");
+        rows.Single(r => r.Id == goodId).ScanStatus.ShouldBe("clean");
+        var (attempts, lastScanAt) = await VendorDocumentRows.ScanAttemptsAsync(db.OwnerConnectionString, badId, Ct);
+        attempts.ShouldBe(1);
+        lastScanAt.ShouldNotBeNull();
+        (await VendorDocumentRows.PendingScanListAsync(db.OwnerConnectionString, Ct)).ShouldContain(badId);
+    }
+
+    [Fact]
+    public async Task After_twelve_failed_attempts_a_pending_document_is_parked_for_a_person()
+    {
+        var (vendor, companyId) = await VendorAsync();
+        await using var factory = Factory(scannerUp: false);
+        var bad = VendorDocumentRows.Pdf(32_000);
+        var badId = await PendingAsync(new Uploads(factory, vendor), VendorDocumentTypes.CrCertificate, bad);
+        var scanner = new ScriptedScanner(content => content.AsSpan().SequenceEqual(bad) ? ScanResult.Failed : ScanResult.Clean);
+
+        await RunRescanJobAsync(scanner, runs: 11);
+        (await VendorDocumentRows.ScanAttemptsAsync(db.OwnerConnectionString, badId, Ct)).Attempts.ShouldBe(11);
+        (await VendorDocumentRows.PendingScanListAsync(db.OwnerConnectionString, Ct)).ShouldContain(badId);
+
+        await RunRescanJobAsync(scanner);
+
+        (await VendorDocumentRows.ScanAttemptsAsync(db.OwnerConnectionString, badId, Ct)).Attempts.ShouldBe(12);
+        (await VendorDocumentRows.PendingScanListAsync(db.OwnerConnectionString, Ct)).ShouldNotContain(badId);
+        (await VendorDocumentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct)).ShouldHaveSingleItem().ScanStatus.ShouldBe("pending_scan");
+    }
+
+    [Fact]
+    public async Task A_missing_quarantine_file_counts_as_a_scan_attempt()
+    {
+        var (vendor, companyId) = await VendorAsync();
+        await using var factory = Factory(scannerUp: false);
+        var documentId = await PendingAsync(new Uploads(factory, vendor), VendorDocumentTypes.CrCertificate, VendorDocumentRows.Pdf(33_000));
+        await using (var host = ServiceHost(clamAv.Settings))
+        {
+            await host.Services.GetRequiredService<IObjectStorage>().DeleteAsync($"vendors/{companyId}/quarantine/{documentId}", Ct);
+        }
+
+        await RunRescanJobAsync(new ScriptedScanner(_ => ScanResult.Clean));
+
+        var (attempts, lastScanAt) = await VendorDocumentRows.ScanAttemptsAsync(db.OwnerConnectionString, documentId, Ct);
+        attempts.ShouldBe(1);
+        lastScanAt.ShouldNotBeNull();
+        (await VendorDocumentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct)).ShouldHaveSingleItem().ScanStatus.ShouldBe("pending_scan");
+    }
+
+    /// <summary>Uploads the file while the scanner is down and returns the pending document's id.</summary>
+    private static async Task<Guid> PendingAsync(Uploads uploads, string type, byte[] file)
+    {
+        var uploadId = await uploads.StartAsync(type, "file.pdf", file.Length, "application/pdf", (file.Length + Megabyte - 1) / Megabyte);
+        await uploads.SendAllAsync(uploadId, file);
+        using var complete = await uploads.CompleteAsync(uploadId, NextYear);
+        complete.StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        return (await Json(complete)).GetProperty("documentId").GetGuid();
+    }
+
+    /// <summary>The modules as the worker wires them, with object storage and the given scanner settings, without HTTP.</summary>
+    private ModuleHost ServiceHost(IReadOnlyDictionary<string, string?> scanner, Action<IServiceCollection>? configure = null)
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(minio.Settings.Concat(scanner)).Build();
+        return new ModuleHost(db.AppConnectionString, objectStorage: configuration, configure: services =>
+        {
+            services.AddVirusScanner(configuration);
+            services.AddVendorJobs();
+            configure?.Invoke(services);
+        });
+    }
+
+    private ClamAvScanner RealScanner() =>
+        new(ClamAvSettings.FromConfiguration(new ConfigurationBuilder().AddInMemoryCollection(clamAv.Settings).Build()), NullLogger<ClamAvScanner>.Instance);
+
+    private static async Task<Guid> StartAndSendAsync(ModuleHost host, Guid companyId, string userId, byte[] file)
+    {
+        await using var scope = host.ScopeFor(null, companyId, userId);
+        var uploads = scope.ServiceProvider.GetRequiredService<IVendorUploads>();
+        var started = await uploads.StartAsync(new VendorUploadStart(VendorDocumentTypes.CrCertificate, "cr.pdf", file.Length, "application/pdf"), Ct);
+        started.IsSuccess.ShouldBeTrue();
+        for (var index = 0; index < started.Value.ChunkCount; index++)
+        {
+            var chunk = Slice(file, index);
+            (await uploads.PutChunkAsync(started.Value.UploadId, index, chunk, VendorDocumentRows.Sha256(chunk), Ct)).IsSuccess.ShouldBeTrue();
+        }
+
+        return started.Value.UploadId;
+    }
+
+    private static async Task<Result<VendorDocumentAdded>> CompleteThroughServiceAsync(
+        ModuleHost host, Guid companyId, string userId, Guid uploadId, CancellationToken cancellationToken)
+    {
+        await using var scope = host.ScopeFor(null, companyId, userId);
+        return await scope.ServiceProvider.GetRequiredService<IVendorUploads>().CompleteAsync(uploadId, NextYear, cancellationToken);
+    }
+
+    /// <summary>Fails the first statement that records an upload's outcome, after it ran, as a crash before the commit would.</summary>
+    private sealed class FailFirstOutcomeUpdate : DbCommandInterceptor
+    {
+        private int _failed;
+
+        public bool Failed => Volatile.Read(ref _failed) == 1;
+
+        public override ValueTask<System.Data.Common.DbDataReader> ReaderExecutedAsync(
+            System.Data.Common.DbCommand command, CommandExecutedEventData eventData, System.Data.Common.DbDataReader result, CancellationToken cancellationToken = default)
+        {
+            Fail(command);
+            return base.ReaderExecutedAsync(command, eventData, result, cancellationToken);
+        }
+
+        public override ValueTask<int> NonQueryExecutedAsync(
+            System.Data.Common.DbCommand command, CommandExecutedEventData eventData, int result, CancellationToken cancellationToken = default)
+        {
+            Fail(command);
+            return base.NonQueryExecutedAsync(command, eventData, result, cancellationToken);
+        }
+
+        private void Fail(System.Data.Common.DbCommand command)
+        {
+            // EF's update of the row assigns the outcome a parameter; the chunk statement only reads it ("outcome is null").
+            if (command.CommandText.Contains("UPDATE vendor.uploads", StringComparison.OrdinalIgnoreCase)
+                && System.Text.RegularExpressions.Regex.IsMatch(command.CommandText, @"\boutcome\s*=\s*@", System.Text.RegularExpressions.RegexOptions.IgnoreCase)
+                && Interlocked.CompareExchange(ref _failed, 1, 0) == 0)
+            {
+                throw new InvalidOperationException("Simulated failure after the upload's outcome was written, before the commit.");
+            }
+        }
+    }
+
+    /// <summary>The real scanner, then the caller's request is aborted, as a browser that goes away mid-completion.</summary>
+    private sealed class CancelAfterScan(IVirusScanner inner, CancellationTokenSource abort) : IVirusScanner
+    {
+        public async Task<ScanResult> ScanAsync(Stream content, CancellationToken cancellationToken = default)
+        {
+            var result = await inner.ScanAsync(content, cancellationToken);
+            await abort.CancelAsync();
+            return result;
+        }
+    }
+
+    /// <summary>A scanner whose verdict the test decides from the content.</summary>
+    private sealed class ScriptedScanner(Func<byte[], ScanResult> verdict) : IVirusScanner
+    {
+        public async Task<ScanResult> ScanAsync(Stream content, CancellationToken cancellationToken = default)
+        {
+            using var buffer = new MemoryStream();
+            await content.CopyToAsync(buffer, cancellationToken);
+            return verdict(buffer.ToArray());
+        }
+    }
+
     private static IReadOnlyDictionary<string, string?> ScannerDown => new Dictionary<string, string?>
     {
         ["ClamAv:Host"] = "127.0.0.1",
@@ -357,10 +721,10 @@ public sealed class VendorDocumentUploadTests(DatabaseFixture db, MinioFixture m
         ["ClamAv:TimeoutSeconds"] = "5",
     };
 
-    private WebApplicationFactory<Program> Factory(bool scannerUp = true) =>
+    private WebApplicationFactory<Program> Factory(bool scannerUp = true, IReadOnlyDictionary<string, string?>? settings = null) =>
         new PlatformWebFactory(db.AppConnectionString).WithWebHostBuilder(builder =>
         {
-            foreach (var (key, value) in minio.Settings.Concat(scannerUp ? clamAv.Settings : ScannerDown))
+            foreach (var (key, value) in minio.Settings.Concat(scannerUp ? clamAv.Settings : ScannerDown).Concat(settings ?? new Dictionary<string, string?>()))
             {
                 builder.UseSetting(key, value);
             }
@@ -377,6 +741,17 @@ public sealed class VendorDocumentUploadTests(DatabaseFixture db, MinioFixture m
         });
         await using var scope = host.Services.CreateAsyncScope();
         await scope.ServiceProvider.GetRequiredService<VendorDocumentRescanJob>().RunAsync(Ct);
+    }
+
+    /// <summary>The worker's retry job with a scanner the test scripts, run <paramref name="runs"/> times in one worker host.</summary>
+    private async Task RunRescanJobAsync(IVirusScanner scanner, int runs = 1)
+    {
+        await using var host = ServiceHost(clamAv.Settings, services => services.Replace(ServiceDescriptor.Singleton(scanner)));
+        for (var run = 0; run < runs; run++)
+        {
+            await using var scope = host.Services.CreateAsyncScope();
+            await scope.ServiceProvider.GetRequiredService<VendorDocumentRescanJob>().RunAsync(Ct);
+        }
     }
 
     private static async Task<IReadOnlyList<VendorDocument>> ListAsync(WebApplicationFactory<Program> factory, Guid companyId)
@@ -445,11 +820,14 @@ public sealed class VendorDocumentUploadTests(DatabaseFixture db, MinioFixture m
             return body.GetProperty("uploadId").GetGuid();
         }
 
-        public Task<HttpResponseMessage> PutChunkAsync(Guid uploadId, int index, byte[] content, string? sha256 = null)
+        public Task<HttpResponseMessage> PutChunkAsync(
+            Guid uploadId, int index, byte[] content, string? sha256 = null, bool withHash = true, bool withAntiforgery = true)
         {
             var body = new ByteArrayContent(content);
             body.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
-            return SendAsync(HttpMethod.Put, $"/vendor/uploads/{uploadId}/chunks/{index}", body, sha256 ?? VendorDocumentRows.Sha256(content));
+            return SendAsync(
+                HttpMethod.Put, $"/vendor/uploads/{uploadId}/chunks/{index}", body,
+                withHash ? sha256 ?? VendorDocumentRows.Sha256(content) : null, withAntiforgery);
         }
 
         public async Task SendAllAsync(Guid uploadId, byte[] file)
@@ -461,8 +839,8 @@ public sealed class VendorDocumentUploadTests(DatabaseFixture db, MinioFixture m
             }
         }
 
-        public Task<HttpResponseMessage> CompleteAsync(Guid uploadId, DateOnly expiresOn) =>
-            SendAsync(HttpMethod.Post, $"/vendor/uploads/{uploadId}/complete", JsonContent.Create(new { expiresOn }));
+        public Task<HttpResponseMessage> CompleteAsync(Guid uploadId, DateOnly expiresOn, bool withAntiforgery = true) =>
+            SendAsync(HttpMethod.Post, $"/vendor/uploads/{uploadId}/complete", JsonContent.Create(new { expiresOn }), withAntiforgery: withAntiforgery);
 
         /// <summary>Start, every chunk, complete; the file must scan clean. Returns the document id.</summary>
         public async Task<Guid> UploadAsync(string documentType, byte[] file, DateOnly expiresOn)
@@ -474,11 +852,15 @@ public sealed class VendorDocumentUploadTests(DatabaseFixture db, MinioFixture m
             return (await Json(complete)).GetProperty("documentId").GetGuid();
         }
 
-        private Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, HttpContent content, string? sha256 = null)
+        private Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, HttpContent content, string? sha256 = null, bool withAntiforgery = true)
         {
             var request = new HttpRequestMessage(method, path) { Content = content }.As(user);
-            request.Headers.Add("RequestVerificationToken", _tokens.RequestToken);
-            request.Headers.Add("Cookie", $"{_tokens.CookieName}={_tokens.CookieToken}");
+            if (withAntiforgery)
+            {
+                request.Headers.Add("RequestVerificationToken", _tokens.RequestToken);
+                request.Headers.Add("Cookie", $"{_tokens.CookieName}={_tokens.CookieToken}");
+            }
+
             if (sha256 is not null)
             {
                 request.Headers.Add("X-Chunk-Sha256", sha256);

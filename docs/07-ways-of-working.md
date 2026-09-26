@@ -81,10 +81,11 @@ Reset everything: `docker compose down -v` then `up -d` again. ClamAV takes up t
 
 ### Run the app locally
 
-With the Compose stack up and these five values filled in `infra/compose/.env` (see `.env.example` for how to generate
+With the Compose stack up and these six values filled in `infra/compose/.env` (see `.env.example` for how to generate
 them): `WASLABID_WEB_CLIENT_SECRET`, `WASLABID_PLATFORM_CLIENT_SECRET`, `WASLABID_ADMIN_API_SECRET`,
-`WASLABID_DEV_USER_PASSWORD` (at least 12 characters, not a user name, or the platform realm import fails) and
-`MINIO_HEALTH_PROBE_PASSWORD`, run these once from the repository root (Git Bash). The commands read the values from `.env` into shell variables and never print them (N-10); user secrets live outside the repository.
+`WASLABID_DEV_USER_PASSWORD` (at least 12 characters, not a user name, or the platform realm import fails),
+`MINIO_HEALTH_PROBE_PASSWORD` and `VENDORS_CR_AUDIT_KEY` (base64 of at least 32 bytes; the web host does not start
+without it), run these once from the repository root (Git Bash). The commands read the values from `.env` into shell variables and never print them (N-10); user secrets live outside the repository.
 
 ```bash
 env_value() { grep "^$1=" infra/compose/.env | cut -d= -f2- | tr -d '\r'; }
@@ -106,6 +107,8 @@ dotnet user-secrets set "KeycloakAdmin:ClientSecret" "$ADMIN_API_SECRET" --proje
 # least-privilege application user in the Compose stack yet.
 dotnet user-secrets set "ObjectStorage:AccessKey" "$(env_value MINIO_ROOT_USER)" --project src/Platform.Web > /dev/null
 dotnet user-secrets set "ObjectStorage:SecretKey" "$(env_value MINIO_ROOT_PASSWORD)" --project src/Platform.Web > /dev/null
+# Key of the duplicate-CR audit (V-6, keyed HMAC-SHA256 of the CR number); checked when the web host starts.
+dotnet user-secrets set "Vendors:CrAuditKey" "$(env_value VENDORS_CR_AUDIT_KEY)" --project src/Platform.Web > /dev/null
 unset PGPW WEB_SECRET PLATFORM_SECRET ADMIN_API_SECRET
 ```
 

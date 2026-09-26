@@ -14,6 +14,12 @@ public enum ScanVerdict
     /// neither clean nor infected; the caller keeps it aside and scans it again later.
     /// </summary>
     Unavailable,
+
+    /// <summary>
+    /// No verdict for this content: the scanner was reached and answered, but with an error about the content (a size or
+    /// scan limit, a file it cannot read). Unlike <see cref="Unavailable"/>, other content may still be scanned now.
+    /// </summary>
+    Failed,
 }
 
 /// <summary>The verdict of one scan, with the signature name when infected.</summary>
@@ -22,6 +28,8 @@ public sealed record ScanResult(ScanVerdict Verdict, string? Signature)
     public static ScanResult Clean { get; } = new(ScanVerdict.Clean, null);
 
     public static ScanResult Unavailable { get; } = new(ScanVerdict.Unavailable, null);
+
+    public static ScanResult Failed { get; } = new(ScanVerdict.Failed, null);
 
     public static ScanResult Infected(string signature)
     {

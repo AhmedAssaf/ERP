@@ -338,6 +338,9 @@ public sealed partial class VendorRowLevelSecurityTests(DatabaseFixture db) : IA
     [InlineData("join_tenant", "")]
     [InlineData("approve_relationship", "uuid")]
     [InlineData("register_company", "text, text, text, text, text, text, text, text, text, text")]
+    [InlineData("stale_uploads", "")]
+    [InlineData("remove_stale_upload", "uuid")]
+    [InlineData("pending_scan_documents", "integer")]
     public async Task Relationship_functions_run_as_their_owner_with_a_pinned_search_path_and_only_the_app_role_may_call_them(
         string name, string arguments)
     {
@@ -359,6 +362,48 @@ public sealed partial class VendorRowLevelSecurityTests(DatabaseFixture db) : IA
         reader.GetBoolean(3).ShouldBeTrue("erp_app may execute it");
         reader.GetBoolean(4).ShouldBeFalse("public may not execute it");
         (await reader.ReadAsync(Ct)).ShouldBeFalse($"vendor.{name} has one signature");
+    }
+
+    [Fact]
+    public async Task A_document_object_key_is_its_own_document_or_quarantine_key()
+    {
+        var companyId = await RegisterAsync(TestTenants.Acme);
+        var other = await RegisterAsync(TestTenants.Acme);
+        var id = Guid.NewGuid();
+
+        foreach (var wrong in new[]
+        {
+            $"vendors/{other}/documents/{id}",
+            $"vendors/{companyId}/documents/{Guid.NewGuid()}",
+            $"vendors/{companyId}/elsewhere/{id}",
+            $"staging/{id}/0",
+            $"vendors/{companyId.ToString().ToUpperInvariant()}/documents/{id}",
+        })
+        {
+            (await Should.ThrowAsync<PostgresException>(() => InsertDocumentAsOwnerAsync(companyId, id, wrong)))
+                .SqlState.ShouldBe(PostgresErrorCodes.CheckViolation, wrong);
+        }
+
+        await InsertDocumentAsOwnerAsync(companyId, id, $"vendors/{companyId}/quarantine/{id}");
+        var clean = Guid.NewGuid();
+        await InsertDocumentAsOwnerAsync(companyId, clean, $"vendors/{companyId}/documents/{clean}");
+    }
+
+    [Fact]
+    public async Task An_upload_names_only_a_document_of_its_own_company()
+    {
+        var companyId = await RegisterAsync(TestTenants.Acme);
+        var other = await RegisterAsync(TestTenants.Acme);
+        var othersDocument = Guid.NewGuid();
+        await InsertDocumentAsOwnerAsync(other, othersDocument, $"vendors/{other}/quarantine/{othersDocument}");
+        var ownDocument = Guid.NewGuid();
+        await InsertDocumentAsOwnerAsync(companyId, ownDocument, $"vendors/{companyId}/quarantine/{ownDocument}");
+
+        (await Should.ThrowAsync<PostgresException>(() => InsertCompletedUploadAsOwnerAsync(companyId, othersDocument)))
+            .SqlState.ShouldBe(PostgresErrorCodes.ForeignKeyViolation);
+        (await Should.ThrowAsync<PostgresException>(() => InsertCompletedUploadAsOwnerAsync(companyId, Guid.NewGuid())))
+            .SqlState.ShouldBe(PostgresErrorCodes.ForeignKeyViolation);
+        await InsertCompletedUploadAsOwnerAsync(companyId, ownDocument);
     }
 
     [Fact]
@@ -537,11 +582,45 @@ public sealed partial class VendorRowLevelSecurityTests(DatabaseFixture db) : IA
 
     private static Task<int> InsertDocumentAsync(VendorsDbContext context, Guid companyId)
     {
-        var sha = Convert.ToHexStringLower(SHA256.HashData(Guid.NewGuid().ToByteArray()));
+        var id = Guid.NewGuid();
+        var sha = Convert.ToHexStringLower(SHA256.HashData(id.ToByteArray()));
         return context.Database.ExecuteSqlAsync($"""
             insert into vendor.documents (id, company_id, type, expires_on, object_key, sha256, scan_status, is_current)
-            values ({Guid.NewGuid()}, {companyId}, 'cr_certificate', date '2030-01-01', {"vendors/" + sha}, {sha}, 'clean', true)
+            values ({id}, {companyId}, 'cr_certificate', date '2030-01-01', {$"vendors/{companyId}/documents/{id}"}, {sha}, 'clean', true)
             """, Ct);
+    }
+
+    /// <summary>A document row written as the owner (no row-level security), with the given object key.</summary>
+    private async Task InsertDocumentAsOwnerAsync(Guid companyId, Guid id, string objectKey)
+    {
+        await using var owner = new NpgsqlConnection(db.OwnerConnectionString);
+        await owner.OpenAsync(Ct);
+        await using var command = new NpgsqlCommand("""
+            insert into vendor.documents (id, company_id, type, expires_on, object_key, sha256, scan_status, is_current)
+            values (@id, @company, 'cr_certificate', date '2030-01-01', @key, @sha, 'pending_scan', false)
+            """, owner);
+        command.Parameters.AddWithValue("id", id);
+        command.Parameters.AddWithValue("company", companyId);
+        command.Parameters.AddWithValue("key", objectKey);
+        command.Parameters.AddWithValue("sha", Convert.ToHexStringLower(SHA256.HashData(id.ToByteArray())));
+        await command.ExecuteNonQueryAsync(Ct);
+    }
+
+    /// <summary>A completed upload row written as the owner, naming <paramref name="documentId"/> as its document.</summary>
+    private async Task InsertCompletedUploadAsOwnerAsync(Guid companyId, Guid documentId)
+    {
+        await using var owner = new NpgsqlConnection(db.OwnerConnectionString);
+        await owner.OpenAsync(Ct);
+        await using var command = new NpgsqlCommand("""
+            insert into vendor.uploads (id, company_id, document_type, file_name, content_type, declared_size, chunk_size,
+                                        chunk_count, outcome, document_id, sha256)
+            values (@id, @company, 'cr_certificate', 'cr.pdf', 'application/pdf', 1000, 1048576, 1, 'pending_scan', @document, @sha)
+            """, owner);
+        command.Parameters.AddWithValue("id", Guid.NewGuid());
+        command.Parameters.AddWithValue("company", companyId);
+        command.Parameters.AddWithValue("document", documentId);
+        command.Parameters.AddWithValue("sha", Convert.ToHexStringLower(SHA256.HashData(documentId.ToByteArray())));
+        await command.ExecuteNonQueryAsync(Ct);
     }
 
     private async Task<Guid> AddConsentGrantAsync(Guid companyId)

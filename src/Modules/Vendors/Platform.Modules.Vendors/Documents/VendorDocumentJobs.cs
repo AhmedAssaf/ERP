@@ -12,9 +12,12 @@ namespace Platform.Modules.Vendors.Documents;
 /// <summary>
 /// The recurring job "vendor-document-rescan" (V-10), every five minutes in the worker: scans again every document the
 /// scanner could not decide on. It lists pending documents across companies through the security-definer function
-/// <c>vendor.pending_scan_documents</c> (ids only), then handles each one in its own scope under that company's vendor
-/// context, so the application role never reads past row-level security. It stops at the first document the scanner is
-/// still unavailable for, and a failure on one document is logged and does not stop the others.
+/// <c>vendor.pending_scan_documents</c> (ids only; the least recently tried first, and none tried 12 times already),
+/// then handles each one in its own scope under that company's vendor context, so the application role never reads past
+/// row-level security. It stops when clamd cannot be reached or does not answer in time
+/// (<see cref="ScanVerdict.Unavailable"/>), since every other document would wait the same; a document clamd answers
+/// with an error for (<see cref="ScanVerdict.Failed"/>), or whose quarantined file is gone, counts an attempt and the run
+/// goes on with the next. Any other failure on one document is logged and does not stop the others.
 /// </summary>
 internal sealed partial class VendorDocumentRescanJob(
     IDbContextFactory<VendorsDbContext> contexts, IServiceScopeFactory scopes, ILogger<VendorDocumentRescanJob> logger)

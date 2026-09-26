@@ -36,4 +36,26 @@ internal static class VendorDocumentFiles
     public static string ChunkKey(Guid uploadId, int index) => $"staging/{uploadId:D}/{index}";
 
     public static string Sha256Hex(ReadOnlySpan<byte> content) => Convert.ToHexStringLower(SHA256.HashData(content));
+
+    /// <summary>
+    /// A private temporary file for one document while it is assembled, scanned and stored, so a 10 MB file never sits in
+    /// one array; the file is deleted when the stream is disposed.
+    /// </summary>
+    public static FileStream CreateTempFile() => new(
+        Path.Combine(Path.GetTempPath(), $"waslabid-vendor-{Guid.NewGuid():N}.tmp"),
+        FileMode.CreateNew,
+        FileAccess.ReadWrite,
+        FileShare.None,
+        bufferSize: 81920,
+        FileOptions.DeleteOnClose | FileOptions.Asynchronous);
+
+    /// <summary>Reads the first bytes of a seekable stream (at most <paramref name="count"/>) and rewinds it.</summary>
+    public static async Task<byte[]> ReadHeadAsync(Stream content, int count, CancellationToken cancellationToken)
+    {
+        content.Position = 0;
+        var head = new byte[count];
+        var read = await content.ReadAtLeastAsync(head, count, throwOnEndOfStream: false, cancellationToken);
+        content.Position = 0;
+        return head[..read];
+    }
 }

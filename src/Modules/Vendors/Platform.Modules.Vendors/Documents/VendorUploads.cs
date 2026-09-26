@@ -1,3 +1,5 @@
+using System.Buffers;
+using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Npgsql;
@@ -15,20 +17,26 @@ namespace Platform.Modules.Vendors.Documents;
 /// another company is simply not found; the chunks are staged in object storage under <c>staging/{upload id}/{index}</c>.
 /// Every chunk but the last is exactly <see cref="VendorDocumentLimits.ChunkBytes"/> long and carries its SHA-256, so a
 /// chunk cut short by a dropped connection is refused and sent again; a chunk sent again replaces the one before.
-/// Completion holds a row lock on the upload (<c>FOR UPDATE NOWAIT</c>), so a completion retried while the first is still
-/// scanning is told to wait instead of storing the document twice. An upload is usable for a day; the worker's cleanup
-/// job then removes it with its chunks.
+/// A company has at most <see cref="MaxOpenUploads"/> open uploads (not completed, under a day old), counted under its
+/// row lock. Completion holds a row lock on the upload (<c>FOR UPDATE NOWAIT</c>), so a completion retried while the
+/// first is still scanning is told to wait; it streams the chunks into a temporary file, scans and stores it, and writes
+/// the document row and the upload's outcome in that one transaction, so completing again always answers the first
+/// outcome and never adds a second document. The document takes the upload's id, so a completion that failed after
+/// storing the file and is asked again stores it under the same key. An upload is usable for a day, by the database's
+/// clock; the worker's cleanup job then removes it with its chunks.
 /// </summary>
 internal sealed partial class VendorUploads(
     IDbContextFactory<VendorsDbContext> contexts,
     IVendorAccessor vendors,
-    IVendorDocuments documents,
+    VendorDocuments documents,
     IObjectStorage storage,
-    TimeProvider clock,
     ILogger<VendorUploads> logger) : IVendorUploads
 {
     /// <summary>How long an upload may take from start to completion; the cleanup job removes it after that.</summary>
     public static readonly TimeSpan Lifetime = TimeSpan.FromHours(24);
+
+    /// <summary>Open uploads (not completed, under a day old) a company may have at once.</summary>
+    public const int MaxOpenUploads = 10;
 
     private const int MaxFileNameLength = 255;
     private const string ChunkContentType = "application/octet-stream";
@@ -46,7 +54,7 @@ internal sealed partial class VendorUploads(
         var chunkCount = (int)((start.Size + VendorDocumentLimits.ChunkBytes - 1) / VendorDocumentLimits.ChunkBytes);
         var row = new UploadRow
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             CompanyId = companyId,
             DocumentType = start.DocumentType!,
             FileName = start.FileName!.Trim(),
@@ -56,8 +64,22 @@ internal sealed partial class VendorUploads(
             ChunkCount = chunkCount,
         };
         await using var db = await contexts.CreateDbContextAsync(cancellationToken);
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        // Under the company's row lock, so two starts in parallel cannot both take the last place.
+        await db.Database.ExecuteSqlAsync($"select 1 from vendor.companies where id = {companyId} for update", cancellationToken);
+        var open = await db.Database.SqlQuery<int>($"""
+            select count(*)::int as "Value" from vendor.uploads
+            where company_id = {companyId} and outcome is null and created_at > now() - interval '24 hours'
+            """).SingleAsync(cancellationToken);
+        if (open >= MaxOpenUploads)
+        {
+            return Result.Failure<VendorUploadStarted>(Error.Refused(
+                VendorDocumentErrors.TooManyUploads, "Too many uploads are in progress; finish one or try again later."));
+        }
+
         db.Uploads.Add(row);
         await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return Result.Success(new VendorUploadStarted(row.Id, row.ChunkSize, row.ChunkCount));
     }
 
@@ -97,11 +119,12 @@ internal sealed partial class VendorUploads(
 
         await storage.PutAsync(VendorDocumentFiles.ChunkKey(uploadId, index), content, ChunkContentType, cancellationToken);
 
-        // One statement, so chunks arriving in parallel never lose each other's index.
+        // One statement, so chunks arriving in parallel never lose each other's index; the age is checked again here, by
+        // the database's clock, since the upload may have expired while the chunk was stored.
         var received = await db.Database.SqlQuery<int>($"""
             update vendor.uploads
             set received_chunks = array(select distinct c from unnest(received_chunks || {index}) as c order by c)
-            where id = {uploadId} and outcome is null
+            where id = {uploadId} and outcome is null and created_at > now() - interval '24 hours'
             returning cardinality(received_chunks) as "Value"
             """).ToListAsync(cancellationToken);
         return received is [var count] ? Result.Success(count) : Result.Failure<int>(Completed());
@@ -109,7 +132,7 @@ internal sealed partial class VendorUploads(
 
     public async Task<Result<VendorDocumentAdded>> CompleteAsync(Guid uploadId, DateOnly expiresOn, CancellationToken cancellationToken = default)
     {
-        RequireCompany();
+        var companyId = RequireCompany();
         await using var db = await contexts.CreateDbContextAsync(cancellationToken);
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         try
@@ -138,33 +161,46 @@ internal sealed partial class VendorUploads(
             return Result.Failure<VendorDocumentAdded>(Incomplete());
         }
 
-        var file = await AssembleAsync(upload, cancellationToken);
-        if (file is null)
+        await using var file = VendorDocumentFiles.CreateTempFile();
+        var sha256 = await AssembleAsync(upload, file, cancellationToken);
+        if (sha256 is null)
         {
             return Result.Failure<VendorDocumentAdded>(Incomplete());
         }
 
-        var added = await documents.AddAsync(upload.DocumentType, expiresOn, file, cancellationToken);
-        if (added.IsSuccess)
+        var scanned = await documents.ScanAndStoreAsync(upload.Id, upload.DocumentType, expiresOn, file, sha256, cancellationToken);
+        if (!scanned.IsSuccess)
         {
-            upload.Outcome = added.Value.Status == VendorDocumentStatus.Clean ? "clean" : "pending_scan";
-            upload.DocumentId = added.Value.DocumentId;
-            upload.Sha256 = added.Value.Sha256;
+            // The file itself is refused (type, expiry); the chunks stay until the cleanup job, and asking again answers the same.
+            return Result.Failure<VendorDocumentAdded>(scanned.Error);
         }
-        else if (added.Error.Code == VendorDocumentErrors.Infected)
+
+        // The scanner has answered: from here the outcome is recorded even when the caller goes away.
+        Result<VendorDocumentAdded> outcome;
+        if (scanned.Value.Document is { } document)
         {
-            upload.Outcome = "infected";
+            await VendorDocuments.RecordAsync(db, document);
+            upload.Outcome = document.ScanStatus;
+            upload.DocumentId = document.Id;
+            upload.Sha256 = document.Sha256;
+            outcome = Result.Success(VendorDocuments.Added(document));
         }
         else
         {
-            // The file itself is refused (type, expiry); the chunks stay until the cleanup job, and asking again answers the same.
-            return added;
+            upload.Outcome = "infected";
+            outcome = VendorDocuments.InfectedResult();
         }
 
-        await db.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-        await DeleteChunksAsync(upload, cancellationToken);
-        return added;
+        await db.SaveChangesAsync(CancellationToken.None);
+        await transaction.CommitAsync(CancellationToken.None);
+        if (scanned.Value.Signature is { } signature)
+        {
+            // After the commit, so a completion asked again (which answers the recorded outcome) never audits twice.
+            await documents.AuditUploadInfectedAsync(companyId, signature);
+        }
+
+        await DeleteChunksAsync(upload);
+        return outcome;
     }
 
     /// <summary>The refusal for a start request, or null when it may start.</summary>
@@ -196,40 +232,69 @@ internal sealed partial class VendorUploads(
             : Error.Validation(VendorDocumentErrors.WrongType, "The file is not a PDF, PNG or JPEG.");
     }
 
-    private Task<UploadRow?> FindActiveAsync(VendorsDbContext db, Guid uploadId, CancellationToken cancellationToken)
-    {
-        var startedAfter = clock.GetUtcNow() - Lifetime;
-        return db.Uploads.SingleOrDefaultAsync(u => u.Id == uploadId && u.CreatedAt > startedAfter, cancellationToken);
-    }
+    /// <summary>The upload when it started less than a day ago by the database's clock (the same clock as the cleanup job).</summary>
+    private static Task<UploadRow?> FindActiveAsync(VendorsDbContext db, Guid uploadId, CancellationToken cancellationToken) =>
+        db.Uploads
+            .FromSql($"select * from vendor.uploads where id = {uploadId} and created_at > now() - interval '24 hours'")
+            .SingleOrDefaultAsync(cancellationToken);
 
-    /// <summary>The chunks in order as one file, or null when one is missing or not the length it had when it arrived.</summary>
-    private async Task<byte[]?> AssembleAsync(UploadRow upload, CancellationToken cancellationToken)
+    /// <summary>
+    /// Streams the chunks in order into <paramref name="file"/>, hashing as it goes, and rewinds it. Returns the file's
+    /// SHA-256, or null when a chunk is missing or not the length it had when it arrived.
+    /// </summary>
+    private async Task<string?> AssembleAsync(UploadRow upload, Stream file, CancellationToken cancellationToken)
     {
-        var file = new byte[upload.DeclaredSize];
-        for (var index = 0; index < upload.ChunkCount; index++)
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        var buffer = ArrayPool<byte>.Shared.Rent(81920);
+        try
         {
-            var offset = (long)index * upload.ChunkSize;
-            var length = (int)Math.Min(upload.ChunkSize, upload.DeclaredSize - offset);
-            await using var chunk = await storage.OpenAsync(VendorDocumentFiles.ChunkKey(upload.Id, index), cancellationToken);
-            if (chunk is null || chunk.Length != length)
+            for (var index = 0; index < upload.ChunkCount; index++)
             {
-                return null;
-            }
+                var length = Math.Min(upload.ChunkSize, upload.DeclaredSize - ((long)index * upload.ChunkSize));
+                await using var chunk = await storage.OpenAsync(VendorDocumentFiles.ChunkKey(upload.Id, index), cancellationToken);
+                if (chunk is null || chunk.Length != length)
+                {
+                    return null;
+                }
 
-            await chunk.Content.ReadExactlyAsync(file.AsMemory((int)offset, length), cancellationToken);
+                long copied = 0;
+                int read;
+                while ((read = await chunk.Content.ReadAsync(buffer, cancellationToken)) > 0)
+                {
+                    copied += read;
+                    if (copied > length)
+                    {
+                        return null;
+                    }
+
+                    hash.AppendData(buffer, 0, read);
+                    await file.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+                }
+
+                if (copied != length)
+                {
+                    return null;
+                }
+            }
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
         }
 
-        return file;
+        await file.FlushAsync(cancellationToken);
+        file.Position = 0;
+        return Convert.ToHexStringLower(hash.GetHashAndReset());
     }
 
     /// <summary>Drops the staged chunks now; a failure is logged and left to the cleanup job, which removes them within a day.</summary>
-    private async Task DeleteChunksAsync(UploadRow upload, CancellationToken cancellationToken)
+    private async Task DeleteChunksAsync(UploadRow upload)
     {
         for (var index = 0; index < upload.ChunkCount; index++)
         {
             try
             {
-                await storage.DeleteAsync(VendorDocumentFiles.ChunkKey(upload.Id, index), cancellationToken);
+                await storage.DeleteAsync(VendorDocumentFiles.ChunkKey(upload.Id, index), CancellationToken.None);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
@@ -242,7 +307,7 @@ internal sealed partial class VendorUploads(
     {
         "clean" => Result.Success(new VendorDocumentAdded(upload.DocumentId!.Value, upload.Sha256!, VendorDocumentStatus.Clean)),
         "pending_scan" => Result.Success(new VendorDocumentAdded(upload.DocumentId!.Value, upload.Sha256!, VendorDocumentStatus.PendingScan)),
-        _ => Result.Failure<VendorDocumentAdded>(Error.Refused(VendorDocumentErrors.Infected, "The file contains a virus and was deleted.")),
+        _ => VendorDocuments.InfectedResult(),
     };
 
     private Guid RequireCompany() =>

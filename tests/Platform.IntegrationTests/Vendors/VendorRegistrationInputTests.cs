@@ -116,11 +116,13 @@ public sealed class VendorRegistrationInputTests(DatabaseFixture db)
         error.Message.ShouldNotContain(existingName);
         (await VendorRows.FindUserAsync(db.OwnerConnectionString, userId, Ct)).ShouldBeNull();
         (await VendorRows.CompaniesWithCrAsync(db.OwnerConnectionString, cr, Ct)).ShouldBe(1);
-        // Audited in the platform audit under a SHA-256 of the CR number; neither the host tenant nor the company's own
-        // tenant learns about the attempt through its log, and the CR number itself is stored nowhere.
+        // Audited in the platform audit under a keyed HMAC-SHA256 of the CR number (a plain hash of ten digits is reversed
+        // by trying them all); neither the host tenant nor the company's own tenant learns about the attempt through its
+        // log, and the CR number itself is stored nowhere.
         var audit = (await VendorRows.PlatformAuditsAsync(db.OwnerConnectionString, userId, "vendor.duplicate_cr_refused", Ct)).ShouldHaveSingleItem();
-        audit.SubjectType.ShouldBe("cr_number_sha256");
-        audit.SubjectId.ShouldBe(Sha256(cr));
+        audit.SubjectType.ShouldBe("cr_number_hmac");
+        audit.SubjectId.ShouldBe(TestSecrets.CrAuditHmac(cr));
+        audit.SubjectId.ShouldNotBe(Sha256(cr));
         audit.Data.ShouldNotContain(cr);
         audit.Data.ShouldNotContain(existingName);
         (await VendorRows.AuditsAsync(db.OwnerConnectionString, TestTenants.Acme.TenantId, userId, "vendor.duplicate_cr_refused", Ct)).ShouldBeEmpty();

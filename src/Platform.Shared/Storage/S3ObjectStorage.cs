@@ -24,6 +24,21 @@ internal sealed class S3ObjectStorage(ObjectStorageSettings settings) : IObjectS
             cancellationToken);
     }
 
+    public async Task PutAsync(string key, Stream content, string contentType, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        ArgumentNullException.ThrowIfNull(content);
+        ArgumentException.ThrowIfNullOrWhiteSpace(contentType);
+        if (!content.CanSeek)
+        {
+            throw new ArgumentException("The content stream must be seekable.", nameof(content));
+        }
+
+        await Client.PutObjectAsync(
+            new PutObjectRequest { BucketName = settings.BucketName, Key = key, InputStream = content, ContentType = contentType, AutoCloseStream = false },
+            cancellationToken);
+    }
+
     public async Task<StoredObject?> OpenAsync(string key, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);

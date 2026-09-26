@@ -29,6 +29,7 @@ internal sealed class PlatformWebFactory(string appConnectionString, OidcSetting
         builder.UseSetting("Platform:Host", PlatformHost);
         builder.UseSetting("PlatformOidc:Authority", oidc?.PlatformAuthority ?? "https://keycloak.invalid/realms/waslabid-platform");
         builder.UseSetting("PlatformOidc:ClientSecret", oidc?.PlatformClientSecret ?? "unused-in-tests");
+        builder.UseSetting(TestSecrets.CrAuditKeySetting.Key, TestSecrets.CrAuditKeySetting.Value);
         if (environment is not ("Testing" or "Development"))
         {
             // Required outside Development and Testing; nothing in such a test contacts the Keycloak Admin API.

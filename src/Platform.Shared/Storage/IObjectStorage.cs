@@ -23,6 +23,12 @@ public interface IObjectStorage
     /// <summary>Stores the bytes under the key, replacing any object there.</summary>
     Task PutAsync(string key, ReadOnlyMemory<byte> content, string contentType, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Stores the stream from its current position to its end under the key, replacing any object there. The stream must
+    /// be seekable (its length is sent first); it is read, not disposed.
+    /// </summary>
+    Task PutAsync(string key, Stream content, string contentType, CancellationToken cancellationToken = default);
+
     /// <summary>The object under the key, or null when there is none.</summary>
     Task<StoredObject?> OpenAsync(string key, CancellationToken cancellationToken = default);
 

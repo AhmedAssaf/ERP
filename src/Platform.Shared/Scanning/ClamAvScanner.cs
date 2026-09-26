@@ -10,8 +10,10 @@ namespace Platform.Shared.Scanning;
 /// <see cref="IVirusScanner"/> over clamd's TCP <c>INSTREAM</c> command: <c>zINSTREAM\0</c>, then the content in chunks
 /// of at most 64 KB, each after its length as 4 bytes big-endian, then a zero length; clamd answers
 /// <c>stream: OK</c>, <c>stream: {signature} FOUND</c> or an error, ending with a NUL. A connection failure, a timeout
-/// (<see cref="ClamAvSettings.Timeout"/> for the whole exchange) or an error answer is
-/// <see cref="ScanResult.Unavailable"/> and logged with the exception type only (N-10). Content longer than
+/// (<see cref="ClamAvSettings.Timeout"/> for the whole exchange) or a connection closed without an answer is
+/// <see cref="ScanResult.Unavailable"/> (clamd itself is not usable now); an error answer is
+/// <see cref="ScanResult.Failed"/> (clamd works, but not on this content). Both are logged with a reason code only,
+/// never clamd's text or the exception message (N-10). Content longer than
 /// <see cref="ClamAvSettings.MaxStreamBytes"/> is a caller's defect: clamd would cut it off and answer with an error, so
 /// it is refused before anything is sent.
 /// </summary>
@@ -123,9 +125,17 @@ public sealed partial class ClamAvScanner(ClamAvSettings settings, ILogger<ClamA
             return ScanResult.Infected(reply[prefix.Length..^found.Length]);
         }
 
-        // An error answer (size limit, memory) or none at all: no verdict. The reply text is clamd's own, not ours.
-        LogUnavailable(logger, reply.Length == 0 ? "EmptyReply" : "ErrorReply");
-        return ScanResult.Unavailable;
+        // No answer at all: clamd went away mid-exchange, as good as unreachable.
+        if (reply.Length == 0)
+        {
+            LogUnavailable(logger, "EmptyReply");
+            return ScanResult.Unavailable;
+        }
+
+        // An error answer about this content (a size or scan limit, memory, a file it cannot read): clamd is up, so other
+        // content may still scan. The reply text is clamd's own and is not logged.
+        LogFailed(logger);
+        return ScanResult.Failed;
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "ClamAV is not configured (ClamAv:Host); the content stays unscanned.")]
@@ -133,4 +143,7 @@ public sealed partial class ClamAvScanner(ClamAvSettings settings, ILogger<ClamA
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "ClamAV gave no verdict ({Reason}); the content stays unscanned for a later retry.")]
     private static partial void LogUnavailable(ILogger logger, string reason);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "ClamAV answered with an error for this content; it stays unscanned, and other content may still be scanned.")]
+    private static partial void LogFailed(ILogger logger);
 }

@@ -57,6 +57,35 @@ internal static class VendorDocumentRows
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
+    /// <summary>How often the retry job tried to scan the document, and when it last did.</summary>
+    public static async Task<(int Attempts, DateTimeOffset? LastScanAt)> ScanAttemptsAsync(
+        string ownerConnectionString, Guid documentId, CancellationToken cancellationToken)
+    {
+        await using var connection = new NpgsqlConnection(ownerConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = new NpgsqlCommand("select scan_attempts, last_scan_at from vendor.documents where id = @id", connection);
+        command.Parameters.AddWithValue("id", documentId);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        (await reader.ReadAsync(cancellationToken)).ShouldBeTrue();
+        return (reader.GetInt32(0), reader.IsDBNull(1) ? null : reader.GetFieldValue<DateTimeOffset>(1));
+    }
+
+    /// <summary>The documents the retry job would scan next, as <c>vendor.pending_scan_documents</c> lists them.</summary>
+    public static async Task<IReadOnlyList<Guid>> PendingScanListAsync(string ownerConnectionString, CancellationToken cancellationToken)
+    {
+        await using var connection = new NpgsqlConnection(ownerConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = new NpgsqlCommand("select id from vendor.pending_scan_documents(1000)", connection);
+        var ids = new List<Guid>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            ids.Add(reader.GetGuid(0));
+        }
+
+        return ids;
+    }
+
     /// <summary>The upload row's id, or null when it is gone.</summary>
     public static async Task<bool> UploadExistsAsync(string ownerConnectionString, Guid uploadId, CancellationToken cancellationToken)
     {

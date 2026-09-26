@@ -1,5 +1,6 @@
 using Hangfire;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Npgsql;
@@ -9,6 +10,7 @@ using Platform.Modules.Vendors.Documents;
 using Platform.Modules.Vendors.Persistence;
 using Platform.Modules.Vendors.Registration;
 using Platform.Shared.Data;
+using Platform.Shared.Scanning;
 
 namespace Platform.Modules.Vendors;
 
@@ -59,11 +61,20 @@ public static class VendorsModule
     /// Identity module's member directory and vendor accounts, the audit writer and the Operations module's platform
     /// audit, and keeps its duplicate-CR limit per process), the user-to-company lookup
     /// (<see cref="IVendorUsers"/>), the current company (<see cref="IVendorCompanies"/>) and the Vendor policy's handler.
-    /// The web host calls it; the worker does not serve vendors.
+    /// The settings (<see cref="VendorsOptions"/>, section <c>Vendors</c>) are validated when the host starts: without a
+    /// usable <c>Vendors:CrAuditKey</c> the web host does not start, in Development too. The web host calls it; the
+    /// worker does not serve vendors.
     /// </summary>
-    public static IServiceCollection AddVendorPortal(this IServiceCollection services)
+    public static IServiceCollection AddVendorPortal(this IServiceCollection services, IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configuration);
+        services.AddOptions<VendorsOptions>()
+            .Bind(configuration.GetSection(VendorsOptions.Section))
+            .Validate(o => VendorsOptions.DecodeCrAuditKey(o.CrAuditKey) is not null, VendorsOptions.CrAuditKeyProblem)
+            .Validate(o => o.UploadRequestsPerMinute > 0, "Setting 'Vendors:UploadRequestsPerMinute' must be a positive number.")
+            .ValidateOnStart();
+        services.TryAddSingleton<CrNumberAudit>();
         services.AddHttpContextAccessor();
         services.AddScoped<VendorUsers>();
         services.AddScoped<IVendorUsers>(sp => sp.GetRequiredService<VendorUsers>());
@@ -105,6 +116,18 @@ public static class VendorsModule
     /// </summary>
     private static void AddVendorDocuments(IServiceCollection services)
     {
+        if (services.Any(d => d.ServiceType == typeof(VendorDocuments)))
+        {
+            return;
+        }
+
+        // V-10: the largest document must fit into one scan, or clamd would cut it off and never give a verdict.
+        services.AddOptions<VendorScanLimit>()
+            .Configure<ClamAvSettings>((limit, clamAv) => limit.MaxStreamBytes = clamAv.MaxStreamBytes)
+            .Validate(
+                limit => limit.MaxStreamBytes >= VendorDocumentLimits.MaxBytes,
+                $"Setting 'ClamAv:MaxStreamBytes' must be at least {VendorDocumentLimits.MaxBytes} bytes, the largest vendor document (and no more than clamd's StreamMaxLength).")
+            .ValidateOnStart();
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddScoped<VendorDocuments>();
         services.TryAddScoped<IVendorDocuments>(sp => sp.GetRequiredService<VendorDocuments>());
@@ -114,4 +137,10 @@ public static class VendorsModule
 
     public static Task<IReadOnlyList<string>> MigrateAsync(NpgsqlConnection connection, CancellationToken cancellationToken = default) =>
         SqlMigrator.ApplyAsync(connection, "vendors", typeof(VendorsModule).Assembly, cancellationToken);
+
+    /// <summary>The scanner limit the start validation of <see cref="AddVendorDocuments"/> checks.</summary>
+    private sealed class VendorScanLimit
+    {
+        public long MaxStreamBytes { get; set; }
+    }
 }
