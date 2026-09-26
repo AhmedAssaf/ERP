@@ -1,7 +1,7 @@
 # Foundation slice design: W-02, W-03, W-04, W-05, W-07, F-56
 
 Date: 2026-09-26
-Status: Approved in the brainstorming session; awaiting written review
+Status: Approved 2026-09-26; section 7 records the corrections made while writing the plan
 Scope: backlog rows W-02, W-03, W-04, W-05, W-07 and F-56 in `docs/09-backlog.md`
 Decisions it builds on: ADR-0002 (Tailwind and `Platform.UI`), ADR-0003 (configurable workflow), ADR-0004 (own state machine), docs/06 (spike rules), docs/07 section 4 (local stack)
 
@@ -249,3 +249,21 @@ Done when:
 ## 6. Out of scope for this slice
 
 Hangfire and deadlines (W-08), CI workflow (W-09), `Platform.UI` components and gallery (W-06), tenant provisioning screen (F-01 is by script later), vendor accounts, the workflow editor (F-56b), threshold evaluation (F-09), Worker host, production Caddyfile and Kubernetes.
+
+## 7. Corrections made while writing the plan (2026-09-26)
+
+Each was checked against the running tools before the plan was written; where this section and the sections above disagree, this section wins.
+
+| Topic | Spec said | Plan does | Why |
+|---|---|---|---|
+| Migrations | EF Core migrations with a `migrationBuilder.EnableTenantRls` helper | Plain SQL scripts per module, embedded in the module assembly and applied in order by a small runner in `Platform.Shared` with a journal table `platform.schema_migrations`; RLS through the SQL function `platform.enable_tenant_rls(schema, table)` | Policies, grants and security-definer functions are SQL anyway; no design-time factories or model snapshots per module. EF Core stays for queries. |
+| Tenant lookup role | A `tenant_resolver` login role | A `security definer` function `tenancy.resolve_host(host)` that `erp_app` may execute; `erp_app` has no rights on the tenancy tables | No extra login role and no extra password to manage (N-10). |
+| Keycloak organization | Match on organization id | Match on organization **alias** | Keycloak generates organization ids on import; its built-in `organization` scope emits `"organization": ["acme"]` (verified against Keycloak 26.3). |
+| Culture order | Claim, cookie, tenant, default | Cookie, claim, tenant default, `ar-SA` | A signed-in user must be able to switch language; the explicit choice wins. |
+| Fonts | IBM Plex Sans Arabic and Noto Sans | IBM Plex Sans Arabic only | docs/08 section 3.2 names one family for both scripts. |
+| Tenant colour | `--brand-primary` referenced by tokens | The layout overrides `--color-primary` directly; tokens use `@theme static` so every variable is emitted | Fewer indirections; docs/08 already names `--color-primary`. |
+| Lists in workflow tables | `jsonb` | `text[]` for roles and users; `jsonb` only for the snapshot | Native PostgreSQL arrays map directly in Npgsql. |
+| Clock | `IClock` | .NET `TimeProvider` | Built-in standard abstraction. |
+| Concurrency | `xmin` on `tender_workflow` | Same, plus `updated_at` touched on every decision | Adding a decision row alone does not change `tender_workflow`, so without the touch two last approvers could race. |
+| Secrets in the realm | not specified | The realm file uses `${WASLABID_WEB_CLIENT_SECRET}` and `${WASLABID_DEV_USER_PASSWORD}`, supplied from `infra/compose/.env` | Keycloak substitutes environment placeholders at import (verified); no secret values in the repository (N-10). |
+| Dev login URL | `https://acme.localhost:8443` | Same; plain `http://…:5273` does not complete an OIDC login | OIDC correlation cookies need `Secure`; Caddy must forward `Host {hostport}` so the redirect URI keeps the port. |
