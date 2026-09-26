@@ -227,3 +227,4 @@ flowchart LR
    - "When internal audit reviews purchasing, what do they find, and how long does it take?" (idea 7)
 3. If an idea wins in two of three interviews, write it up as a feature in docs/02 with a new ID and decide at gate 1 (W-31) whether it leads.
 4. Ideas 2, 5 and 7 were verified on 2026-09-27 (section 4). Before choosing idea 2 or 7, get the open questions in section 4 answered in a demo or call. Idea 5 stays only as interview question E2 in docs/15, to test whether subcontractors would submit claims in their own portal.
+5. Ideas 2 and 7 are worked out as concepts in docs/16: first version, price hypothesis, first customers, how each leads into WaslaBid, and a six-week plan.
