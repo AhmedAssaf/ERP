@@ -6,7 +6,8 @@ using Platform.Shared.Tenancy;
 namespace Platform.IntegrationTests.Infrastructure;
 
 /// <summary>A vendor user's row as the owner reads it, bypassing row-level security.</summary>
-internal sealed record VendorUserRow(Guid CompanyId, string Role, string PrivacyNoticeVersion, DateTimeOffset PrivacyAcceptedAt);
+internal sealed record VendorUserRow(
+    Guid CompanyId, string Role, string PrivacyNoticeVersion, DateTimeOffset PrivacyAcceptedAt, string? PrivacyNoticeCulture);
 
 /// <summary>
 /// Vendor rows for tests (vendor slice): registration through <c>vendor.register_company</c> as the app role with the
@@ -27,7 +28,7 @@ internal static class VendorRows
         await using var command = new NpgsqlCommand("""
             select set_config('app.tenant_id', @tenant, false), set_config('app.user_id', @user, false);
             select vendor.register_company(@cr, 'شركة الاختبار', @name, '300000000000003', 'Riyadh',
-                                           'Contact Person', '+966500000000', 'contact@example.test', 'V1');
+                                           'Contact Person', '+966500000000', 'contact@example.test', 'V1', 'en-US');
             """, connection);
         command.Parameters.AddWithValue("tenant", tenant.TenantId.ToString("D", CultureInfo.InvariantCulture));
         command.Parameters.AddWithValue("cr", crNumber);
@@ -56,11 +57,13 @@ internal static class VendorRows
         await using var connection = new NpgsqlConnection(ownerConnectionString);
         await connection.OpenAsync(cancellationToken);
         await using var command = new NpgsqlCommand(
-            "select company_id, role, privacy_notice_version, privacy_accepted_at from vendor.vendor_users where user_id = @user", connection);
+            "select company_id, role, privacy_notice_version, privacy_accepted_at, privacy_notice_culture from vendor.vendor_users where user_id = @user", connection);
         command.Parameters.AddWithValue("user", userId);
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         return await reader.ReadAsync(cancellationToken)
-            ? new VendorUserRow(reader.GetGuid(0), reader.GetString(1), reader.GetString(2), reader.GetFieldValue<DateTimeOffset>(3))
+            ? new VendorUserRow(
+                reader.GetGuid(0), reader.GetString(1), reader.GetString(2), reader.GetFieldValue<DateTimeOffset>(3),
+                reader.IsDBNull(4) ? null : reader.GetString(4))
             : null;
     }
 
@@ -111,6 +114,29 @@ internal static class VendorRows
         while (await reader.ReadAsync(cancellationToken))
         {
             result.Add((reader.IsDBNull(0) ? null : reader.GetString(0), reader.GetString(1)));
+        }
+
+        return result;
+    }
+
+    /// <summary>The platform audit rows (<c>ops.platform_audit</c>) with <paramref name="action"/> by <paramref name="actorId"/>, newest first.</summary>
+    public static async Task<IReadOnlyList<(string SubjectType, string? SubjectId, string Data)>> PlatformAuditsAsync(
+        string ownerConnectionString, string actorId, string action, CancellationToken cancellationToken)
+    {
+        await using var connection = new NpgsqlConnection(ownerConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = new NpgsqlCommand("""
+            select subject_type, subject_id, data::text from ops.platform_audit
+            where actor_id = @actor and action = @action
+            order by occurred_at desc
+            """, connection);
+        command.Parameters.AddWithValue("actor", actorId);
+        command.Parameters.AddWithValue("action", action);
+        var result = new List<(string, string?, string)>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            result.Add((reader.GetString(0), reader.IsDBNull(1) ? null : reader.GetString(1), reader.GetString(2)));
         }
 
         return result;

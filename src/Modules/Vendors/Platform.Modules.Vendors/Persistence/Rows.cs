@@ -38,6 +38,9 @@ internal sealed class VendorUserRow
 
     public string PrivacyNoticeVersion { get; set; } = string.Empty;
 
+    /// <summary>The culture the notice was shown in (ar-SA or en-US); null for acceptances before migration 0004.</summary>
+    public string? PrivacyNoticeCulture { get; set; }
+
     public DateTimeOffset PrivacyAcceptedAt { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; }

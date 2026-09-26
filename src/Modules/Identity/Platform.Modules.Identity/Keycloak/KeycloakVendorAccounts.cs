@@ -6,55 +6,49 @@ namespace Platform.Modules.Identity.Keycloak;
 /// <summary>
 /// The Keycloak side of a vendor account (vendor spec V-3) through the Admin API: the realm role <c>vendor</c> and
 /// organization membership, each recorded as added or already present so a failed registration removes only what it
-/// added. When adding the membership fails after the role was granted, the role is taken back before the error surfaces.
-/// Admin API failures surface as <see cref="IdentityProviderException"/>, the contract's own type.
+/// added. The caller orders the steps and decides what to take back. Admin API failures surface as
+/// <see cref="IdentityProviderException"/>, the contract's own type.
 /// </summary>
 internal sealed partial class KeycloakVendorAccounts(KeycloakAdminClient keycloak, ILogger<KeycloakVendorAccounts> logger) : IVendorAccounts
 {
-    public async Task<bool> BelongsToAnyOrganizationAsync(string userId, CancellationToken cancellationToken = default)
+    public async Task<VendorAccountState> DescribeAsync(string userId, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         try
         {
-            return (await keycloak.OrganizationAliasesOfAsync(userId, cancellationToken)).Count > 0;
+            var roles = await keycloak.RealmRolesAsync(userId, cancellationToken);
+            var organizations = await keycloak.OrganizationAliasesOfAsync(userId, cancellationToken);
+            return new VendorAccountState(roles.Contains(IdentityClaims.VendorRealmRole), organizations);
         }
         catch (Exception ex) when (IsProviderFailure(ex, cancellationToken))
         {
-            throw new IdentityProviderException("Keycloak did not list the user's organizations.", ex);
+            throw new IdentityProviderException("Keycloak did not describe the user's roles and organizations.", ex);
         }
     }
 
-    public async Task<VendorAccessGrant> GrantAsync(string userId, string organizationAlias, CancellationToken cancellationToken = default)
+    public async Task<bool> GrantRoleAsync(string userId, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(organizationAlias);
-        bool roleAdded;
         try
         {
-            roleAdded = await keycloak.AssignRealmRoleAsync(userId, IdentityClaims.VendorRealmRole, cancellationToken);
+            return await keycloak.AssignRealmRoleAsync(userId, IdentityClaims.VendorRealmRole, cancellationToken);
         }
         catch (Exception ex) when (IsProviderFailure(ex, cancellationToken))
         {
             throw new IdentityProviderException("Keycloak did not grant the vendor role.", ex);
         }
+    }
 
+    public async Task<bool> AddToOrganizationAsync(string userId, string organizationAlias, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(organizationAlias);
         try
         {
-            var organizationAdded = await keycloak.AddToOrganizationAsync(organizationAlias, userId, cancellationToken);
-            return new VendorAccessGrant(userId, organizationAlias, roleAdded, organizationAdded);
+            return await keycloak.AddToOrganizationAsync(organizationAlias, userId, cancellationToken);
         }
-        catch (Exception ex) when (ex is KeycloakAdminException or HttpRequestException or TaskCanceledException)
+        catch (Exception ex) when (IsProviderFailure(ex, cancellationToken))
         {
-            if (roleAdded)
-            {
-                await RevokeAsync(new VendorAccessGrant(userId, organizationAlias, RoleAdded: true, OrganizationAdded: false), CancellationToken.None);
-            }
-
-            if (ex is TaskCanceledException && cancellationToken.IsCancellationRequested)
-            {
-                throw;
-            }
-
             throw new IdentityProviderException("Keycloak did not add the user to the organization.", ex);
         }
     }
@@ -102,9 +96,11 @@ internal sealed partial class KeycloakVendorAccounts(KeycloakAdminClient keycloa
 /// </summary>
 internal sealed class UnavailableVendorAccounts : IVendorAccounts
 {
-    public Task<bool> BelongsToAnyOrganizationAsync(string userId, CancellationToken cancellationToken = default) => throw NotConfigured();
+    public Task<VendorAccountState> DescribeAsync(string userId, CancellationToken cancellationToken = default) => throw NotConfigured();
 
-    public Task<VendorAccessGrant> GrantAsync(string userId, string organizationAlias, CancellationToken cancellationToken = default) =>
+    public Task<bool> GrantRoleAsync(string userId, CancellationToken cancellationToken = default) => throw NotConfigured();
+
+    public Task<bool> AddToOrganizationAsync(string userId, string organizationAlias, CancellationToken cancellationToken = default) =>
         throw NotConfigured();
 
     public Task RevokeAsync(VendorAccessGrant grant, CancellationToken cancellationToken = default) => throw NotConfigured();

@@ -11,10 +11,10 @@ Decisions: ADR-0008 (one vendor identity across tenants, keyed by CR, Keycloak o
 |---|---|---|---|
 | V-1 | Vendor identity | One platform-wide company keyed by a mandatory, unique CR number; users and documents platform-level; everything a tenant knows or decides lives in a tenant-scoped relationship row | ADR-0008 points 1-2 |
 | V-2 | Where vendors work | `/vendor/*` on each tenant host, in the tenant's brand | ADR-0008, ADR-0007 as amended |
-| V-3 | Keycloak model | Vendor users in the tenant realm with realm role `vendor`; they become members of each tenant organization with which their company has a relationship, so the existing host-equals-organization check applies. Vendors never get a row in `identity.members`, so staff policies stay closed to them | ADR-0008 point 3 (realigned: the first draft kept vendors out of organizations) |
+| V-3 | Keycloak model | Vendor users in the tenant realm with realm role `vendor`; they become members of each tenant organization with which their company has a relationship, so the existing host-equals-organization check applies. Vendors never get a row in `identity.members`, and every staff policy (the four role policies and the tenant default and fallback) also refuses any principal holding the realm role `vendor`, so staff policies stay closed to them even with a member row | ADR-0008 point 3 (realigned: the first draft kept vendors out of organizations) |
 | V-4 | Vendor second factor | Not required in the MVP; tenant staff keep required TOTP (admin D-5) | Session decision |
 | V-5 | Email verification | Keycloak self-registration with `verifyEmail`; the account cannot sign in until the link is clicked | F-11 acceptance |
-| V-6 | Duplicate CR | Refused with one neutral message ("This company already has an account on WaslaBid. Ask its administrator to add you.") and audited; no company details shown | Session decision |
+| V-6 | Duplicate CR | Refused with one neutral message ("This company already has an account on WaslaBid. Ask its administrator to add you.") and audited in the platform audit (`ops.platform_audit`) under the SHA-256 of the CR number, never the number and never in a tenant's log; no company details shown. After five refusals in an hour a user gets that message for every CR number | Session decision; review of task 2 |
 | V-7 | Relationship states | `pending` on first contact (registration through the tenant's host, or later an invitation or open tender); `approved` by a contracts officer or tenant admin; `blocked` arrives with F-14 | docs/05 row 22 (realigned) |
 | V-8 | Documents | `cr_certificate`, `vat_certificate`; PDF, PNG or JPEG up to 10 MB; one current file per type, older files kept as history | docs/05 row 6 |
 | V-9 | Upload path | Chunked HTTP: start, 1 MB chunks, complete (assemble, hash, scan); `FileUpload` drives it | ADR-0001, docs/06 spike 2 |
@@ -22,7 +22,7 @@ Decisions: ADR-0008 (one vendor identity across tenants, keyed by CR, Keycloak o
 | V-11 | Tenant view | Contracts officer and tenant admin see the company card and documents only while a relationship exists; the approve action lives there | ADR-0008 consequences |
 | V-12 | Consent ledger | Vendor admin grants, views and revokes consent per recipient, scope and period; append-only grant and revocation rows, audited; `IConsentLedger.CheckAsync` is the only path any later export may use; tenants cannot grant | ADR-0010, docs/05 row 26 (realigned: added) |
 | V-13 | Consent recipients in the MVP | A platform-level recipient list with no real recipients yet; the dev seed adds one test recipient so the screen and the check can be exercised; the list is maintained by migration until the platform console gets a screen | ADR-0010 point 3 |
-| V-14 | Privacy consent at registration | The registration form requires acceptance of the platform's privacy notice (versioned text), stored with the user and time | N-02 |
+| V-14 | Privacy consent at registration | The registration form requires acceptance of the platform's privacy notice (versioned text), stored with the user, the time and the culture it was shown in (`ar-SA` or `en-US`). A published text never changes in place (a unit test pins its SHA-256); a new text is a new version | N-02 |
 
 ## 2. Data (module `Vendors`, schema `vendor`)
 
@@ -50,6 +50,7 @@ erDiagram
         text user_id "Keycloak sub, unique"
         text role "vendor-admin"
         text privacy_notice_version
+        text privacy_notice_culture "ar-SA or en-US"
         timestamptz privacy_accepted_at
     }
     DOCUMENT {
@@ -99,11 +100,14 @@ erDiagram
 ```
 acme.localhost/vendor/register
   → Keycloak sign-up (tenant realm, verifyEmail, realm role vendor) → email link → account active
-  → /vendor/register/company: CR, names ar/en, VAT, address, contact, privacy notice accepted (V-14)
-      CR exists → V-6 message, audit vendor.duplicate_cr_refused
-      else → company + vendor-admin user + relationship(acme, pending);
-             user added to acme's Keycloak organization (Admin API, as the staff invitations do)
+  → /vendor/register/company: staff or another organization's member told before the form;
+      CR, names ar/en, VAT, address, contact, privacy notice accepted with its culture (V-14)
+      CR exists → V-6 message, platform audit vendor.duplicate_cr_refused (CR SHA-256); 5 per user per hour
+      else → realm role vendor, then acme's Keycloak organization (Admin API, as the staff invitations do);
+             company + vendor-admin user + relationship(acme, pending)
+             on failure: undo what this attempt added, only if the user still has no company
              audit vendor.registered (acme's log)
+      role vendor + only acme's organization + no company → a half-finished registration, may finish
   → /vendor: company, documents with expiry and status, upload per type, consent ledger
   → upload → scan → listed as clean with expiry
 acme.localhost/admin/vendors: pending and approved vendors related to acme
@@ -113,7 +117,8 @@ beta.localhost/vendor (same account, not yet related to beta)
   → creates relationship(beta, pending) and organization membership, audited in beta's log
 ```
 
-- Vendor policy `Vendor`: authenticated, email verified, realm role `vendor`, a `vendor.users` row, and a member of the host tenant's organization. Staff policies are unchanged; a vendor has no `identity.members` row so they are denied.
+- Vendor policy `Vendor`: authenticated, email verified, realm role `vendor`, a `vendor.users` row, and a member of the host tenant's organization. Staff policies (`TenantStaffPolicy`: the tenant default and fallback, and inside the four role policies) refuse any principal holding the realm role `vendor`, since vendors sign in without a second factor (V-4); a signed-in vendor opening `/` is redirected to `/vendor`. The Blazor hub keeps the same-tenant fallback, since each component's page passed its own policy.
+- The console's user count per tenant (F-54) leaves out organization members holding the realm role `vendor`.
 - `IVendorCompliance.GetBlockingDocumentsAsync(companyId, onDate)` returns missing or expired document types with names in both languages; the submission wizard (F-22) calls it.
 - `IConsentLedger`: `GrantAsync`, `RevokeAsync`, `ListAsync`, and `CheckAsync(companyId, recipientId, scope, onDate)` (active grant exists and no later revocation). Only vendor-admin calls grant or revoke.
 

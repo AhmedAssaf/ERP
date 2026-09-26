@@ -135,6 +135,36 @@ public sealed class TenantRolesTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task A_member_who_also_holds_the_vendor_realm_role_is_refused_by_every_staff_policy()
+    {
+        // The vendor role signs in without a second factor (V-4), so a principal holding it must never pass a staff
+        // policy, even with a member row that grants every role.
+        var both = new TestUser(Unique("staff-vendor"), ["acme"], RealmRoles: [IdentityClaims.VendorRealmRole]);
+        await MemberRows.InsertAsync(db.AppConnectionString, TestTenants.Acme.TenantId, both.Subject, $"{both.Subject}@acme.test", [.. TenantRoles.All], "active", Ct);
+        var staff = both with { Subject = Unique("staff-only"), RealmRoles = [] };
+        await MemberRows.InsertAsync(db.AppConnectionString, TestTenants.Acme.TenantId, staff.Subject, $"{staff.Subject}@acme.test", [.. TenantRoles.All], "active", Ct);
+        await using var factory = Factory();
+
+        string[] paths =
+        [
+            RoleEndpoints.RolesPath, "/admin/staff", "/admin/branding",
+            .. new[] { TenantPolicies.TenantAdmin, TenantPolicies.ContractsOfficer, TenantPolicies.TechnicalEvaluator, TenantPolicies.FinanceApprover }
+                .Select(RoleEndpoints.PolicyPath),
+        ];
+        foreach (var path in paths)
+        {
+            using var refused = await GetAsync(factory, "acme.localhost", path, both);
+            refused.StatusCode.ShouldBe(HttpStatusCode.Forbidden, path);
+        }
+
+        foreach (var path in paths.Where(p => p.StartsWith("/test/", StringComparison.Ordinal)))
+        {
+            using var allowed = await GetAsync(factory, "acme.localhost", path, staff);
+            allowed.StatusCode.ShouldBe(HttpStatusCode.OK, path);
+        }
+    }
+
+    [Fact]
     public async Task A_static_asset_request_through_the_host_does_not_read_the_member_table()
     {
         var invitee = new TestUser(Unique("asset"), ["acme"]);

@@ -6,6 +6,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Options;
+using Platform.Modules.Identity.Contracts;
 
 namespace Platform.Modules.Identity.Keycloak;
 
@@ -258,11 +259,44 @@ internal sealed class KeycloakAdminClient(HttpClient http, KeycloakAdminState st
         return [.. (organizations ?? []).Select(o => o.Alias)];
     }
 
-    /// <summary>The number of members of the organization with <paramref name="alias"/>; null when there is none.</summary>
-    public async Task<int?> CountOrganizationMembersAsync(string alias, CancellationToken cancellationToken)
+    /// <summary>
+    /// The number of the tenant's users in the organization with <paramref name="alias"/> (F-54): its members less those
+    /// holding the realm role <c>vendor</c>, who join a tenant's organization as vendors (V-3), not as its users. Null when
+    /// there is no such organization. Without any vendor in the realm this is Keycloak's member count; otherwise the
+    /// member list and the role's users are read a page at a time and compared by id.
+    /// </summary>
+    public async Task<int?> CountOrganizationUsersAsync(string alias, CancellationToken cancellationToken)
     {
         var organizationId = await OrganizationIdAsync(alias, cancellationToken);
-        return organizationId is null ? null : await GetAsync<int>($"{Realm}/organizations/{organizationId}/members/count", cancellationToken);
+        if (organizationId is null)
+        {
+            return null;
+        }
+
+        var vendors = await IdsAsync($"{Realm}/roles/{Uri.EscapeDataString(IdentityClaims.VendorRealmRole)}/users?briefRepresentation=true", cancellationToken);
+        if (vendors.Count == 0)
+        {
+            return await GetAsync<int>($"{Realm}/organizations/{organizationId}/members/count", cancellationToken);
+        }
+
+        var members = await IdsAsync($"{Realm}/organizations/{organizationId}/members?briefRepresentation=true", cancellationToken);
+        return members.Count(id => !vendors.Contains(id));
+    }
+
+    // Every id of a paged Admin API list (first/max), read until a page comes back short.
+    private async Task<HashSet<string>> IdsAsync(string path, CancellationToken cancellationToken)
+    {
+        const int page = 100;
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        for (var first = 0; ; first += page)
+        {
+            var batch = await GetAsync<List<IdResponse>>($"{path}&first={first}&max={page}", cancellationToken) ?? [];
+            ids.UnionWith(batch.Select(u => u.Id));
+            if (batch.Count < page)
+            {
+                return ids;
+            }
+        }
     }
 
     // Keycloak's organization search matches names and domains, not aliases, so the list is read a page at a time.
@@ -339,6 +373,8 @@ internal sealed class KeycloakAdminClient(HttpClient http, KeycloakAdminState st
     private async Task<RoleResponse> RealmRoleAsync(string role, CancellationToken cancellationToken) =>
         await GetAsync<RoleResponse>($"{Realm}/roles/{Uri.EscapeDataString(role)}", cancellationToken)
         ?? throw new KeycloakAdminException($"Keycloak has no realm role '{role}'.");
+
+    private sealed record IdResponse([property: JsonPropertyName("id")] string Id);
 
     private sealed record CredentialResponse([property: JsonPropertyName("type")] string Type);
 

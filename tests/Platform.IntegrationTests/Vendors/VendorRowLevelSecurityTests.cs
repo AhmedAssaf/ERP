@@ -337,7 +337,7 @@ public sealed partial class VendorRowLevelSecurityTests(DatabaseFixture db) : IA
     [Theory]
     [InlineData("join_tenant", "")]
     [InlineData("approve_relationship", "uuid")]
-    [InlineData("register_company", "text, text, text, text, text, text, text, text, text")]
+    [InlineData("register_company", "text, text, text, text, text, text, text, text, text, text")]
     public async Task Relationship_functions_run_as_their_owner_with_a_pinned_search_path_and_only_the_app_role_may_call_them(
         string name, string arguments)
     {
@@ -380,16 +380,39 @@ public sealed partial class VendorRowLevelSecurityTests(DatabaseFixture db) : IA
 
         (await VendorAdminOfAsync(companyId)).ShouldBe(sessionUser);
 
-        // The old signature, which let the caller name the user, is gone.
-        await using var scope = _host.ScopeFor(TestTenants.Acme, actingUserId: NewUserId());
-        await using var context = await CreateContextAsync(scope);
+        // No signature lets the caller name the user: the one register_company has no user parameter.
+        await using var owner = new NpgsqlConnection(db.OwnerConnectionString);
+        await owner.OpenAsync(Ct);
+        await using var command = new NpgsqlCommand("""
+            select string_agg(pg_get_function_arguments(p.oid), ' | ')
+            from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+            where n.nspname = 'vendor' and p.proname = 'register_company'
+            """, owner);
+        var arguments = (string)(await command.ExecuteScalarAsync(Ct))!;
+        arguments.ShouldContain("p_privacy_notice_culture");
+        arguments.ShouldNotContain("user");
+    }
+
+    [Theory]
+    [InlineData("fr-FR")]
+    [InlineData("ar")]
+    [InlineData("")]
+    public async Task A_privacy_notice_culture_must_be_arabic_or_english(string culture)
+    {
+        var refused = await Should.ThrowAsync<PostgresException>(() => RegisterAsync(TestTenants.Acme, null, NewUserId(), "V1", culture));
+
+        refused.SqlState.ShouldBe(PostgresErrorCodes.CheckViolation);
+        refused.ConstraintName.ShouldBe("ck_vendor_users_privacy_notice_culture");
+    }
+
+    [Fact]
+    public async Task A_privacy_notice_culture_is_required()
+    {
         var cr = NewCrNumber();
-        var other = NewUserId();
-        var gone = await Should.ThrowAsync<PostgresException>(() => context.Database.SqlQuery<Guid>($"""
-            select vendor.register_company({cr}, 'شركة', 'Company', '300000000000003', 'Riyadh',
-                                           'Contact Person', '+966500000000', 'contact@example.test', {other}, 'V1') as "Value"
-            """).SingleAsync(Ct));
-        gone.SqlState.ShouldBe(PostgresErrorCodes.UndefinedFunction);
+
+        var refused = await Should.ThrowAsync<PostgresException>(() => RegisterAsync(TestTenants.Acme, cr, NewUserId(), "V1", null));
+
+        refused.SqlState.ShouldBe(PostgresErrorCodes.NotNullViolation);
         (await CrExistsAsync(cr)).ShouldBeFalse();
     }
 
@@ -455,14 +478,16 @@ public sealed partial class VendorRowLevelSecurityTests(DatabaseFixture db) : IA
     private Task<Guid> RegisterAsync(TenantContext? tenant, string? crNumber = null, string? userId = null) =>
         RegisterAsync(tenant, crNumber, userId ?? NewUserId(), "V1");
 
-    private async Task<Guid> RegisterAsync(TenantContext? tenant, string? crNumber, string? actingUserId, string privacyNoticeVersion)
+    private async Task<Guid> RegisterAsync(
+        TenantContext? tenant, string? crNumber, string? actingUserId, string privacyNoticeVersion, string? privacyNoticeCulture = "en-US")
     {
         var cr = crNumber ?? NewCrNumber();
         await using var scope = _host.ScopeFor(tenant, actingUserId: actingUserId);
         await using var context = await CreateContextAsync(scope);
         return await context.Database.SqlQuery<Guid>($"""
             select vendor.register_company({cr}, 'شركة الاختبار', 'Test Company', '300000000000003', 'Riyadh',
-                                           'Contact Person', '+966500000000', 'contact@example.test', {privacyNoticeVersion}) as "Value"
+                                           'Contact Person', '+966500000000', 'contact@example.test', {privacyNoticeVersion},
+                                           {privacyNoticeCulture}) as "Value"
             """).SingleAsync(Ct);
     }
 

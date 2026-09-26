@@ -21,21 +21,44 @@ public sealed class KeycloakAdminClientTests
         var clock = new ManualClock();
         var state = new KeycloakAdminState(clock);
 
-        await Client(handler, state).CountOrganizationMembersAsync("acme", Ct);
-        await Client(handler, state).CountOrganizationMembersAsync("acme", Ct);
+        await Client(handler, state).CountOrganizationUsersAsync("acme", Ct);
+        await Client(handler, state).CountOrganizationUsersAsync("acme", Ct);
         handler.TokenRequests.ShouldBe(1);
 
         // Expires in 300 s; renewed once less than 30 s remain.
         clock.Advance(TimeSpan.FromSeconds(269));
-        await Client(handler, state).CountOrganizationMembersAsync("acme", Ct);
+        await Client(handler, state).CountOrganizationUsersAsync("acme", Ct);
         handler.TokenRequests.ShouldBe(1);
 
         clock.Advance(TimeSpan.FromSeconds(2));
-        await Client(handler, state).CountOrganizationMembersAsync("acme", Ct);
+        await Client(handler, state).CountOrganizationUsersAsync("acme", Ct);
         handler.TokenRequests.ShouldBe(2);
         handler.Requests.Where(r => r.Contains("/members/count", StringComparison.Ordinal)).ShouldAllBe(r => r.Contains("Bearer token-", StringComparison.Ordinal));
         // The organization id is looked up once per alias.
         handler.Requests.Count(r => r.StartsWith("GET /admin/realms/waslabid/organizations?", StringComparison.Ordinal)).ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task The_user_count_of_an_organization_leaves_out_members_holding_the_vendor_role()
+    {
+        // F-54: vendors join the tenant's organization (V-3) but are not the tenant's users. 150 members, so the member
+        // list takes two pages; three hold the vendor role, and one vendor of another organization does not count at all.
+        var members = Enumerable.Range(1, 150).Select(i => $"u{i}").ToList();
+        var handler = new ScriptedHandler { Members = members, VendorUsers = ["u2", "u101", "u150", "elsewhere"] };
+
+        var count = await Client(handler, new KeycloakAdminState(new ManualClock())).CountOrganizationUsersAsync("acme", Ct);
+
+        count.ShouldBe(147);
+        handler.Requests.ShouldContain(r => r.StartsWith("GET /admin/realms/waslabid/roles/vendor/users?", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Without_vendors_the_user_count_is_the_member_count()
+    {
+        var handler = new ScriptedHandler();
+
+        (await Client(handler, new KeycloakAdminState(new ManualClock())).CountOrganizationUsersAsync("acme", Ct)).ShouldBe(3);
+        (await Client(handler, new KeycloakAdminState(new ManualClock())).CountOrganizationUsersAsync("no-such-organization", Ct)).ShouldBeNull();
     }
 
     [Fact]
@@ -144,6 +167,12 @@ public sealed class KeycloakAdminClientTests
 
         public List<string> Requests { get; } = [];
 
+        /// <summary>Ids of the organization's members, served a page at a time.</summary>
+        public List<string> Members { get; init; } = ["u1", "u2", "u3"];
+
+        /// <summary>Ids of the users holding the realm role vendor, served a page at a time.</summary>
+        public List<string> VendorUsers { get; init; } = [];
+
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var body = request.Content is null ? string.Empty : await request.Content.ReadAsStringAsync(cancellationToken);
@@ -162,10 +191,28 @@ public sealed class KeycloakAdminClientTests
 
             if (path.EndsWith("/members/count", StringComparison.Ordinal))
             {
-                return Json("3");
+                return Json(Members.Count.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            }
+
+            if (path.EndsWith("/organizations/org-1/members", StringComparison.Ordinal))
+            {
+                return Page(Members, request.RequestUri);
+            }
+
+            if (path.EndsWith("/roles/vendor/users", StringComparison.Ordinal))
+            {
+                return Page(VendorUsers, request.RequestUri);
             }
 
             return new HttpResponseMessage(HttpStatusCode.NoContent);
+        }
+
+        private static HttpResponseMessage Page(List<string> ids, Uri uri)
+        {
+            var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+            var first = int.Parse(query["first"] ?? "0", System.Globalization.CultureInfo.InvariantCulture);
+            var max = int.Parse(query["max"] ?? "100", System.Globalization.CultureInfo.InvariantCulture);
+            return Json(System.Text.Json.JsonSerializer.Serialize(ids.Skip(first).Take(max).Select(id => new { id })));
         }
 
         private static HttpResponseMessage Json(string json) => new(HttpStatusCode.OK)

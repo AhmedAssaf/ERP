@@ -2,13 +2,17 @@
     F-11 (vendor plan task 2, spec section 3, V-6, V-14): a signed-in user with a verified email registers their company
     on the tenant's host. Static server rendering on purpose: the user is not a member of the tenant's organization yet,
     so no interactive circuit would be authorized for them. The user id and email come from the principal, never from the
-    form; the tenant is the host's. Every field error shows at once in the user's language; after success the page signs
-    the user out and back in (returning to /vendor), so the next token carries the realm role vendor and the organization.
+    form; the tenant is the host's. Before the form, the page asks the registration service what it would refuse for
+    this user (a company already, tenant staff, a member of another organization) and says so instead of the form; when
+    Keycloak cannot answer, the form shows and the registration decides. The form carries the culture the privacy notice
+    was shown in, stored with the acceptance. Every field error shows at once in the user's language; after success the
+    page signs the user out and back in (returning to /vendor), so the next token carries the realm role vendor and the
+    organization.
 *@
 @page "/vendor/register/company"
+@using System.Globalization
 @attribute [Authorize(Policy = VendorPolicies.VendorApplicant)]
 @inject IVendorRegistration Registration
-@inject IVendorUsers VendorUsers
 @inject ITenantAccessor Tenants
 @inject IStringLocalizer<SharedResource> T
 @inject ILogger<RegisterCompany> Logger
@@ -29,10 +33,14 @@
             </form>
         </section>
     }
-    else if (_alreadyVendor)
+    else if (_check == VendorRegistrationCheck.AlreadyRegistered)
     {
         <p data-vendor-already class="max-w-2xl">@T["Vendor.Register.AlreadyRegistered"]</p>
         <p><a href="vendor" class="underline underline-offset-4">@T["Vendor.Register.GoToVendorHome"]</a></p>
+    }
+    else if (_check == VendorRegistrationCheck.StaffAccount)
+    {
+        <p data-vendor-refused role="status" class="max-w-2xl">@T["Vendor.Register.Error.StaffAccount"]</p>
     }
     else
     {
@@ -60,6 +68,7 @@
                      class="grid gap-3 rounded-card border border-line bg-surface p-4">
                 <h2 id="privacy-heading" class="text-heading">@T["Vendor.Privacy.Heading"]</h2>
                 <p class="text-body">@T["Vendor.Privacy.V1"]</p>
+                <input type="hidden" name="Input.PrivacyNoticeCulture" value="@ShownCulture" />
                 <label class="flex min-h-11 cursor-pointer items-center gap-3 text-body">
                     <input type="checkbox" class="size-5 shrink-0 accent-action" name="Input.AcceptedPrivacyNotice"
                            value="@VendorPrivacyNotice.CurrentVersion" checked="@(Input.AcceptedPrivacyNotice == VendorPrivacyNotice.CurrentVersion)"
@@ -89,7 +98,7 @@
     private readonly Dictionary<string, string> _fieldErrors = new(StringComparer.Ordinal);
     private string? _formError;
     private bool _registered;
-    private bool _alreadyVendor;
+    private VendorRegistrationCheck _check = VendorRegistrationCheck.Open;
 
     [CascadingParameter] private Task<AuthenticationState>? AuthenticationState { get; set; }
 
@@ -98,12 +107,13 @@
     protected override async Task OnInitializedAsync()
     {
         Input ??= new RegistrationForm();
-        if (await UserIdAsync() is { } userId)
-        {
-            // A post from such a user is still refused by the service (vendor.already_registered).
-            _alreadyVendor = await VendorUsers.FindCompanyAsync(userId) is not null;
-        }
+        // The service refuses a post from such a user as well; this only says so before the form.
+        _check = await Registration.CheckAsync();
     }
+
+    // The culture the notice text below is shown in: the Arabic text for an Arabic UI culture, the English one otherwise.
+    private static string ShownCulture =>
+        CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar" ? VendorPrivacyNotice.Arabic : VendorPrivacyNotice.English;
 
     private async Task SubmitAsync()
     {
@@ -161,9 +171,6 @@
         }
     }
 
-    private async Task<string?> UserIdAsync() =>
-        AuthenticationState is null ? null : (await AuthenticationState).User.FindFirst(IdentityClaims.Subject)?.Value;
-
     private string? Message(string code) => _fieldErrors.GetValueOrDefault(code);
 
     private string FieldMessage(string code) => code switch
@@ -201,7 +208,9 @@
 
         public string? AcceptedPrivacyNotice { get; set; }
 
+        public string? PrivacyNoticeCulture { get; set; }
+
         public VendorRegistration ToRegistration() => new(
-            CrNumber, NameAr, NameEn, VatNumber, Address, ContactName, ContactPhone, ContactEmail, AcceptedPrivacyNotice);
+            CrNumber, NameAr, NameEn, VatNumber, Address, ContactName, ContactPhone, ContactEmail, AcceptedPrivacyNotice, PrivacyNoticeCulture);
     }
 }

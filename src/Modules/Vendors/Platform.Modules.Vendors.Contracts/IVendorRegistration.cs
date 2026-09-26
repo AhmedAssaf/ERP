@@ -5,7 +5,9 @@ namespace Platform.Modules.Vendors.Contracts;
 /// <summary>
 /// What a vendor types on <c>/vendor/register/company</c> (F-11, spec section 3). <see cref="AcceptedPrivacyNotice"/> is
 /// the version of the privacy notice the form showed and the person accepted (V-14); null when the box was not ticked.
-/// The signed-in user and their verified email are never part of it: they come from the principal.
+/// <see cref="PrivacyNoticeCulture"/> is the culture the form showed that notice in (one of
+/// <see cref="VendorPrivacyNotice.Cultures"/>); null takes the culture of the request. The signed-in user and their
+/// verified email are never part of it: they come from the principal.
 /// </summary>
 public sealed record VendorRegistration(
     string? CrNumber,
@@ -16,7 +18,24 @@ public sealed record VendorRegistration(
     string? ContactName,
     string? ContactPhone,
     string? ContactEmail,
-    string? AcceptedPrivacyNotice);
+    string? AcceptedPrivacyNotice,
+    string? PrivacyNoticeCulture = null);
+
+/// <summary>Whether the signed-in user may register a company on this tenant's host, as the registration page asks first.</summary>
+public enum VendorRegistrationCheck
+{
+    /// <summary>Nothing known stands in the way (the registration itself checks everything again).</summary>
+    Open,
+
+    /// <summary>The user already belongs to a vendor company.</summary>
+    AlreadyRegistered,
+
+    /// <summary>The account is tenant staff: a member row of this tenant, or a member of an organization as staff.</summary>
+    StaffAccount,
+
+    /// <summary>The identity provider did not answer; the page shows the form and the registration decides.</summary>
+    Unknown,
+}
 
 /// <summary>
 /// Vendor self-registration through a tenant host (F-11, V-3 to V-7, V-14). Works on the tenant of the current request.
@@ -32,12 +51,20 @@ public interface IVendorRegistration
     IReadOnlyList<Error> Validate(VendorRegistration registration);
 
     /// <summary>
+    /// The refusals <see cref="RegisterCompanyAsync"/> would give the acting user before any input is read (a company
+    /// already, tenant staff, another organization), so the page can say so before the form. Changes nothing.
+    /// </summary>
+    Task<VendorRegistrationCheck> CheckAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Registers the company with the acting user of the request or circuit (the signed-in principal's Keycloak
     /// <c>sub</c>, set by the host; never a caller's argument) as its first vendor admin and a pending relationship with
     /// the host tenant, grants the Keycloak realm role <c>vendor</c> and membership of the tenant's organization, and
     /// audits <c>vendor.registered</c> in the tenant's log. <paramref name="email"/> is the user's verified email from the
     /// token, kept in the audit entry. A CR number already on the platform is refused with one neutral message and audited
-    /// as <c>vendor.duplicate_cr_refused</c> (V-6). Returns the company id. Throws <see cref="InvalidOperationException"/>
+    /// as <c>vendor.duplicate_cr_refused</c> in the platform audit under the number's SHA-256 (V-6); after five such
+    /// refusals in an hour every CR number gets that answer for the user. An account left half registered (the role and
+    /// only this tenant's organization, no company) may finish. Returns the company id. Throws <see cref="InvalidOperationException"/>
     /// when the scope has no tenant or no acting user.
     /// </summary>
     Task<Result<Guid>> RegisterCompanyAsync(VendorRegistration registration, string email, CancellationToken cancellationToken = default);

@@ -116,12 +116,40 @@ public sealed class VendorRegistrationInputTests(DatabaseFixture db)
         error.Message.ShouldNotContain(existingName);
         (await VendorRows.FindUserAsync(db.OwnerConnectionString, userId, Ct)).ShouldBeNull();
         (await VendorRows.CompaniesWithCrAsync(db.OwnerConnectionString, cr, Ct)).ShouldBe(1);
-        var audit = (await VendorRows.AuditsAsync(db.OwnerConnectionString, TestTenants.Acme.TenantId, userId, "vendor.duplicate_cr_refused", Ct))
-            .ShouldHaveSingleItem();
-        audit.SubjectId.ShouldBe(cr);
+        // Audited in the platform audit under a SHA-256 of the CR number; neither the host tenant nor the company's own
+        // tenant learns about the attempt through its log, and the CR number itself is stored nowhere.
+        var audit = (await VendorRows.PlatformAuditsAsync(db.OwnerConnectionString, userId, "vendor.duplicate_cr_refused", Ct)).ShouldHaveSingleItem();
+        audit.SubjectType.ShouldBe("cr_number_sha256");
+        audit.SubjectId.ShouldBe(Sha256(cr));
+        audit.Data.ShouldNotContain(cr);
         audit.Data.ShouldNotContain(existingName);
-        // The company's own tenant learns nothing about the attempt through its log.
+        (await VendorRows.AuditsAsync(db.OwnerConnectionString, TestTenants.Acme.TenantId, userId, "vendor.duplicate_cr_refused", Ct)).ShouldBeEmpty();
         (await VendorRows.AuditsAsync(db.OwnerConnectionString, TestTenants.Beta.TenantId, userId, "vendor.duplicate_cr_refused", Ct)).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task After_five_duplicate_refusals_in_an_hour_every_cr_gets_the_same_neutral_answer()
+    {
+        var userId = NewUserId();
+        await using var host = Host();
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            var taken = VendorRows.NewCrNumber();
+            await VendorRows.RegisterAsync(db.AppConnectionString, TestTenants.Beta, NewUserId(), taken, "Taken Holder", Ct);
+            (await RegisterAsync(host, Valid(taken), userId)).Error.ShouldNotBeNull().Code.ShouldBe(VendorErrors.DuplicateCr);
+        }
+
+        // A CR number nobody holds now answers as a duplicate too, so the form stops telling which numbers are taken; the
+        // registration goes no further (the Keycloak Admin API here is unreachable, and the answer is not its failure).
+        var free = VendorRows.NewCrNumber();
+        var limited = (await RegisterAsync(host, Valid(free), userId)).Error.ShouldNotBeNull();
+        limited.Code.ShouldBe(VendorErrors.DuplicateCr);
+        limited.Message.ShouldBe(DuplicateMessage);
+        (await VendorRows.CompaniesWithCrAsync(db.OwnerConnectionString, free, Ct)).ShouldBe(0);
+        (await VendorRows.PlatformAuditsAsync(db.OwnerConnectionString, userId, "vendor.duplicate_cr_refused", Ct)).Count.ShouldBe(5);
+
+        // Another user is not limited by this one.
+        (await RegisterAsync(host, Valid(free), NewUserId())).Error.ShouldNotBeNull().Code.ShouldBe(VendorErrors.RegistrationFailed);
     }
 
     [Fact]
@@ -178,10 +206,18 @@ public sealed class VendorRegistrationInputTests(DatabaseFixture db)
     private async Task<Result<Guid>> RegisterAsync(VendorRegistration input, string? userId = null)
     {
         await using var host = Host();
+        return await RegisterAsync(host, input, userId);
+    }
+
+    private static async Task<Result<Guid>> RegisterAsync(ModuleHost host, VendorRegistration input, string? userId)
+    {
         await using var scope = host.ScopeFor(TestTenants.Acme, actingUserId: userId ?? NewUserId());
         return await scope.ServiceProvider.GetRequiredService<IVendorRegistration>()
             .RegisterCompanyAsync(input, "applicant@example.test", Ct);
     }
+
+    private static string Sha256(string value) =>
+        Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(value)));
 
     private ModuleHost Host() => new(db.AppConnectionString, UnreachableKeycloak());
 

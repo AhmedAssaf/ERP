@@ -3,7 +3,9 @@ using System.Security.Claims;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Platform.IntegrationTests.Infrastructure;
 using Platform.IntegrationTests.Vendors;
 using Platform.Modules.Identity.Contracts;
@@ -69,11 +71,34 @@ public sealed partial class VendorAccessTests(DatabaseFixture db)
             response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         }
 
+        // The registration page tells a staff account before it shows the form (the service refuses a post as well).
         using var form = await client.SendAsync(new HttpRequestMessage(HttpMethod.Get, "/vendor/register/company").As(staff), Ct);
+        form.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await form.Content.ReadAsStringAsync(Ct);
-        using var submitted = await PostRegistrationAsync(client, staff, html, VendorRegistrationInputTests.Valid());
-        (await submitted.Content.ReadAsStringAsync(Ct)).ShouldContain(
-            "This account belongs to a staff member. Register your company with a separate account.");
+        html.ShouldContain("data-vendor-refused");
+        html.ShouldContain("This account belongs to a staff member. Register your company with a separate account.");
+        html.ShouldNotContain("data-vendor-register");
+    }
+
+    [Theory]
+    [InlineData("ar", "ar-SA")]
+    [InlineData("en", "en-US")]
+    public async Task Registering_through_the_form_records_the_culture_the_privacy_notice_was_shown_in(string locale, string culture)
+    {
+        var applicant = Applicant(locale);
+        var accounts = new FakeVendorAccounts();
+        await using var factory = new PlatformWebFactory(db.AppConnectionString).WithWebHostBuilder(builder =>
+            builder.ConfigureTestServices(services => services.Replace(ServiceDescriptor.Scoped<IVendorAccounts>(_ => accounts))));
+        using var client = factory.CreateClient(new() { BaseAddress = new Uri("http://acme.localhost"), AllowAutoRedirect = false });
+        using var page = await client.SendAsync(new HttpRequestMessage(HttpMethod.Get, "/vendor/register/company").As(applicant), Ct);
+        var html = await page.Content.ReadAsStringAsync(Ct);
+        html.ShouldContain($"name=\"Input.PrivacyNoticeCulture\" value=\"{culture}\"");
+
+        using var response = await PostRegistrationAsync(client, applicant, html, VendorRegistrationInputTests.Valid());
+
+        (await response.Content.ReadAsStringAsync(Ct)).ShouldContain("data-vendor-registered");
+        var row = (await VendorRows.FindUserAsync(db.OwnerConnectionString, applicant.Subject, Ct)).ShouldNotBeNull();
+        row.PrivacyNoticeCulture.ShouldBe(culture);
     }
 
     [Fact]

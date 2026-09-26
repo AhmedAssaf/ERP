@@ -17,7 +17,8 @@ internal sealed record NormalizedRegistration(
     string ContactName,
     string? ContactPhone,
     string ContactEmail,
-    string PrivacyNoticeVersion);
+    string PrivacyNoticeVersion,
+    string PrivacyNoticeCulture);
 
 /// <summary>
 /// The rules for a vendor company's registration (F-11, vendor plan task 2). A CR number is exactly 10 digits and a VAT
@@ -26,7 +27,8 @@ internal sealed record NormalizedRegistration(
 /// rule (letters of any script, marks, spaces, apostrophes, hyphens, periods) widened by the digits and the
 /// <c>&amp; , ( ) /</c> that registered company names carry, 1 to 200 characters. The contact person's name follows the
 /// display-name rule itself (up to 200). Every free-text value refuses the invisible and bidi-control characters of
-/// <see cref="TextSafety"/> and control characters; the contact email follows <see cref="EmailAddresses"/>.
+/// <see cref="TextSafety"/> and control characters; the contact email follows <see cref="EmailAddresses"/>. The privacy
+/// notice must be the current version, shown in one of <see cref="VendorPrivacyNotice.Cultures"/> (exactly as named).
 /// </summary>
 internal static partial class VendorInput
 {
@@ -79,7 +81,8 @@ internal static partial class VendorInput
             errors.Add(Error.Validation(VendorErrors.InvalidContactEmail, "Enter the contact's work email address, for example name@company.com."));
         }
 
-        if (!string.Equals(registration.AcceptedPrivacyNotice, VendorPrivacyNotice.CurrentVersion, StringComparison.Ordinal))
+        if (!string.Equals(registration.AcceptedPrivacyNotice, VendorPrivacyNotice.CurrentVersion, StringComparison.Ordinal)
+            || (registration.PrivacyNoticeCulture is { } culture && !VendorPrivacyNotice.Cultures.Contains(culture, StringComparer.Ordinal)))
         {
             errors.Add(Error.Validation(VendorErrors.PrivacyNoticeRequired, "Read and accept the privacy notice to register."));
         }
@@ -100,8 +103,13 @@ internal static partial class VendorInput
             Trim(registration.ContactName),
             Trim(registration.ContactPhone) is { Length: > 0 } ? Digits(registration.ContactPhone) : null,
             EmailAddresses.Normalize(registration.ContactEmail)!,
-            registration.AcceptedPrivacyNotice!);
+            registration.AcceptedPrivacyNotice!,
+            registration.PrivacyNoticeCulture ?? CurrentCulture());
     }
+
+    /// <summary>The published culture of the request's UI culture: Arabic ones show the Arabic text, all others the English.</summary>
+    private static string CurrentCulture() =>
+        CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar" ? VendorPrivacyNotice.Arabic : VendorPrivacyNotice.English;
 
     private static string NameMessage(string language) =>
         $"Enter the company's {language} name as registered, up to {MaxNameLength} characters, using letters, digits, spaces and . , ' - & ( ) /.";

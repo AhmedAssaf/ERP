@@ -15,10 +15,23 @@ namespace Platform.Modules.Identity;
 
 public static class IdentityModule
 {
-    /// <summary>Authenticated and a member of the host tenant's organization. The host uses it as the fallback policy.</summary>
+    /// <summary>
+    /// Authenticated and a member of the host tenant's organization, staff or vendor. The Vendor policy builds on it; staff
+    /// pages use <see cref="TenantStaffPolicy"/>.
+    /// </summary>
     public static AuthorizationPolicy SameTenantPolicy { get; } = new AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
         .AddRequirements(new SameTenantRequirement())
+        .Build();
+
+    /// <summary>
+    /// <see cref="SameTenantPolicy"/> for staff only: a principal holding the realm role <c>vendor</c> is refused, whatever
+    /// member row it has. Vendors sign in without a second factor (V-4), so a vendor role must never open a staff page.
+    /// The host uses it as the default and fallback policy on tenant hosts; the four role policies include it.
+    /// </summary>
+    public static AuthorizationPolicy TenantStaffPolicy { get; } = new AuthorizationPolicyBuilder()
+        .Combine(SameTenantPolicy)
+        .RequireAssertion(NotVendor)
         .Build();
 
     /// <summary>Realm role of the platform realm (<c>waslabid-platform</c>) that opens the platform console.</summary>
@@ -40,7 +53,8 @@ public static class IdentityModule
 
     /// <summary>
     /// The four tenant role policies (F-07, spec 4.1) by name (<see cref="TenantPolicies"/>): signed in, a member of the
-    /// host tenant's organization, and holding the role in the host tenant according to <c>identity.members</c>.
+    /// host tenant's organization, not holding the realm role <c>vendor</c>, and holding the role in the host tenant
+    /// according to <c>identity.members</c>.
     /// </summary>
     public static IReadOnlyDictionary<string, AuthorizationPolicy> TenantRolePolicies { get; } = new Dictionary<string, AuthorizationPolicy>
     {
@@ -121,7 +135,11 @@ public static class IdentityModule
         SqlMigrator.ApplyAsync(connection, "identity", typeof(IdentityModule).Assembly, cancellationToken);
 
     private static AuthorizationPolicy RolePolicy(string role) => new AuthorizationPolicyBuilder()
-        .RequireAuthenticatedUser()
-        .AddRequirements(new SameTenantRequirement(), new TenantRoleRequirement(role))
+        .Combine(TenantStaffPolicy)
+        .AddRequirements(new TenantRoleRequirement(role))
         .Build();
+
+    // The realm role as the token carries it, on any identity of the principal.
+    private static bool NotVendor(AuthorizationHandlerContext context) =>
+        !context.User.HasClaim(IdentityClaims.Roles, IdentityClaims.VendorRealmRole);
 }

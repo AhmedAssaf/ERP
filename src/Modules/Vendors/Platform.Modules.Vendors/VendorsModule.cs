@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Npgsql;
 using Platform.Modules.Vendors.Access;
 using Platform.Modules.Vendors.Contracts;
@@ -47,7 +48,8 @@ public static class VendorsModule
 
     /// <summary>
     /// The vendor pages' services (vendor plan task 2): registration (<see cref="IVendorRegistration"/>, which needs the
-    /// Identity module's member directory and vendor accounts and the audit writer), the user-to-company lookup
+    /// Identity module's member directory and vendor accounts, the audit writer and the Operations module's platform
+    /// audit, and keeps its duplicate-CR limit per process), the user-to-company lookup
     /// (<see cref="IVendorUsers"/>), the current company (<see cref="IVendorCompanies"/>) and the Vendor policy's handler.
     /// The web host calls it; the worker does not serve vendors.
     /// </summary>
@@ -59,6 +61,8 @@ public static class VendorsModule
         services.AddScoped<IVendorUsers>(sp => sp.GetRequiredService<VendorUsers>());
         services.AddScoped<IVendorCompanies, VendorCompanies>();
         services.AddScoped<IAuthorizationHandler, VendorCompanyHandler>();
+        services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton<DuplicateCrThrottle>();
         services.AddScoped<IVendorRegistration, VendorRegistrationService>();
         return services;
     }

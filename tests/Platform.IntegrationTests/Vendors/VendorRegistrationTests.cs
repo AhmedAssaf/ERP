@@ -142,6 +142,24 @@ public sealed partial class VendorRegistrationTests(DatabaseFixture db, Keycloak
     }
 
     [Fact]
+    public async Task The_console_user_count_of_an_organization_leaves_out_its_vendor_accounts()
+    {
+        // F-54: the tenant list counts the tenant's users; a vendor joins the organization but is not one of them.
+        var email = Unique("counted");
+        var userId = await keycloak.CreateUserAsync(email, Password, emailVerified: true, Ct);
+        var acmeId = (await keycloak.AdminGetAsync("organizations?briefRepresentation=true", Ct)).EnumerateArray()
+            .Single(o => o.GetProperty("alias").GetString() == "acme").GetProperty("id").GetString();
+        var membersBefore = (await keycloak.AdminGetAsync($"organizations/{acmeId}/members/count", Ct)).GetInt32();
+        var usersBefore = await UserCountAsync("acme");
+
+        (await RegisterAsync(VendorRegistrationInputTests.Valid(), userId, email)).IsSuccess.ShouldBeTrue();
+
+        (await keycloak.AdminGetAsync($"organizations/{acmeId}/members/count", Ct)).GetInt32().ShouldBe(membersBefore + 1);
+        (await UserCountAsync("acme")).ShouldBe(usersBefore);
+        usersBefore.ShouldNotBeNull().ShouldBeGreaterThanOrEqualTo(3);
+    }
+
+    [Fact]
     public async Task A_vendor_account_cannot_be_invited_as_staff()
     {
         // V-3: a vendor never gets an identity.members row, so staff policies stay closed to it.
@@ -295,6 +313,14 @@ public sealed partial class VendorRegistrationTests(DatabaseFixture db, Keycloak
     }
 
     private ModuleHost Host() => new(db.AppConnectionString, StaffInvitationTests.KeycloakAdminSettings(keycloak));
+
+    /// <summary>The console's user count through a new host, so no count cached by an earlier call is reused.</summary>
+    private async Task<int?> UserCountAsync(string alias)
+    {
+        await using var host = Host();
+        await using var scope = host.PlatformScope();
+        return await scope.ServiceProvider.GetRequiredService<IOrganizationMembers>().CountAsync(alias, Ct);
+    }
 
     private WebApplicationFactory<Program> WebFactory() =>
         new PlatformWebFactory(db.AppConnectionString, new OidcSettings(keycloak.Authority, KeycloakFixture.WebClientSecret))

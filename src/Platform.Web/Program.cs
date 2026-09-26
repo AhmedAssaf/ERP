@@ -121,9 +121,10 @@ builder.Services
 builder.Services.AddAuthorization(options =>
 {
     // Fallback covers endpoints with no metadata; default covers [Authorize] and RequireAuthorization(). Both are the
-    // tenant policy here; HostAwareAuthorizationPolicyProvider swaps in PlatformAdmin on the platform host.
-    options.FallbackPolicy = IdentityModule.SameTenantPolicy;
-    options.DefaultPolicy = IdentityModule.SameTenantPolicy;
+    // tenant staff policy here (same tenant, never the realm role vendor), so a vendor opens no staff page that forgot
+    // its policy; HostAwareAuthorizationPolicyProvider swaps in PlatformAdmin on the platform host.
+    options.FallbackPolicy = IdentityModule.TenantStaffPolicy;
+    options.DefaultPolicy = IdentityModule.TenantStaffPolicy;
     options.AddPolicy(PlatformAuthentication.PolicyName, PlatformAuthentication.AdminPolicy);
     // F-07: TenantAdmin, ContractsOfficer, TechnicalEvaluator, FinanceApprover (same tenant plus the role in identity.members).
     options.AddTenantRolePolicies();
@@ -185,6 +186,8 @@ app.UseAuthentication();
 // The acting user (app.user_id) of every connection from here on: the authenticated principal's sub.
 app.UseMiddleware<ActingUserMiddleware>();
 app.UseRequestLocalization();
+// A signed-in vendor who opens the tenant's home goes to the vendor home instead of the staff home's 403.
+app.UseMiddleware<VendorHomeRedirectMiddleware>();
 app.UseAuthorization();
 app.UseMiddleware<PlatformAdminEverywhereMiddleware>();
 app.UseMiddleware<VendorContextMiddleware>();

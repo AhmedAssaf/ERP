@@ -16,9 +16,16 @@ public static class VendorPolicies
 /// <summary>
 /// The platform's privacy notice shown at vendor registration (V-14, N-02). The text lives in the UI resources under
 /// <c>Vendor.Privacy.{version}</c> in both languages; a new text is a new version, so what each vendor user accepted
-/// stays known.
+/// stays known (a unit test pins the SHA-256 of every published text). The culture it was shown in is stored with the
+/// acceptance.
 /// </summary>
 public static class VendorPrivacyNotice
 {
     public const string CurrentVersion = "V1";
+
+    public const string Arabic = "ar-SA";
+    public const string English = "en-US";
+
+    /// <summary>The cultures the notice is published in, as stored with an acceptance.</summary>
+    public static IReadOnlyList<string> Cultures { get; } = [Arabic, English];
 }

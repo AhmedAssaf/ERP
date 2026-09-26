@@ -1,9 +1,10 @@
 namespace Platform.Modules.Identity.Contracts;
 
 /// <summary>
-/// Member counts of Keycloak organizations, for the platform console's tenant list (F-54 as narrowed). Null means the
-/// count is not available (no Keycloak Admin API client configured, or Keycloak did not answer); the console then shows
-/// a dash rather than a guessed number (D-12's rule).
+/// User counts of Keycloak organizations, for the platform console's tenant list (F-54 as narrowed): the members of the
+/// tenant's organization, less those holding the realm role <c>vendor</c> (vendors join the organization, V-3, but are
+/// not the tenant's users). Null means the count is not available (no Keycloak Admin API client configured, or Keycloak
+/// did not answer); the console then shows a dash rather than a guessed number (D-12's rule).
 /// </summary>
 /// <remarks>
 /// The console asks once per tenant on every load of its tenant list, so implementations should cache a known count
