@@ -116,12 +116,14 @@ ClamAV, SMTP, its own Hangfire heartbeat, and the web host's `/health`, each wit
 `ops.health_results`. The non-secret endpoints have Development defaults in `src/Platform.Worker/appsettings.Development.json`
 (`Health:MinIo:ServiceUrl`, `Health:MinIo:BucketName`, `Keycloak:ManagementUrl`, `ClamAv:Host`/`Port`, `Smtp:Host`/`Port`,
 `Platform:WebHealthUrl`); MinIO's access key and secret have no default and are never written to an appsettings file
-(N-10) - set them as user secrets or environment variables before starting the worker:
+(N-10) - set them as user secrets or environment variables before starting the worker. `Health:MinIo:AccessKey` is the
+least-privilege `health-probe` user (`infra/compose/docker-compose.yml`'s `minio-init`, list-only on the bucket), never
+the root user, and its secret comes from `MINIO_HEALTH_PROBE_PASSWORD`:
 
 ```bash
 env_value() { grep "^$1=" infra/compose/.env | cut -d= -f2- | tr -d '\r'; }
-dotnet user-secrets set "Health:MinIo:AccessKey" "$(env_value MINIO_ROOT_USER)" --project src/Platform.Worker > /dev/null
-dotnet user-secrets set "Health:MinIo:SecretKey" "$(env_value MINIO_ROOT_PASSWORD)" --project src/Platform.Worker > /dev/null
+dotnet user-secrets set "Health:MinIo:AccessKey" "health-probe" --project src/Platform.Worker > /dev/null
+dotnet user-secrets set "Health:MinIo:SecretKey" "$(env_value MINIO_HEALTH_PROBE_PASSWORD)" --project src/Platform.Worker > /dev/null
 ```
 
 The same job (plan task 4, F-60 as narrowed) also sends one alert email when a check's incident opens, and one recovery

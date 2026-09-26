@@ -1,3 +1,4 @@
+using Hangfire;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Platform.Modules.Operations.Alerts;
 using Platform.Modules.Operations.Contracts;
@@ -16,6 +17,12 @@ internal sealed class HealthCheckJob(
 {
     private static readonly TimeSpan PerCheckTimeout = TimeSpan.FromSeconds(5);
 
+    // Task 3 (no overlapping check runs, no lost cycle): the recurring trigger fires every minute regardless of
+    // whether the previous run finished; DisableConcurrentExecution refuses a second run while one is still going,
+    // and AutomaticRetry(Attempts = 0) means a run that fails outright is not retried - a missed minute is simply
+    // replaced by the next scheduled run rather than piling up retries behind it.
+    [DisableConcurrentExecution(timeoutInSeconds: 50)]
+    [AutomaticRetry(Attempts = 0)]
     public async Task RunAsync(CancellationToken cancellationToken)
     {
         var results = new List<HealthResult>();

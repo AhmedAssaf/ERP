@@ -89,7 +89,7 @@ services:
       retries: 20
 
   minio-init:
-    # One-shot: creates the dev bucket, then exits.
+    # One-shot: creates the dev bucket and a least-privilege health-probe user (list-only, spec section 6), then exits.
     image: quay.io/minio/mc:latest
     container_name: erp-minio-init
     depends_on:
@@ -99,6 +99,10 @@ services:
       /bin/sh -c "
       mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-erp} ${MINIO_ROOT_PASSWORD:-erp_dev_password} &&
       mc mb --ignore-existing local/${STORAGE_BUCKET:-erp-dev} &&
+      mc admin user add local health-probe ${MINIO_HEALTH_PROBE_PASSWORD:?set MINIO_HEALTH_PROBE_PASSWORD in infra/compose/.env} &&
+      printf '%s' '{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":[\"s3:ListBucket\"],\"Resource\":[\"arn:aws:s3:::${STORAGE_BUCKET:-erp-dev}\"]}]}' > /tmp/health-probe-policy.json &&
+      mc admin policy create local health-probe-read /tmp/health-probe-policy.json &&
+      mc admin policy attach local health-probe-read --user health-probe &&
       echo 'bucket ready: ${STORAGE_BUCKET:-erp-dev}'"
 
   clamav:

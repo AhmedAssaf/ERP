@@ -20,7 +20,8 @@ namespace Platform.IntegrationTests.Operations;
 /// Plan task 3 (F-51): one component check per class, against real dependencies where the plan calls for a
 /// Testcontainer (PostgreSQL via <see cref="DatabaseFixture"/>, MinIO, Mailpit) and an in-test double otherwise
 /// (ClamAV: a TCP listener; Keycloak and the web host: a minimal Kestrel double, since <see cref="KeycloakFixture"/>
-/// does not expose the management port - see the task report).
+/// does not expose the management port). One theory per plan-listed component, named for that component
+/// ("<c>X</c>_reports_healthy/unhealthy_..."), replaces the plan's two generic theories.
 /// </summary>
 [Collection(DatabaseCollection.Name)]
 public sealed class HealthChecksTests(DatabaseFixture db, MinioFixture minio, MailpitFixture mailpit)
