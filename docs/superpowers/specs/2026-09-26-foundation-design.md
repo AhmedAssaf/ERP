@@ -129,7 +129,7 @@ W-05 acceptance: a `.razor` file containing `ml-4` fails the lint with its file 
 ### 3.2 Localisation
 
 - `IStringLocalizer<SharedResource>` with `Platform.UI/Resources/SharedResource.ar-SA.resx` and `SharedResource.en-US.resx`.
-- Culture order: the token's `locale` claim, then the `.AspNetCore.Culture` cookie, then the tenant's default culture, then `ar-SA`.
+- Culture order: the `.AspNetCore.Culture` cookie, then the token's `locale` claim, then the tenant's default culture, then `ar-SA`.
 - `App.razor` renders `<html lang="@lang" dir="@dir">` from the current UI culture.
 - `/culture/set?culture=&returnUrl=` writes the cookie and redirects with a local-URL check.
 - A unit test fails if either resource file has a key the other lacks.

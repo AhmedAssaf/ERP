@@ -3,5 +3,5 @@
 
 @if (Tenants.Current is { } tenant)
 {
-    <style>:root { --color-primary: @tenant.Branding.PrimaryColor; }</style>
+    <style>:root { --color-primary: @tenant.Branding.PrimaryColor; --color-on-primary: @BrandColors.OnPrimary(tenant.Branding.PrimaryColor); }</style>
 }

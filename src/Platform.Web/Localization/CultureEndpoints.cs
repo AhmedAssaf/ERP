@@ -24,14 +24,19 @@ internal static class CultureEndpoints
                     IsEssential = true,
                     HttpOnly = true,
                     SameSite = SameSiteMode.Lax,
-                    Secure = context.Request.IsHttps,
+                    // The app runs behind Caddy over plain http; the auth cookie already uses CookieSecurePolicy.Always.
+                    Secure = true,
                 });
             return Results.Redirect(IsLocal(returnUrl) ? returnUrl! : "/");
         }).AllowAnonymous();
         return app;
     }
 
-    // Same-site paths only: "/x" yes; "//evil" and "/\evil" no (open-redirect protection).
+    // Same-site paths only: "/x" yes; "//evil", "/\evil" and anything with a control or whitespace
+    // character no (open-redirect protection; browsers strip such characters before following a URL).
     private static bool IsLocal(string? url) =>
-        !string.IsNullOrEmpty(url) && url[0] == '/' && (url.Length == 1 || (url[1] != '/' && url[1] != '\\'));
+        !string.IsNullOrEmpty(url)
+        && url[0] == '/'
+        && (url.Length == 1 || (url[1] != '/' && url[1] != '\\'))
+        && !url.Any(c => char.IsControl(c) || char.IsWhiteSpace(c));
 }
