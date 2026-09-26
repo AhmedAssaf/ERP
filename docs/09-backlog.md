@@ -21,16 +21,16 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 |---|---|---|---|---|
 | E0 Platform foundation | W-01 to W-12, W-19 to W-30 | 14 | 9 | 1 |
 | E1 Tenancy and branding | F-01 to F-05, F-01b | 5 | 1 | 0 |
-| E2 Identity, users, roles | F-06 to F-10, F-06b | 2 | 2 | 2 |
-| E3 Vendor registration | F-11 to F-14, F-12b, F-14a | 3 | 1 | 2 |
-| E4 Tender authoring | F-15 to F-21, F-55, F-19b, F-59 | 6 | 2 | 2 |
+| E2 Identity, users, roles | F-06 to F-10, F-06b | 3 | 2 | 1 |
+| E3 Vendor registration | F-11 to F-14, F-12b, F-14a, F-62, F-63, F-65 | 4 | 2 | 3 |
+| E4 Tender authoring | F-15 to F-21, F-55, F-19b, F-59 | 7 | 1 | 2 |
 | E5 Offer submission | F-22 to F-26 | 3 | 2 | 0 |
 | E6 Evaluation chain | F-27 to F-34, F-56, F-56b, F-57, F-58 | 7 | 5 | 0 |
 | E7 Award and PO | F-35 to F-37, F-36b | 1 | 2 | 1 |
 | E8 Notifications | F-38 to F-40, F-39b | 2 | 1 | 1 |
-| E9 Audit and documents | F-41 to F-44 | 2 | 0 | 2 |
+| E9 Audit and documents | F-41 to F-44, F-64 | 4 | 0 | 1 |
 | E10 AI assist | F-45 to F-50 | 0 | 2 | 4 |
-| E11 Pilot and market | W-13 to W-18 | 6 | 0 | 0 |
+| E11 Pilot and market | W-13 to W-18, W-31, W-32 | 8 | 0 | 0 |
 | E12 Platform operations console | F-51 to F-54, F-60, F-61 | 5 | 1 | 0 |
 
 ## E0 Platform foundation (W-01 to W-12, W-19 to W-30)
@@ -110,7 +110,7 @@ Acceptance criteria:
 | F-07 | Roles: tenant admin, contracts officer, technical evaluator, finance approver (MVP), auditor (P1) | P0 | S | Done | F-06 |
 | F-08 | Per-tender committee assignment onto snapshot steps | P1 | M | Backlog | F-07, F-56 |
 | F-09 | Delegation of authority thresholds on approval steps | P1 | M | Backlog | F-56, F-33 |
-| F-10 | One vendor account across all tenants with per-tenant approval | P2 | L | Backlog | F-11 |
+| F-10 | One vendor account across all tenants, keyed by CR number, with per-tenant approval (ADR-0007; moved to the MVP 2026-09-26) | P0 | L | Backlog | F-11 |
 
 - **F-06.** Given an invitation, when the invitee sets a password and enrols TOTP, then they can log in; when they enter a wrong TOTP three times, then the account locks for fifteen minutes and the event is audited.
   MVP narrowing (docs/05 row 3, spec D-4, D-5 and 4.2): a tenant admin invites on `/admin/staff` (email, name, roles), changes roles and resends; the app calls the Keycloak Admin API as `waslabid-admin-api`, which creates or finds the user, adds them to the tenant's organization and has Keycloak email the set-password and TOTP link (72 hours, returning to the tenant's host); the member row is `invited` until the first sign-in. TOTP is required at every tenant login (realm browser flow), and brute-force detection locks the account for fifteen minutes after three failures. No SSO (F-06b). An account that needs no setup still gets an email: a short notice in Arabic and English from our own SMTP sender ("{inviter} added you to {portal} on WaslaBid as {roles}. Sign in at {tenant home}..."), and the page shows the same "Invitation sent to {email}" either way, so it cannot be used to learn who has an account (the difference is only in the audit entry, `existing_account`). A disabled account is refused with a neutral message (`identity.account_disabled`, audited as `identity.invitation_refused`). Names are 1 to 100 letters, marks, spaces, apostrophes, hyphens and periods; bidi-override and zero-width characters are refused. When the member row cannot be saved, the organization membership the invitation added is removed again. Evidence: `An_invitee_sets_a_password_and_totp_from_the_email_then_signs_in_and_becomes_active`, `Inviting_creates_the_user_adds_them_to_the_organization_and_emails_them`, `Inviting_an_existing_user_adds_membership_without_a_duplicate_user`, `Inviting_an_existing_set_up_account_emails_them_one_notice_and_answers_as_for_a_new_account`, `Inviting_a_disabled_account_is_refused_audited_and_adds_nothing`, `When_the_member_row_cannot_be_saved_the_new_organization_membership_is_removed`, `Invite_change_roles_and_resend_run_through_the_page`, `An_admin_demoted_while_the_page_is_open_is_refused_every_action`, `Three_wrong_totp_codes_lock_the_account`, `A_non_admin_cannot_open_the_staff_page`. Tenant home URLs on the web client are registered by hand for the seeded tenants until W-29; the emails carry the tenant's brand with W-30. "The event is audited" is not met yet: the lockout happens inside Keycloak and reaches the tenant's audit with W-28; invitations, resends and role changes are audited (`identity.member_invited`, `identity.invitation_resent`, `identity.roles_changed`). Browser pass through Caddy on 2026-09-26 (admin plan Task 11): `acme.admin` enrolled TOTP on first login, invited `new.evaluator@acme.waslabid.test` as technical evaluator, the Keycloak email arrived in Mailpit, the link led through setting a password and enrolling TOTP, the evaluator then signed in with password and code, and the member row turned from invited to active.
@@ -118,9 +118,9 @@ Acceptance criteria:
   MVP narrowing (docs/05 row 4, spec 4.1): the four MVP roles live in `identity.members` per tenant with policies `TenantAdmin`, `ContractsOfficer`, `TechnicalEvaluator`, `FinanceApprover`; no Auditor role. Evidence: `A_user_without_the_role_gets_403_and_one_audit_row` (an evaluator on an admin-only endpoint), `Each_tenant_policy_admits_its_role_only`, `A_member_gets_role_claims_for_the_host_tenant_only`, `Repeated_denials_within_a_minute_write_one_audit_row`, `The_last_tenant_admin_cannot_drop_their_admin_role`. The financial comparison page itself arrives with its slice (F-31) and uses the `FinanceApprover` policy. Inviting staff and changing roles on a page is F-06 (plan task 9). Browser pass through Caddy on 2026-09-26 (admin plan Task 11): the invited evaluator saw the home page without any admin link and got 403 on `/admin/staff` and `/admin/branding`.
 - **F-08.** Given a committee of named evaluators, when a staff member outside it opens the tender's offers, then they see nothing; when an evaluator is removed, then their draft scores stay but they lose access.
 - **F-09.** Given limits of one approver under 100k and two above 1M, when an award of 1.2M is submitted, then it requires two approvals and cannot be awarded after one.
-- **F-10.** Given a vendor approved by tenant A and pending at tenant B, when the vendor logs in, then they see A's invitations and B's pending state, and tenant B never sees A's data.
+- **F-10.** Given a vendor approved by tenant A and pending at tenant B, when the vendor logs in, then they see A's invitations and B's pending state, and tenant B never sees A's data; given a second registration with an existing CR number, then it is refused and the person is offered to join the existing company through its admin; given tenant A's notes and approval state, when tenant B reads the vendor, then neither exists for B.
 
-## E3 Vendor registration (F-11 to F-14)
+## E3 Vendor registration (F-11 to F-14, F-62, F-63, F-65)
 
 | ID | Story | Pri | Size | Status | Depends on |
 |---|---|---|---|---|---|
@@ -130,11 +130,17 @@ Acceptance criteria:
 | F-13 | Local content and Saudization fields | P2 | S | Backlog | F-11 |
 | F-14a | Tenant vendor address book: name, email, category, registered or not; pick invitees from it | P0 | S | Backlog | W-03 |
 | F-14 | Tenant vendor list: pending, approved, blocked, invite, tag | P2 | M | Backlog | F-11 |
+| F-63 | Vendor consent ledger: grant, view, revoke per recipient, scope, period (ADR-0009) | P0 | M | Backlog | F-10, F-41 |
+| F-62 | Vendor invites a buyer; invitation reaches WaslaBid sales and is traced to the vendor (ADR-0007) | P1 | S | Backlog | F-10, F-38 |
+| F-65 | Bank guarantee verification: manual check first, Wathq or BwaTech later; never issued (ADR-0010) | P2 | M | Backlog | F-12, F-16, F-22 |
 
 - **F-11.** Given the registration form, when a vendor submits with an unverified email, then the account is inactive until the link is clicked; when the CR number is not ten digits, then the form shows a specific error in the vendor's language.
 - **F-12.** Given a CR certificate with an expiry date in the past, when the vendor opens the submission wizard, then the wizard blocks at step one and names the expired document; given an upload, then it goes through the chunked path and is virus-scanned before it is listed.
 - **F-14a.** Given the address book, when the officer publishes a tender and picks three entries plus one new email, then all four receive invitations and the new email is saved to the book; given a vendor that later registers with a listed email, then the entry shows as registered without the officer doing anything.
 - **F-13.** Given local content percentage and Saudi headcount fields, when an offer is compared, then the comparison sheet shows both columns.
+- **F-63.** Given a vendor admin, when they grant consent to a named recipient for award records for twelve months, then a grant row exists and is audited; when they revoke it, then a revocation row is added and the grant row is unchanged; given any export of that vendor's data to a third party, when no active grant covers the recipient and scope, then the export is refused and audited; given a tenant user, then no screen or API lets them grant consent for a vendor.
+- **F-62.** Given a vendor admin, when they invite a company by name and email, then the invitee receives a WaslaBid introduction, sales sees the lead with the inviting vendor, and no tenant is created; given the invitee later becomes a tenant, then the tenant record shows the inviting vendor.
+- **F-65.** Given a tender that requires a bid bond, when a vendor submits, then the wizard requires the guarantee document with bank, number, amount, and validity; when the officer marks it verified or not verified, then the reason is required and audited; given the platform, then no feature issues or prices a guarantee.
 - **F-14.** Given a blocked vendor, when they open an invitation from that tenant, then they see "not eligible" and cannot submit; given a category tag, when the officer filters, then only tagged vendors appear.
 
 ## E4 Tender authoring and publishing (F-15 to F-21)
@@ -146,7 +152,7 @@ Acceptance criteria:
 | F-17 | Evaluation model: checklist, weighted criteria, pass mark (MVP: lowest compliant price) | P0 | M | Backlog | F-16 |
 | F-18 | Templates | P2 | S | Backlog | F-16 |
 | F-19 | Visibility (MVP: invited vendors by email only) | P0 | S | Backlog | F-16, F-11 |
-| F-19b | Open tenders: public listing page under the tenant domain, self-registration onto the tender, listing switch-off | P1 | M | Backlog | F-19, F-55, F-02 |
+| F-19b | Open tenders: public listing page under the tenant domain, self-registration onto the tender, listing switch-off (moved to the MVP 2026-09-26, ADR-0007) | P0 | M | Backlog | F-19, F-55, F-02, F-10 |
 | F-59 | Pre-qualification questionnaire attached to a tender; only vendors who pass can submit | P2 | M | Backlog | F-17, F-22, F-28 |
 | F-20 | Amendments with versioning and notification | P1 | M | Backlog | F-16, F-38 |
 | F-21 | Clarifications (MVP: public answers to all invited) | P0 | M | Backlog | F-19 |
@@ -233,21 +239,24 @@ Acceptance criteria:
 - **F-39b.** Given a user with the Contracts officer or Tenant admin role, when they follow a tender, then they receive stage-advanced and award events and see the tender in a Following list; when they are not on the committee, then they never see offers or scores. Source: Reference App app release 6.7.0 "Request Watchers" (docs/04 section 12).
 - **F-39.** Given a deadline 48 hours away, when the scheduled job runs, then every invited vendor without a submission receives the reminder once, in their language, with the tenant's branding.
 
-## E9 Audit and documents (F-41 to F-44)
+## E9 Audit and documents (F-41 to F-44, F-64)
 
 | ID | Story | Pri | Size | Status | Depends on |
 |---|---|---|---|---|---|
 | F-41 | Append-only event log with actor, tenant, action, entity, timestamp, IP | P0 | M | Backlog | W-03 |
-| F-42 | Signed audit export bundle | P2 | M | Backlog | F-41 |
+| F-42 | Signed audit export bundle (MVP: timeline, openings, scores, approvals, award record, file hashes; moved to the MVP 2026-09-26) | P0 | M | Backlog | F-41, F-64 |
+| F-64 | Signed, verifiable award record at award and PO issue, with a public verification page (ADR-0008) | P0 | M | Backlog | F-41, F-33, F-36 |
 | F-43 | Dashboards: cycle time, savings, participation | P2 | M | Backlog | F-33 |
 | F-44 | Document storage: encryption, virus scan, size and type limits | P0 | M | Backlog | W-01, ADR-0001 |
 
 - **F-41.** Given any write or login, when it happens, then one audit row exists; given the app role, when it attempts UPDATE or DELETE on the audit table, then the database refuses; the audit row commits in the same transaction as the change or through an outbox, and carries the client IP.
+- **F-42.** Given an awarded tender, when the tenant admin exports the audit bundle, then the PDF lists every stage with actor and time, each envelope opening with the names present, every score, every approval, the award record, and the hash of every submitted file; given the bundle's hash chain, when any audit row was altered, then verification fails.
+- **F-64.** Given an award, when it is approved, then a signed award record exists with tenant, vendor CR, tender reference, amount with VAT, date, and audit-chain hash; when anyone submits the record to the verification page, then it answers valid, and when one character changes, then it answers not valid; given the record, then it contains no offer content, score, or other vendor.
 - **F-44.** Given an upload containing the EICAR test signature, when it completes, then it is rejected before it is listed and the vendor sees a specific message; given a 101 MB file, then the chunk endpoint refuses with the limit stated.
 
 ## E10 AI assist (F-45 to F-50)
 
-Design: `docs/superpowers/specs/2026-09-26-ai-offer-review-design.md` and ADR-0005 (2026-09-26): one Claude Sonnet review per offer at technical opening on the original PDF, off by default and on per tenant with consent; F-48 and F-49 comparisons are code. Build phases in spec section 8. Implementation plan: `docs/superpowers/plans/2026-09-26-ai-offer-review.md`.
+Design: `docs/superpowers/specs/2026-09-26-ai-offer-review-design.md` and ADR-0005 (2026-09-26): one Claude Sonnet review per offer at technical opening on the original PDF, off by default and on per tenant with consent; F-48 and F-49 comparisons are code. Build phases in spec section 8. Implementation plan: `docs/superpowers/plans/2026-09-26-ai-offer-review.md`. Decided 2026-09-26: the plan does not start until gate 1 passes (W-31).
 
 | ID | Story | Pri | Size | Status | Depends on |
 |---|---|---|---|---|---|
@@ -262,21 +271,25 @@ Design: `docs/superpowers/specs/2026-09-26-ai-offer-review-design.md` and ADR-00
 - **F-48.** Given locked scores, when the financial check runs, then arithmetic errors and prices beyond the configured variance are flagged; given unlocked scores, then the check cannot be started.
 - **F-50.** Given any AI output, when stored, then the row carries model, model version, prompt version, input hash, and the human decision, and the row is immutable after the decision.
 
-## E11 Pilot and market (W-13 to W-18)
+## E11 Pilot and market (W-13 to W-18, W-31, W-32)
 
 | ID | Story | Pri | Size | Status | Depends on |
 |---|---|---|---|---|---|
 | W-13 | Three interviews with procurement or contracts managers, written up | P0 | M | Backlog | |
 | W-14 | Reference App demo or former-customer call answering the seven questions in document 04 section 10 | P0 | S | Backlog | |
 | W-15 | First customer signed for the pilot with a named tender and date | P0 | L | Backlog | W-13 |
-| W-16 | Pricing page draft: monthly per-tenant price, first tender free | P0 | S | Backlog | W-13 |
-| W-17 | Pilot dry run script with fake vendors, producing the document 05 section 7 table | P0 | M | Backlog | F-01, F-02, F-06, F-07, F-11, F-12, F-14a, F-15, F-16, F-17, F-19, F-21, F-55, F-22, F-23, F-24, F-56, F-27, F-28, F-29, F-30, F-31, F-33, F-36, F-38, F-39, F-41, F-44 |
+| W-16 | Pricing page draft: monthly per-tenant price, first tender free (the flat per-company model in document 11 section 8 is a hypothesis; the model is decided at W-31) | P0 | S | Backlog | W-13 |
+| W-17 | Pilot dry run script with fake vendors, producing the document 05 section 7 table | P0 | M | Backlog | F-01, F-02, F-06, F-07, F-11, F-12, F-14a, F-15, F-16, F-17, F-19, F-21, F-55, F-22, F-23, F-24, F-56, F-27, F-28, F-29, F-30, F-31, F-33, F-36, F-38, F-39, F-41, F-44, F-10, F-19b, F-42, F-63, F-64 |
 | W-18 | Pilot review and version 1.1 scope | P0 | S | Backlog | W-17 |
+| W-31 | Gate 1 decision: two of three interviewed firms would pay SAR 1,500 or more a month and one names a real tender; build past the foundation only on a pass | P0 | S | Backlog | W-13, W-16 |
+| W-32 | Partner agreement drafted by a Saudi lawyer: equity, vesting, cash contributed, and roles (partners do the pre-customer work, no paid hires before paying customers) | P0 | M | Backlog | |
 
 - **W-13.** Given three interviews, when written up, then each records current tools, last tender's cycle time, what Reference App or others quoted, and whether the vendor would see their brand; the document 01 "things to verify" list is updated.
 - **W-14.** Given the Reference App demo or ex-customer call, when it is written up, then each of the seven questions in document 04 section 10 has an answer marked confirmed, denied, or still unknown with its source, and document 04 sections 3 and 6 are updated where an answer changed a verdict.
 - **W-15.** Given a signed pilot agreement, when the tender is named, then the plan in document 05 section 6 gets calendar dates.
 - **W-16.** Given the pricing draft, when reviewed, then it states a monthly per-tenant price with what is included, the first-tender-free offer with its conditions, the white-label domain add-on, and how the price was tested against at least two interview answers; no plan requires an implementation project.
+- **W-31.** Given the written-up interviews and the pricing test, when the gate is reviewed, then the result (pass or fail), the firms that would pay and at what price, and the named tender are recorded in document 11 section 10, and the pricing model is decided there.
+- **W-32.** Given the partners, when the agreement is signed, then it states each partner's equity, cash, vesting, and role, and was drafted or reviewed by a Saudi lawyer; no cash moves before it is signed.
 - **W-17.** Given the dry run, when it completes, then every row of the document 05 section 7 table has a measured value and a pass or fail.
 - **W-18.** Given the pilot review, when it is held, then every document 05 section 7 measure has its live-tender value beside the dry-run value, the contracts officer's and finance approver's willingness to pay is recorded verbatim, and the version 1.1 scope is a ranked list of backlog IDs with any new stories added with acceptance criteria.
 

@@ -10,7 +10,7 @@ Documents live in `docs/`:
 - `docs/02-core-features-and-tech-stack.md` - must-have features (F-01 to F-60), non-functional requirements, and the recommended stack with architecture overview.
 - `docs/03-diagrams.md` - the platform in pictures: context, roles, state machine, sealed envelopes, tenancy, data model, deployment, AI pipeline, roadmap.
 - `docs/04-reference-app-analysis.md` - Reference App deep-dive: features mapped to ours, technology, direction, gaps, clone-or-compete, target markets.
-- `docs/05-mvp-scope.md` - the pilot MVP: 19 features narrowed from document 02 (the platform console F-51, F-54, F-60 added 2026-09-26), what is out, two spikes, build plan, pilot success measures.
+- `docs/05-mvp-scope.md` - the pilot MVP: 26 features narrowed from document 02 (the platform console, then F-10, F-19b, F-42, F-63, F-64 added 2026-09-26), what is out, two spikes, build plan, pilot success measures.
 - `docs/06-spike-results.md` - results of the pre-build spikes: Arabic PDF passes with one rule; Blazor uploads move to chunked HTTP; Elsa executor spike (W-20) leads to our own state machine. Code in `spikes/`.
 - `docs/07-ways-of-working.md` - process: work flow with gates, repo layout, local stack, branching, the agent roster, tracking, definition of done, cadence.
 - `docs/08-design-system.md` - Tailwind as the UI foundation: tokens, typography, RTL rules, white-label mechanics, MVP components.
@@ -22,7 +22,7 @@ Documents live in `docs/`:
 - `docs/wireframes/` - low-fidelity wireframes for the MVP and version 1.1 screens (17 frames): `mvp-wireframes.html` (open in a browser, Arabic and English switch), `README.md` with notes and rendered images per screen, `render.js` to refresh the images.
 - `docs/decks/` - PowerPoint pitch decks: `waslabid-customers.pptx` (12 slides for buying companies: problem, sealed envelope, white label, audit, pricing, founding pilot) and `waslabid-partners.pptx` (11 slides for audit firms, ERP implementers, and technology partners: market, market map, referral economics, roadmap).
 - `docs/brand/` - the WaslaBid logo: SVG lockups (English, bilingual, Arabic, reversed, one-colour, icon), colours, usage rules, and `build.py` to regenerate them.
-- `docs/adr/` - architecture decision records; ADR-0001 moves vendor uploads to chunked HTTP, ADR-0002 adopts Tailwind over MudBlazor, ADR-0003 makes the approval workflow tenant-configurable from day one, ADR-0004 executes it with our own state machine instead of Elsa, ADR-0005 reviews offers with Claude Sonnet on the original PDF with tenant consent, ADR-0006 separates the platform console from tenant administration and phases the operations console.
+- `docs/adr/` - architecture decision records; ADR-0001 moves vendor uploads to chunked HTTP, ADR-0002 adopts Tailwind over MudBlazor, ADR-0003 makes the approval workflow tenant-configurable from day one, ADR-0004 executes it with our own state machine instead of Elsa, ADR-0005 reviews offers with Claude Sonnet on the original PDF with tenant consent, ADR-0006 separates the platform console from tenant administration and phases the operations console, ADR-0007 gives vendors one identity across tenants from the MVP, ADR-0008 issues a signed award record, ADR-0009 adds the vendor consent ledger, ADR-0010 keeps the platform outside the finance licence perimeter.
 
 Local stack: `cd infra/compose && cp .env.example .env && docker compose up -d` (PostgreSQL, Keycloak, Redis, MinIO, ClamAV, Mailpit, Caddy).
 

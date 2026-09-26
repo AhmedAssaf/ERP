@@ -38,7 +38,7 @@ This file lists the features that must exist for the product to be sellable to a
 | F-07 | Roles | Built-in roles: Tenant admin, Contracts officer, Technical evaluator, Finance approver, Auditor. A user can hold several roles. |
 | F-08 | Per-tender committee | For each tender, the contracts officer assigns named evaluators and approvers to the steps of the tender's workflow snapshot (F-56). Only committee members see that tender's offers. |
 | F-09 | Delegation of authority | Amount thresholds on approval steps of the workflow definition (F-56), for example under 100k one finance approver, above 1M two approvers plus CFO. The executor enforces them. |
-| F-10 | Vendor identity | One vendor company account works across all tenants on the platform. Each tenant separately approves or blocks the vendor. Vendor staff are invited by the vendor's own admin. |
+| F-10 | Vendor identity | One vendor company account works across all tenants on the platform, keyed by its CR number, which is mandatory and unique. Each tenant separately approves or blocks the vendor; everything a tenant records about a vendor stays private to that tenant under row-level security. Vendor staff are invited by the vendor's own admin. In the MVP from 2026-09-26 (ADR-0007). |
 
 ### 2.3 Vendor registration and profile
 
@@ -48,6 +48,9 @@ This file lists the features that must exist for the product to be sellable to a
 | F-12 | Vendor documents with expiry | CR, VAT certificate, GOSI certificate, Zakat certificate, Chamber of Commerce, Saudization (Nitaqat) status, ISO certificates. Each has an expiry date; expired documents block submission and trigger a reminder 30 days before. |
 | F-13 | Local content fields | Local content percentage, Saudi employees count and percentage, and supporting evidence. Shown in comparison sheets. |
 | F-14 | Tenant vendor list | Tenant sees pending, approved, and blocked vendors, can invite by email, and can tag by category. |
+| F-62 | Vendor invites a buyer | Added 2026-09-26 (ADR-0007). A vendor admin invites a company it sells to by name, contact, and email. The invitation reaches WaslaBid sales and the invitee receives a WaslaBid-branded introduction; no tenant is created automatically. Invitations and their outcome are recorded so sign-ups can be traced to the inviting vendor (docs/11 section 11, assumption 3). |
+| F-63 | Vendor consent ledger | Added 2026-09-26 (ADR-0009). A vendor admin grants, views, and revokes consent for a named recipient, scope, and period. Grants and revocations are append-only and audited. Any export of vendor data to a third party checks the ledger at the moment of export and records the grant it relied on. A tenant cannot consent for a vendor; there is no default grant. |
+| F-65 | Bank guarantee verification | Added 2026-09-26 (ADR-0010). A bid bond or performance guarantee is a document type on the offer with issuing bank, number, amount, and validity. The contracts officer records a manual verification with a reason; automatic verification against Wathq or BwaTech follows. WaslaBid never issues guarantees. |
 | F-14a | Tenant vendor address book (MVP subset of F-14) | Contracts officer keeps a list of vendors by company name, contact email, and category, whether or not the vendor has registered yet. Publishing a tender lets the officer pick invitees from this list or type new emails, which are added to the list. |
 
 ### 2.4 Tender authoring and publishing
@@ -113,7 +116,8 @@ This file lists the features that must exist for the product to be sellable to a
 | ID | Feature | Acceptance |
 |---|---|---|
 | F-41 | Immutable event log | Every create, update, transition, download, and login is appended with actor, tenant, timestamp, IP, and before or after values where relevant. Append-only. Retained for at least 10 years. |
-| F-42 | Audit export | Auditor exports a tender's full history as a signed PDF bundle including all submitted files and their hashes. |
+| F-42 | Audit export | Auditor exports a tender's full history as a signed PDF bundle including all submitted files and their hashes, and the award record (F-64). |
+| F-64 | Verifiable award record | Added 2026-09-26 (ADR-0008). At award and at PO issue the platform writes a record with tenant, vendor CR, tender reference, amount with VAT, date, PO number, and the audit-chain hash, signed with a platform key held in the KMS. A public verification page and the published public key let anyone confirm a record without an account. The record never contains offer content, scores, or other vendors' data. |
 | F-43 | Dashboards | Per tenant: open tenders, average cycle time per stage, savings versus estimate, vendor participation rate, awards by vendor and category. |
 | F-44 | Document storage | All files stored encrypted with virus scanning on upload, size limits, and allowed types. Financial files use a separate encryption key that is unlocked only at the opening event. |
 
@@ -146,7 +150,7 @@ Added 2026-09-21. One place for the platform team to see every component, every 
 | ID | Requirement | Target |
 |---|---|---|
 | N-01 | Data residency | All customer data, backups, and AI processing inside Saudi Arabia. |
-| N-02 | PDPL compliance | Consent on vendor registration, data subject access and deletion process, processor agreement template for tenants. |
+| N-02 | PDPL compliance | Consent on vendor registration, data subject access and deletion process, processor agreement template for tenants. Vendor data goes to a third party only under a recorded consent (F-63). |
 | N-03 | Security | OWASP ASVS level 2, encryption at rest and in transit, MFA for tenant staff, rate limiting, annual penetration test. |
 | N-04 | Availability | 99.5% monthly for version 1. Submission deadline windows are the critical path: the platform must not miss a deadline because of a deploy. |
 | N-05 | Performance | Page loads under 2 seconds on Saudi mobile networks. Uploads up to 100 MB per file. |
@@ -154,6 +158,7 @@ Added 2026-09-21. One place for the platform team to see every component, every 
 | N-07 | Backups | Daily encrypted backups, 35-day retention, restore tested monthly. |
 | N-08 | Observability | Structured logs, metrics, traces, and alerts on failed notifications and failed submissions. |
 | N-09 | Accessibility | Keyboard navigation and screen reader labels on vendor-facing screens. |
+| N-11 | Finance licence perimeter | Added 2026-09-26 (ADR-0010). WaslaBid never holds or moves funds, never underwrites, never ranks financiers, lets the licensed partner file the SAMA non-objection, takes a Saudi fintech lawyer's opinion before any finance partner, and verifies but never issues guarantees. A fixed point: changing it needs an ADR and a legal opinion. |
 | N-10 | Secrets handling | No secret value ever appears in a screen, a log line, an API response, or a repository file. Applications receive secrets from the cloud KMS or secret store by reference at start-up; the operations console shows references and rotation dates only. |
 
 ## 4. Tech stack
@@ -236,7 +241,7 @@ flowchart TB
 
 ### 4.3 Tenancy model
 
-- **Database:** single PostgreSQL instance, shared schema, `tenant_id` column on every tenant-owned table. Two layers: EF Core global query filters on `TenantId` for everyday safety, and PostgreSQL row-level security policies `tenant_id = current_setting('app.tenant_id')` as the hard boundary. A `DbConnection` interceptor sets the setting at the start of each request or job from the validated token. Platform-admin operations use a separate database role that bypasses RLS and is never used by the web request path.
+- **Database:** single PostgreSQL instance, shared schema, `tenant_id` column on every tenant-owned table. Two layers: EF Core global query filters on `TenantId` for everyday safety, and PostgreSQL row-level security policies `tenant_id = current_setting('app.tenant_id')` as the hard boundary. A `DbConnection` interceptor sets the setting at the start of each request or job from the validated token. Platform-admin operations use a separate database role that bypasses RLS and is never used by the web request path. Vendor company, vendor user, and vendor document rows are platform-level (one vendor across tenants, ADR-0007); what each tenant records about a vendor lives in a tenant-scoped relationship row under RLS, and a tenant reads a vendor's documents only while a relationship exists.
 - **Identity:** one Keycloak realm for tenants and vendors, and a separate realm `waslabid-platform` for WaslaBid staff with OTP required (ADR-0006). Each tenant is a Keycloak Organization with its own domain, login theme, and optional identity provider. Tenant staff are organization members; their roles live in our `identity.members` table, because Keycloak organizations have no organization-scoped roles. Vendor users live in the same realm and are members of every organization that has approved their company, with a `vendor` role. Tokens carry the active organization; the ASP.NET Core authentication pipeline turns it into a `TenantContext` scoped service used by EF Core and authorization policies.
 - **Routing and Blazor circuits:** Caddy terminates TLS and forwards the original `Host` header unchanged. ASP.NET Core middleware maps the host to a tenant slug and verifies it against the token's organization before a Blazor circuit is created, so a user on tenant A can never open a circuit against tenant B's host. Each circuit is bound to one tenant for its lifetime.
 - **Storage:** one bucket per environment, object keys prefixed by tenant, with a per-tender data key for financial envelopes held in the database encrypted by a master key in the cloud KMS.
@@ -293,11 +298,11 @@ Each module is two projects: `Platform.Modules.<Name>.Contracts` (public interfa
 
 ## 5. Decisions needed before design
 
-1. **PO scope:** confirm branded PDF plus structured export (F-36, F-37) for version 1, with ERP push as a later paid integration.
-2. **Vendor identity:** confirm one platform-wide vendor account with per-tenant approval (F-10).
+1. **PO scope:** decided 2026-09-26: branded PDF plus structured export (F-36, F-37) for version 1. ERP push is a later paid per-customer integration for the ERPs customers actually use. WaslaBid does not become an ERP.
+2. **Vendor identity:** decided 2026-09-26 (ADR-0007): one platform-wide vendor account keyed by CR number, with per-tenant approval (F-10), in the MVP. Each tender is Invited or Open (F-19, F-19b), and vendors can invite buyers (F-62).
 3. **Hosting provider:** deferred 2026-09-21. Development runs on the local Compose stack at no cost. The pilot targets Oracle Cloud Always Free with Jeddah as home region (2 Arm cores, 12 GB since June 2026; capacity not guaranteed, small paid instance of about 20 USD a month as fallback), which is the only free in-Kingdom option today. Re-evaluate when Azure Saudi Arabia East (November 2026) and the AWS Saudi region (December 2026) open. Design against generic managed PostgreSQL and S3-compatible storage until then.
 4. **UI stack and edge:** decided 2026-09-21: Blazor Web App (Interactive Server) with Tailwind CSS and the in-house `Platform.UI` components (ADR-0002). Caddy at the edge for TLS and routing, no API gateway product in version 1.
-5. **First customer:** name the company whose workflow becomes the default template.
+5. **First customer:** name the company whose workflow becomes the default template. Segment decided 2026-09-26: listed and pre-IPO firms, groups with internal audit, government contractors, and firms that have had a disputed award; the interviews (W-13) cover at least three of them. The name is still open.
 6. **Product name:** decided 2026-09-26: WaslaBid (وصلة بد). Details and remaining trademark and domain checks in document 01 section 1.1.
 7. **AI provider and data residency (F-45 to F-50):** opened and decided 2026-09-26 (ADR-0005, spec `docs/superpowers/specs/2026-09-26-ai-offer-review-design.md`): Claude Sonnet through the Claude API, original PDFs, off by default, on per tenant with recorded consent to processing outside the Kingdom; revisit when an in-Kingdom endpoint offers the model. History: N-01 requires AI processing inside Saudi Arabia, and the Claude API named in the stack table has no in-Kingdom endpoint today. Options:
    - (a) Per-tenant consent to process AI outside the Kingdom, with personal data redacted before sending and the consent logged.

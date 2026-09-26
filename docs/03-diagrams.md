@@ -525,6 +525,9 @@ mindmap
       F-13 local content
       F-14 tenant vendor list
       F-14a vendor address book
+      F-62 vendor invites a buyer
+      F-63 consent ledger
+      F-65 guarantee verification
     Tenders
       F-15 types
       F-16 content + BoQ
@@ -563,6 +566,7 @@ mindmap
     Audit and documents
       F-41 event log
       F-42 audit export
+      F-64 verifiable award record
       F-43 dashboards
       F-44 storage
     AI assist

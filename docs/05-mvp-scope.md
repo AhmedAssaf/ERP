@@ -22,10 +22,10 @@ flowchart LR
 
     subgraph R3["Version 1: full document 02"]
         direction TB
-        C1[SSO, vendor identity<br/>across tenants F-10]:::v1
+        C1[SSO F-06b,<br/>guarantee check F-65]:::v1
         C2[Templates<br/>F-18]:::v1
         C3[Local content F-13,<br/>vendor list F-14]:::v1
-        C4[Audit export, dashboards<br/>F-42 F-43]:::v1
+        C4[Dashboards<br/>F-43]:::v1
         C5[Remaining AI<br/>F-46 to F-49]:::v1
     end
 
@@ -33,7 +33,7 @@ flowchart LR
         direction TB
         B1[Custom domain F-03]:::next
         B2[Workflow editor, committees, DoA<br/>F-56b F-08 F-09]:::next
-        B3[Amendments F-20,<br/>open tenders F-19b]:::next
+        B3[Amendments F-20,<br/>vendor invites buyer F-62]:::next
         B4[Receipts + vendor dashboard<br/>F-25 F-26]:::next
         B5[Ranking, cancellation,<br/>vendor requests, comments<br/>F-32 F-34 F-57 F-58]:::next
         B6[Letters + PO export<br/>F-35 F-37]:::next
@@ -41,7 +41,7 @@ flowchart LR
         B8[AI compliance pre-check<br/>F-45 F-50]:::next
     end
 
-    subgraph R1["MVP: pilot tender (21 features)"]
+    subgraph R1["MVP: pilot tender (26 features)"]
         direction TB
         A1[Tenant screen + logo<br/>F-01 F-01b F-02]:::mvp
         A2[Staff accounts + roles<br/>F-06 F-07]:::mvp
@@ -54,6 +54,8 @@ flowchart LR
         A9[PO PDF<br/>F-36]:::mvp
         A10[Email + audit log<br/>F-38 F-41]:::mvp
         A11[Platform console: health, connections,<br/>errors, tenants, alerts<br/>F-51 F-52 F-53 F-54 F-60]:::mvp
+        A12[One vendor across tenants,<br/>open tenders F-10 F-19b]:::mvp
+        A13[Audit bundle, award record,<br/>consent ledger F-42 F-64 F-63]:::mvp
     end
 ```
 
@@ -67,11 +69,11 @@ Every row is a feature ID from document 02 with the MVP-sized version of its acc
 | 2 | F-02 | Logo, one primary colour, portal name. Applied to both portals, emails, and the PO | No favicon, no accent colour |
 | 3 | F-06 | Tenant admin invites staff by email. Password login with TOTP through Keycloak | No SSO |
 | 4 | F-07 | Roles: Tenant admin, Contracts officer, Technical evaluator, Finance approver | No Auditor role. Auditor reads the log as Tenant admin |
-| 5 | F-11 | Vendor self-registration: names in Arabic and English, CR, VAT, contact, email verified | No IBAN, no activity categories, no phone verification |
+| 5 | F-11 | Vendor self-registration: names in Arabic and English, CR (mandatory, unique on the platform), VAT, contact, email verified | No IBAN, no activity categories, no phone verification |
 | 6 | F-12 | CR and VAT certificate with expiry dates. Expired document blocks submission | Two document types instead of seven. No 30-day reminder |
 | 7 | F-15, F-16 | One tender type: sealed two-envelope Tender. Title, reference, description, scope attachment, terms attachment, BoQ lines, submission deadline, clarification deadline | No RFQ or RFP type, no bid bond field, no validity period |
 | 8 | F-17 | Compliance checklist items, technical criteria with weights summing to 100, minimum pass mark, financial method fixed to lowest compliant price | No weighted technical-financial split |
-| 9 | F-14a, F-19, F-55, F-21 | Officer picks invitees from the tenant's vendor address book or types new emails. Each invitee gets a branded single-use link: registered vendors land on the tender after login, unregistered ones register with the email pre-filled and land on the tender, resumable until the deadline. Officer sees sent, opened, registered, submitted per invitee. Vendors ask questions; officer answers publicly to all invited vendors | No open tenders, no private answers, no vendor categories beyond a text tag |
+| 9 | F-14a, F-19, F-55, F-21 | Officer picks invitees from the tenant's vendor address book or types new emails. Each invitee gets a branded single-use link: registered vendors land on the tender after login, unregistered ones register with the email pre-filled and land on the tender, resumable until the deadline. Officer sees sent, opened, registered, submitted per invitee. Vendors ask questions; officer answers publicly to all invited vendors | No private answers, no vendor categories beyond a text tag. Open tenders are row 23 |
 | 10 | F-22, F-23, F-24 | Wizard: documents check, technical upload, BoQ prices, financial upload, submit. Technical and financial stored with separate keys; financial unreadable until opening. Server-time deadline, late refused, resubmission allowed before deadline | No draft autosave beyond the browser session. Resubmission replaces rather than versions |
 | 11 | F-28, F-29, F-30 | Officer marks checklist pass or fail per offer. Evaluators score each criterion, hidden from each other until all submit. Officer locks scores | No "waived" state |
 | 12 | F-31, F-33 | Auto-built comparison sheet: vendor, BoQ line prices, totals, VAT, arithmetic check. Export to Excel. One finance approver approves or returns with a reason | No internal estimate variance, no local content column, no approval limits |
@@ -84,12 +86,17 @@ Every row is a feature ID from document 02 with the MVP-sized version of its acc
 | 19 | F-60 | Email to the platform admin, once per incident plus a recovery notice, when a health check fails, a job fails three times, a deadline-closure job has not run five minutes after a deadline, or disk passes 80 percent. Incidents of the last 30 days listed on the F-51 page. Thresholds in configuration | No SMS, no TLS alerts, no threshold screen |
 | 20 | F-52 | Connections registry on the platform host: endpoint, account, secret reference, owner, last rotated, and a test action, audited. Added 2026-09-26 (ADR-0006) | No rotate action; rotation is done in the secret store by hand |
 | 21 | F-53 | 24-hour error summary per component on the F-51 page, read from Loki, with a link to Grafana for search and traces. Added 2026-09-26 (ADR-0006) | No log search or trace view in the console; Grafana over Loki and Tempo serves them until after three to five paying customers |
+| 22 | F-10 | One vendor company across all tenants, keyed by CR number; each tenant keeps its own approval state and address book entry, private under RLS. A vendor invited by a second tenant logs in with the same account. Added 2026-09-26 (ADR-0007) | Approval states pending and approved only; blocking arrives with F-14 |
+| 23 | F-19b | A tender is published as Invited or Open. Open tenders appear on the tenant's listing page with a register-and-submit link; the officer can switch the listing off. Added 2026-09-26 (ADR-0007) | No search or filters on the listing page |
+| 24 | F-42 | Audit bundle PDF per tender: timeline of stages, envelope openings with names, scores, approvals, award, and file hashes. Added 2026-09-26 (docs/11 section 3) | Files listed by hash, not embedded; no auditor role, the tenant admin exports it |
+| 25 | F-64 | Signed award record at award and at PO issue, shown in the audit bundle, given to the vendor, and checkable on a public verification page. Added 2026-09-26 (ADR-0008) | One signing key, no rotation screen |
+| 26 | F-63 | Vendor consent ledger: grant, view, revoke per recipient, scope and period, audited; the only path any later export may use. Added 2026-09-26 (ADR-0009) | No external recipients yet, so no export exists; the ledger and its check ship ahead of them |
 
-Also in the MVP because the pilot cannot run without them, though they carry no feature ID: Arabic and English UI with right-to-left (F-04 is treated as a constraint, not a feature), and the tender state machine (F-27) limited to the states the twenty-one features need.
+Also in the MVP because the pilot cannot run without them, though they carry no feature ID: Arabic and English UI with right-to-left (F-04 is treated as a constraint, not a feature), and the tender state machine (F-27) limited to the states the twenty-six features need.
 
 ## 4. Explicitly out of the MVP
 
-Custom domains, SSO, the workflow editor screen (F-56b; the model ships, the pilot uses the seeded default), per-tender committees, delegation of authority limits, information requests to vendors after submission and internal comment threads (F-57, F-58; during the pilot the officer emails the vendor and the reply is filed by hand), amendments, open tenders with a public listing page (F-19b; the pilot is invited-only), receipts with hashes, vendor dashboard, ranking other than lowest price, cancellation, award and regret letters, PO export, SMS, notification preferences, local content fields, the full tenant vendor list with approval states (the address book F-14a is in), templates, public listing, audit export, dashboards, the console's log search and trace view (rest of F-53; the pilot uses Grafana over Loki and Tempo, and Sentry), credential rotation from the console, consented support access (F-61), every AI feature, mobile apps, ERP integration, vendor identity across tenants.
+Custom domains, SSO, the workflow editor screen (F-56b; the model ships, the pilot uses the seeded default), per-tender committees, delegation of authority limits, information requests to vendors after submission and internal comment threads (F-57, F-58; during the pilot the officer emails the vendor and the reply is filed by hand), amendments, receipts with hashes, vendor dashboard, ranking other than lowest price, cancellation, award and regret letters, PO export, SMS, notification preferences, local content fields, the full tenant vendor list with approval states (the address book F-14a is in), templates, dashboards, the console's log search and trace view (rest of F-53; the pilot uses Grafana over Loki and Tempo, and Sentry), credential rotation from the console, consented support access (F-61), every AI feature (the AI offer review plan also waits for gate 1, section 8), vendors inviting buyers (F-62), guarantee verification (F-65), mobile apps, ERP integration, WaslaBid as an ERP.
 
 If the pilot customer asks for one of these, the answer is "version 1.1, after your tender closes", unless the tender cannot legally proceed without it.
 
@@ -125,15 +132,19 @@ gantt
 
     section Vendors and tenders
     Vendor registration, documents (5, 6) :v1, after f3, 7d
+    One vendor across tenants (22)   :v4, after v1, 7d
     Tender authoring, criteria (7, 8) :v2, after f3, 10d
     Invitations, clarifications, email (9, 14) :v3, after v2, 7d
+    Open tenders and listing page (23) :v5, after v3, 5d
 
     section Submission and evaluation
     Sealed submission, deadline (10) :e1, after v3, 12d
     Screening, scoring, lock (11)    :e2, after e1, 10d
     Comparison sheet, finance approval (12) :e3, after e2, 7d
     PO PDF (13)                      :e4, after e3, 5d
-    Platform console and alerts (17, 18, 19) :e5, after e4, 5d
+    Audit bundle and award record (24, 25) :e6, after e4, 7d
+    Consent ledger (26)              :e7, after e6, 3d
+    Platform console and alerts (17, 18, 19) :e5, after e7, 5d
 
     section Pilot
     Arabic and English pass, RTL fixes :p1, after e5, 7d
@@ -143,7 +154,7 @@ gantt
     Pilot review, version 1.1 scope  :p5, after p4, 5d
 ```
 
-About 16 weeks from first spike to the live tender at the durations shown (one week for the workflow spike, one for the workflow model, one for the platform console added 2026-09-26), then a 30-day tender window and a review, so about 19 weeks to the pilot verdict. Plan for 17 to 19 weeks to the live tender if a spike fails or the customer is late. Two developers bring the build portion to about 8 weeks.
+About 18 weeks from first spike to the live tender at the durations shown (one week for the workflow spike, one for the workflow model, one for the platform console, and about two for rows 22 to 26, all added 2026-09-26; one vendor across tenants and open tenders run beside tender authoring), then a 30-day tender window and a review, so about 22 weeks to the pilot verdict. Plan for 17 to 19 weeks to the live tender if a spike fails or the customer is late. Two developers bring the build portion to about 8 weeks.
 
 ## 7. What the pilot must prove
 
@@ -158,7 +169,8 @@ About 16 weeks from first spike to the live tender at the durations shown (one w
 
 ## 8. Decisions this plan assumes
 
-- PO scope: branded PDF only (closes open decision 1 in document 02 for the MVP).
-- Vendor identity: one account per vendor company, registered on the pilot tenant. Cross-tenant identity waits for version 1 (open decision 2 stays open).
+- Gate 1 before building past the foundation (decided 2026-09-26): the customer track (W-13, W-16) runs beside the foundation, and no slice after the foundation starts, including the AI offer review plan, until two of three interviewed firms would pay SAR 1,500 or more a month and one names a real tender (W-31).
+- PO scope: branded PDF only in the MVP; version 1 adds the structured export (F-37). ERP push is a later paid integration and WaslaBid does not become an ERP (open decision 1, decided 2026-09-26).
+- Vendor identity: one vendor account across all tenants from the MVP (ADR-0007; open decision 2, decided 2026-09-26).
 - Hosting: any Saudi-region VM or small Kubernetes cluster for the pilot; the provider decision (open decision 3) can wait until version 1.
 - First customer: still to be named. The plan cannot start section "Pilot" without one, so finding them runs in parallel with the spikes and foundation.

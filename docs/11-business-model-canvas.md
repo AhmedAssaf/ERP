@@ -15,13 +15,13 @@ Diagrams are PlantUML; the sources are in `docs/diagrams/11-bmc/`. To re-render:
 
 ![The problem](diagrams/11-bmc/02-problem.png)
 
-No law forces a private company to run a sealed tender. Target the firms that already feel the pain: listed and pre-IPO firms, groups with internal audit, government contractors, and firms that have had a disputed award.
+No law forces a private company to run a sealed tender. Target the firms that already feel the pain: listed and pre-IPO firms, groups with internal audit, government contractors, and firms that have had a disputed award. Decided 2026-09-26: all four segments; the interviews cover at least three so the results show which to concentrate on.
 
 ## 3. Features that really matter
 
 ![Features that really matter](diagrams/11-bmc/03-features.png)
 
-The MVP in document 05 is well cut, with one gap: add a simple audit bundle PDF (F-42). It is what the finance approver shows the board, and it is the reason a governance buyer pays.
+The MVP in document 05 is well cut, with one gap: add a simple audit bundle PDF (F-42). It is what the finance approver shows the board, and it is the reason a governance buyer pays. Added to the MVP 2026-09-26, with the signed award record (F-64).
 
 ## 4. The canvas
 
@@ -51,7 +51,7 @@ Sell to the contracts manager, then close with the finance manager, who signs. V
 
 ![Payment model](diagrams/11-bmc/09-payment.png)
 
-The buying company pays a flat subscription per company, not per user, so adding more evaluators costs nothing. Most customers pay an annual invoice by bank transfer, which brings cash in early; Starter customers can pay monthly by card or mada. Vendors never pay: every free vendor is a possible future buyer.
+Status 2026-09-26: this model is the hypothesis to test in the interviews (W-16); the pricing model is decided at gate 1 (W-31). The buying company pays a flat subscription per company, not per user, so adding more evaluators costs nothing. Most customers pay an annual invoice by bank transfer, which brings cash in early; Starter customers can pay monthly by card or mada. Vendors never pay: every free vendor is a possible future buyer. Decided 2026-09-26: vendors stay free at least until gate 2 of document 12 (30 percent of vendors serve two or more buyers).
 
 ## 9. Income, expenses, profit, value
 

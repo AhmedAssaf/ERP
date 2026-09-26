@@ -195,9 +195,9 @@ flowchart TD
 
 ## 6. Open decisions before design
 
-1. **PO scope for version 1.** Recommended: generate a branded PO PDF inside the product (option A). ERP push (B) becomes a paid per-customer integration later. Becoming the full ERP (C) is out of scope.
-2. **Vendor identity model.** One vendor account across all tenants (network effect, better UX, harder data isolation) versus one account per tenant (simpler, no network effect). Recommended: one platform-wide vendor identity with per-tenant approval status.
-3. **First customer.** Pick one real company to design with. Their workflow becomes the default template.
+1. **PO scope for version 1.** Decided 2026-09-26: a branded PO PDF plus structured export inside the product (option A). ERP push (B) becomes a paid per-customer integration later. Becoming the full ERP (C) is out of scope: customers already run one, and ERP partners are a sales channel, not competitors.
+2. **Vendor identity model.** Decided 2026-09-26 (ADR-0007): one platform-wide vendor identity keyed by CR number, with per-tenant approval status, in the MVP.
+3. **First customer.** Pick one real company to design with. Their workflow becomes the default template. Target segments decided 2026-09-26: listed and pre-IPO firms, groups with internal audit, government contractors, firms with a disputed award.
 4. **Hosting region and provider** to satisfy data residency claims.
 
 ## 7. Sources

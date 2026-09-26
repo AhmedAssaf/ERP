@@ -15,8 +15,9 @@ Change any input and every figure updates. Diagram sources are in `docs/diagrams
 - **To the first paying customer (month 12): about SAR 55,000 of your own money**, or about SAR 33,000 in the minimum version. If the interviews fail, you stop after about SAR 2,000.
 - **Lean plan** (you do everything until revenue pays for hires): the most cash in is **SAR 58,535**. Monthly profit starts at the 3rd paying tenant (month 16), and **all your money is back in month 26**.
 - **Growth plan** (the pace of document 11, hiring ahead of revenue): the most cash in is **SAR 162,703**, and all of it is back in month 59. By month 72 it produces 2.5 times the lean plan's revenue.
-- **Stress** (hiring on the growth schedule while customers arrive at the lean pace): losses keep growing, reaching **SAR 1.9M by month 72**. **Never hire ahead of paying customers**; the gates exist to stop this.
+- **Stress** (hiring on the growth schedule while customers arrive at the lean pace): losses keep growing, reaching **SAR 1.9M by month 72**. **Never hire ahead of paying customers**; the gates exist to stop this. Adopted 2026-09-26: no paid hires before paying customers; the pre-customer work, sales included, is done by partners.
 - **Angel investor: not now.** Self-fund phase A. Take a strategic advisor, not cash. Raise SAR 300k to 500k only after 3 to 5 paying customers, and only if you want to hire or go full-time sooner (section 5).
+- **Decided 2026-09-26: partners put in cash now**, in exchange for equity, instead of waiting for 3 to 5 paying customers. This costs more equity per riyal than a raise after traction (section 5). No cash moves before a partner agreement drafted by a Saudi lawyer states equity, cash, vesting, and roles (W-32). The workbook still models self-funding; add the partners' cash on the Assumptions sheet once the amounts are agreed.
 
 Founder salary is zero in every scenario.
 
