@@ -8,7 +8,7 @@
 </DataTable>
 
 @code {
-    [Parameter, EditorRequired] public IQueryable<HealthRow> Items { get; set; } = default!;
+    [Parameter, EditorRequired] public IReadOnlyList<HealthRow> Items { get; set; } = default!;
 
     [Parameter] public TableDensity Density { get; set; }
 

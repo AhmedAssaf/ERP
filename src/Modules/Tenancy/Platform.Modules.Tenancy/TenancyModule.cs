@@ -28,6 +28,7 @@ public static class TenancyModule
         var pooled = builder.ConnectionString;
         services.AddKeyedSingleton(DataSourceKey, (_, _) => NpgsqlDataSource.Create(pooled));
         services.AddSingleton<ITenantDirectory, TenantDirectory>();
+        services.AddSingleton<ITenantCatalog, TenantCatalog>();
         return services;
     }
 

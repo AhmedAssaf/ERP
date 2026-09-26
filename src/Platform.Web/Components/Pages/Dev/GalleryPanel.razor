@@ -113,7 +113,7 @@
 @code {
     private IReadOnlyList<SelectOption> Roles { get; set; } = [];
 
-    private IQueryable<HealthSample> Health { get; set; } = Enumerable.Empty<HealthSample>().AsQueryable();
+    private IReadOnlyList<HealthSample> Health { get; set; } = [];
 
     private IReadOnlyList<AuditEntry> Audit { get; set; } = [];
 
@@ -125,12 +125,12 @@
             new("contracts-officer", T["Gallery.Sample.RoleContracts"]),
             new("finance-approver", T["Gallery.Sample.RoleFinance"]),
         ];
-        Health = new HealthSample[]
-        {
+        Health =
+        [
             new(T["Gallery.Sample.Database"], T["Gallery.Sample.Healthy"], StatusTone.Success, 288),
             new(T["Gallery.Sample.SignIn"], T["Gallery.Sample.Slow"], StatusTone.Warning, 288),
             new(T["Gallery.Sample.Storage"], T["Gallery.Sample.Failing"], StatusTone.Danger, 1024),
-        }.AsQueryable();
+        ];
         Audit =
         [
             new(T["Gallery.Sample.UserName"], T["Gallery.Sample.AuditInvited"], new DateTimeOffset(2026, 9, 26, 11, 5, 0, TimeSpan.Zero)),

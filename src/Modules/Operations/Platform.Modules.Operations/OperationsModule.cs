@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 using Npgsql;
 using Platform.Modules.Operations.Alerts;
 using Platform.Modules.Operations.Contracts;
+using Platform.Modules.Operations.PlatformConsole;
 using Platform.Modules.Operations.Health;
 using Platform.Shared.Data;
 
@@ -23,6 +24,21 @@ public static class OperationsModule
         services.AddModuleDbContext<OperationsDbContext>(connectionString);
         services.AddScoped<IHealthLog, HealthLog>();
         services.AddScoped<IPlatformAudit, PlatformAuditWriter>();
+        return services;
+    }
+
+    /// <summary>
+    /// Registers what only the platform console needs (plan task 7, spec 3.4): failed jobs with the audited re-run, and
+    /// tenant storage usage. The host must also register Hangfire's storage (<c>JobsModule.AddJobClient</c>). Object
+    /// storage settings (<c>ObjectStorage:*</c>) are optional; without them storage usage is unknown.
+    /// </summary>
+    public static IServiceCollection AddOperationsConsole(this IServiceCollection services, IConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configuration);
+        services.AddSingleton(_ => ObjectStorageSettings.FromConfiguration(configuration));
+        services.AddSingleton<ITenantStorageUsage, TenantStorageUsage>();
+        services.AddScoped<IPlatformJobs, PlatformJobs>();
         return services;
     }
 
@@ -47,44 +63,44 @@ public static class OperationsModule
         services.AddSingleton(sp =>
         {
             var settings = sp.GetRequiredService<HealthCheckSettings>();
-            return new NamedHealthCheck("PostgreSQL", new PostgreSqlHealthCheck(settings.PostgreSqlConnectionString));
+            return new NamedHealthCheck(HealthComponents.PostgreSql, new PostgreSqlHealthCheck(settings.PostgreSqlConnectionString));
         });
         services.AddSingleton(sp =>
         {
             var settings = sp.GetRequiredService<HealthCheckSettings>();
             return new NamedHealthCheck(
-                "MinIO", new MinIoHealthCheck(settings.MinIoServiceUrl, settings.MinIoBucketName, settings.MinIoAccessKey, settings.MinIoSecretKey));
+                HealthComponents.ObjectStorage, new MinIoHealthCheck(settings.MinIoServiceUrl, settings.MinIoBucketName, settings.MinIoAccessKey, settings.MinIoSecretKey));
         });
         services.AddSingleton(sp =>
         {
             var settings = sp.GetRequiredService<HealthCheckSettings>();
             var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(KeycloakHealthCheck));
-            return new NamedHealthCheck("Keycloak", new KeycloakHealthCheck(httpClient, settings.KeycloakManagementUrl));
+            return new NamedHealthCheck(HealthComponents.Keycloak, new KeycloakHealthCheck(httpClient, settings.KeycloakManagementUrl));
         });
         services.AddSingleton(sp =>
         {
             var settings = sp.GetRequiredService<HealthCheckSettings>();
-            return new NamedHealthCheck("ClamAV", new ClamAvHealthCheck(settings.ClamAvHost, settings.ClamAvPort));
+            return new NamedHealthCheck(HealthComponents.ClamAv, new ClamAvHealthCheck(settings.ClamAvHost, settings.ClamAvPort));
         });
         services.AddSingleton(sp =>
         {
             var settings = sp.GetRequiredService<HealthCheckSettings>();
-            return new NamedHealthCheck("SMTP", new SmtpHealthCheck(settings.SmtpHost, settings.SmtpPort));
+            return new NamedHealthCheck(HealthComponents.Email, new SmtpHealthCheck(settings.SmtpHost, settings.SmtpPort));
         });
         services.AddSingleton(sp =>
-            new NamedHealthCheck("Worker", new WorkerHeartbeatHealthCheck(sp.GetRequiredService<JobStorage>(), sp.GetRequiredService<TimeProvider>())));
+            new NamedHealthCheck(HealthComponents.Worker, new WorkerHeartbeatHealthCheck(sp.GetRequiredService<JobStorage>(), sp.GetRequiredService<TimeProvider>())));
         services.AddSingleton(sp =>
         {
             var settings = sp.GetRequiredService<HealthCheckSettings>();
             var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(WebHealthCheck));
-            return new NamedHealthCheck("Web", new WebHealthCheck(httpClient, settings.WebHealthUrl));
+            return new NamedHealthCheck(HealthComponents.Web, new WebHealthCheck(httpClient, settings.WebHealthUrl));
         });
         services.AddSingleton(sp =>
         {
             var settings = sp.GetRequiredService<HealthCheckSettings>();
             var env = sp.GetRequiredService<IHostEnvironment>();
             return new NamedHealthCheck(
-                "Disk", new DiskSpaceHealthCheck(settings.DiskPathOr(env.ContentRootPath), settings.DiskAlertPercent));
+                HealthComponents.Disk, new DiskSpaceHealthCheck(settings.DiskPathOr(env.ContentRootPath), settings.DiskAlertPercent));
         });
 
         // One per worker process: remembers what was alerted while the health store (PostgreSQL) is unavailable.

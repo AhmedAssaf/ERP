@@ -3,7 +3,7 @@
 @attribute [CascadingTypeParameter(nameof(TGridItem))]
 @inject IStringLocalizer<SharedResource> T
 
-@if (_hasRows)
+@if (_lastItems is { Count: > 0 })
 {
     <div class="grid gap-2" data-density="@(_density == TableDensity.Compact ? "compact" : "comfortable")">
         <div class="flex justify-end">
@@ -14,7 +14,7 @@
         </div>
         @* A scrolling region must be keyboard focusable to be scrolled without a mouse; the header sticks inside it. *@
         <div role="region" aria-label="@Label" tabindex="0" class="max-h-[70vh] overflow-auto rounded-card border border-line bg-surface">
-            <QuickGrid TGridItem="TGridItem" Items="Items" Class="@TableClass">
+            <QuickGrid TGridItem="TGridItem" Items="_query" Class="@TableClass">
                 @ChildContent
             </QuickGrid>
         </div>
@@ -38,9 +38,14 @@ else
 
     private TableDensity _density;
     private TableDensity? _lastDensity;
-    private bool _hasRows;
+    private IReadOnlyList<TGridItem>? _lastItems;
+    private IQueryable<TGridItem> _query = Enumerable.Empty<TGridItem>().AsQueryable();
 
-    [Parameter, EditorRequired] public IQueryable<TGridItem> Items { get; set; } = default!;
+    /// <summary>
+    /// The rows, already loaded. A list, not a queryable: the component never runs a query itself, so a page loads its
+    /// data asynchronously and the circuit never blocks on a database round trip while rendering.
+    /// </summary>
+    [Parameter, EditorRequired] public IReadOnlyList<TGridItem> Items { get; set; } = [];
 
     /// <summary>The table's accessible name ("Component health"); pages show their own visible heading.</summary>
     [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
@@ -66,7 +71,13 @@ else
             _density = Density;
         }
 
-        _hasRows = Items.Any();
+        // QuickGrid takes an IQueryable; an in-memory one over the list, rebuilt only when the list instance changes.
+        var items = Items ?? [];
+        if (!ReferenceEquals(items, _lastItems))
+        {
+            _lastItems = items;
+            _query = items.AsQueryable();
+        }
     }
 
     private void ToggleDensity() =>

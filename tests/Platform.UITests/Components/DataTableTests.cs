@@ -5,7 +5,7 @@ namespace Platform.UITests.Components;
 
 public class DataTableTests : ComponentTest
 {
-    private static readonly IQueryable<HealthRow> Rows = new[] { new HealthRow("Database", 12), new HealthRow("Object storage", 7) }.AsQueryable();
+    private static readonly IReadOnlyList<HealthRow> Rows = [new HealthRow("Database", 12), new HealthRow("Object storage", 7)];
 
     [Fact]
     public void DataTable_renders_headers_and_rows()
@@ -53,7 +53,7 @@ public class DataTableTests : ComponentTest
     public void DataTable_shows_the_empty_content_when_there_are_no_rows()
     {
         var cut = Render<HealthTable>(p => p
-            .Add(t => t.Items, Array.Empty<HealthRow>().AsQueryable())
+            .Add(t => t.Items, Array.Empty<HealthRow>())
             .Add(t => t.EmptyContent, "<p id=\"nothing\">No checks have run yet.</p>"));
 
         cut.FindAll("table").ShouldBeEmpty();
@@ -63,9 +63,31 @@ public class DataTableTests : ComponentTest
     [Fact]
     public void DataTable_says_there_are_no_rows_without_empty_content()
     {
-        var cut = Render<HealthTable>(p => p.Add(t => t.Items, Array.Empty<HealthRow>().AsQueryable()));
+        var cut = Render<HealthTable>(p => p.Add(t => t.Items, Array.Empty<HealthRow>()));
 
         cut.FindAll("table").ShouldBeEmpty();
         cut.Markup.ShouldContain("There are no rows to show.");
+    }
+
+    [Fact]
+    public void DataTable_shows_an_EmptyState_for_an_empty_list()
+    {
+        var cut = Render<HealthTable>(p => p
+            .Add(t => t.Items, new List<HealthRow>())
+            .Add<EmptyState>(t => t.EmptyContent, e => e.Add(s => s.Title, "No checks yet")));
+
+        cut.FindAll("table").ShouldBeEmpty();
+        cut.FindAll("button[aria-pressed]").ShouldBeEmpty();
+        cut.FindComponent<EmptyState>().Find("h2").TextContent.ShouldBe("No checks yet");
+    }
+
+    [Fact]
+    public void DataTable_reads_the_list_it_was_given_again_when_the_parameter_changes()
+    {
+        var cut = Render<HealthTable>(p => p.Add(t => t.Items, Array.Empty<HealthRow>()));
+
+        cut.Render(p => p.Add(t => t.Items, Rows));
+
+        cut.FindAll("tbody tr").Count.ShouldBe(2);
     }
 }

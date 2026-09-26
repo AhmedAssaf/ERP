@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Platform.Modules.Identity.Contracts;
 
 namespace Platform.Modules.Identity;
@@ -33,6 +34,7 @@ public static class IdentityModule
     {
         ArgumentNullException.ThrowIfNull(services);
         services.AddScoped<IAuthorizationHandler, SameTenantHandler>();
+        services.TryAddSingleton<IOrganizationMembers, UnavailableOrganizationMembers>();
         return services;
     }
 }

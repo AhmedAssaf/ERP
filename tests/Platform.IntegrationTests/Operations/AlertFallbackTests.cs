@@ -272,6 +272,9 @@ public sealed class AlertFallbackTests(DatabaseFixture db, MailpitFixture mailpi
         public Task<IReadOnlyList<HealthResult>> LatestAsync(CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
 
+        public Task<IReadOnlyList<HealthResult>> LastFailuresAsync(CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
         public Task<IReadOnlyList<Incident>> IncidentsAsync(DateTimeOffset since, CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
     }

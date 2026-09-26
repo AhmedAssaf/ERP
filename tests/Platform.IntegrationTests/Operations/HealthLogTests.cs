@@ -91,6 +91,27 @@ public sealed class HealthLogTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task LastFailuresAsync_returns_the_newest_unhealthy_or_degraded_result_per_component()
+    {
+        var component = UniqueComponent();
+        var healthyOnly = UniqueComponent();
+        await using var scope = _host.ScopeFor(null);
+        var log = scope.ServiceProvider.GetRequiredService<IHealthLog>();
+        var now = DateTimeOffset.UtcNow;
+
+        await log.RecordAsync([Failure(component, now), Healthy(healthyOnly, now)], Ct);
+        await log.RecordAsync([new HealthResult(component, HealthStatus.Degraded, 900, now.AddSeconds(5), "slow")], Ct);
+        await log.RecordAsync([Healthy(component, now.AddSeconds(10))], Ct);
+
+        var failures = await log.LastFailuresAsync(Ct);
+
+        var mine = failures.Single(h => h.Component == component);
+        mine.Status.ShouldBe(HealthStatus.Degraded);
+        mine.Message.ShouldBe("slow");
+        failures.ShouldNotContain(h => h.Component == healthyOnly);
+    }
+
+    [Fact]
     public async Task A_recovery_keeps_the_failure_reason_in_last_message()
     {
         var component = UniqueComponent();

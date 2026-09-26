@@ -85,4 +85,70 @@
   <data name="Gallery.Sample.AuditInvited" xml:space="preserve"><value>invited Omar Khalid as contracts officer</value></data>
   <data name="Gallery.Sample.AuditAccepted" xml:space="preserve"><value>accepted the invitation</value></data>
   <data name="Gallery.Sample.AuditDetail" xml:space="preserve"><value>From the link in the invitation email</value></data>
+  <data name="Console.Nav.Health" xml:space="preserve"><value>Health</value></data>
+  <data name="Console.Nav.Tenants" xml:space="preserve"><value>Tenants and jobs</value></data>
+  <data name="Console.Nav.Jobs" xml:space="preserve"><value>Job dashboard</value></data>
+  <data name="Console.TimeFormat" xml:space="preserve"><value>d MMMM yyyy, HH:mm</value></data>
+  <data name="Console.Unknown" xml:space="preserve"><value>Unknown</value></data>
+  <data name="Console.Loading" xml:space="preserve"><value>Loading…</value></data>
+  <data name="Console.Board.Title" xml:space="preserve"><value>Platform health</value></data>
+  <data name="Console.Board.Refresh" xml:space="preserve"><value>Refresh</value></data>
+  <data name="Console.Board.Components" xml:space="preserve"><value>Components</value></data>
+  <data name="Console.Board.Latency" xml:space="preserve"><value>Latency</value></data>
+  <data name="Console.Board.Milliseconds" xml:space="preserve"><value>{0} ms</value></data>
+  <data name="Console.Board.LastCheck" xml:space="preserve"><value>Last check</value></data>
+  <data name="Console.Board.LastFailure" xml:space="preserve"><value>Last failure</value></data>
+  <data name="Console.Component.Web" xml:space="preserve"><value>Web host</value></data>
+  <data name="Console.Component.Worker" xml:space="preserve"><value>Background worker</value></data>
+  <data name="Console.Component.PostgreSQL" xml:space="preserve"><value>Database (PostgreSQL)</value></data>
+  <data name="Console.Component.MinIO" xml:space="preserve"><value>Object storage (MinIO)</value></data>
+  <data name="Console.Component.Keycloak" xml:space="preserve"><value>Sign-in (Keycloak)</value></data>
+  <data name="Console.Component.ClamAV" xml:space="preserve"><value>Virus scanning (ClamAV)</value></data>
+  <data name="Console.Component.SMTP" xml:space="preserve"><value>Email (SMTP)</value></data>
+  <data name="Console.Component.Disk" xml:space="preserve"><value>Disk space</value></data>
+  <data name="Console.Status.Healthy" xml:space="preserve"><value>Healthy</value></data>
+  <data name="Console.Status.Degraded" xml:space="preserve"><value>Degraded</value></data>
+  <data name="Console.Status.Unhealthy" xml:space="preserve"><value>Failing</value></data>
+  <data name="Console.Status.Unknown" xml:space="preserve"><value>Unknown</value></data>
+  <data name="Console.Incidents.Title" xml:space="preserve"><value>Incidents in the last 30 days</value></data>
+  <data name="Console.Incidents.Component" xml:space="preserve"><value>Component</value></data>
+  <data name="Console.Incidents.Started" xml:space="preserve"><value>Started</value></data>
+  <data name="Console.Incidents.Ended" xml:space="preserve"><value>Ended</value></data>
+  <data name="Console.Incidents.Open" xml:space="preserve"><value>Still open</value></data>
+  <data name="Console.Incidents.LastMessage" xml:space="preserve"><value>Last message</value></data>
+  <data name="Console.Incidents.EmptyTitle" xml:space="preserve"><value>No incidents in the last 30 days</value></data>
+  <data name="Console.Incidents.EmptyBody" xml:space="preserve"><value>Every component has passed its checks. An incident appears here when a check fails.</value></data>
+  <data name="Console.Tenants.Title" xml:space="preserve"><value>Tenants and jobs</value></data>
+  <data name="Console.Tenants.Heading" xml:space="preserve"><value>Tenants</value></data>
+  <data name="Console.Tenants.Tenant" xml:space="preserve"><value>Tenant</value></data>
+  <data name="Console.Tenants.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Console.Tenants.Users" xml:space="preserve"><value>Users</value></data>
+  <data name="Console.Tenants.ActiveTenders" xml:space="preserve"><value>Active tenders</value></data>
+  <data name="Console.Tenants.Storage" xml:space="preserve"><value>Storage used</value></data>
+  <data name="Console.Tenants.FailedJobs" xml:space="preserve"><value>Failing jobs</value></data>
+  <data name="Console.Tenants.EmptyTitle" xml:space="preserve"><value>No tenants yet</value></data>
+  <data name="Console.Tenants.EmptyBody" xml:space="preserve"><value>Tenants appear here once they are provisioned.</value></data>
+  <data name="Console.TenantStatus.active" xml:space="preserve"><value>Active</value></data>
+  <data name="Console.Jobs.Heading" xml:space="preserve"><value>Failed jobs</value></data>
+  <data name="Console.Jobs.Job" xml:space="preserve"><value>Job</value></data>
+  <data name="Console.Jobs.Id" xml:space="preserve"><value>Job {0}</value></data>
+  <data name="Console.Jobs.Tenant" xml:space="preserve"><value>Tenant</value></data>
+  <data name="Console.Jobs.PlatformJob" xml:space="preserve"><value>Platform</value></data>
+  <data name="Console.Jobs.FailedAt" xml:space="preserve"><value>Failed at</value></data>
+  <data name="Console.Jobs.Error" xml:space="preserve"><value>Error</value></data>
+  <data name="Console.Jobs.Action" xml:space="preserve"><value>Action</value></data>
+  <data name="Console.Jobs.Rerun" xml:space="preserve"><value>Re-run job</value></data>
+  <data name="Console.Jobs.EmptyTitle" xml:space="preserve"><value>No failed jobs</value></data>
+  <data name="Console.Jobs.EmptyBody" xml:space="preserve"><value>Background jobs that fail after their retries appear here, with a way to run them again.</value></data>
+  <data name="Console.Jobs.RerunTitle" xml:space="preserve"><value>Re-run {0} for {1}?</value></data>
+  <data name="Console.Jobs.RerunConfirm" xml:space="preserve"><value>Re-run job</value></data>
+  <data name="Console.Jobs.RerunBody" xml:space="preserve"><value>The job goes back to the queue and runs again with the same data. The re-run is recorded in the platform audit log with your name.</value></data>
+  <data name="Console.Jobs.Requeued" xml:space="preserve"><value>{0} is queued to run again</value></data>
+  <data name="Console.Jobs.NotFailed" xml:space="preserve"><value>{0} is no longer failed; nothing was changed</value></data>
+  <data name="Console.Jobs.NotAllowed" xml:space="preserve"><value>Your session cannot re-run jobs. Sign in again with your one-time code.</value></data>
+  <data name="Console.Jobs.RerunFailed" xml:space="preserve"><value>The job could not be re-run. Try again; if it keeps failing, check the worker.</value></data>
+  <data name="Console.Size.Bytes" xml:space="preserve"><value>{0} B</value></data>
+  <data name="Console.Size.KB" xml:space="preserve"><value>{0} KB</value></data>
+  <data name="Console.Size.MB" xml:space="preserve"><value>{0} MB</value></data>
+  <data name="Console.Size.GB" xml:space="preserve"><value>{0} GB</value></data>
 </root>

@@ -1,0 +1,171 @@
+@*
+    F-54 as narrowed (spec 3.4): every tenant with its user count, active tenders (a dash until the Tenders module, D-12),
+    storage used and failing jobs, then the failed jobs with an audited re-run behind a confirmation dialog (D-8).
+    Unknown numbers show a dash, never a guess.
+*@
+@page "/platform/tenants"
+@attribute [Authorize(Policy = PlatformAuthentication.PolicyName)]
+@layout ConsoleLayout
+@rendermode InteractiveServer
+@using System.Globalization
+@using Platform.Modules.Identity.Contracts
+@inject TenantOverview Overview
+@inject IPlatformJobs Jobs
+@inject IAuthorizationService Authorization
+@inject ToastService Toasts
+@inject ILogger<Tenants> Logger
+@inject IStringLocalizer<SharedResource> T
+
+<PageTitle>@T["Console.Tenants.Title"]</PageTitle>
+
+<h1 class="text-display">@T["Console.Tenants.Title"]</h1>
+
+@if (_data is null)
+{
+    <p class="text-ink-muted" role="status">@T["Console.Loading"]</p>
+}
+else
+{
+    <section aria-labelledby="tenants-heading" class="grid gap-4">
+        <h2 id="tenants-heading" class="text-heading">@T["Console.Tenants.Heading"]</h2>
+        <DataTable Items="_data.Tenants" Label="@T["Console.Tenants.Heading"]">
+            <ChildContent>
+                <TemplateColumn TGridItem="TenantRow" Title="@T["Console.Tenants.Tenant"]">
+                    <span data-tenant="@context.Tenant.Slug" class="grid">
+                        <span class="font-semibold">@context.Tenant.PortalName</span>
+                        <span class="text-small text-ink-muted" dir="ltr">@context.Tenant.Slug</span>
+                    </span>
+                </TemplateColumn>
+                <TemplateColumn TGridItem="TenantRow" Title="@T["Console.Tenants.Status"]">
+                    <StatusBadge Tone="StatusTone.Success" data-status="@context.Tenant.Status">@T[$"Console.TenantStatus.{context.Tenant.Status}"]</StatusBadge>
+                </TemplateColumn>
+                <TemplateColumn TGridItem="TenantRow" Title="@T["Console.Tenants.Users"]">
+                    <span data-users="@Raw(context.Users)">@Number(context.Users)</span>
+                </TemplateColumn>
+                <TemplateColumn TGridItem="TenantRow" Title="@T["Console.Tenants.ActiveTenders"]">
+                    @* D-12: the Tenders module does not exist yet; ITenderCounts will fill this column. *@
+                    <span data-tenders="@string.Empty" aria-label="@T["Console.Unknown"]">—</span>
+                </TemplateColumn>
+                <TemplateColumn TGridItem="TenantRow" Title="@T["Console.Tenants.Storage"]">
+                    <span data-storage-bytes="@Raw(context.StorageBytes)">@Size(context.StorageBytes)</span>
+                </TemplateColumn>
+                <TemplateColumn TGridItem="TenantRow" Title="@T["Console.Tenants.FailedJobs"]">
+                    <span data-failed-jobs="@context.FailedJobs.ToString(CultureInfo.InvariantCulture)">@context.FailedJobs.ToString("N0", CultureInfo.CurrentCulture)</span>
+                </TemplateColumn>
+            </ChildContent>
+            <EmptyContent>
+                <EmptyState Title="@T["Console.Tenants.EmptyTitle"]" HeadingLevel="3">@T["Console.Tenants.EmptyBody"]</EmptyState>
+            </EmptyContent>
+        </DataTable>
+    </section>
+
+    <section aria-labelledby="failed-heading" class="grid gap-4">
+        <h2 id="failed-heading" class="text-heading">@T["Console.Jobs.Heading"]</h2>
+        <DataTable Items="_data.FailedJobs" Label="@T["Console.Jobs.Heading"]">
+            <ChildContent>
+                <TemplateColumn TGridItem="FailedJobRow" Title="@T["Console.Jobs.Job"]">
+                    <span data-job="@context.Job.JobId" class="grid">
+                        <span class="font-semibold" dir="ltr">@context.Job.Name</span>
+                        <span class="text-small text-ink-muted">@T["Console.Jobs.Id", context.Job.JobId]</span>
+                    </span>
+                </TemplateColumn>
+                <TemplateColumn TGridItem="FailedJobRow" Title="@T["Console.Jobs.Tenant"]">
+                    @(context.TenantName ?? T["Console.Jobs.PlatformJob"])
+                </TemplateColumn>
+                <TemplateColumn TGridItem="FailedJobRow" Title="@T["Console.Jobs.FailedAt"]">
+                    <ConsoleTime At="context.Job.FailedAt" />
+                </TemplateColumn>
+                <TemplateColumn TGridItem="FailedJobRow" Title="@T["Console.Jobs.Error"]">
+                    <span class="text-small" dir="ltr">@context.Job.ExceptionType</span>
+                </TemplateColumn>
+                <TemplateColumn TGridItem="FailedJobRow" Title="@T["Console.Jobs.Action"]">
+                    <Button Variant="ButtonVariant.Secondary" data-rerun="@context.Job.JobId" OnClick="() => Ask(context)">@T["Console.Jobs.Rerun"]</Button>
+                </TemplateColumn>
+            </ChildContent>
+            <EmptyContent>
+                <EmptyState Title="@T["Console.Jobs.EmptyTitle"]" HeadingLevel="3">@T["Console.Jobs.EmptyBody"]</EmptyState>
+            </EmptyContent>
+        </DataTable>
+    </section>
+}
+
+@if (_pending is { } pending)
+{
+    <Dialog @bind-Open="_dialogOpen" Busy="_busy" OnConfirm="RerunAsync"
+            Title="@T["Console.Jobs.RerunTitle", pending.Job.Name, pending.TenantName ?? T["Console.Jobs.PlatformJob"]]"
+            ConfirmText="@T["Console.Jobs.RerunConfirm"]">
+        <p>@T["Console.Jobs.RerunBody"]</p>
+    </Dialog>
+}
+
+<ToastRegion />
+
+@code {
+    private TenantsAndJobs? _data;
+    private FailedJobRow? _pending;
+    private bool _dialogOpen;
+    private bool _busy;
+
+    [CascadingParameter] private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    protected override async Task OnInitializedAsync() => _data = await Overview.LoadAsync();
+
+    private void Ask(FailedJobRow row)
+    {
+        _pending = row;
+        _dialogOpen = true;
+    }
+
+    private async Task RerunAsync()
+    {
+        if (_pending is not { } pending || AuthenticationState is null)
+        {
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            // The circuit's user was authorized when the page loaded; check again at the moment of the action.
+            var user = (await AuthenticationState).User;
+            var allowed = await Authorization.AuthorizeAsync(user, PlatformAuthentication.PolicyName);
+            var actor = user.FindFirst(IdentityClaims.Subject)?.Value;
+            if (!allowed.Succeeded || string.IsNullOrWhiteSpace(actor))
+            {
+                Toasts.Show(T["Console.Jobs.NotAllowed"], ToastTone.Danger);
+                return;
+            }
+
+            var outcome = await Jobs.RequeueAsync(pending.Job.JobId, actor);
+            Toasts.Show(
+                outcome == RequeueOutcome.Requeued ? T["Console.Jobs.Requeued", pending.Job.Name] : T["Console.Jobs.NotFailed", pending.Job.Name],
+                outcome == RequeueOutcome.Requeued ? ToastTone.Success : ToastTone.Info);
+            _dialogOpen = false;
+            _pending = null;
+            _data = await Overview.LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            ConsoleLog.RerunFailed(Logger, pending.Job.JobId, ex);
+            Toasts.Show(T["Console.Jobs.RerunFailed"], ToastTone.Danger);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private static string Raw<TValue>(TValue? value) where TValue : struct, IFormattable =>
+        value?.ToString(null, CultureInfo.InvariantCulture) ?? string.Empty;
+
+    private string Number(int? value) => value?.ToString("N0", CultureInfo.CurrentCulture) ?? "—";
+
+    private string Size(long? bytes) => bytes switch
+    {
+        null => "—",
+        < 1024 => T["Console.Size.Bytes", bytes.Value.ToString("N0", CultureInfo.CurrentCulture)],
+        < 1024 * 1024 => T["Console.Size.KB", (bytes.Value / 1024d).ToString("0.#", CultureInfo.CurrentCulture)],
+        < 1024L * 1024 * 1024 => T["Console.Size.MB", (bytes.Value / (1024d * 1024)).ToString("0.#", CultureInfo.CurrentCulture)],
+        _ => T["Console.Size.GB", (bytes.Value / (1024d * 1024 * 1024)).ToString("0.#", CultureInfo.CurrentCulture)],
+    };
+}

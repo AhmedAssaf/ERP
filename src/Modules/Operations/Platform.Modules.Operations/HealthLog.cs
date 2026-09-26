@@ -135,6 +135,21 @@ internal sealed class HealthLog(IDbContextFactory<OperationsDbContext> contexts)
         return [.. rows.Select(ToHealthResult)];
     }
 
+    public async Task<IReadOnlyList<HealthResult>> LastFailuresAsync(CancellationToken cancellationToken = default)
+    {
+        await using var db = await contexts.CreateDbContextAsync(cancellationToken);
+
+        // Same shape as LatestAsync, restricted to failing rows on both sides.
+        var rows = await db.HealthResults
+            .Where(h => h.Status != HealthStatus.Healthy)
+            .Where(h => h.CheckedAt == db.HealthResults
+                .Where(x => x.Component == h.Component && x.Status != HealthStatus.Healthy)
+                .Max(x => (DateTimeOffset?)x.CheckedAt))
+            .ToListAsync(cancellationToken);
+
+        return [.. rows.Select(ToHealthResult)];
+    }
+
     public async Task<IReadOnlyList<Incident>> IncidentsAsync(DateTimeOffset since, CancellationToken cancellationToken = default)
     {
         await using var db = await contexts.CreateDbContextAsync(cancellationToken);

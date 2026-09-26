@@ -11,6 +11,7 @@ using Platform.Modules.Operations;
 using Platform.Modules.Tenancy;
 using Platform.Modules.Workflow;
 using Platform.Shared;
+using Platform.Shared.Jobs;
 using Platform.UI;
 using Platform.Web.Components;
 using Platform.Web.Localization;
@@ -44,6 +45,11 @@ builder.Services.AddTenancyModule(platformDb);
 builder.Services.AddIdentityModule();
 builder.Services.AddWorkflowModule(platformDb);
 builder.Services.AddOperationsModule(platformDb);
+// The web host only enqueues and reads jobs (D-6): Hangfire storage without a server, plus the dashboard (task 7).
+builder.Services.AddJobClient(platformDb);
+builder.Services.AddJobsDashboard();
+builder.Services.AddOperationsConsole(builder.Configuration);
+builder.Services.AddScoped<TenantOverview>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<CircuitHandler, TenantCircuitHandler>();
 builder.Services.Configure<PlatformHostOptions>(builder.Configuration.GetSection(PlatformHostOptions.Section));
@@ -151,6 +157,7 @@ app.MapStaticAssets().AllowAnonymous();
 app.MapHealthChecks("/health").AllowAnonymous();
 app.MapCultureEndpoints();
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
+app.MapJobsDashboard();
 
 app.Run();
 

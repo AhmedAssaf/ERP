@@ -14,6 +14,9 @@ public interface IHealthLog
     /// <summary>The latest recorded result per component.</summary>
     Task<IReadOnlyList<HealthResult>> LatestAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>The latest Unhealthy or Degraded result per component (the board's "last failure", spec 3.2).</summary>
+    Task<IReadOnlyList<HealthResult>> LastFailuresAsync(CancellationToken cancellationToken = default);
+
     /// <summary>Incidents opened at or after <paramref name="since"/>, most recent first.</summary>
     Task<IReadOnlyList<Incident>> IncidentsAsync(DateTimeOffset since, CancellationToken cancellationToken = default);
 }
