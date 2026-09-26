@@ -2,6 +2,23 @@
   <Folder Name="/src/">
     <Project Path="src/Platform.Shared/Platform.Shared.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/Audit/">
+    <Project Path="src/Modules/Audit/Platform.Modules.Audit.Contracts/Platform.Modules.Audit.Contracts.csproj" />
+    <Project Path="src/Modules/Audit/Platform.Modules.Audit/Platform.Modules.Audit.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Identity/">
+    <Project Path="src/Modules/Identity/Platform.Modules.Identity.Contracts/Platform.Modules.Identity.Contracts.csproj" />
+    <Project Path="src/Modules/Identity/Platform.Modules.Identity/Platform.Modules.Identity.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Tenancy/">
+    <Project Path="src/Modules/Tenancy/Platform.Modules.Tenancy.Contracts/Platform.Modules.Tenancy.Contracts.csproj" />
+    <Project Path="src/Modules/Tenancy/Platform.Modules.Tenancy/Platform.Modules.Tenancy.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Workflow/">
+    <Project Path="src/Modules/Workflow/Platform.Modules.Workflow.Contracts/Platform.Modules.Workflow.Contracts.csproj" />
+    <Project Path="src/Modules/Workflow/Platform.Modules.Workflow/Platform.Modules.Workflow.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Platform.UnitTests/Platform.UnitTests.csproj" />
   </Folder>

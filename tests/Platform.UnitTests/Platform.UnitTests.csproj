@@ -16,5 +16,9 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Platform.Shared\Platform.Shared.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Audit\Platform.Modules.Audit\Platform.Modules.Audit.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Tenancy\Platform.Modules.Tenancy\Platform.Modules.Tenancy.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Identity\Platform.Modules.Identity\Platform.Modules.Identity.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Workflow\Platform.Modules.Workflow\Platform.Modules.Workflow.csproj" />
   </ItemGroup>
 </Project>
