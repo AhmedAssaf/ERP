@@ -1,9 +1,11 @@
+using Hangfire;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Npgsql;
 using Platform.Modules.Vendors.Access;
 using Platform.Modules.Vendors.Contracts;
+using Platform.Modules.Vendors.Documents;
 using Platform.Modules.Vendors.Persistence;
 using Platform.Modules.Vendors.Registration;
 using Platform.Shared.Data;
@@ -16,6 +18,12 @@ namespace Platform.Modules.Vendors;
 /// </summary>
 public static class VendorsModule
 {
+    /// <summary>The recurring job that scans pending vendor documents again (V-10), every five minutes.</summary>
+    public const string DocumentRescanJobId = "vendor-document-rescan";
+
+    /// <summary>The recurring job that removes uploads abandoned for more than a day (V-9), hourly.</summary>
+    public const string UploadCleanupJobId = "vendor-upload-cleanup";
+
     /// <summary>
     /// The Vendor policy's own requirements (spec section 3), without the same-tenant check: authenticated, a verified
     /// email, the Keycloak realm role <c>vendor</c> in the token, and a <c>vendor.vendor_users</c> row for the token's
@@ -64,7 +72,44 @@ public static class VendorsModule
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<DuplicateCrThrottle>();
         services.AddScoped<IVendorRegistration, VendorRegistrationService>();
+        AddVendorDocuments(services);
         return services;
+    }
+
+    /// <summary>
+    /// The worker's vendor document jobs (vendor plan task 3): the retry scan of pending documents and the cleanup of
+    /// abandoned uploads. They need object storage and the virus scanner configured by the host
+    /// (<c>AddObjectStorage</c>, <c>AddVirusScanner</c>) and the Operations module's platform audit.
+    /// </summary>
+    public static IServiceCollection AddVendorJobs(this IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        AddVendorDocuments(services);
+        services.TryAddScoped<VendorDocumentRescanJob>();
+        services.TryAddScoped<VendorUploadCleanupJob>();
+        return services;
+    }
+
+    /// <summary>Schedules the vendor document jobs (<see cref="AddVendorJobs"/>). Call once after the worker host is built.</summary>
+    public static void ScheduleVendorJobs(IServiceProvider services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        var jobs = new RecurringJobManager(services.GetRequiredService<JobStorage>());
+        jobs.AddOrUpdate<VendorDocumentRescanJob>(DocumentRescanJobId, job => job.RunAsync(CancellationToken.None), "*/5 * * * *");
+        jobs.AddOrUpdate<VendorUploadCleanupJob>(UploadCleanupJobId, job => job.RunAsync(CancellationToken.None), Cron.Hourly());
+    }
+
+    /// <summary>
+    /// Vendor documents, chunked uploads and document compliance (F-12, V-8 to V-10). Idempotent, since both the web host
+    /// (<see cref="AddVendorPortal"/>) and the worker (<see cref="AddVendorJobs"/>) need them.
+    /// </summary>
+    private static void AddVendorDocuments(IServiceCollection services)
+    {
+        services.TryAddSingleton(TimeProvider.System);
+        services.TryAddScoped<VendorDocuments>();
+        services.TryAddScoped<IVendorDocuments>(sp => sp.GetRequiredService<VendorDocuments>());
+        services.TryAddScoped<IVendorUploads, VendorUploads>();
+        services.TryAddScoped<IVendorCompliance, VendorCompliance>();
     }
 
     public static Task<IReadOnlyList<string>> MigrateAsync(NpgsqlConnection connection, CancellationToken cancellationToken = default) =>

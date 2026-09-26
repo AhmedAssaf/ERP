@@ -12,6 +12,8 @@ internal sealed class VendorsDbContext(
 
     public DbSet<DocumentRow> Documents => Set<DocumentRow>();
 
+    public DbSet<UploadRow> Uploads => Set<UploadRow>();
+
     public DbSet<RelationshipRow> Relationships => Set<RelationshipRow>();
 
     public DbSet<RecipientRow> Recipients => Set<RecipientRow>();
@@ -48,6 +50,15 @@ internal sealed class VendorsDbContext(
         modelBuilder.Entity<DocumentRow>(e =>
         {
             e.ToTable("documents");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).ValueGeneratedNever();
+            e.Property(x => x.CreatedAt).ValueGeneratedOnAdd();
+            e.HasQueryFilter(x => x.CompanyId == CurrentCompanyId);
+        });
+
+        modelBuilder.Entity<UploadRow>(e =>
+        {
+            e.ToTable("uploads");
             e.HasKey(x => x.Id);
             e.Property(x => x.Id).ValueGeneratedNever();
             e.Property(x => x.CreatedAt).ValueGeneratedOnAdd();

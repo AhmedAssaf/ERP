@@ -25,4 +25,7 @@ public interface IObjectStorage
 
     /// <summary>The object under the key, or null when there is none.</summary>
     Task<StoredObject?> OpenAsync(string key, CancellationToken cancellationToken = default);
+
+    /// <summary>Deletes the object under the key; a key with no object is not an error.</summary>
+    Task DeleteAsync(string key, CancellationToken cancellationToken = default);
 }

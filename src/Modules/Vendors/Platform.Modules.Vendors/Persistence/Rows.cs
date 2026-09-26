@@ -67,6 +67,36 @@ internal sealed class DocumentRow
     public DateTimeOffset CreatedAt { get; set; }
 }
 
+/// <summary>A chunked upload in progress or completed (Migrations/0005_vendors_uploads.sql).</summary>
+internal sealed class UploadRow
+{
+    public Guid Id { get; set; }
+
+    public Guid CompanyId { get; set; }
+
+    public string DocumentType { get; set; } = string.Empty;
+
+    public string FileName { get; set; } = string.Empty;
+
+    public string ContentType { get; set; } = string.Empty;
+
+    public long DeclaredSize { get; set; }
+
+    public int ChunkSize { get; set; }
+
+    public int ChunkCount { get; set; }
+
+    public int[] ReceivedChunks { get; set; } = [];
+
+    public string? Outcome { get; set; }
+
+    public Guid? DocumentId { get; set; }
+
+    public string? Sha256 { get; set; }
+
+    public DateTimeOffset CreatedAt { get; set; }
+}
+
 internal sealed class RelationshipRow
 {
     public Guid TenantId { get; set; }

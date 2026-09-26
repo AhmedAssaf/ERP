@@ -51,6 +51,8 @@ builder.Services.AddHealthChecks();
 builder.Services.AddPlatformShared();
 // One bucket for every module (settings ObjectStorage:*): tenant logos (F-02) and storage usage in the console (F-54).
 builder.Services.AddObjectStorage(builder.Configuration);
+// F-12: vendor documents are scanned by ClamAV before they are listed (settings ClamAv:*, as the worker's health check).
+builder.Services.AddVirusScanner(builder.Configuration);
 builder.Services.AddAuditModule(platformDb);
 builder.Services.AddTenancyModule(platformDb);
 builder.Services.AddIdentityModule(platformDb);
@@ -197,6 +199,7 @@ app.MapHealthChecks("/health").AllowAnonymous();
 app.MapCultureEndpoints();
 app.MapSignOutEndpoints();
 app.MapVendorRegistrationEndpoints();
+app.MapVendorUploadEndpoints();
 app.MapBrandingEndpoints();
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 app.MapJobsDashboard();

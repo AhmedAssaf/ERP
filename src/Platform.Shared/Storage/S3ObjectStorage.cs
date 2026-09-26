@@ -38,6 +38,13 @@ internal sealed class S3ObjectStorage(ObjectStorageSettings settings) : IObjectS
         }
     }
 
+    public async Task DeleteAsync(string key, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        // S3 answers a delete of a missing key with success too.
+        await Client.DeleteObjectAsync(new DeleteObjectRequest { BucketName = settings.BucketName, Key = key }, cancellationToken);
+    }
+
     public void Dispose()
     {
         if (_client.IsValueCreated)

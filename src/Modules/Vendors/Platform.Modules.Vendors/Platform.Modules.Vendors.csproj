@@ -3,6 +3,9 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Hangfire.Core" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\..\Platform.Shared\Platform.Shared.csproj" />
     <ProjectReference Include="..\Platform.Modules.Vendors.Contracts\Platform.Modules.Vendors.Contracts.csproj" />
     <ProjectReference Include="..\..\Identity\Platform.Modules.Identity.Contracts\Platform.Modules.Identity.Contracts.csproj" />

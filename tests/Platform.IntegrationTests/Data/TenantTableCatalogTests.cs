@@ -73,7 +73,7 @@ public sealed class TenantTableCatalogTests(DatabaseFixture db)
             }
         }
 
-        tables.Select(t => t.Name).ShouldBe(["companies", "consent_events", "documents", "relationships", "vendor_users"]);
+        tables.Select(t => t.Name).ShouldBe(["companies", "consent_events", "documents", "relationships", "uploads", "vendor_users"]);
         tables.Where(t => !(t.Enabled && t.Forced && t.HasPolicy)).Select(t => t.Name).ShouldBeEmpty();
     }
 }
