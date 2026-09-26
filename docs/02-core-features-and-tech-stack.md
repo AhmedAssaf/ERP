@@ -138,6 +138,7 @@ Added 2026-09-21. One place for the platform team to see every component, every 
 | F-52 | Connections and credentials registry | Each external connection lists endpoint, account or username, the secret reference (key name in the KMS or secret store), owner, last rotated date, and a test-connection action. Secret values are never rendered, logged, or returned by any API. Rotation is triggered from the page and executed through the secret store; every view and action is audited. |
 | F-53 | Logs and traces view | Filter recent logs by tenant, correlation id, level, component, and time; open the matching trace; link to Grafana, Loki, and Sentry for deep dives. A 24-hour error summary per component sits at the top. Tenant data in log lines is redacted according to the PDPL rules. |
 | F-54 | Tenants and jobs overview | Per tenant: status, plan, domain and TLS state, user counts, active tenders, storage used, failing background jobs. Actions: suspend or resume tenant, re-issue TLS, re-run or cancel a job. Every action is audited and confirmed in a dialog that names the tenant. |
+| F-61 | Consented support access | Added 2026-09-26 (ADR-0005). The tenant admin grants WaslaBid support a read-only session for a chosen time (for example four hours) and can end it at any time. During the session staff see the tenant's screens with a banner naming the session; offers, envelopes and scores stay hidden; every page viewed is written to the tenant's own audit log. Without a granted session staff see only the console's metadata. |
 | F-60 | Alerts and notifications | Added 2026-09-26. The platform admin is notified by email and SMS when a component's health check fails or its latency exceeds a threshold, a background job fails three times in a row, a tender's deadline-closure job misses its time, a tenant's TLS certificate expires within 14 days, ClamAV or the AI provider is unavailable, or disk or database space passes 80 percent. Each alert names the component and tenant, links to the F-51 board, is sent once per incident with a recovery notice when it clears, and appears in an alert history on the F-51 board. Thresholds and recipients are configured on the console; no secret value appears in an alert (N-10). |
 
 ## 3. Non-functional requirements
@@ -190,7 +191,7 @@ Chosen by you: .NET with Blazor. This section fits the rest of the stack around 
 | Local development | Docker Compose stack in `infra/compose` (PostgreSQL with pgvector, Keycloak 26, Redis, MinIO, ClamAV, Mailpit, Caddy) with the app on the host under `dotnet watch` | One command from a clean clone, same images as production, Windows-friendly. .NET Aspire can be layered on later for the dashboard; it is not required. Decided 2026-09-21. |
 | Containers and deployment | Docker images (`dotnet publish` container support), Kubernetes in production | Matches your existing container work. |
 | Hosting | A Saudi-region cloud: Oracle Cloud (Jeddah, Riyadh), Google Cloud (Dammam), STC Cloud, or AWS once its Saudi region is available | Pick the one with managed PostgreSQL, S3-compatible storage, KMS, and Kubernetes in-Kingdom at the best price. Verify at signing time. |
-| Observability | OpenTelemetry for .NET, Serilog structured logs, Prometheus, Grafana, Loki, self-hosted Sentry | You already run Sentry. |
+| Observability | OpenTelemetry for .NET, Serilog structured logs, Prometheus, Grafana, Loki for logs, Tempo for traces, self-hosted Sentry. The platform console reads Loki and Tempo directly; Grafana serves search, traces and alerts (ADR-0005) | You already run Sentry. |
 | CI/CD | GitHub Actions | Build, test, `dotnet format`, dependency and container scan (Trivy), publish image, deploy. |
 | Diagrams and docs | Markdown, Mermaid, PlantUML for detailed design, ADRs in `docs/adr` | Your existing practice. GitHub renders Mermaid in place. |
 
@@ -230,13 +231,13 @@ flowchart TB
     M5 --> SMS[Unifonic SMS]
     M4 --> PDF[QuestPDF<br/>Arabic-safe rendering]
 
-    HOST & WRK --> OTEL[OpenTelemetry<br/>Prometheus, Grafana, Loki, Sentry]
+    HOST & WRK --> OTEL[OpenTelemetry<br/>Prometheus, Grafana, Loki, Tempo, Sentry]
 ```
 
 ### 4.3 Tenancy model
 
 - **Database:** single PostgreSQL instance, shared schema, `tenant_id` column on every tenant-owned table. Two layers: EF Core global query filters on `TenantId` for everyday safety, and PostgreSQL row-level security policies `tenant_id = current_setting('app.tenant_id')` as the hard boundary. A `DbConnection` interceptor sets the setting at the start of each request or job from the validated token. Platform-admin operations use a separate database role that bypasses RLS and is never used by the web request path.
-- **Identity:** one Keycloak realm. Each tenant is a Keycloak Organization with its own domain, login theme, and optional identity provider. Tenant staff are organization members with roles. Vendor users live in the same realm and are members of every organization that has approved their company, with a `vendor` role. Tokens carry the active organization; the ASP.NET Core authentication pipeline turns it into a `TenantContext` scoped service used by EF Core and authorization policies.
+- **Identity:** one Keycloak realm for tenants and vendors, and a separate realm `waslabid-platform` for WaslaBid staff with OTP required (ADR-0005). Each tenant is a Keycloak Organization with its own domain, login theme, and optional identity provider. Tenant staff are organization members; their roles live in our `identity.members` table, because Keycloak organizations have no organization-scoped roles. Vendor users live in the same realm and are members of every organization that has approved their company, with a `vendor` role. Tokens carry the active organization; the ASP.NET Core authentication pipeline turns it into a `TenantContext` scoped service used by EF Core and authorization policies.
 - **Routing and Blazor circuits:** Caddy terminates TLS and forwards the original `Host` header unchanged. ASP.NET Core middleware maps the host to a tenant slug and verifies it against the token's organization before a Blazor circuit is created, so a user on tenant A can never open a circuit against tenant B's host. Each circuit is bound to one tenant for its lifetime.
 - **Storage:** one bucket per environment, object keys prefixed by tenant, with a per-tender data key for financial envelopes held in the database encrypted by a master key in the cloud KMS.
 

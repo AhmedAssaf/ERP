@@ -420,7 +420,7 @@ flowchart TB
             WEB[Static web apps<br/>tenant-app, vendor-portal]
             WRK[Hangfire worker<br/>parse, OCR, PDF, AI, notify]
             AV[ClamAV]
-            OBS[OpenTelemetry collector<br/>Prometheus, Grafana, Loki, Sentry]
+            OBS[OpenTelemetry collector<br/>Prometheus, Grafana, Loki, Tempo, Sentry]
         end
         PG[(Managed PostgreSQL<br/>primary + replica, daily backup N-07)]
         RD[(Redis)]

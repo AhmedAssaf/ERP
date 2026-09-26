@@ -20,7 +20,7 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 | Epic | Stories | P0 | P1 | P2 |
 |---|---|---|---|---|
 | E0 Platform foundation | W-01 to W-12, W-19 to W-30 | 14 | 9 | 1 |
-| E1 Tenancy and branding | F-01 to F-05, F-01b | 4 | 2 | 0 |
+| E1 Tenancy and branding | F-01 to F-05, F-01b | 5 | 1 | 0 |
 | E2 Identity, users, roles | F-06 to F-10, F-06b | 2 | 2 | 2 |
 | E3 Vendor registration | F-11 to F-14, F-12b, F-14a | 3 | 1 | 2 |
 | E4 Tender authoring | F-15 to F-21, F-55, F-19b, F-59 | 6 | 2 | 2 |
@@ -31,7 +31,7 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 | E9 Audit and documents | F-41 to F-44 | 2 | 0 | 2 |
 | E10 AI assist | F-45 to F-50 | 0 | 2 | 4 |
 | E11 Pilot and market | W-13 to W-18 | 6 | 0 | 0 |
-| E12 Platform operations console | F-51 to F-54, F-60 | 3 | 2 | 0 |
+| E12 Platform operations console | F-51 to F-54, F-60, F-61 | 5 | 1 | 0 |
 
 ## E0 Platform foundation (W-01 to W-12, W-19 to W-30)
 
@@ -88,13 +88,14 @@ Acceptance criteria:
 | ID | Story | Pri | Size | Status | Depends on |
 |---|---|---|---|---|---|
 | F-01 | Tenant provisioning (MVP: by script) | P0 | S | Backlog | W-03, W-04 |
-| F-01b | Tenant provisioning admin screen | P1 | S | Backlog | F-01 |
+| F-01b | Tenant provisioning admin screen on the platform host (moved into the MVP 2026-09-26, ADR-0005) | P0 | S | Backlog | F-01, F-51 |
 | F-02 | White-label branding: logo, primary colour, portal name | P0 | M | Done 2026-09-27 as narrowed (docs/05 row 2): `/admin/branding` sets the portal name, primary colour (under 4.5:1 on white stored darkened and shown) and a PNG or JPEG logo re-encoded to PNG in object storage; the tenant header and theme use them. Emails, PDFs and the vendor portal pick up the branding in their own slices | W-05, W-06 |
 | F-03 | Custom domain mapping with automatic TLS | P1 | M | Backlog | W-11 |
 | F-04 | Arabic and English with right-to-left everywhere | P0 | (constraint) | Backlog | W-07 |
 | F-05 | Tenant data isolation enforced in the database | P0 | (via W-03) | Backlog | W-03 |
 
 - **F-01.** Given the provisioning script with name, CR number, plan, and default language, when it runs, then a tenant row, a Keycloak organization, and a default branding row exist, and the tenant admin receives an invitation email within one minute.
+- **F-01b.** Given a platform admin with MFA on the platform host, when they submit name, CR number, plan, default language and admin email, then the same result as the F-01 script follows (tenant row, Keycloak organization, branding row, invitation within one minute) and one `ops.platform_audit` row names the admin and the new tenant; given a duplicate CR number or slug, then nothing is created and the form says why.
 - **F-02.** Given a tenant admin uploads a logo and picks a primary colour, when any tenant or vendor page, email, or PDF renders for that tenant, then it shows that logo and colour and never the platform's; given a colour with contrast under 4.5:1 on white, when saved, then the system stores a darkened value and shows the admin the adjusted colour. Browser pass through Caddy on 2026-09-26 (admin plan Task 11): `acme.admin` saved `#FFFACD`, the page reported it stored as `#7B6F00` and the header turned that colour; a 240 by 80 PNG upload was saved and the header showed it (served from `/branding/logo/<hash>.png`) beside the portal name.
 - **F-03.** Given a CNAME from `tenders.customer.sa` to the platform, when the admin enters the domain and verification passes, then the portal serves on that hostname over HTTPS within five minutes and emails link to it.
 - **F-04.** Given any screen, email, or PDF, when rendered in Arabic, then layout is mirrored, all strings are Arabic, and numbers and references keep their internal order.
@@ -277,16 +278,17 @@ Acceptance criteria:
 - **W-17.** Given the dry run, when it completes, then every row of the document 05 section 7 table has a measured value and a pass or fail.
 - **W-18.** Given the pilot review, when it is held, then every document 05 section 7 measure has its live-tender value beside the dry-run value, the contracts officer's and finance approver's willingness to pay is recorded verbatim, and the version 1.1 scope is a ranked list of backlog IDs with any new stories added with acceptance criteria.
 
-## E12 Platform operations console (F-51 to F-54, F-60)
+## E12 Platform operations console (F-51 to F-54, F-60, F-61)
 
 Added 2026-09-21 from the request for one admin page covering apps, logs, credentials, and connections. Platform admin only; secrets are shown as references, never values (N-10).
 
 | ID | Story | Pri | Size | Status | Depends on |
 |---|---|---|---|---|---|
 | F-51 | Component health board (MVP narrowing in document 05 row 17) | P0 | M | Done 2026-09-26 as narrowed (docs/05 row 17): seven tiles (web, worker, PostgreSQL, MinIO, Keycloak, ClamAV, SMTP) with status, latency, last check and last failure at `https://platform.localhost:8443/platform`, OTP required; no version column. Evidence below and the browser pass through Caddy 2026-09-26 (admin plan Task 11) | W-10 |
-| F-52 | Connections and credentials registry with test and rotate | P1 | M | Backlog | F-51, W-11 |
-| F-53 | Logs and traces view with tenant and correlation filters | P1 | M | Backlog | W-10 |
+| F-52 | Connections and credentials registry with test and rotate (MVP: registry and test, no rotate, document 05 row 20; moved into the MVP 2026-09-26, ADR-0005) | P0 | M | Backlog | F-51, W-11 |
+| F-53 | Logs and traces view with tenant and correlation filters (MVP: 24-hour error summary from Loki with a Grafana link, document 05 row 21; the full view after three to five paying customers, ADR-0005) | P0 | M | Backlog | W-10 |
 | F-54 | Tenants and jobs overview with suspend, TLS re-issue, job re-run (MVP: list and job re-run only, document 05 row 18) | P0 | M | Done 2026-09-26 as narrowed (docs/05 row 18): tenant list with user count, active tenders (a dash until the Tenders module, spec D-12), storage used and failing jobs; re-run a failed job, confirmed and audited. The re-run was proven by tests, not in the browser pass | F-51, W-08; F-03 for the TLS action |
+| F-61 | Consented support access: tenant-granted, read-only, time-boxed session, bannered, offers and envelopes hidden, every view in the tenant audit log (ADR-0005) | P1 | M | Backlog | F-51, F-41, F-07 |
 | F-60 | Alerts and notifications: email and SMS on health, job, deadline, TLS, scanner, AI provider, and capacity incidents, with recovery notice and alert history (MVP: email only, document 05 row 19) | P0 | M | Done 2026-09-26 as narrowed (docs/05 row 19) except the deadline-closure alert, which waits for the Tenders module (F-24): email once per incident plus a recovery notice for failed health checks, a job failing three times, and disk above 80 percent; incidents of the last 30 days on the F-51 page | F-51, F-38, W-08, W-10 |
 
 - **F-51.** Given the platform host, when a platform admin with MFA opens the board, then every component in the list shows status, version, latency, and last check within the last 60 seconds; given a tenant admin, when they request the same URL, then they receive 404; given PostgreSQL stopped, then its tile turns to failed within one check interval and the failure text names the component.
@@ -295,5 +297,6 @@ Added 2026-09-21 from the request for one admin page covering apps, logs, creden
 - **F-53.** Given a correlation id from a failed request, when entered in the filter, then every log line and the trace for that request appear within five seconds; given a log line containing a vendor's email, then the email is redacted in the view.
 - **F-54.** Given a tenant with a failing job, when the admin re-runs it, then the job executes once and the outcome is visible; given suspend, then the tenant's users receive a suspended page in their language and vendors can still read past receipts; every action produces an audit row naming the admin and the tenant.
   MVP narrowing (docs/05 row 18, spec 3.4): list and re-run only; no suspend or TLS re-issue. Evidence: `The_tenant_list_shows_user_count_storage_and_failing_jobs`, `Without_Keycloak_admin_and_object_storage_settings_the_counts_are_a_dash`, `Each_failed_job_is_listed_with_a_rerun_action_naming_the_job_and_tenant`, `Rerunning_a_failed_job_requeues_it_and_audits_the_admin_and_tenant`, `The_platform_audit_is_append_only`, `The_catalog_refuses_inside_a_tenant_host_request`. The browser pass did not exercise a re-run (no failing tenant job existed).
+- **F-61.** Given no granted session, when a platform admin opens any tenant page, then they receive 404; given the tenant admin grants a four-hour read-only session, when staff open tenant screens, then a banner names the session, no write action is offered or accepted, offers, envelopes and scores are not shown, and each page view is an `audit.events` row in that tenant; given the session expires or the tenant admin ends it, then the next request is refused.
 - **F-60.** Given PostgreSQL stopped, when the next health check fails, then the platform admin receives one email and one SMS naming the component within two minutes, and no repeat while the incident stays open; when it recovers, then one recovery notice is sent and the incident appears in the alert history with start and end times. Given a deadline-closure job that has not run five minutes after a tender's deadline, then an alert names the tenant and the tender. Given a tenant certificate expiring in 14 days, then one alert is sent. Given any alert, when inspected, then it contains no secret value.
   MVP narrowing (docs/05 row 19, spec 3.3): email only, to `Platform:AlertRecipients`; no SMS, no TLS alerts, no threshold screen. Evidence: `An_incident_sends_one_email_and_no_repeat_while_open`, `Recovery_sends_one_notice`, `A_failed_send_is_retried_on_the_next_run_and_nothing_is_sent_twice`, `A_stopped_database_still_sends_one_PostgreSQL_down_email`, `With_the_store_down_each_unhealthy_component_is_alerted_once_and_recovers_once`, `A_job_failing_three_times_sends_one_alert`, `A_recurring_job_failing_on_three_consecutive_runs_sends_one_alert`, `The_check_reports_on_the_configured_path`, `An_alert_contains_no_secret_value`, `A_job_alert_never_contains_the_job_arguments`, `The_incident_list_shows_the_last_30_days`. Browser pass through Caddy on 2026-09-26 (admin plan Task 11): stopping ClamAV sent exactly one "[WaslaBid] ClamAV is down" email about 70 seconds after the stop, none more while it stayed down, and restarting it sent exactly one "[WaslaBid] ClamAV has recovered" email; the incident list showed its start and end. The same run also sent one genuine "[WaslaBid] Disk is down" email (the developer machine's drive was 88 percent full). Not built yet: the deadline-closure alert (F-24).

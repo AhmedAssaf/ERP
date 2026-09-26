@@ -1,13 +1,13 @@
 # Admin UI slice design: platform console and tenant administration
 
 Date: 2026-09-27
-Status: Written overnight on the user's instruction ("I need admin UI"; "use best practice recommendation standards"); **decisions marked D-n in section 1 were taken without the user and need confirmation**
+Status: Decisions D-1 to D-14 confirmed by the user on 2026-09-26, unchanged, in a one-by-one review; new decisions D-15 to D-20 from the same review are in section 1.1 and ADR-0005. First written overnight on the user's instruction ("I need admin UI"; "use best practice recommendation standards")
 Builds on: the foundation slice (`2026-09-26-foundation-design.md`, branch `foundation`)
 Backlog rows: W-06 (components, admin subset), W-08 (Hangfire and worker), W-10 (health endpoints only), F-02, F-06, F-07, F-51, F-54, F-60, all with the MVP narrowing in `docs/05-mvp-scope.md` rows 2, 3, 4, 17, 18, 19
 
-## 1. Decisions to confirm
+## 1. Decisions (confirmed 2026-09-26)
 
-| # | Decision | Chosen default | Why | Alternative |
+| # | Decision | Decision | Why | Alternative |
 |---|---|---|---|---|
 | D-1 | Where platform admins sign in | A second Keycloak realm, `waslabid-platform`, with OTP required for every user; the platform console lives on host `platform.localhost` (production: `platform.<domain>`) | Platform staff never share a realm, session or organization with tenant users; MFA is enforced by the realm, not by app code | Same realm with a `platform-admin` role and step-up OTP |
 | D-2 | How the app proves MFA | Keycloak's `acr` claim, mapped so that an OTP login yields level `2`; the console requires `acr >= 2` | Standard OIDC signal; a password-only session cannot open the console even if realm config drifts | Trust the realm configuration alone |
@@ -23,6 +23,19 @@ Backlog rows: W-06 (components, admin subset), W-08 (Hangfire and worker), W-10 
 | D-12 | Active tenders and storage columns (F-54) | "Active tenders" shows a dash until the Tenders module exists (it provides `ITenderCounts` later); storage is the sum of object sizes under the tenant prefix, cached for ten minutes | No fake numbers | Hide the columns |
 | D-13 | Email library | MailKit for our own alert emails (F-60) | Maintained, standard, async | `System.Net.Mail.SmtpClient` (obsolete for new code) |
 | D-14 | SMS in F-60 | Not built (docs/05 row 19: email only) | MVP narrowing | — |
+
+Notes from the review: D-2 keeps the `acr` check on top of the `platform-admin` role, because the role says who may enter and `acr` proves the second factor was used this time (OWASP ASVS, NIST SP 800-63). D-10 refuses SVG because an SVG can carry script, external references and XML parser attacks, and a logo served from the tenant host would be a stored cross-site scripting path. D-13 keeps the SMTP provider a configuration choice: Mailpit (the maintained successor of MailHog) in development, a free-tier relay for the pilot, and the production provider chosen with hosting, since no provider sends from inside the Kingdom today.
+
+### 1.1 Decisions added in the review (2026-09-26)
+
+| # | Decision | Decision taken | Backlog effect |
+|---|---|---|---|
+| D-15 | Support access to a tenant | Only by the tenant admin's consent: the admin grants a read-only, time-boxed support session (for example four hours) under `/admin`; staff then see tenant screens with a banner, never offers, envelopes or scores; every page the support session views is written to the tenant's own `audit.events`. Staff actions outside a session stay in `ops.platform_audit` (D-8) | New F-61, P1 |
+| D-16 | Tenant provisioning in the pilot | A screen on the platform host (F-01b) instead of the script, calling the same provisioner the script uses | F-01b becomes P0; docs/05 row 1 |
+| D-17 | Operations console, phased | Pilot: health board (F-51), connections registry (F-52), tenants and jobs (F-54) and a 24-hour error summary per component (part of F-53) are built in the console; log search, traces and alert dashboards run in Grafana beside it. After three to five paying customers: log and trace views (the rest of F-53) are built in the console; Grafana stays for alerting and as the view that survives when the app itself is down | F-52 and the F-53 error summary join the pilot; docs/05 rows 20 and 21 |
+| D-18 | Log and trace store | The app emits OpenTelemetry; the collector writes logs to Loki and traces to Tempo; console pages query their HTTP APIs, Grafana reads the same stores | Tempo joins the observability stack row in docs/02 |
+| D-19 | When tenant settings take effect | By risk: workflow definitions go draft then publish as a new version for tenders published afterwards (ADR-0003); branding is previewed and then saved live; staff and role changes apply immediately. Every change is audited with before and after values | Branding preview before save is a follow-up to F-02 |
+| D-20 | Admin screen layout and routes | Tenant administration stays under `/admin/...` on the tenant host; the platform console stays on its own host. Both use a start-side vertical navigation (right in Arabic), list pages on `DataTable` with filters, detail in a page or side panel, and destructive actions in a `Dialog` that names the target. Roles stay the fixed F-07 set; approval chains come from the workflow (F-56) | `AdminLayout` moves from top links to side navigation (follow-up) |
 
 ## 2. Scope
 
