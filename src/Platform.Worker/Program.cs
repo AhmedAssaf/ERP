@@ -28,11 +28,14 @@ internal static class EntryPoint
         builder.Services.AddTenancyModule(platformDb);
         builder.Services.AddWorkflowModule(platformDb);
         builder.Services.AddOperationsModule(platformDb);
+        builder.Services.AddOperationsHealthChecks(platformDb, builder.Configuration);
         builder.Services.AddJobServer(platformDb, settings => settings.ServerName = "waslabid-worker");
 
         using var host = builder.Build();
         // Hangfire logs through a process-wide provider; the worker is the only Hangfire server in its process.
         GlobalConfiguration.Configuration.UseLogProvider(new AspNetCoreLogProvider(host.Services.GetRequiredService<ILoggerFactory>()));
+        // F-51: the health-check recurring job (task 3) runs every minute from here on.
+        OperationsModule.ScheduleHealthCheckJob(host.Services);
         await host.RunAsync();
     }
 }

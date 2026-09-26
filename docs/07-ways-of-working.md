@@ -111,6 +111,19 @@ Background jobs run in a second process, the worker (W-08, Hangfire on PostgreSQ
 dotnet run --project src/Platform.Worker
 ```
 
+The worker also runs the health-check recurring job every minute (F-51, plan task 3): PostgreSQL, MinIO, Keycloak,
+ClamAV, SMTP, its own Hangfire heartbeat, and the web host's `/health`, each with a five-second timeout, results in
+`ops.health_results`. The non-secret endpoints have Development defaults in `src/Platform.Worker/appsettings.Development.json`
+(`Health:MinIo:ServiceUrl`, `Health:MinIo:BucketName`, `Keycloak:ManagementUrl`, `ClamAv:Host`/`Port`, `Smtp:Host`/`Port`,
+`Platform:WebHealthUrl`); MinIO's access key and secret have no default and are never written to an appsettings file
+(N-10) - set them as user secrets or environment variables before starting the worker:
+
+```bash
+env_value() { grep "^$1=" infra/compose/.env | cut -d= -f2- | tr -d '\r'; }
+dotnet user-secrets set "Health:MinIo:AccessKey" "$(env_value MINIO_ROOT_USER)" --project src/Platform.Worker > /dev/null
+dotnet user-secrets set "Health:MinIo:SecretKey" "$(env_value MINIO_ROOT_PASSWORD)" --project src/Platform.Worker > /dev/null
+```
+
 Open `https://acme.localhost:8443` (or the port in `CADDY_HTTPS_PORT`). Login only works through Caddy: it terminates TLS, which the OIDC correlation cookies need, and forwards the host with its port so the redirect URI is right. Plain `http://localhost:5273` cannot complete an OIDC login. Keycloak answers on `http://localhost:8080`; sign in as `acme.admin` or `beta.admin` with `WASLABID_DEV_USER_PASSWORD` from `.env`.
 
 ## 5. Branches, commits, pull requests
