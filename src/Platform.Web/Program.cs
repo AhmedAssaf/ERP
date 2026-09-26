@@ -9,6 +9,7 @@ using Platform.Modules.Identity;
 using Platform.Modules.Identity.Contracts;
 using Platform.Modules.Operations;
 using Platform.Modules.Tenancy;
+using Platform.Modules.Vendors;
 using Platform.Modules.Workflow;
 using Platform.Shared;
 using Platform.Shared.Jobs;
@@ -55,6 +56,8 @@ builder.Services.AddIdentityModule(platformDb);
 builder.Services.AddKeycloakAdmin(builder.Configuration);
 builder.Services.AddWorkflowModule(platformDb);
 builder.Services.AddOperationsModule(platformDb);
+// Vendor slice (ADR-0008): one vendor company across tenants.
+builder.Services.AddVendorsModule(platformDb);
 // The web host only enqueues and reads jobs (D-6): Hangfire storage without a server, plus the dashboard (task 7).
 builder.Services.AddJobClient(platformDb);
 builder.Services.AddJobsDashboard();

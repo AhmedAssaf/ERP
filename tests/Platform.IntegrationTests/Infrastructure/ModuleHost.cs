@@ -4,6 +4,7 @@ using Platform.Modules.Audit;
 using Platform.Modules.Identity;
 using Platform.Modules.Operations;
 using Platform.Modules.Tenancy;
+using Platform.Modules.Vendors;
 using Platform.Modules.Workflow;
 using Platform.Shared;
 using Platform.Shared.Tenancy;
@@ -41,6 +42,7 @@ internal sealed class ModuleHost : IAsyncDisposable
         services.AddIdentityModule(appConnectionString);
         services.AddWorkflowModule(appConnectionString);
         services.AddOperationsModule(appConnectionString);
+        services.AddVendorsModule(appConnectionString);
         if (keycloakAdmin is not null)
         {
             services.AddKeycloakAdmin(keycloakAdmin);
@@ -58,12 +60,21 @@ internal sealed class ModuleHost : IAsyncDisposable
 
     public IServiceProvider Services => _root;
 
-    public AsyncServiceScope ScopeFor(TenantContext? tenant)
+    /// <summary>
+    /// One request: on the tenant's host when <paramref name="tenant"/> is given, and as a signed-in user of the vendor
+    /// company when <paramref name="vendorCompanyId"/> is given, as the vendor middleware sets it.
+    /// </summary>
+    public AsyncServiceScope ScopeFor(TenantContext? tenant, Guid? vendorCompanyId = null)
     {
         var scope = _root.CreateAsyncScope();
         if (tenant is not null)
         {
             scope.ServiceProvider.GetRequiredService<TenantAccessor>().Set(tenant);
+        }
+
+        if (vendorCompanyId is { } companyId)
+        {
+            scope.ServiceProvider.GetRequiredService<VendorAccessor>().Set(new VendorContext(companyId));
         }
 
         return scope;

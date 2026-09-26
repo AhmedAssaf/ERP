@@ -3,6 +3,7 @@ using Hangfire.AspNetCore;
 using Platform.Modules.Audit;
 using Platform.Modules.Operations;
 using Platform.Modules.Tenancy;
+using Platform.Modules.Vendors;
 using Platform.Modules.Workflow;
 using Platform.Shared;
 using Platform.Shared.Jobs;
@@ -28,6 +29,7 @@ internal static class EntryPoint
         builder.Services.AddTenancyModule(platformDb);
         builder.Services.AddWorkflowModule(platformDb);
         builder.Services.AddOperationsModule(platformDb);
+        builder.Services.AddVendorsModule(platformDb);
         builder.Services.AddOperationsHealthChecks(platformDb, builder.Configuration);
         builder.Services.AddJobServer(platformDb, settings => settings.ServerName = "waslabid-worker");
 
