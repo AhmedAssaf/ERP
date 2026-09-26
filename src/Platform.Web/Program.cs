@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Components.Server.Circuits;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Platform.Modules.Audit;
 using Platform.Modules.Identity;
@@ -81,7 +82,23 @@ builder.Services.AddAuthorization(options => options.FallbackPolicy = IdentityMo
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddPlatformLocalization();
 
+if (builder.Environment.IsDevelopment())
+{
+    // Caddy on the local Compose stack terminates TLS and forwards the scheme. Production trusts only its own proxy (W-11).
+    builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedProto;
+        options.KnownIPNetworks.Clear();
+        options.KnownProxies.Clear();
+    });
+}
+
 var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseForwardedHeaders();
+}
 
 if (!app.Environment.IsDevelopment())
 {
