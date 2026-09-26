@@ -128,3 +128,24 @@ What the v3 run shows:
 - The shortfall rule works when followed (T1 V2 training 3 of 5 days, T3 V2 two references of three: both `partial`, T3 V2 now 13 of 13), but Haiku ignored it for the same pattern in T2 V2 (32 of 40 workers, 2 of 3 contracts: `not_met`), which dropped that offer from 11 to 8 of 14.
 - Wrong "met" went back up to 3: warranty "3 years manufacturer plus 2 from us" read as 5 years from the manufacturer, and in T2 V2 client-paid transport and Excel reports again read as met. Two of these also appeared in v1, so they are run-to-run variation as much as prompt effect.
 - **One run per offer is too few to compare prompts.** Before the next prompt change: run each offer three times, report the spread, and use the majority verdict; and try one stronger model on the same set to see whether the remaining misses are the model's limit rather than the prompt's.
+
+### Prompt version 3, three runs per offer
+
+`python score_runs.py llm-v3 llm-v3-r2 llm-v3-r3`: 27 isolated Haiku runs, majority verdict per requirement, a tie takes the most cautious verdict.
+
+| Measure | Result |
+|---|---|
+| Single runs, all | 76%, 75%, 77% (spread 2 points) |
+| Single runs, DOCX and Word PDF | 89%, 90%, 93% |
+| All three runs agree | 105 of 123 requirements (85%) |
+| Majority, DOCX and Word PDF | 76/82 (93%), wrongly "met" 2 |
+| Majority, scanned PDF | 19/41 (46%), wrongly "met" 0 |
+| Malformed JSON | 3 of 27 runs |
+
+Findings:
+
+- Prompt v3 is a real gain over v1 (61%) and v2 (72%); the spread between single v3 runs is only 2 points.
+- Majority voting did not beat the best single run on these offers, but it removes the unlucky run and makes the result repeatable.
+- **Disagreement between runs is a useful confidence signal.** The 18 requirements where runs disagreed sit almost entirely in the two hard partial offers and the scans; the three compliant offers were unanimous and right. A product can run three times and show "the model is unsure" wherever the runs split, pointing the human at exactly the verdicts to check.
+- **The remaining errors on text documents are consistent, not random:** all three runs accepted monthly Excel reports as an electronic reporting system, and two of three read "3 years manufacturer plus 2 from us" as meeting a five-year manufacturer warranty. Repetition cannot fix these; a stronger model or a sharper requirement text might.
+- Malformed JSON in 3 of 27 runs confirms that structured output must be enforced by the API, not requested in the prompt.
