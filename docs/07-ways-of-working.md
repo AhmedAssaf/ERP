@@ -81,7 +81,10 @@ Reset everything: `docker compose down -v` then `up -d` again. ClamAV takes up t
 
 ### Run the app locally
 
-With the Compose stack up and the four `WASLABID_*` values filled in `infra/compose/.env`, run these once from the repository root (Git Bash). The commands read the values from `.env` into shell variables and never print them (N-10); user secrets live outside the repository.
+With the Compose stack up and these five values filled in `infra/compose/.env` (see `.env.example` for how to generate
+them): `WASLABID_WEB_CLIENT_SECRET`, `WASLABID_PLATFORM_CLIENT_SECRET`, `WASLABID_ADMIN_API_SECRET`,
+`WASLABID_DEV_USER_PASSWORD` (at least 12 characters, not a user name, or the platform realm import fails) and
+`MINIO_HEALTH_PROBE_PASSWORD`, run these once from the repository root (Git Bash). The commands read the values from `.env` into shell variables and never print them (N-10); user secrets live outside the repository.
 
 ```bash
 env_value() { grep "^$1=" infra/compose/.env | cut -d= -f2- | tr -d '\r'; }
@@ -99,6 +102,10 @@ dotnet user-secrets set "ConnectionStrings:Platform" "$APP_DB" --project src/Pla
 dotnet user-secrets set "Oidc:ClientSecret" "$WEB_SECRET" --project src/Platform.Web > /dev/null
 dotnet user-secrets set "PlatformOidc:ClientSecret" "$PLATFORM_SECRET" --project src/Platform.Web > /dev/null
 dotnet user-secrets set "KeycloakAdmin:ClientSecret" "$ADMIN_API_SECRET" --project src/Platform.Web > /dev/null
+# Tenant logos (F-02) and storage used per tenant (F-54). Development uses the MinIO root user; there is no
+# least-privilege application user in the Compose stack yet.
+dotnet user-secrets set "ObjectStorage:AccessKey" "$(env_value MINIO_ROOT_USER)" --project src/Platform.Web > /dev/null
+dotnet user-secrets set "ObjectStorage:SecretKey" "$(env_value MINIO_ROOT_PASSWORD)" --project src/Platform.Web > /dev/null
 unset PGPW WEB_SECRET PLATFORM_SECRET ADMIN_API_SECRET
 ```
 
@@ -145,10 +152,12 @@ process-wide `GlobalJobFilters`. Settings, all in `Platform.Worker`'s configurat
 `Smtp:Host`/`Smtp:Port` (shared with the SMTP health check), `Smtp:From`, `Platform:AlertRecipients` (a list; empty
 sends nothing rather than guessing a destination), `Platform:DiskAlertPercent` (default 80), `Platform:DiskPath` (the
 volume that holds PostgreSQL or object storage data in the deployment; default the worker's content root), and `Platform:BoardUrl`
-(the link an alert email includes; a plain Development default until the platform console host lands in a later
-task). Development defaults for the non-secret ones are in `src/Platform.Worker/appsettings.Development.json`; there
-is still no default recipient, so no alert leaves a fresh checkout until one is configured. Mailpit (already in the
-Compose stack) catches every alert in Development.
+(the link an alert email includes: `https://platform.localhost:8443/platform` in Development). Development defaults
+for the non-secret ones are in `src/Platform.Worker/appsettings.Development.json`, including the recipient
+`platform-admin@waslabid.test`; outside Development there is no default recipient, so no alert leaves until one is
+configured. Mailpit (already in the Compose stack) catches every alert in Development. On a developer machine whose
+system drive is above 80 percent full, the first run sends one "[WaslaBid] Disk is down" email and keeps that
+incident open; that is the disk alert working, not a fault (raise `Platform:DiskAlertPercent` locally if it is noise).
 
 Open `https://acme.localhost:8443` (or the port in `CADDY_HTTPS_PORT`). Login only works through Caddy: it terminates TLS, which the OIDC correlation cookies need, and forwards the host with its port so the redirect URI is right. Plain `http://localhost:5273` cannot complete an OIDC login. Keycloak answers on `http://localhost:8080`; sign in as `acme.admin` or `beta.admin` with `WASLABID_DEV_USER_PASSWORD` from `.env`.
 
@@ -179,9 +188,27 @@ only a login with a one-time code produces; a password-only session gets a 403.
 
 Sign in as the platform admin the first time:
 
-1. Make sure the realm exists: Keycloak imports `waslabid-platform-realm.json` only on a start where the realm is
-   missing. On a stack that was already running before this realm was added, `docker compose up -d --force-recreate keycloak`
-   (the tenant realm is kept, since it already exists).
+1. Make sure both realms are current: Keycloak imports a realm file only on a start where that realm is missing, and
+   the admin slice changed the tenant realm too (TOTP flow, brute force, SMTP, the `waslabid-admin-api` client). On a
+   stack that was running before, delete both realms and recreate the container, together with Caddy (its Caddyfile
+   now forwards the host with its port). This resets every local Keycloak user to the realm files: the dev users
+   enrol TOTP again on their next login.
+
+   ```bash
+   env_value() { grep "^$1=" infra/compose/.env | cut -d= -f2- | tr -d '\r'; }
+   TOKEN=$(curl -s http://localhost:8080/realms/master/protocol/openid-connect/token -d grant_type=password -d client_id=admin-cli \
+     --data-urlencode "username=$(env_value KEYCLOAK_ADMIN)" --data-urlencode "password=$(env_value KEYCLOAK_ADMIN_PASSWORD)" \
+     | python -c "import json,sys; print(json.load(sys.stdin)['access_token'])")
+   for realm in waslabid waslabid-platform; do
+     curl -s -o /dev/null -w "$realm %{http_code}\n" -X DELETE -H "Authorization: Bearer $TOKEN" http://localhost:8080/admin/realms/$realm
+   done
+   unset TOKEN
+   docker compose -f infra/compose/docker-compose.yml --env-file infra/compose/.env up -d --force-recreate --no-deps keycloak caddy
+   ```
+
+   A 404 for a realm only means it did not exist yet. Keycloak is ready when `docker logs erp-keycloak` shows
+   "Import finished successfully" and the container is healthy (about 40 seconds). Then run the migrator again
+   (`--seed-dev`), since the admin slice adds migrations and the seeded tenant admins' member rows.
 2. Set the platform client secret as a user secret (the block above does it).
 3. Open `https://platform.localhost:8443/platform`. Keycloak shows the platform realm's login: user `platform.admin`,
    password `WASLABID_DEV_USER_PASSWORD` from `.env`.
@@ -189,6 +216,15 @@ Sign in as the platform admin the first time:
    app (Google Authenticator, Microsoft Authenticator, FreeOTP) and enter a code.
 5. Every later sign-in asks for the password and then a six-digit code. Remove the credential in the admin console
    (realm `waslabid-platform`, Users, `platform.admin`, Credentials) to enrol a new device.
+6. The health board fills after the worker's first check cycle (within a minute of the worker starting); a tile with
+   no result younger than two minutes shows Unknown. To see an alert end to end: `docker stop erp-clamav`, the ClamAV
+   tile turns Unhealthy within about 70 seconds and one "[WaslaBid] ClamAV is down" email reaches Mailpit;
+   `docker start erp-clamav` (ClamAV takes one to three minutes to answer again) and one "has recovered" email
+   follows while the incident shows its end time.
+
+Checked end to end on 2026-09-26 (admin plan Task 11): every command in this section, from the user secrets to the
+realm reimport, the migrator, the worker and the web host, run on Windows 11 with Git Bash against the Compose stack,
+then a browser pass through Caddy for the tenant admin, an invited evaluator and the platform admin.
 
 ## 5. Branches, commits, pull requests
 

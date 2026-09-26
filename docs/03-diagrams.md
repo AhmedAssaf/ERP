@@ -364,12 +364,14 @@ erDiagram
 
 ## 8. Application modules and how they depend on each other
 
-Read it as: arrows point from the module that calls to the module it depends on. Nothing points back up, which keeps the monolith splittable later.
+Read it as: arrows point from the module that calls to the module it depends on. Nothing points back up, which keeps the monolith splittable later. Boxes with a thick dark border (tenancy, identity, audit, workflow, operations) exist in code today (`src/Modules/*`, checked against the project references); modules depend on each other only through their `*.Contracts` projects. Operations (F-51, F-54, F-60) is platform-level, not tenant-level: it depends on no other module, and the hosts (web, worker) wire it in.
 
 ```mermaid
 flowchart TB
     classDef core fill:#2F5496,color:#fff,stroke:none
     classDef shared fill:#E7E6F5,color:#222,stroke:#9B96C9
+    classDef platform fill:#FFF4E5,color:#222,stroke:#C77700
+    classDef built stroke:#111,stroke-width:3px
 
     TEN[tenancy + branding]:::shared
     IDN[identity + roles]:::shared
@@ -383,6 +385,7 @@ flowchart TB
     AWD[awards + PO]:::core
     AI[ai review]:::core
     WF[workflow]:::core
+    OPS[operations<br/>health, incidents, platform audit]:::platform
 
     VEN --> TEN & IDN & DOC & NOT & AUD
     TDR --> VEN & TEN & IDN & DOC & NOT & AUD
@@ -392,6 +395,8 @@ flowchart TB
     AI --> TDR & EVA & DOC & AUD
     WF --> AUD
     IDN --> AUD
+    TEN --> AUD
+    class TEN,IDN,AUD,WF,OPS built
 ```
 
 ## 9. Deployment in a Saudi region

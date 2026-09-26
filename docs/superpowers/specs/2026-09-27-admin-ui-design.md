@@ -89,7 +89,7 @@ Out (later slices): tenant provisioning screen (F-01b), suspend and TLS actions 
 - Development seed: `acme.admin` and `beta.admin` get `tenant-admin` member rows.
 
 ### 4.3 Branding (F-02)
-- `/admin/branding`: portal name, primary colour (colour input plus hex field), logo upload with preview; save shows the adjusted colour when D-11 changed it.
+- `/admin/branding`: portal name, primary colour (colour input plus hex field), logo upload (a plain multipart form, no client-side preview of the chosen file; after the upload the page shows the stored logo on the header colour); save shows the adjusted colour when D-11 changed it.
 - Logo: PNG or JPEG only in the pilot (SVG rejected; it can carry script), at most 512 KB and 1024 px on the long side, re-encoded server-side to PNG to strip metadata, stored per D-9, `logo_url` set to `/branding/logo/{hash}` served by the app with a long cache lifetime. The existing `logo_url` check constraint allows `https://` only; a new migration relaxes it to also allow the app path pattern `^/branding/logo/[a-f0-9]{64}\.png$`.
 - The `AppShell` header shows the logo and portal name; emails and PDFs use them in their slices.
 
