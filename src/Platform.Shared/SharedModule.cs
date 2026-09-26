@@ -14,6 +14,8 @@ public static class SharedModule
         services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<TenantAccessor>();
         services.AddScoped<ITenantAccessor>(sp => sp.GetRequiredService<TenantAccessor>());
+        services.AddScoped<PlatformRequestContext>();
+        services.AddScoped<IPlatformRequestContext>(sp => sp.GetRequiredService<PlatformRequestContext>());
         return services;
     }
 

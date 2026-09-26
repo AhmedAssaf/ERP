@@ -15,22 +15,34 @@ internal sealed record TenantsAndJobs(IReadOnlyList<TenantRow> Tenants, IReadOnl
 /// <summary>
 /// Gathers the tenant list for <c>/platform/tenants</c> from the modules' public contracts: tenants (Tenancy), user
 /// counts (Identity), storage and failed jobs (Operations). Used only by console pages, after PlatformAdmin passed.
+/// The per-tenant lookups go to Keycloak and object storage, so they run side by side, at most
+/// <see cref="MaxParallel"/> tenants at a time; both services cache their answers (60 s and 10 min).
 /// </summary>
 internal sealed class TenantOverview(
     ITenantCatalog catalog, IOrganizationMembers members, ITenantStorageUsage storage, IPlatformJobs jobs)
 {
+    internal const int MaxParallel = 4;
+
     public async Task<TenantsAndJobs> LoadAsync(CancellationToken cancellationToken = default)
     {
         var tenants = await catalog.ListAsync(cancellationToken);
         var failed = await jobs.FailedAsync(cancellationToken: cancellationToken);
 
-        var rows = new List<TenantRow>(tenants.Count);
-        foreach (var tenant in tenants)
+        using var slots = new SemaphoreSlim(MaxParallel);
+        var rows = await Task.WhenAll(tenants.Select(async tenant =>
         {
-            var users = await members.CountAsync(tenant.OrganizationAlias, cancellationToken);
-            var bytes = await storage.UsedBytesAsync(tenant.Id, cancellationToken);
-            rows.Add(new TenantRow(tenant, users, bytes, failed.Count(j => j.TenantId == tenant.Id)));
-        }
+            await slots.WaitAsync(cancellationToken);
+            try
+            {
+                var users = members.CountAsync(tenant.OrganizationAlias, cancellationToken);
+                var bytes = storage.UsedBytesAsync(tenant.Id, cancellationToken);
+                return new TenantRow(tenant, await users, await bytes, failed.Count(j => j.TenantId == tenant.Id));
+            }
+            finally
+            {
+                slots.Release();
+            }
+        }));
 
         var names = tenants.ToDictionary(t => t.Id, t => t.PortalName);
         var failedRows = failed

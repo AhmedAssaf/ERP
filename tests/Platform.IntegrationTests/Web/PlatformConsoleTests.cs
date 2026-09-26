@@ -257,6 +257,63 @@ public sealed partial class PlatformConsoleTests(DatabaseFixture db, MinioFixtur
     }
 
     [Theory]
+    [InlineData("jobs/actions/requeue/{0}", "")]
+    [InlineData("jobs/actions/delete/{0}", "")]
+    [InlineData("jobs/failed/requeue", "jobs[]={0}")]
+    [InlineData("jobs/failed/delete", "jobs[]={0}")]
+    public async Task The_jobs_dashboard_refuses_to_change_a_job_even_for_a_platform_admin(string command, string form)
+    {
+        await using var factory = Factory();
+        var jobId = await CreateFailedJobAsync(factory, TestTenants.Acme);
+        var cookie = AuthCookies.Protect(factory.Services, PlatformAuthentication.CookieScheme, PlatformAdmin());
+        using var client = factory.CreateClient(new() { BaseAddress = new Uri($"http://{PlatformWebFactory.PlatformHost}"), AllowAutoRedirect = false, HandleCookies = false });
+
+        // As a browser would: the details page first, then the command with the antiforgery cookie and the token the page
+        // carries, so a refusal comes from the read-only dashboard and not from a missing token.
+        using var page = await client.SendAsync(
+            new HttpRequestMessage(HttpMethod.Get, $"{JobsDashboard.Path}/jobs/details/{jobId}").WithCookie(PlatformCookie, cookie), Ct);
+        page.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var html = await page.Content.ReadAsStringAsync(Ct);
+        var cookies = new List<string> { $"{PlatformCookie}={cookie}" };
+        cookies.AddRange(page.Headers.TryGetValues("Set-Cookie", out var set) ? set.Select(c => c.Split(';')[0]) : []);
+        using var post = new HttpRequestMessage(HttpMethod.Post, $"{JobsDashboard.Path}/{string.Format(CultureInfo.InvariantCulture, command, jobId)}")
+        {
+            Content = new StringContent(string.Format(CultureInfo.InvariantCulture, form, jobId), System.Text.Encoding.UTF8, "application/x-www-form-urlencoded"),
+        };
+        post.Headers.Add("Cookie", string.Join("; ", cookies));
+        var header = Regex.Match(html, """<meta name="csrf-header" content="([^"]+)">""", RegexOptions.None, TimeSpan.FromSeconds(1));
+        var token = Regex.Match(html, """<meta name="csrf-token" content="([^"]+)">""", RegexOptions.None, TimeSpan.FromSeconds(1));
+        header.Success.ShouldBeTrue("the dashboard page carries its antiforgery header name");
+        token.Success.ShouldBeTrue("the dashboard page carries its antiforgery token");
+        post.Headers.Add(header.Groups[1].Value, WebUtility.HtmlDecode(token.Groups[1].Value));
+
+        using var response = await client.SendAsync(post, Ct);
+
+        // Hangfire's read-only answer to a command is 401 (a writable dashboard answers 204 and the job changes).
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized, $"the dashboard answered {(int)response.StatusCode} to {command}");
+        using var connection = factory.Services.GetRequiredService<JobStorage>().GetConnection();
+        connection.GetStateData(jobId).Name.ShouldBe(FailedState.StateName);
+    }
+
+    [Fact]
+    public async Task The_jobs_dashboard_renders_no_requeue_or_delete_buttons()
+    {
+        await using var factory = Factory();
+        var jobId = await CreateFailedJobAsync(factory, TestTenants.Acme);
+
+        foreach (var path in new[] { $"{JobsDashboard.Path}/jobs/failed", $"{JobsDashboard.Path}/jobs/details/{jobId}" })
+        {
+            var html = await GetPageAsync(factory, path, PlatformAdmin());
+
+            html.ShouldContain(jobId, customMessage: $"{path} shows the failed job");
+            foreach (var mutating in new[] { "/actions/requeue", "/actions/delete", "/failed/requeue", "/failed/delete" })
+            {
+                html.ShouldNotContain(mutating, customMessage: $"{path} offers {mutating}");
+            }
+        }
+    }
+
+    [Theory]
     [InlineData(false, "2", false)]
     [InlineData(true, "1", false)]
     [InlineData(true, "2", true)]

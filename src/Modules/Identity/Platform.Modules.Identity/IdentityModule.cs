@@ -34,7 +34,9 @@ public static class IdentityModule
     {
         ArgumentNullException.ThrowIfNull(services);
         services.AddScoped<IAuthorizationHandler, SameTenantHandler>();
-        services.TryAddSingleton<IOrganizationMembers, UnavailableOrganizationMembers>();
+        services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton<IOrganizationMemberSource, UnavailableOrganizationMembers>();
+        services.TryAddSingleton<IOrganizationMembers, CachingOrganizationMembers>();
         return services;
     }
 }

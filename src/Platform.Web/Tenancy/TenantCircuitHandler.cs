@@ -12,13 +12,15 @@ namespace Platform.Web.Tenancy;
 /// The host comes from the <c>/_blazor</c> connection request, which already passed <see cref="TenantMiddleware"/> and
 /// authorization. <see cref="NavigationManager.BaseUri"/> is supplied by the browser in the circuit start message, so
 /// it is only checked against the connection host, never trusted on its own. A circuit on the platform console's host
-/// (its connection request was marked by <see cref="PlatformHostMiddleware"/>) has no tenant.
+/// (its connection request was marked by <see cref="PlatformHostMiddleware"/>) has no tenant and is marked as a
+/// platform scope (<see cref="PlatformRequestContext"/>).
 /// </summary>
 internal sealed class TenantCircuitHandler(
     NavigationManager navigation,
     IHttpContextAccessor httpContextAccessor,
     ITenantDirectory directory,
-    TenantAccessor accessor) : CircuitHandler
+    TenantAccessor accessor,
+    PlatformRequestContext platform) : CircuitHandler
 {
     public override int Order => int.MinValue;
 
@@ -39,6 +41,8 @@ internal sealed class TenantCircuitHandler(
 
         if (PlatformRequest.IsPlatform(httpContextAccessor.HttpContext!))
         {
+            // The circuit's scope is not the connection request's, so its platform mark is set here, as its tenant is below.
+            platform.MarkPlatform();
             return;
         }
 

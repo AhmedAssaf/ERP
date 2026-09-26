@@ -1,3 +1,5 @@
+using Platform.Shared.Tenancy;
+
 namespace Platform.Web.PlatformHost;
 
 /// <summary>
@@ -20,7 +22,15 @@ internal static class PlatformRequest
     /// <summary>Framework paths that both kinds of host serve: static assets, the Blazor circuit, the culture switch.</summary>
     private static readonly PathString[] SharedPaths = ["/_framework", "/_content", "/_blazor", "/culture"];
 
-    public static void Mark(HttpContext context) => context.Items[Key] = true;
+    /// <summary>
+    /// Marks the request, and the request's scoped <see cref="PlatformRequestContext"/> that module services such as
+    /// <c>ITenantCatalog</c> read, since they have no <see cref="HttpContext"/>.
+    /// </summary>
+    public static void Mark(HttpContext context)
+    {
+        context.Items[Key] = true;
+        context.RequestServices?.GetService<PlatformRequestContext>()?.MarkPlatform();
+    }
 
     public static bool IsPlatform(HttpContext context) => context.Items.ContainsKey(Key);
 

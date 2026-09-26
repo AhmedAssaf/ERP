@@ -17,7 +17,7 @@ public class TenantCircuitHandlerTests
     {
         var accessor = new TenantAccessor();
         var handler = new TenantCircuitHandler(
-            new FixedNavigation("https://acme.localhost:8443/"), ConnectionFrom("acme.localhost"), new TwoTenantDirectory(), accessor);
+            new FixedNavigation("https://acme.localhost:8443/"), ConnectionFrom("acme.localhost"), new TwoTenantDirectory(), accessor, new PlatformRequestContext());
 
         await handler.OnCircuitOpenedAsync(null!, Ct);
 
@@ -29,7 +29,7 @@ public class TenantCircuitHandlerTests
     {
         var accessor = new TenantAccessor();
         var handler = new TenantCircuitHandler(
-            new FixedNavigation("https://ACME.localhost:8443/"), ConnectionFrom("acme.localhost"), new TwoTenantDirectory(), accessor);
+            new FixedNavigation("https://ACME.localhost:8443/"), ConnectionFrom("acme.localhost"), new TwoTenantDirectory(), accessor, new PlatformRequestContext());
 
         await handler.OnCircuitOpenedAsync(null!, Ct);
 
@@ -41,7 +41,7 @@ public class TenantCircuitHandlerTests
     {
         var accessor = new TenantAccessor();
         var handler = new TenantCircuitHandler(
-            new FixedNavigation("https://beta.localhost:8443/"), ConnectionFrom("acme.localhost"), new TwoTenantDirectory(), accessor);
+            new FixedNavigation("https://beta.localhost:8443/"), ConnectionFrom("acme.localhost"), new TwoTenantDirectory(), accessor, new PlatformRequestContext());
 
         await Should.ThrowAsync<InvalidOperationException>(() => handler.OnCircuitOpenedAsync(null!, Ct));
 
@@ -53,7 +53,7 @@ public class TenantCircuitHandlerTests
     {
         var accessor = new TenantAccessor();
         var handler = new TenantCircuitHandler(
-            new FixedNavigation("https://acme.localhost:8443/"), new HttpContextAccessor(), new TwoTenantDirectory(), accessor);
+            new FixedNavigation("https://acme.localhost:8443/"), new HttpContextAccessor(), new TwoTenantDirectory(), accessor, new PlatformRequestContext());
 
         await Should.ThrowAsync<InvalidOperationException>(() => handler.OnCircuitOpenedAsync(null!, Ct));
 
@@ -65,7 +65,7 @@ public class TenantCircuitHandlerTests
     {
         var accessor = new TenantAccessor();
         var handler = new TenantCircuitHandler(
-            new FixedNavigation("https://nobody.localhost:8443/"), ConnectionFrom("nobody.localhost"), new TwoTenantDirectory(), accessor);
+            new FixedNavigation("https://nobody.localhost:8443/"), ConnectionFrom("nobody.localhost"), new TwoTenantDirectory(), accessor, new PlatformRequestContext());
 
         await Should.ThrowAsync<InvalidOperationException>(() => handler.OnCircuitOpenedAsync(null!, Ct));
 
@@ -76,14 +76,29 @@ public class TenantCircuitHandlerTests
     public async Task Circuit_on_the_platform_host_has_no_tenant()
     {
         var accessor = new TenantAccessor();
+        var platform = new PlatformRequestContext();
         var connection = ConnectionFrom("platform.localhost");
         PlatformRequest.Mark(connection.HttpContext!);
         var handler = new TenantCircuitHandler(
-            new FixedNavigation("https://platform.localhost:8443/"), connection, new TwoTenantDirectory(), accessor);
+            new FixedNavigation("https://platform.localhost:8443/"), connection, new TwoTenantDirectory(), accessor, platform);
 
         await handler.OnCircuitOpenedAsync(null!, Ct);
 
         accessor.Current.ShouldBeNull();
+        // The circuit has its own scope: console components reading ITenantCatalog there need the platform mark too.
+        platform.IsPlatform.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task A_tenant_circuit_is_not_a_platform_circuit()
+    {
+        var platform = new PlatformRequestContext();
+        var handler = new TenantCircuitHandler(
+            new FixedNavigation("https://acme.localhost:8443/"), ConnectionFrom("acme.localhost"), new TwoTenantDirectory(), new TenantAccessor(), platform);
+
+        await handler.OnCircuitOpenedAsync(null!, Ct);
+
+        platform.IsPlatform.ShouldBeFalse();
     }
 
     [Fact]
@@ -93,7 +108,7 @@ public class TenantCircuitHandlerTests
         var connection = ConnectionFrom("platform.localhost");
         PlatformRequest.Mark(connection.HttpContext!);
         var handler = new TenantCircuitHandler(
-            new FixedNavigation("https://acme.localhost:8443/"), connection, new TwoTenantDirectory(), accessor);
+            new FixedNavigation("https://acme.localhost:8443/"), connection, new TwoTenantDirectory(), accessor, new PlatformRequestContext());
 
         await Should.ThrowAsync<InvalidOperationException>(() => handler.OnCircuitOpenedAsync(null!, Ct));
 
@@ -104,7 +119,7 @@ public class TenantCircuitHandlerTests
     public void Runs_before_any_other_circuit_handler()
     {
         var handler = new TenantCircuitHandler(
-            new FixedNavigation("https://acme.localhost:8443/"), new HttpContextAccessor(), new TwoTenantDirectory(), new TenantAccessor());
+            new FixedNavigation("https://acme.localhost:8443/"), new HttpContextAccessor(), new TwoTenantDirectory(), new TenantAccessor(), new PlatformRequestContext());
 
         handler.Order.ShouldBe(int.MinValue);
     }

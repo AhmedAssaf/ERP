@@ -36,5 +36,13 @@ internal sealed class ModuleHost : IAsyncDisposable
         return scope;
     }
 
+    /// <summary>A scope marked as the platform console's, as the web host marks a request on the platform host.</summary>
+    public AsyncServiceScope PlatformScope()
+    {
+        var scope = _root.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<PlatformRequestContext>().MarkPlatform();
+        return scope;
+    }
+
     public ValueTask DisposeAsync() => _root.DisposeAsync();
 }
