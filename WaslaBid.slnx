@@ -1,2 +1,8 @@
 <Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Platform.Shared/Platform.Shared.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Platform.UnitTests/Platform.UnitTests.csproj" />
+  </Folder>
 </Solution>
