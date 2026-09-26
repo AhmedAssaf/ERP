@@ -81,13 +81,14 @@ Reset everything: `docker compose down -v` then `up -d` again. ClamAV takes up t
 
 ### Run the app locally
 
-With the Compose stack up and the three `WASLABID_*` values filled in `infra/compose/.env`, run these once from the repository root (Git Bash). The commands read the values from `.env` into shell variables and never print them (N-10); user secrets live outside the repository.
+With the Compose stack up and the four `WASLABID_*` values filled in `infra/compose/.env`, run these once from the repository root (Git Bash). The commands read the values from `.env` into shell variables and never print them (N-10); user secrets live outside the repository.
 
 ```bash
 env_value() { grep "^$1=" infra/compose/.env | cut -d= -f2- | tr -d '\r'; }
 PGPW=$(env_value POSTGRES_PASSWORD)
 WEB_SECRET=$(env_value WASLABID_WEB_CLIENT_SECRET)
 PLATFORM_SECRET=$(env_value WASLABID_PLATFORM_CLIENT_SECRET)
+ADMIN_API_SECRET=$(env_value WASLABID_ADMIN_API_SECRET)
 # erp_app's password is the development value from infra/compose/postgres/init/01-databases.sql.
 APP_DB="Host=localhost;Port=5432;Database=platform;Username=erp_app;Password=erp_app_dev_password"
 
@@ -97,7 +98,8 @@ dotnet user-secrets set "ConnectionStrings:Platform" "$APP_DB" --project src/Pla
 dotnet user-secrets set "ConnectionStrings:Platform" "$APP_DB" --project src/Platform.Worker > /dev/null
 dotnet user-secrets set "Oidc:ClientSecret" "$WEB_SECRET" --project src/Platform.Web > /dev/null
 dotnet user-secrets set "PlatformOidc:ClientSecret" "$PLATFORM_SECRET" --project src/Platform.Web > /dev/null
-unset PGPW WEB_SECRET PLATFORM_SECRET
+dotnet user-secrets set "KeycloakAdmin:ClientSecret" "$ADMIN_API_SECRET" --project src/Platform.Web > /dev/null
+unset PGPW WEB_SECRET PLATFORM_SECRET ADMIN_API_SECRET
 ```
 
 Then migrate, seed the development tenants `acme` and `beta`, and start the app:
@@ -149,6 +151,20 @@ is still no default recipient, so no alert leaves a fresh checkout until one is 
 Compose stack) catches every alert in Development.
 
 Open `https://acme.localhost:8443` (or the port in `CADDY_HTTPS_PORT`). Login only works through Caddy: it terminates TLS, which the OIDC correlation cookies need, and forwards the host with its port so the redirect URI is right. Plain `http://localhost:5273` cannot complete an OIDC login. Keycloak answers on `http://localhost:8080`; sign in as `acme.admin` or `beta.admin` with `WASLABID_DEV_USER_PASSWORD` from `.env`.
+
+#### Staff invitations and TOTP (F-06)
+
+Tenant admins invite staff at `https://<tenant>.localhost:8443/admin/staff`. The web host calls the Keycloak Admin API
+as the service account `waslabid-admin-api` (settings `KeycloakAdmin:*`): `BaseUrl` (`http://localhost:8080`) and
+`TenantUrl` (`https://{slug}.localhost:8443/`, where the invitation link returns; each result must be a registered
+redirect URI of `waslabid-web`) have Development defaults in `src/Platform.Web/appsettings.Development.json`;
+`ClientSecret` is the user secret set above from `WASLABID_ADMIN_API_SECRET`. Outside Development the host refuses to
+start without all three. Keycloak sends the invitation (set a password and enrol an authenticator app, link valid 72
+hours) through Mailpit, so open `http://localhost:8025` to follow it. Every tenant login asks for the TOTP code, and
+`acme.admin` and `beta.admin` enrol an authenticator on their first login; three wrong codes (or passwords) lock the
+account for fifteen minutes. The realm settings and the Admin API roles are in
+`infra/compose/keycloak/import/README.md`. An existing `waslabid` realm is not re-imported: after pulling this change,
+delete the realm in the Keycloak admin console (or `docker compose down -v`) and restart Keycloak.
 
 #### Platform console host (D-1, D-2)
 

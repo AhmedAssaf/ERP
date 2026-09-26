@@ -19,7 +19,7 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 
 | Epic | Stories | P0 | P1 | P2 |
 |---|---|---|---|---|
-| E0 Platform foundation | W-01 to W-12, W-19 to W-27 | 13 | 7 | 1 |
+| E0 Platform foundation | W-01 to W-12, W-19 to W-28 | 13 | 8 | 1 |
 | E1 Tenancy and branding | F-01 to F-05, F-01b | 4 | 2 | 0 |
 | E2 Identity, users, roles | F-06 to F-10, F-06b | 2 | 2 | 2 |
 | E3 Vendor registration | F-11 to F-14, F-12b, F-14a | 3 | 1 | 2 |
@@ -33,7 +33,7 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 | E11 Pilot and market | W-13 to W-18 | 6 | 0 | 0 |
 | E12 Platform operations console | F-51 to F-54, F-60 | 3 | 2 | 0 |
 
-## E0 Platform foundation (W-01 to W-12, W-19 to W-27)
+## E0 Platform foundation (W-01 to W-12, W-19 to W-28)
 
 | ID | Story | Pri | Size | Status | Depends on |
 |---|---|---|---|---|---|
@@ -58,6 +58,7 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 | W-25 | Tailwind standalone binaries for linux-arm64, osx-arm64 and osx-x64, each with its SHA-256 | P1 | S | Backlog | W-05 |
 | W-26 | Move the waslabid-tests client into a test-only realm import used by Testcontainers | P1 | S | Backlog | W-04 |
 | W-27 | Throttle repeated identity.cross_tenant_denied audit rows per user and host | P2 | S | Done | F-41 |
+| W-28 | Keycloak admin and login events (lockout, login failure) copied into the tenant's audit | P1 | S | Backlog | F-41 |
 
 Acceptance criteria:
 
@@ -99,7 +100,7 @@ Acceptance criteria:
 
 | ID | Story | Pri | Size | Status | Depends on |
 |---|---|---|---|---|---|
-| F-06 | Staff accounts: invite by email, password plus TOTP | P0 | M | Backlog | W-04 |
+| F-06 | Staff accounts: invite by email, password plus TOTP | P0 | M | Done 2026-09-27 as narrowed; lockout auditing is W-28 | W-04 |
 | F-06b | Tenant SSO through Entra ID or any OIDC provider | P2 | M | Backlog | F-06 |
 | F-07 | Roles: tenant admin, contracts officer, technical evaluator, finance approver (MVP), auditor (P1) | P0 | S | Done | F-06 |
 | F-08 | Per-tender committee assignment onto snapshot steps | P1 | M | Backlog | F-07, F-56 |
@@ -107,6 +108,7 @@ Acceptance criteria:
 | F-10 | One vendor account across all tenants with per-tenant approval | P2 | L | Backlog | F-11 |
 
 - **F-06.** Given an invitation, when the invitee sets a password and enrols TOTP, then they can log in; when they enter a wrong TOTP three times, then the account locks for fifteen minutes and the event is audited.
+  MVP narrowing (docs/05 row 3, spec D-4, D-5 and 4.2): a tenant admin invites on `/admin/staff` (email, name, roles), changes roles and resends; the app calls the Keycloak Admin API as `waslabid-admin-api`, which creates or finds the user, adds them to the tenant's organization and has Keycloak email the set-password and TOTP link (72 hours, returning to the tenant's host); the member row is `invited` until the first sign-in. TOTP is required at every tenant login (realm browser flow), and brute-force detection locks the account for fifteen minutes after three failures. No SSO (F-06b). Evidence: `An_invitee_sets_a_password_and_totp_from_the_email_then_signs_in_and_becomes_active`, `Inviting_creates_the_user_adds_them_to_the_organization_and_emails_them`, `Inviting_an_existing_user_adds_membership_without_a_duplicate_user`, `Three_wrong_totp_codes_lock_the_account`, `A_non_admin_cannot_open_the_staff_page`. "The event is audited" is not met yet: the lockout happens inside Keycloak and reaches the tenant's audit with W-28; invitations, resends and role changes are audited (`identity.member_invited`, `identity.invitation_resent`, `identity.roles_changed`).
 - **F-07.** Given a user with only the technical evaluator role, when they open a tender's financial comparison, then they receive 403 and the attempt is audited.
   MVP narrowing (docs/05 row 4, spec 4.1): the four MVP roles live in `identity.members` per tenant with policies `TenantAdmin`, `ContractsOfficer`, `TechnicalEvaluator`, `FinanceApprover`; no Auditor role. Evidence: `A_user_without_the_role_gets_403_and_one_audit_row` (an evaluator on an admin-only endpoint), `Each_tenant_policy_admits_its_role_only`, `A_member_gets_role_claims_for_the_host_tenant_only`, `Repeated_denials_within_a_minute_write_one_audit_row`, `The_last_tenant_admin_cannot_drop_their_admin_role`. The financial comparison page itself arrives with its slice (F-31) and uses the `FinanceApprover` policy. Inviting staff and changing roles on a page is F-06 (plan task 9).
 - **F-08.** Given a committee of named evaluators, when a staff member outside it opens the tender's offers, then they see nothing; when an evaluator is removed, then their draft scores stay but they lose access.

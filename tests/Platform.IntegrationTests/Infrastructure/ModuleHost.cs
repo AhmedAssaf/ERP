@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Platform.Modules.Audit;
 using Platform.Modules.Identity;
@@ -9,12 +10,16 @@ using Platform.Shared.Tenancy;
 
 namespace Platform.IntegrationTests.Infrastructure;
 
-/// <summary>The modules wired as the web host wires them, without HTTP. One scope stands for one request.</summary>
+/// <summary>
+/// The modules wired as the web host wires them, without HTTP. One scope stands for one request. With
+/// <paramref name="keycloakAdmin"/> (settings <c>KeycloakAdmin:*</c>) the Keycloak Admin API client and the staff service
+/// are wired too, as the web host wires them.
+/// </summary>
 internal sealed class ModuleHost : IAsyncDisposable
 {
     private readonly ServiceProvider _root;
 
-    public ModuleHost(string appConnectionString)
+    public ModuleHost(string appConnectionString, IConfiguration? keycloakAdmin = null)
     {
         var services = new ServiceCollection();
         services.AddLogging();
@@ -24,6 +29,11 @@ internal sealed class ModuleHost : IAsyncDisposable
         services.AddIdentityModule(appConnectionString);
         services.AddWorkflowModule(appConnectionString);
         services.AddOperationsModule(appConnectionString);
+        if (keycloakAdmin is not null)
+        {
+            services.AddKeycloakAdmin(keycloakAdmin);
+        }
+
         _root = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });
     }
 

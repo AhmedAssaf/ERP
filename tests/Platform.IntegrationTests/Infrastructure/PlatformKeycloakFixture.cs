@@ -70,6 +70,7 @@ public sealed class PlatformKeycloakFixture : IAsyncLifetime
             .WithEnvironment("WASLABID_WEB_CLIENT_SECRET", WebClientSecret)
             .WithEnvironment("WASLABID_PLATFORM_CLIENT_SECRET", PlatformClientSecret)
             .WithEnvironment("WASLABID_DEV_USER_PASSWORD", UserPassword)
+            .WithEnvironment("WASLABID_ADMIN_API_SECRET", "test-admin-api-secret")
             .Build();
         await _container.StartAsync();
     }

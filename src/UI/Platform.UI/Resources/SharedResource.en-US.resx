@@ -151,4 +151,50 @@
   <data name="Console.Size.KB" xml:space="preserve"><value>{0} KB</value></data>
   <data name="Console.Size.MB" xml:space="preserve"><value>{0} MB</value></data>
   <data name="Console.Size.GB" xml:space="preserve"><value>{0} GB</value></data>
+  <data name="Admin.Nav.Staff" xml:space="preserve"><value>Staff</value></data>
+  <data name="Staff.Title" xml:space="preserve"><value>Staff</value></data>
+  <data name="Staff.Heading" xml:space="preserve"><value>Members</value></data>
+  <data name="Staff.Loading" xml:space="preserve"><value>Loading staff…</value></data>
+  <data name="Staff.Invite" xml:space="preserve"><value>Invite staff member</value></data>
+  <data name="Staff.Column.Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Staff.Column.Email" xml:space="preserve"><value>Email</value></data>
+  <data name="Staff.Column.Roles" xml:space="preserve"><value>Roles</value></data>
+  <data name="Staff.Column.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Staff.Column.Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="Staff.Status.Active" xml:space="preserve"><value>Active</value></data>
+  <data name="Staff.Status.Invited" xml:space="preserve"><value>Invited</value></data>
+  <data name="Staff.ChangeRoles" xml:space="preserve"><value>Change roles</value></data>
+  <data name="Staff.Resend" xml:space="preserve"><value>Resend invitation</value></data>
+  <data name="Staff.EmptyTitle" xml:space="preserve"><value>No staff invited yet</value></data>
+  <data name="Staff.EmptyBody" xml:space="preserve"><value>Invite the first member of your team to start working on tenders.</value></data>
+  <data name="Staff.InviteTitle" xml:space="preserve"><value>Invite a staff member</value></data>
+  <data name="Staff.InviteConfirm" xml:space="preserve"><value>Send invitation</value></data>
+  <data name="Staff.InviteBody" xml:space="preserve"><value>We email a link to set a password and an authenticator app. The link works for 72 hours.</value></data>
+  <data name="Staff.Field.Email" xml:space="preserve"><value>Work email</value></data>
+  <data name="Staff.Field.Name" xml:space="preserve"><value>Full name</value></data>
+  <data name="Staff.Field.Roles" xml:space="preserve"><value>Roles</value></data>
+  <data name="Staff.Role.tenant-admin" xml:space="preserve"><value>Tenant administrator</value></data>
+  <data name="Staff.Role.contracts-officer" xml:space="preserve"><value>Contracts officer</value></data>
+  <data name="Staff.Role.technical-evaluator" xml:space="preserve"><value>Technical evaluator</value></data>
+  <data name="Staff.Role.finance-approver" xml:space="preserve"><value>Finance approver</value></data>
+  <data name="Staff.NoRoles" xml:space="preserve"><value>No role</value></data>
+  <data name="Staff.RoleSeparator" xml:space="preserve"><value>, </value></data>
+  <data name="Staff.RolesTitle" xml:space="preserve"><value>Change the roles of {0}?</value></data>
+  <data name="Staff.RolesConfirm" xml:space="preserve"><value>Save roles</value></data>
+  <data name="Staff.RolesBody" xml:space="preserve"><value>The new roles apply from the next page they open.</value></data>
+  <data name="Staff.NotAllowed" xml:space="preserve"><value>Only a tenant administrator can do this.</value></data>
+  <data name="Staff.Error.Email" xml:space="preserve"><value>Enter the person's work email address, for example name@company.com.</value></data>
+  <data name="Staff.Error.Exists" xml:space="preserve"><value>This person is already a member of your team.</value></data>
+  <data name="Staff.Error.Name" xml:space="preserve"><value>Enter the person's full name, up to 200 characters.</value></data>
+  <data name="Staff.Error.Roles" xml:space="preserve"><value>Choose at least one role.</value></data>
+  <data name="Staff.Error.LastAdmin" xml:space="preserve"><value>Your team must keep at least one active tenant administrator, so this administrator role cannot be removed.</value></data>
+  <data name="Staff.Error.NotFound" xml:space="preserve"><value>This person is no longer a member of your team. Reload the page.</value></data>
+  <data name="Staff.Error.AlreadyActive" xml:space="preserve"><value>{0} has already signed in, so there is no invitation to resend.</value></data>
+  <data name="Staff.Error.SetupComplete" xml:space="preserve"><value>{0} has already set a password and an authenticator and can sign in now.</value></data>
+  <data name="Staff.Error.Generic" xml:space="preserve"><value>The change could not be completed. Try again in a moment.</value></data>
+  <data name="Staff.Invited" xml:space="preserve"><value>Invitation sent to {0}</value></data>
+  <data name="Staff.AddedExisting" xml:space="preserve"><value>{0} added. They already have an account and can sign in now.</value></data>
+  <data name="Staff.EmailFailed" xml:space="preserve"><value>{0} was added, but the invitation email was not sent. Use Resend invitation.</value></data>
+  <data name="Staff.RolesSaved" xml:space="preserve"><value>Roles saved for {0}</value></data>
+  <data name="Staff.Resent" xml:space="preserve"><value>Invitation sent again to {0}</value></data>
 </root>

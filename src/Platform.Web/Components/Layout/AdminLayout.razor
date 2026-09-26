@@ -1,0 +1,28 @@
+@*
+    The tenant administration frame (spec 4): the tenant's own brand (F-02), never WaslaBid's, and the admin navigation.
+    The user menu names the signed-in admin and signs out of the tenant realm.
+*@
+@inherits LayoutComponentBase
+@inject IStringLocalizer<SharedResource> T
+@inject ITenantAccessor Tenants
+
+<AppShell Variant="AppShellVariant.Tenant" PortalName="@Tenants.Current?.Branding.PortalName" LogoUrl="@Tenants.Current?.Branding.LogoUrl" UserName="@_userName">
+    <Navigation>
+        <NavLink href="admin/staff" class="@LinkClass">@T["Admin.Nav.Staff"]</NavLink>
+    </Navigation>
+    <ChildContent>@Body</ChildContent>
+</AppShell>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    private string? _userName;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _userName = AuthenticationState is null ? null : (await AuthenticationState).User.Identity?.Name;
+    }
+
+    private const string LinkClass =
+        "whitespace-nowrap py-1 underline-offset-4 hover:underline aria-[current=page]:font-semibold aria-[current=page]:underline";
+}

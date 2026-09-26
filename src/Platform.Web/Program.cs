@@ -28,7 +28,11 @@ if (string.IsNullOrWhiteSpace(platformDb))
 
 if (!builder.Environment.IsDevelopment() && !builder.Environment.IsEnvironment("Testing"))
 {
-    foreach (var key in new[] { "Oidc:Authority", "Oidc:ClientSecret", "Platform:Host", "PlatformOidc:Authority", "PlatformOidc:ClientSecret" })
+    foreach (var key in new[]
+    {
+        "Oidc:Authority", "Oidc:ClientSecret", "Platform:Host", "PlatformOidc:Authority", "PlatformOidc:ClientSecret",
+        "KeycloakAdmin:BaseUrl", "KeycloakAdmin:ClientSecret", "KeycloakAdmin:TenantUrl",
+    })
     {
         if (string.IsNullOrWhiteSpace(builder.Configuration[key]))
         {
@@ -44,6 +48,8 @@ builder.Services.AddPlatformShared();
 builder.Services.AddAuditModule(platformDb);
 builder.Services.AddTenancyModule(platformDb);
 builder.Services.AddIdentityModule(platformDb);
+// F-06: staff invitations and organization member counts through the Keycloak Admin API (settings KeycloakAdmin:*).
+builder.Services.AddKeycloakAdmin(builder.Configuration);
 builder.Services.AddWorkflowModule(platformDb);
 builder.Services.AddOperationsModule(platformDb);
 // The web host only enqueues and reads jobs (D-6): Hangfire storage without a server, plus the dashboard (task 7).

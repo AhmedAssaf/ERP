@@ -1,9 +1,9 @@
 namespace Platform.Modules.Identity;
 
 /// <summary>
-/// The placeholder source until the Keycloak Admin API client exists (plan task 9, settings <c>KeycloakAdmin:*</c>): every
-/// count is unknown. Registered with TryAdd as <see cref="IOrganizationMemberSource"/>, so task 9's client replaces it
-/// by registering first or removing it; <see cref="CachingOrganizationMembers"/> stays in front either way.
+/// The source when the host has not wired the Keycloak Admin API (<see cref="IdentityModule.AddKeycloakAdmin"/>): every
+/// count is unknown. <c>AddKeycloakAdmin</c> replaces it with <see cref="Keycloak.KeycloakOrganizationMemberSource"/>;
+/// <see cref="CachingOrganizationMembers"/> stays in front either way.
 /// </summary>
 internal sealed class UnavailableOrganizationMembers : IOrganizationMemberSource
 {

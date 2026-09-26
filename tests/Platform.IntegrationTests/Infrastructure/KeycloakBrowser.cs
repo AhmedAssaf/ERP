@@ -71,6 +71,21 @@ internal sealed partial class KeycloakBrowser : IDisposable
 
     public static bool HasForm(string page, string formId) => FormTag(page, formId) is not null;
 
+    /// <summary>The first link on the page whose address contains <paramref name="fragment"/>, or null.</summary>
+    public static Uri? LinkContaining(string page, string fragment) =>
+        Links().Matches(page).Select(m => WebUtility.HtmlDecode(m.Groups[1].Value))
+            .Where(href => href.Contains(fragment, StringComparison.Ordinal))
+            .Select(href => new Uri(href, UriKind.Absolute))
+            .FirstOrDefault();
+
+    /// <summary>The value of the page's input named <paramref name="name"/>, or null.</summary>
+    public static string? InputValue(string page, string name) =>
+        Regex.Matches(page, "<input\\b[^>]*>", RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1))
+            .Select(m => m.Value)
+            .Where(tag => Attribute(tag, "name") == name)
+            .Select(tag => Attribute(tag, "value"))
+            .FirstOrDefault();
+
     /// <summary>The page's template and message, for an assertion that failed on an unexpected Keycloak page.</summary>
     public static string Feedback(string page)
     {
@@ -204,6 +219,9 @@ internal sealed partial class KeycloakBrowser : IDisposable
 
     [GeneratedRegex("<(?:input|button)\\b[^>]*type=\"submit\"[^>]*>", RegexOptions.IgnoreCase)]
     private static partial Regex SubmitInputs();
+
+    [GeneratedRegex("<a\\b[^>]*\\bhref=\"([^\"]*)\"", RegexOptions.IgnoreCase)]
+    private static partial Regex Links();
 
     [GeneratedRegex("\\baction=\"([^\"]*)\"", RegexOptions.IgnoreCase)]
     private static partial Regex ActionAttribute();

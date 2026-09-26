@@ -151,4 +151,50 @@
   <data name="Console.Size.KB" xml:space="preserve"><value>{0} ك.بايت</value></data>
   <data name="Console.Size.MB" xml:space="preserve"><value>{0} م.بايت</value></data>
   <data name="Console.Size.GB" xml:space="preserve"><value>{0} ج.بايت</value></data>
+  <data name="Admin.Nav.Staff" xml:space="preserve"><value>الموظفون</value></data>
+  <data name="Staff.Title" xml:space="preserve"><value>الموظفون</value></data>
+  <data name="Staff.Heading" xml:space="preserve"><value>الأعضاء</value></data>
+  <data name="Staff.Loading" xml:space="preserve"><value>جارٍ تحميل الموظفين…</value></data>
+  <data name="Staff.Invite" xml:space="preserve"><value>دعوة موظف</value></data>
+  <data name="Staff.Column.Name" xml:space="preserve"><value>الاسم</value></data>
+  <data name="Staff.Column.Email" xml:space="preserve"><value>البريد الإلكتروني</value></data>
+  <data name="Staff.Column.Roles" xml:space="preserve"><value>الأدوار</value></data>
+  <data name="Staff.Column.Status" xml:space="preserve"><value>الحالة</value></data>
+  <data name="Staff.Column.Actions" xml:space="preserve"><value>الإجراءات</value></data>
+  <data name="Staff.Status.Active" xml:space="preserve"><value>نشط</value></data>
+  <data name="Staff.Status.Invited" xml:space="preserve"><value>مدعو</value></data>
+  <data name="Staff.ChangeRoles" xml:space="preserve"><value>تغيير الأدوار</value></data>
+  <data name="Staff.Resend" xml:space="preserve"><value>إعادة إرسال الدعوة</value></data>
+  <data name="Staff.EmptyTitle" xml:space="preserve"><value>لم تتم دعوة أي موظف بعد</value></data>
+  <data name="Staff.EmptyBody" xml:space="preserve"><value>ادعُ أول عضو في فريقك لبدء العمل على المنافسات.</value></data>
+  <data name="Staff.InviteTitle" xml:space="preserve"><value>دعوة موظف</value></data>
+  <data name="Staff.InviteConfirm" xml:space="preserve"><value>إرسال الدعوة</value></data>
+  <data name="Staff.InviteBody" xml:space="preserve"><value>نرسل بالبريد الإلكتروني رابطاً لتعيين كلمة المرور وتطبيق المصادقة. يعمل الرابط لمدة 72 ساعة.</value></data>
+  <data name="Staff.Field.Email" xml:space="preserve"><value>البريد الإلكتروني للعمل</value></data>
+  <data name="Staff.Field.Name" xml:space="preserve"><value>الاسم الكامل</value></data>
+  <data name="Staff.Field.Roles" xml:space="preserve"><value>الأدوار</value></data>
+  <data name="Staff.Role.tenant-admin" xml:space="preserve"><value>مدير المنشأة</value></data>
+  <data name="Staff.Role.contracts-officer" xml:space="preserve"><value>موظف العقود</value></data>
+  <data name="Staff.Role.technical-evaluator" xml:space="preserve"><value>المقيّم الفني</value></data>
+  <data name="Staff.Role.finance-approver" xml:space="preserve"><value>معتمد المالية</value></data>
+  <data name="Staff.NoRoles" xml:space="preserve"><value>بلا دور</value></data>
+  <data name="Staff.RoleSeparator" xml:space="preserve"><value>، </value></data>
+  <data name="Staff.RolesTitle" xml:space="preserve"><value>تغيير أدوار {0}؟</value></data>
+  <data name="Staff.RolesConfirm" xml:space="preserve"><value>حفظ الأدوار</value></data>
+  <data name="Staff.RolesBody" xml:space="preserve"><value>تسري الأدوار الجديدة من الصفحة التالية التي يفتحها.</value></data>
+  <data name="Staff.NotAllowed" xml:space="preserve"><value>هذا الإجراء متاح لمدير المنشأة فقط.</value></data>
+  <data name="Staff.Error.Email" xml:space="preserve"><value>أدخل البريد الإلكتروني للعمل، مثل name@company.com.</value></data>
+  <data name="Staff.Error.Exists" xml:space="preserve"><value>هذا الشخص عضو في فريقك بالفعل.</value></data>
+  <data name="Staff.Error.Name" xml:space="preserve"><value>أدخل الاسم الكامل بما لا يزيد على 200 حرف.</value></data>
+  <data name="Staff.Error.Roles" xml:space="preserve"><value>اختر دوراً واحداً على الأقل.</value></data>
+  <data name="Staff.Error.LastAdmin" xml:space="preserve"><value>يجب أن يبقى في فريقك مدير منشأة نشط واحد على الأقل، لذلك لا يمكن إزالة دور المدير هذا.</value></data>
+  <data name="Staff.Error.NotFound" xml:space="preserve"><value>لم يعد هذا الشخص عضواً في فريقك. أعد تحميل الصفحة.</value></data>
+  <data name="Staff.Error.AlreadyActive" xml:space="preserve"><value>سجّل {0} الدخول بالفعل، لذلك لا توجد دعوة لإعادة إرسالها.</value></data>
+  <data name="Staff.Error.SetupComplete" xml:space="preserve"><value>عيّن {0} كلمة المرور وتطبيق المصادقة بالفعل ويمكنه تسجيل الدخول الآن.</value></data>
+  <data name="Staff.Error.Generic" xml:space="preserve"><value>تعذّر إتمام العملية. حاول مرة أخرى بعد قليل.</value></data>
+  <data name="Staff.Invited" xml:space="preserve"><value>أُرسلت الدعوة إلى {0}</value></data>
+  <data name="Staff.AddedExisting" xml:space="preserve"><value>أُضيف {0}. لديه حساب بالفعل ويمكنه تسجيل الدخول الآن.</value></data>
+  <data name="Staff.EmailFailed" xml:space="preserve"><value>أُضيف {0} لكن لم يُرسل بريد الدعوة. استخدم إعادة إرسال الدعوة.</value></data>
+  <data name="Staff.RolesSaved" xml:space="preserve"><value>حُفظت أدوار {0}</value></data>
+  <data name="Staff.Resent" xml:space="preserve"><value>أُعيد إرسال الدعوة إلى {0}</value></data>
 </root>

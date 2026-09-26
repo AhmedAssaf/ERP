@@ -1,0 +1,264 @@
+using System.Collections.Concurrent;
+using System.Globalization;
+using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Microsoft.Extensions.Options;
+
+namespace Platform.Modules.Identity.Keycloak;
+
+/// <summary>A Keycloak user as the Admin API returns it; only the fields the staff service reads.</summary>
+internal sealed record KeycloakUser(
+    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("email")] string? Email,
+    [property: JsonPropertyName("enabled")] bool Enabled);
+
+/// <summary>A user to create: the email is also the username; the locale is Keycloak's (<c>ar</c> or <c>en</c>).</summary>
+internal sealed record NewKeycloakUser(string Email, string FirstName, string LastName, string Locale);
+
+/// <summary>Keycloak answered an Admin API call with an unexpected status. The message names the call, never a secret.</summary>
+internal sealed class KeycloakAdminException(string message, HttpStatusCode? status = null) : Exception(message)
+{
+    public HttpStatusCode? Status { get; } = status;
+}
+
+/// <summary>
+/// What the Admin API client keeps between calls (singleton): the service account's access token until shortly before it
+/// expires, and organization ids by alias (Keycloak generates them on import and they never change).
+/// </summary>
+internal sealed class KeycloakAdminState(TimeProvider clock) : IDisposable
+{
+    /// <summary>A token is renewed once less than this remains, so a call never starts with a token about to expire.</summary>
+    internal static readonly TimeSpan RenewBefore = TimeSpan.FromSeconds(30);
+
+    private readonly SemaphoreSlim _tokenGate = new(1, 1);
+    private (string Value, DateTimeOffset ExpiresAt)? _token;
+
+    public ConcurrentDictionary<string, string> OrganizationIds { get; } = new(StringComparer.Ordinal);
+
+    public async Task<string> TokenAsync(HttpClient http, KeycloakAdminOptions options, CancellationToken cancellationToken)
+    {
+        if (Fresh() is { } cached)
+        {
+            return cached;
+        }
+
+        await _tokenGate.WaitAsync(cancellationToken);
+        try
+        {
+            if (Fresh() is { } again)
+            {
+                return again;
+            }
+
+            using var form = new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["grant_type"] = "client_credentials",
+                ["client_id"] = options.ClientId,
+                ["client_secret"] = options.ClientSecret ?? string.Empty,
+            });
+            using var response = await http.PostAsync(
+                new Uri($"realms/{Uri.EscapeDataString(options.Realm)}/protocol/openid-connect/token", UriKind.Relative), form, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new KeycloakAdminException($"Keycloak refused the service account's token request ({(int)response.StatusCode}).", response.StatusCode);
+            }
+
+            var token = await response.Content.ReadFromJsonAsync<TokenResponse>(cancellationToken)
+                ?? throw new KeycloakAdminException("Keycloak's token response was empty.");
+            _token = (token.AccessToken, clock.GetUtcNow().AddSeconds(token.ExpiresIn));
+            return token.AccessToken;
+        }
+        finally
+        {
+            _tokenGate.Release();
+        }
+    }
+
+    public void ForgetToken() => _token = null;
+
+    public void Dispose() => _tokenGate.Dispose();
+
+    private string? Fresh() =>
+        _token is { } token && clock.GetUtcNow() < token.ExpiresAt - RenewBefore ? token.Value : null;
+
+    private sealed record TokenResponse(
+        [property: JsonPropertyName("access_token")] string AccessToken,
+        [property: JsonPropertyName("expires_in")] int ExpiresIn);
+}
+
+/// <summary>
+/// The Keycloak Admin API for the tenant realm (plan task 9, spec D-4), as the confidential service-account client
+/// <c>waslabid-admin-api</c>. A typed <see cref="HttpClient"/>; the token and organization ids live in
+/// <see cref="KeycloakAdminState"/>. Keycloak 26.3 serves every <c>/organizations</c> endpoint, reads included, only to
+/// the realm-management role <c>manage-realm</c>; the users endpoints need <c>manage-users</c>, <c>view-users</c> and
+/// <c>query-users</c> (infra/compose/keycloak/import/README.md).
+/// </summary>
+internal sealed class KeycloakAdminClient(HttpClient http, KeycloakAdminState state, IOptions<KeycloakAdminOptions> options)
+{
+    /// <summary>How long the invitation link stays valid (F-06 as narrowed, spec 4.2).</summary>
+    public static readonly TimeSpan InvitationLifespan = TimeSpan.FromHours(72);
+
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+
+    private KeycloakAdminOptions Options => options.Value;
+
+    private string Realm => $"admin/realms/{Uri.EscapeDataString(Options.Realm)}";
+
+    /// <summary>The user whose email is <paramref name="email"/> (Keycloak compares it case-insensitively), or null.</summary>
+    public async Task<KeycloakUser?> FindUserByEmailAsync(string email, CancellationToken cancellationToken)
+    {
+        var users = await GetAsync<List<KeycloakUser>>($"{Realm}/users?email={Uri.EscapeDataString(email)}&exact=true", cancellationToken);
+        return users?.FirstOrDefault(u => string.Equals(u.Email, email, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>Creates an enabled user with an unverified email and returns its id (the <c>sub</c> of its tokens).</summary>
+    public async Task<string> CreateUserAsync(NewKeycloakUser user, CancellationToken cancellationToken)
+    {
+        var body = new
+        {
+            username = user.Email,
+            email = user.Email,
+            firstName = user.FirstName,
+            lastName = user.LastName,
+            enabled = true,
+            emailVerified = false,
+            attributes = new Dictionary<string, string[]> { ["locale"] = [user.Locale] },
+        };
+        using var response = await SendAsync(HttpMethod.Post, $"{Realm}/users", body, cancellationToken);
+        if (response.StatusCode != HttpStatusCode.Created || response.Headers.Location is not { } location)
+        {
+            throw new KeycloakAdminException($"Keycloak did not create the user ({(int)response.StatusCode}).", response.StatusCode);
+        }
+
+        return location.Segments[^1].TrimEnd('/');
+    }
+
+    /// <summary>Adds the user to the organization with <paramref name="alias"/>; a user already in it is left as is.</summary>
+    public async Task AddToOrganizationAsync(string alias, string userId, CancellationToken cancellationToken)
+    {
+        var organizationId = await OrganizationIdAsync(alias, cancellationToken)
+            ?? throw new KeycloakAdminException($"Keycloak has no organization '{alias}'.");
+        using var response = await SendAsync(HttpMethod.Post, $"{Realm}/organizations/{organizationId}/members", userId, cancellationToken);
+        if (response.StatusCode is not (HttpStatusCode.Created or HttpStatusCode.NoContent or HttpStatusCode.Conflict))
+        {
+            throw new KeycloakAdminException($"Keycloak did not add the user to organization '{alias}' ({(int)response.StatusCode}).", response.StatusCode);
+        }
+    }
+
+    /// <summary>The types of the user's credentials (<c>password</c>, <c>otp</c>, ...).</summary>
+    public async Task<IReadOnlySet<string>> CredentialTypesAsync(string userId, CancellationToken cancellationToken)
+    {
+        var credentials = await GetAsync<List<CredentialResponse>>($"{Realm}/users/{Uri.EscapeDataString(userId)}/credentials", cancellationToken);
+        return (credentials ?? []).Select(c => c.Type).ToHashSet(StringComparer.Ordinal);
+    }
+
+    /// <summary>
+    /// Has Keycloak email the user a link that runs <paramref name="actions"/> (required actions such as
+    /// <c>UPDATE_PASSWORD</c> and <c>CONFIGURE_TOTP</c>) and then offers to return to <paramref name="redirectUri"/>, which
+    /// Keycloak accepts only when it is a registered redirect URI of the invitation client. The link lives
+    /// <see cref="InvitationLifespan"/>.
+    /// </summary>
+    public async Task SendInvitationEmailAsync(
+        string userId, IReadOnlyCollection<string> actions, Uri redirectUri, CancellationToken cancellationToken)
+    {
+        var query = string.Join('&', new Dictionary<string, string>
+        {
+            ["client_id"] = Options.InvitationClientId,
+            ["redirect_uri"] = redirectUri.AbsoluteUri,
+            ["lifespan"] = ((int)InvitationLifespan.TotalSeconds).ToString(CultureInfo.InvariantCulture),
+        }.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value)}"));
+        using var response = await SendAsync(
+            HttpMethod.Put, $"{Realm}/users/{Uri.EscapeDataString(userId)}/execute-actions-email?{query}", actions, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new KeycloakAdminException($"Keycloak did not send the invitation email ({(int)response.StatusCode}).", response.StatusCode);
+        }
+    }
+
+    /// <summary>The number of members of the organization with <paramref name="alias"/>; null when there is none.</summary>
+    public async Task<int?> CountOrganizationMembersAsync(string alias, CancellationToken cancellationToken)
+    {
+        var organizationId = await OrganizationIdAsync(alias, cancellationToken);
+        return organizationId is null ? null : await GetAsync<int>($"{Realm}/organizations/{organizationId}/members/count", cancellationToken);
+    }
+
+    // Keycloak's organization search matches names and domains, not aliases, so the list is read a page at a time.
+    private async Task<string?> OrganizationIdAsync(string alias, CancellationToken cancellationToken)
+    {
+        if (state.OrganizationIds.TryGetValue(alias, out var known))
+        {
+            return known;
+        }
+
+        const int page = 100;
+        for (var first = 0; ; first += page)
+        {
+            var organizations = await GetAsync<List<OrganizationResponse>>(
+                $"{Realm}/organizations?briefRepresentation=true&first={first}&max={page}", cancellationToken) ?? [];
+            foreach (var organization in organizations)
+            {
+                state.OrganizationIds[organization.Alias] = organization.Id;
+            }
+
+            if (state.OrganizationIds.TryGetValue(alias, out var found))
+            {
+                return found;
+            }
+
+            if (organizations.Count < page)
+            {
+                return null;
+            }
+        }
+    }
+
+    private async Task<T?> GetAsync<T>(string path, CancellationToken cancellationToken)
+    {
+        using var response = await SendAsync(HttpMethod.Get, path, null, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new KeycloakAdminException($"Keycloak refused GET {PathOnly(path)} ({(int)response.StatusCode}).", response.StatusCode);
+        }
+
+        return await response.Content.ReadFromJsonAsync<T>(Json, cancellationToken);
+    }
+
+    // One retry with a new token when Keycloak says the cached one is no longer valid (a restart, say).
+    private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, object? body, CancellationToken cancellationToken)
+    {
+        if (!Options.IsConfigured)
+        {
+            throw new InvalidOperationException("The Keycloak Admin API is not configured (settings KeycloakAdmin:BaseUrl and KeycloakAdmin:ClientSecret).");
+        }
+
+        for (var attempt = 0; ; attempt++)
+        {
+            using var request = new HttpRequestMessage(method, new Uri(path, UriKind.Relative));
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await state.TokenAsync(http, Options, cancellationToken));
+            if (body is not null)
+            {
+                request.Content = JsonContent.Create(body, body.GetType(), options: Json);
+            }
+
+            var response = await http.SendAsync(request, cancellationToken);
+            if (response.StatusCode != HttpStatusCode.Unauthorized || attempt > 0)
+            {
+                return response;
+            }
+
+            response.Dispose();
+            state.ForgetToken();
+        }
+    }
+
+    private static string PathOnly(string path) => path.Split('?')[0];
+
+    private sealed record CredentialResponse([property: JsonPropertyName("type")] string Type);
+
+    private sealed record OrganizationResponse(
+        [property: JsonPropertyName("id")] string Id,
+        [property: JsonPropertyName("alias")] string Alias);
+}

@@ -4,8 +4,8 @@ using Platform.Modules.Identity.Contracts;
 namespace Platform.Modules.Identity;
 
 /// <summary>
-/// Where member counts come from, uncached: the placeholder today, the Keycloak Admin API client from plan task 9, which
-/// replaces <see cref="UnavailableOrganizationMembers"/> as this service. Null means unknown.
+/// Where member counts come from, uncached: the Keycloak Admin API (<see cref="Keycloak.KeycloakOrganizationMemberSource"/>)
+/// when the host wires it, otherwise <see cref="UnavailableOrganizationMembers"/>. Null means unknown.
 /// </summary>
 internal interface IOrganizationMemberSource
 {

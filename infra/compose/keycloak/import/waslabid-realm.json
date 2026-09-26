@@ -3,10 +3,77 @@
   "displayName": "WaslaBid",
   "enabled": true,
   "sslRequired": "external",
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "failureFactor": 3,
+  "waitIncrementSeconds": 900,
+  "maxFailureWaitSeconds": 900,
+  "maxDeltaTimeSeconds": 43200,
+  "quickLoginCheckMilliSeconds": 1000,
+  "minimumQuickLoginWaitSeconds": 60,
   "organizationsEnabled": true,
   "internationalizationEnabled": true,
   "supportedLocales": ["ar", "en"],
   "defaultLocale": "ar",
+  "otpPolicyType": "totp",
+  "otpPolicyAlgorithm": "HmacSHA1",
+  "otpPolicyDigits": 6,
+  "otpPolicyPeriod": 30,
+  "otpPolicyLookAheadWindow": 1,
+  "browserFlow": "tenant browser",
+  "smtpServer": {
+    "host": "mailpit",
+    "port": "1025",
+    "from": "no-reply@waslabid.test",
+    "fromDisplayName": "WaslaBid",
+    "auth": "false",
+    "ssl": "false",
+    "starttls": "false"
+  },
+  "authenticationFlows": [
+    {
+      "alias": "tenant browser",
+      "description": "Keycloak's browser flow with the OTP form required for every tenant user (F-06)",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        { "authenticator": "auth-cookie", "requirement": "ALTERNATIVE", "priority": 10, "authenticatorFlow": false, "userSetupAllowed": false },
+        { "authenticator": "identity-provider-redirector", "requirement": "ALTERNATIVE", "priority": 25, "authenticatorFlow": false, "userSetupAllowed": false },
+        { "flowAlias": "tenant browser organization", "requirement": "ALTERNATIVE", "priority": 26, "authenticatorFlow": true, "userSetupAllowed": false },
+        { "flowAlias": "tenant browser forms", "requirement": "ALTERNATIVE", "priority": 30, "authenticatorFlow": true, "userSetupAllowed": false }
+      ]
+    },
+    {
+      "alias": "tenant browser organization",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        { "flowAlias": "tenant browser conditional organization", "requirement": "CONDITIONAL", "priority": 10, "authenticatorFlow": true, "userSetupAllowed": false }
+      ]
+    },
+    {
+      "alias": "tenant browser conditional organization",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        { "authenticator": "conditional-user-configured", "requirement": "REQUIRED", "priority": 10, "authenticatorFlow": false, "userSetupAllowed": false },
+        { "authenticator": "organization", "requirement": "ALTERNATIVE", "priority": 20, "authenticatorFlow": false, "userSetupAllowed": false }
+      ]
+    },
+    {
+      "alias": "tenant browser forms",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        { "authenticator": "auth-username-password-form", "requirement": "REQUIRED", "priority": 10, "authenticatorFlow": false, "userSetupAllowed": false },
+        { "authenticator": "auth-otp-form", "requirement": "REQUIRED", "priority": 20, "authenticatorFlow": false, "userSetupAllowed": false }
+      ]
+    }
+  ],
   "clients": [
     {
       "clientId": "waslabid-web",
@@ -23,7 +90,11 @@
         "https://acme.localhost:8443/signin-oidc",
         "https://beta.localhost:8443/signin-oidc",
         "https://acme.localhost/signin-oidc",
-        "https://beta.localhost/signin-oidc"
+        "https://beta.localhost/signin-oidc",
+        "https://acme.localhost:8443/",
+        "https://beta.localhost:8443/",
+        "https://acme.localhost/",
+        "https://beta.localhost/"
       ],
       "webOrigins": ["+"],
       "attributes": {
@@ -43,6 +114,19 @@
       "directAccessGrantsEnabled": true,
       "defaultClientScopes": ["basic", "profile", "email", "roles", "web-origins", "acr"],
       "optionalClientScopes": ["organization"]
+    },
+    {
+      "clientId": "waslabid-admin-api",
+      "name": "WaslaBid Admin API: staff invitations and organization membership (service account only)",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${WASLABID_ADMIN_API_SECRET}",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "defaultClientScopes": ["basic"]
     }
   ],
   "users": [
@@ -54,6 +138,7 @@
       "firstName": "Acme",
       "lastName": "Admin",
       "attributes": { "locale": ["ar"] },
+      "requiredActions": ["CONFIGURE_TOTP"],
       "credentials": [{ "type": "password", "value": "${WASLABID_DEV_USER_PASSWORD}", "temporary": false }]
     },
     {
@@ -64,7 +149,14 @@
       "firstName": "Beta",
       "lastName": "Admin",
       "attributes": { "locale": ["en"] },
+      "requiredActions": ["CONFIGURE_TOTP"],
       "credentials": [{ "type": "password", "value": "${WASLABID_DEV_USER_PASSWORD}", "temporary": false }]
+    },
+    {
+      "username": "service-account-waslabid-admin-api",
+      "enabled": true,
+      "serviceAccountClientId": "waslabid-admin-api",
+      "clientRoles": { "realm-management": ["manage-users", "view-users", "query-users", "manage-realm"] }
     }
   ],
   "organizations": [

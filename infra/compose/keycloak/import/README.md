@@ -8,9 +8,40 @@ Realm `waslabid` with Organizations: clients `waslabid-web` (code flow with PKCE
 (password grant, tests only), organizations `acme` and `beta` with one admin user each. `waslabid-web` requires pushed
 authorization requests (`require.pushed.authorization.requests`; the app already uses PAR, so a front-channel request
 without it is refused) and accepts exactly the signed-out callbacks `https://{acme,beta}.localhost[:8443]/signout-callback-oidc`
-as post-logout redirect URIs. The client secret and the
+as post-logout redirect URIs. The client secrets and the
 users' password are `${...}` placeholders filled from `infra/compose/.env` at import. Keycloak imports a realm only
 when it does not exist yet; after editing this file, delete the realm in the admin console and restart Keycloak.
+
+### Staff invitations, TOTP and lockout (F-06, plan task 9, spec D-4 and D-5)
+
+| Setting | Value | Why |
+|---|---|---|
+| Brute-force detection | on; temporary lockout (`permanentLockout` false) after `failureFactor` 3, wait 900 s (`waitIncrementSeconds` and `maxFailureWaitSeconds`), failures forgotten after 12 h; Keycloak's default quick-login check kept (two failures under 1 s apart lock for 60 s) | F-06: three wrong TOTP codes lock the account for fifteen minutes. Wrong passwords count too. |
+| Browser flow | `tenant browser`: Keycloak 26.3's built-in browser flow (cookie, identity provider redirector, the organization identity-first step) with the forms sub-flow changed to Username Password Form REQUIRED plus OTP Form REQUIRED | every tenant user needs TOTP at every login; a user without an OTP credential is sent to `CONFIGURE_TOTP` by that step. OTP policy TOTP, SHA-1, 6 digits, 30 s. |
+| Required actions | not defined in the file | `CONFIGURE_TOTP` and `UPDATE_PASSWORD` are enabled by default in 26.3; an import that defines `requiredActions` replaces the built-in list. `acme.admin` and `beta.admin` carry `CONFIGURE_TOTP` as a user required action, so they enrol on their first login. |
+| SMTP | `mailpit:1025`, from `no-reply@waslabid.test` (display name WaslaBid), no auth, no TLS | Compose's Mailpit catches the invitation emails; `mailpit` resolves on the Compose network. |
+| `waslabid-admin-api` | confidential client, service account only (no browser or password flows), secret `${WASLABID_ADMIN_API_SECRET}` | the web host's Keycloak Admin API client (`KeycloakAdmin:*` settings). |
+| Service-account roles | realm-management `manage-users`, `view-users`, `query-users`, `manage-realm` | Keycloak 26.3 serves every `/admin/realms/{realm}/organizations` endpoint, reads included (organization search, `members/count`, adding a member), only to `manage-realm`; `view-realm` alone gets 403 (checked on 26.3). The users endpoints (find by email, create, credentials, `execute-actions-email`) need the other three. |
+| `waslabid-web` redirect URIs | also `https://{acme,beta}.localhost[:8443]/` exactly | the invitation link (`execute-actions-email`, lifespan 72 h, `client_id=waslabid-web`) returns to the tenant's home; Keycloak refuses a `redirect_uri` that is not registered on the client ("Invalid redirect uri"). |
+
+`manage-realm` is broader than the task needs: it also lets the service account change realm settings (flows, brute
+force, SMTP). There is no narrower role for organizations in 26.3 (fine-grained admin permissions v2 cover users,
+clients, groups and roles, not organizations). The secret is therefore a production secret like the web client's;
+revisit when Keycloak adds an organization-scoped role.
+
+An invitation creates the user (username and email = the invited address, email not yet verified, `locale` from the
+tenant's default culture) or finds the existing one, adds them to the tenant's organization, and sends the setup link
+for whatever the account still lacks (`UPDATE_PASSWORD` without a password, `CONFIGURE_TOTP` without an OTP
+credential). Keycloak's organization search matches names and domains, not aliases, so the client lists organizations
+and caches their ids by alias.
+
+Proven by `tests/Platform.IntegrationTests/Identity/StaffInvitationTests.cs` against a test copy of this file (the
+development admins lose their required action there so the `waslabid-tests` password grant works, and two acme users
+get a seeded OTP credential), with Keycloak and Mailpit on one Docker network under the alias `mailpit`:
+`Three_wrong_totp_codes_lock_the_account` drives the browser flow from the app's own challenge (the password grant never
+reaches the browser flow's OTP form), spaces the attempts more than a second apart so only `failureFactor` can lock,
+and checks Keycloak's attack-detection status after each code. The lockout is not yet copied into the tenant's audit;
+that is W-28.
 
 ## waslabid-platform-realm.json
 

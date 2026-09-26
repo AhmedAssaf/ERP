@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Npgsql;
 using Platform.Modules.Identity.Contracts;
+using Platform.Modules.Identity.Keycloak;
 using Platform.Modules.Identity.Members;
 using Platform.Shared.Data;
 
@@ -61,6 +64,34 @@ public static class IdentityModule
         services.AddScoped<IAuthorizationHandler, TenantRoleHandler>();
         services.TryAddSingleton<IOrganizationMemberSource, UnavailableOrganizationMembers>();
         services.TryAddSingleton<IOrganizationMembers, CachingOrganizationMembers>();
+        return services;
+    }
+
+    /// <summary>
+    /// Registers the Keycloak Admin API client (settings <c>KeycloakAdmin:*</c>, plan task 9, spec D-4), the staff service
+    /// that invites through it (<see cref="IStaffService"/>, F-06), and the client as the source of organization member
+    /// counts in place of the placeholder. Call after <see cref="AddIdentityModule"/>. Without <c>KeycloakAdmin:BaseUrl</c>
+    /// and <c>KeycloakAdmin:ClientSecret</c> counts stay unknown and invitations fail with a logged error.
+    /// </summary>
+    public static IServiceCollection AddKeycloakAdmin(this IServiceCollection services, IConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configuration);
+        services.TryAddSingleton(TimeProvider.System);
+        services.AddOptions<KeycloakAdminOptions>().Bind(configuration.GetSection(KeycloakAdminOptions.Section));
+        services.TryAddSingleton<KeycloakAdminState>();
+        services.AddHttpClient<KeycloakAdminClient>((sp, http) =>
+        {
+            var baseUrl = sp.GetRequiredService<IOptions<KeycloakAdminOptions>>().Value.BaseUrl;
+            if (!string.IsNullOrWhiteSpace(baseUrl))
+            {
+                http.BaseAddress = new Uri(baseUrl.EndsWith('/') ? baseUrl : baseUrl + "/");
+            }
+
+            http.Timeout = TimeSpan.FromSeconds(15);
+        });
+        services.Replace(ServiceDescriptor.Singleton<IOrganizationMemberSource, KeycloakOrganizationMemberSource>());
+        services.AddScoped<IStaffService, StaffService>();
         return services;
     }
 
