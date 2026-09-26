@@ -1,4 +1,5 @@
 using Npgsql;
+using Platform.Modules.Audit;
 using Platform.Shared;
 
 namespace Platform.Migrator;
@@ -13,6 +14,7 @@ public static class MigrationRunner
 
         var applied = new List<string>();
         applied.AddRange(Named("platform", await SharedModule.MigrateAsync(connection, cancellationToken)));
+        applied.AddRange(Named("audit", await AuditModule.MigrateAsync(connection, cancellationToken)));
         return applied;
     }
 
