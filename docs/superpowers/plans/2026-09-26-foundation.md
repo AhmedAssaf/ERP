@@ -4897,7 +4897,8 @@ internal sealed class WorkflowService(
                 ["definition"] = Format(definition.Id),
                 ["definitionVersion"] = Format(definition.Version),
             }),
-            cancellationToken);
+            // the change is committed; do not let a cancelled request skip its audit row
+            CancellationToken.None);
         return Result.Success(ToStatus(workflow));
     }
 
@@ -4972,7 +4973,8 @@ internal sealed class WorkflowService(
                 ["decision"] = Name(decision),
                 ["stepState"] = Name(step.Status),
             }),
-            cancellationToken);
+            // the change is committed; do not let a cancelled request skip its audit row
+            CancellationToken.None);
         return Result.Success(ToStatus(workflow));
     }
 
@@ -5019,7 +5021,8 @@ internal sealed class WorkflowService(
             {
                 ["stage"] = Name(stage),
             }),
-            cancellationToken);
+            // the change is committed; do not let a cancelled request skip its audit row
+            CancellationToken.None);
         return Result.Success(ToStatus(workflow));
     }
 

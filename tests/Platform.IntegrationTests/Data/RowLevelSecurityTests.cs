@@ -62,9 +62,71 @@ public sealed class RowLevelSecurityTests(DatabaseFixture db) : IAsyncLifetime
         var count = await context.Events.IgnoreQueryFilters().CountAsync(Ct);
         count.ShouldBe(0);
 
-        await Should.ThrowAsync<PostgresException>(() => context.Database.ExecuteSqlRawAsync(
+        var rejected = await Should.ThrowAsync<PostgresException>(() => context.Database.ExecuteSqlRawAsync(
             "insert into audit.events (id, tenant_id, action, subject_type) values (gen_random_uuid(), '0f0e0d0c-0000-7000-8000-00000000ac01', 'x', 'y')",
             Ct));
+        rejected.SqlState.ShouldBe(PostgresErrorCodes.InsufficientPrivilege);
+    }
+
+    [Fact]
+    public async Task An_insert_carrying_another_tenants_id_is_rejected_by_the_check_clause()
+    {
+        await using var scope = _host.ScopeFor(TestTenants.Acme);
+        await using var context = await CreateContextAsync(scope);
+
+        var rejected = await Should.ThrowAsync<PostgresException>(() => context.Database.ExecuteSqlRawAsync(
+            "insert into audit.events (id, tenant_id, action, subject_type) values (gen_random_uuid(), {0}, 'x', 'y')",
+            [TestTenants.Beta.TenantId],
+            Ct));
+
+        rejected.SqlState.ShouldBe(PostgresErrorCodes.InsufficientPrivilege);
+    }
+
+    [Theory]
+    [InlineData("update audit.events set action = 'x'")]
+    [InlineData("delete from audit.events")]
+    public async Task Audit_events_are_append_only_for_the_app_role(string sql)
+    {
+        await using var scope = _host.ScopeFor(TestTenants.Acme);
+        await using var context = await CreateContextAsync(scope);
+
+        var rejected = await Should.ThrowAsync<PostgresException>(() => context.Database.ExecuteSqlRawAsync(sql, Ct));
+
+        rejected.SqlState.ShouldBe(PostgresErrorCodes.InsufficientPrivilege);
+    }
+
+    [Fact]
+    public async Task A_role_that_bypasses_row_level_security_is_refused_on_first_open()
+    {
+        await using var ownerHost = new ModuleHost(db.OwnerConnectionString);
+        await using var scope = ownerHost.ScopeFor(TestTenants.Acme);
+        await using var context = await CreateContextAsync(scope);
+
+        var refused = await Should.ThrowAsync<InvalidOperationException>(() => context.Events.CountAsync(Ct));
+
+        refused.Message.ShouldStartWith("The application connection uses a PostgreSQL role that bypasses row-level security");
+    }
+
+    [Fact]
+    public async Task A_connection_returned_to_the_pool_carries_no_tenant_to_a_raw_connection()
+    {
+        var singleConnection = new NpgsqlConnectionStringBuilder(db.AppConnectionString) { MaxPoolSize = 1 }.ConnectionString;
+        await using var host = new ModuleHost(singleConnection);
+
+        int acmeBackend;
+        await using (var acme = host.ScopeFor(TestTenants.Acme))
+        {
+            await using var context = await CreateContextAsync(acme);
+            acmeBackend = await context.Database.SqlQueryRaw<int>("select pg_backend_pid() as \"Value\"").SingleAsync(Ct);
+            (await context.Events.CountAsync(Ct)).ShouldBeGreaterThan(0);
+        }
+
+        // A plain Npgsql connection on the same connection string shares the pool, and no interceptor runs on it.
+        await using var raw = new NpgsqlConnection(singleConnection);
+        await raw.OpenAsync(Ct);
+        (await ScalarAsync<int>(raw, "select pg_backend_pid()")).ShouldBe(acmeBackend);
+        (await ScalarAsync<string>(raw, "select coalesce(current_setting('app.tenant_id', true), '')")).ShouldBe(string.Empty);
+        (await ScalarAsync<long>(raw, "select count(*) from audit.events")).ShouldBe(0);
     }
 
     [Fact]
@@ -89,6 +151,12 @@ public sealed class RowLevelSecurityTests(DatabaseFixture db) : IAsyncLifetime
 
         betaBackend.ShouldBe(acmeBackend);
         tenants.ShouldBe([TestTenants.Beta.TenantId]);
+    }
+
+    private static async Task<T> ScalarAsync<T>(NpgsqlConnection connection, string sql)
+    {
+        await using var command = new NpgsqlCommand(sql, connection);
+        return (T)(await command.ExecuteScalarAsync(Ct))!;
     }
 
     private static Task<AuditDbContext> CreateContextAsync(AsyncServiceScope scope) =>
