@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Platform.Modules.Identity;
 using Platform.Modules.Identity.Contracts;
+using Platform.Web.Account;
 
 namespace Platform.Web.PlatformHost;
 
@@ -23,6 +24,10 @@ internal static class PlatformAuthentication
     public const string SignedOutCallbackPath = "/signout-callback-platform";
     public const string RemoteSignOutPath = "/signout-platform";
 
+    /// <summary>The console's sign-out (POST with an antiforgery token); the realm's end-session returns to <see cref="HomePath"/>.</summary>
+    public const string SignOutPath = "/platform/sign-out";
+    public const string HomePath = "/platform";
+
     /// <summary>PlatformAdmin: the Identity module's requirements, authenticated with the platform cookie only.</summary>
     public static AuthorizationPolicy AdminPolicy { get; } = new AuthorizationPolicyBuilder(CookieScheme)
         .Combine(IdentityModule.PlatformAdminRequirements)
@@ -32,12 +37,13 @@ internal static class PlatformAuthentication
         builder
             .AddCookie(CookieScheme, options =>
             {
-                // Same hardening as the tenant cookie: Secure, HttpOnly, fixed 30-minute lifetime.
+                // Same hardening as the tenant cookie (Secure, HttpOnly, no sliding) with half its lifetime: a console
+                // session reaches every tenant, so it lasts a fixed 15 minutes and the admin signs in again with OTP.
                 options.Cookie.Name = CookieName;
                 options.Cookie.SameSite = SameSiteMode.Lax;
                 options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
                 options.Cookie.HttpOnly = true;
-                options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
+                options.ExpireTimeSpan = TimeSpan.FromMinutes(15);
                 options.SlidingExpiration = false;
                 options.ForwardChallenge = OidcScheme;
                 options.Events.OnRedirectToAccessDenied = context =>
@@ -72,5 +78,6 @@ internal static class PlatformAuthentication
                     context.ProtocolMessage.AcrValues = IdentityModule.PlatformMinimumAcr.ToString(CultureInfo.InvariantCulture);
                     return Task.CompletedTask;
                 };
+                options.Events.OnRedirectToIdentityProviderForSignOut = SignOutEndpoints.NameClientOnEndSession;
             });
 }

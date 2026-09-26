@@ -45,6 +45,30 @@ internal sealed partial class KeycloakBrowser : IDisposable
         return await FollowAsync(await SendAsync(HttpMethod.Post, FormAction(tag), content, cancellationToken), cancellationToken);
     }
 
+    /// <summary>Opens any Keycloak URL (a logout, say) and follows it to the next page or the hand-back.</summary>
+    public async Task<KeycloakStep> NavigateAsync(Uri url, CancellationToken cancellationToken) =>
+        await FollowAsync(await SendAsync(HttpMethod.Get, url, null, cancellationToken), cancellationToken);
+
+    /// <summary>
+    /// Posts the page's first form with its hidden fields and its first named submit button, as a click on that button
+    /// would (Keycloak's logout confirmation has no form id).
+    /// </summary>
+    public async Task<KeycloakStep> SubmitFirstFormAsync(string page, CancellationToken cancellationToken)
+    {
+        var tag = FormTags().Match(page) is { Success: true } match ? match.Value : throw new InvalidOperationException("The page has no form.");
+        var fields = HiddenInputs().Matches(page)
+            .Select(m => (Name: Attribute(m.Value, "name"), Value: Attribute(m.Value, "value")))
+            .Where(f => f.Name is not null)
+            .ToDictionary(f => f.Name!, f => f.Value ?? string.Empty, StringComparer.Ordinal);
+        if (SubmitInputs().Match(page) is { Success: true } submit && Attribute(submit.Value, "name") is { } name)
+        {
+            fields[name] = Attribute(submit.Value, "value") ?? string.Empty;
+        }
+
+        using var content = new FormUrlEncodedContent(fields);
+        return await FollowAsync(await SendAsync(HttpMethod.Post, FormAction(tag), content, cancellationToken), cancellationToken);
+    }
+
     public static bool HasForm(string page, string formId) => FormTag(page, formId) is not null;
 
     /// <summary>The page's template and message, for an assertion that failed on an unexpected Keycloak page.</summary>
@@ -148,11 +172,12 @@ internal sealed partial class KeycloakBrowser : IDisposable
         return response;
     }
 
-    private static Uri FormAction(string formTag)
+    // Login forms carry an absolute action; the logout confirmation's is relative to Keycloak's root.
+    private Uri FormAction(string formTag)
     {
         var action = ActionAttribute().Match(formTag);
         return action.Success
-            ? new Uri(WebUtility.HtmlDecode(action.Groups[1].Value))
+            ? new Uri(_keycloak, WebUtility.HtmlDecode(action.Groups[1].Value))
             : throw new InvalidOperationException("The form has no action.");
     }
 
@@ -176,6 +201,9 @@ internal sealed partial class KeycloakBrowser : IDisposable
 
     [GeneratedRegex("<input\\b[^>]*type=\"hidden\"[^>]*>", RegexOptions.IgnoreCase)]
     private static partial Regex HiddenInputs();
+
+    [GeneratedRegex("<(?:input|button)\\b[^>]*type=\"submit\"[^>]*>", RegexOptions.IgnoreCase)]
+    private static partial Regex SubmitInputs();
 
     [GeneratedRegex("\\baction=\"([^\"]*)\"", RegexOptions.IgnoreCase)]
     private static partial Regex ActionAttribute();

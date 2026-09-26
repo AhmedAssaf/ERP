@@ -1,5 +1,8 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Microsoft.IdentityModel.Tokens;
 using OtpNet;
 using Testcontainers.Keycloak;
 
@@ -9,8 +12,10 @@ namespace Platform.IntegrationTests.Infrastructure;
 /// Keycloak 26.3 with both realms (plan task 6): the tenant realm from the repository as it is, and the platform realm
 /// from the repository with test-only additions written to a temporary file. The additions are an OTP credential with a
 /// known secret for <c>platform.admin</c> (its CONFIGURE_TOTP required action removed, since the credential exists), a
-/// second platform admin with a password only, and a tests-only password-grant client. None of them is in the
-/// repository file: a password grant on the platform realm would skip the OTP form.
+/// second platform admin with a password only, a third user the brute-force test locks out, a tests-only password-grant
+/// client, and a public copy of <c>waslabid-platform-web</c> without the PAR requirement so a test can open the realm's
+/// authorization endpoint directly. None of them is in the repository file: a password grant on the platform realm would
+/// skip the OTP form. The realm's own settings (brute force, password policy, flows, acr) are kept as they are.
 /// </summary>
 public sealed class PlatformKeycloakFixture : IAsyncLifetime
 {
@@ -19,6 +24,19 @@ public sealed class PlatformKeycloakFixture : IAsyncLifetime
     public const string UserPassword = "Test-Passw0rd-1";
     public const string OtpAdmin = "platform.admin";
     public const string PasswordOnlyAdmin = "platform.password-only";
+    public const string LockoutUser = "platform.lockout";
+
+    /// <summary>A second OTP admin with the same secret, so a test can sign in while another uses the same code.</summary>
+    public const string SignOutAdmin = "platform.sign-out";
+
+    /// <summary>Public copy of <c>waslabid-platform-web</c> (same attributes, mappers and scopes) without PAR or a secret.</summary>
+    public const string ProbeClientId = "waslabid-platform-probe";
+
+    /// <summary>The probe client without <c>minimum.acr.value</c>: the control that shows what the attribute changes.</summary>
+    public const string NoMinimumAcrProbeClientId = "waslabid-platform-probe-no-min-acr";
+
+    /// <summary>Where the probe client's login hands back; nothing listens there, the browser helper stops at it.</summary>
+    public const string ProbeRedirectUri = "https://platform.localhost/signin-platform";
     private const string TestsClientId = "waslabid-platform-tests";
 
     // Keycloak's TOTP key is the UTF-8 bytes of the stored secret value, not its base32 decoding.
@@ -66,7 +84,7 @@ public sealed class PlatformKeycloakFixture : IAsyncLifetime
         Directory.Delete(_variantDirectory, recursive: true);
     }
 
-    /// <summary>The current TOTP code for <see cref="OtpAdmin"/>.</summary>
+    /// <summary>The current TOTP code for <see cref="OtpAdmin"/> and <see cref="SignOutAdmin"/>.</summary>
     public static string CurrentOtp() => new Totp(System.Text.Encoding.UTF8.GetBytes(OtpSecret)).ComputeTotp();
 
     /// <summary>
@@ -90,6 +108,26 @@ public sealed class PlatformKeycloakFixture : IAsyncLifetime
         return json.RootElement.GetProperty("id_token").GetString()!;
     }
 
+    /// <summary>
+    /// A plain authorization request for the probe client with PKCE and no <c>acr_values</c>, so only the client's
+    /// <c>minimum.acr.value</c> can ask for the second factor. The code is never exchanged.
+    /// </summary>
+    public Uri ProbeAuthorizationUrl(string clientId = ProbeClientId)
+    {
+        var challenge = Base64UrlEncoder.Encode(SHA256.HashData(Encoding.ASCII.GetBytes("probe-verifier-" + Guid.NewGuid().ToString("N"))));
+        var query = string.Join('&', new Dictionary<string, string>
+        {
+            ["client_id"] = clientId,
+            ["response_type"] = "code",
+            ["scope"] = "openid",
+            ["redirect_uri"] = ProbeRedirectUri,
+            ["state"] = Guid.NewGuid().ToString("N"),
+            ["code_challenge"] = challenge,
+            ["code_challenge_method"] = "S256",
+        }.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value)}"));
+        return new Uri($"{PlatformAuthority}/protocol/openid-connect/auth?{query}");
+    }
+
     private string RealmUrl(string realm) => new Uri(new Uri(BaseAddress), $"realms/{realm}").ToString().TrimEnd('/');
 
     private static string BuildTestVariant(string repositoryRealm)
@@ -105,6 +143,12 @@ public sealed class PlatformKeycloakFixture : IAsyncLifetime
             ["secretData"] = JsonSerializer.Serialize(new { value = OtpSecret }),
             ["credentialData"] = JsonSerializer.Serialize(new { subType = "totp", digits = 6, period = 30, algorithm = "HmacSHA1", counter = 0 }),
         });
+
+        // Keycloak refuses a code already used on the same credential, so this admin has a credential of its own.
+        var signOutAdmin = admin.DeepClone().AsObject();
+        signOutAdmin["username"] = SignOutAdmin;
+        signOutAdmin["email"] = "sign-out@waslabid.test";
+        users.Add(signOutAdmin);
 
         users.Add(new JsonObject
         {
@@ -123,7 +167,36 @@ public sealed class PlatformKeycloakFixture : IAsyncLifetime
             }),
         });
 
+        users.Add(new JsonObject
+        {
+            ["username"] = LockoutUser,
+            ["enabled"] = true,
+            ["email"] = "lockout@waslabid.test",
+            ["emailVerified"] = true,
+            ["firstName"] = "Lockout",
+            ["lastName"] = "Probe",
+            ["realmRoles"] = new JsonArray("platform-admin"),
+            ["credentials"] = new JsonArray(new JsonObject
+            {
+                ["type"] = "password",
+                ["value"] = "${WASLABID_DEV_USER_PASSWORD}",
+                ["temporary"] = false,
+            }),
+        });
+
         var webClient = realm["clients"]!.AsArray().Single(c => (string?)c!["clientId"] == "waslabid-platform-web")!;
+        var probeClient = webClient.DeepClone().AsObject();
+        probeClient["clientId"] = ProbeClientId;
+        probeClient["name"] = "Automated tests only; the web client without PAR; never in the repository realm";
+        probeClient["publicClient"] = true;
+        probeClient.Remove("secret");
+        probeClient["attributes"]!.AsObject().Remove("require.pushed.authorization.requests");
+        var noMinimumAcr = probeClient.DeepClone().AsObject();
+        noMinimumAcr["clientId"] = NoMinimumAcrProbeClientId;
+        noMinimumAcr["attributes"]!.AsObject().Remove("minimum.acr.value");
+        realm["clients"]!.AsArray().Add(probeClient);
+        realm["clients"]!.AsArray().Add(noMinimumAcr);
+
         var testsClient = new JsonObject
         {
             ["clientId"] = TestsClientId,

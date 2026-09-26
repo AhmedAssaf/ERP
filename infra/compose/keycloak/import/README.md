@@ -5,7 +5,10 @@ Files in this folder are imported by Keycloak on start (`start-dev --import-real
 ## waslabid-realm.json
 
 Realm `waslabid` with Organizations: clients `waslabid-web` (code flow with PKCE, confidential) and `waslabid-tests`
-(password grant, tests only), organizations `acme` and `beta` with one admin user each. The client secret and the
+(password grant, tests only), organizations `acme` and `beta` with one admin user each. `waslabid-web` requires pushed
+authorization requests (`require.pushed.authorization.requests`; the app already uses PAR, so a front-channel request
+without it is refused) and accepts exactly the signed-out callbacks `https://{acme,beta}.localhost[:8443]/signout-callback-oidc`
+as post-logout redirect URIs. The client secret and the
 users' password are `${...}` placeholders filled from `infra/compose/.env` at import. Keycloak imports a realm only
 when it does not exist yet; after editing this file, delete the realm in the admin console and restart Keycloak.
 
@@ -36,3 +39,34 @@ flows), so no password-grant client exists in this realm; the tests seed an OTP 
 realm and drive the browser flow. Defining a `requiredActions` array in the import replaces Keycloak's built-in list
 (only the listed actions remain), so this file sets the required action on the user instead. The `ByHost`/host rules
 that keep this realm's cookie off tenant hosts are in `src/Platform.Web/PlatformHost/`.
+
+### Hardening (review of task 6)
+
+| Setting | Value | Why |
+|---|---|---|
+| Brute-force detection | on; temporary lockout (`permanentLockout` false) after `failureFactor` 5, wait 60 s growing to at most 900 s, failures forgotten after 12 h; two failures under 1 s apart lock for at least 60 s | a console account reaches every tenant; permanent lockout would let anyone lock out the operators |
+| `passwordPolicy` | `length(12) and notUsername and passwordHistory(5)` | staff passwords; history stops rotating back to an old one |
+| `sslRequired` | `external` (unchanged) | local development talks to Keycloak over plain http on `localhost`, which `external` allows; every non-private address still needs TLS. A production realm should use `all`; that realm does not exist yet. |
+| PAR | `require.pushed.authorization.requests` on `waslabid-platform-web` | the app always pushes; a hand-built front-channel request (for example one that leaves out `acr_values`) is refused |
+| Post-logout URIs | exactly `https://platform.localhost[:8443]/signout-callback-platform` | no wildcard: the realm returns only to the platform scheme's signed-out callback |
+
+Keycloak does enforce the password policy on imported credentials (checked on 26.3: a 5-character
+`WASLABID_DEV_USER_PASSWORD` made the import fail with `invalidPasswordMinLengthMessage` and Keycloak did not start), so
+the dev password in `.env` must be at least 12 characters and differ from the user names (`.env.example` says so; the
+tests use a 15-character one). The tenant realm has no policy yet; its users are tenants' own staff (F-03).
+
+Proven by `PlatformSignInTests`: five wrong passwords then the right one leave the login form in place
+(`Five_wrong_passwords_lock_the_account_so_the_right_one_is_refused`); a request without `acr_values` still reaches the
+OTP form because of `minimum.acr.value` alone, shown against a control client without the attribute that completes on
+the password (`Without_acr_values_the_clients_minimum_acr_alone_asks_for_the_code`; both use a public copy of
+`waslabid-platform-web` without PAR that exists only in the test realm). The tests import the repository realm as it
+is, plus test users and clients.
+
+### Sign-out
+
+`POST /platform/sign-out` (platform host) and `POST /account/sign-out` (tenant hosts), each with an antiforgery token,
+delete that host's cookie only and redirect to the realm's end-session endpoint with `client_id` and
+`post_logout_redirect_uri` (the handlers keep no id token, so there is no `id_token_hint`). With a live Keycloak session
+Keycloak asks the user to confirm the sign-out, then returns to the signed-out callback, and the app sends the browser
+to `/platform` or `/`. After editing either realm file, delete the realm in the admin console and restart Keycloak so
+the new settings are imported.

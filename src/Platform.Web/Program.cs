@@ -13,6 +13,7 @@ using Platform.Modules.Workflow;
 using Platform.Shared;
 using Platform.Shared.Jobs;
 using Platform.UI;
+using Platform.Web.Account;
 using Platform.Web.Components;
 using Platform.Web.Localization;
 using Platform.Web.PlatformHost;
@@ -92,6 +93,7 @@ builder.Services
         options.Scope.Add("profile");
         options.Scope.Add("organization");
         options.TokenValidationParameters.NameClaimType = IdentityClaims.Username;
+        options.Events.OnRedirectToIdentityProviderForSignOut = SignOutEndpoints.NameClientOnEndSession;
     })
     .AddPlatformAuthentication(builder.Configuration);
 builder.Services.AddAuthorization(options =>
@@ -152,10 +154,12 @@ if (!app.Environment.IsDevelopment())
 app.UseAuthentication();
 app.UseRequestLocalization();
 app.UseAuthorization();
+app.UseMiddleware<PlatformAdminEverywhereMiddleware>();
 app.UseAntiforgery();
 app.MapStaticAssets().AllowAnonymous();
 app.MapHealthChecks("/health").AllowAnonymous();
 app.MapCultureEndpoints();
+app.MapSignOutEndpoints();
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 app.MapJobsDashboard();
 

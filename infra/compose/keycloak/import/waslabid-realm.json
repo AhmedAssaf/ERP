@@ -28,7 +28,8 @@
       "webOrigins": ["+"],
       "attributes": {
         "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "https://acme.localhost:8443/*##https://beta.localhost:8443/*##https://acme.localhost/*##https://beta.localhost/*"
+        "require.pushed.authorization.requests": "true",
+        "post.logout.redirect.uris": "https://acme.localhost:8443/signout-callback-oidc##https://beta.localhost:8443/signout-callback-oidc##https://acme.localhost/signout-callback-oidc##https://beta.localhost/signout-callback-oidc"
       },
       "defaultClientScopes": ["basic", "profile", "email", "roles", "web-origins", "acr"],
       "optionalClientScopes": ["organization"]

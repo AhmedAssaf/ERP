@@ -215,6 +215,19 @@ public sealed partial class PlatformConsoleTests(DatabaseFixture db, MinioFixtur
     }
 
     [Fact]
+    public async Task The_console_header_names_the_admin_and_signs_out_on_the_platform_host()
+    {
+        await using var factory = Factory();
+
+        var html = await GetPageAsync(factory, "/platform", PlatformAdmin());
+
+        Regex.IsMatch(html, $@"<summary[^>]*>\s*{Regex.Escape(Admin)}\s*<", RegexOptions.None, TimeSpan.FromSeconds(1))
+            .ShouldBeTrue("the user menu names the signed-in admin");
+        Element(html, "form", "action", "/platform/sign-out").ShouldContain("__RequestVerificationToken");
+        html.ShouldNotContain("/account/sign-out");
+    }
+
+    [Fact]
     public async Task The_jobs_dashboard_is_platform_only()
     {
         await using var factory = Factory();

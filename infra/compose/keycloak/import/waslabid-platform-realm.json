@@ -3,6 +3,15 @@
   "displayName": "WaslaBid platform",
   "enabled": true,
   "sslRequired": "external",
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "failureFactor": 5,
+  "waitIncrementSeconds": 60,
+  "maxFailureWaitSeconds": 900,
+  "maxDeltaTimeSeconds": 43200,
+  "quickLoginCheckMilliSeconds": 1000,
+  "minimumQuickLoginWaitSeconds": 60,
+  "passwordPolicy": "length(12) and notUsername and passwordHistory(5)",
   "internationalizationEnabled": true,
   "supportedLocales": ["ar", "en"],
   "defaultLocale": "en",
@@ -87,7 +96,8 @@
       "attributes": {
         "pkce.code.challenge.method": "S256",
         "minimum.acr.value": "2",
-        "post.logout.redirect.uris": "https://platform.localhost:8443/*##https://platform.localhost/*"
+        "require.pushed.authorization.requests": "true",
+        "post.logout.redirect.uris": "https://platform.localhost:8443/signout-callback-platform##https://platform.localhost/signout-callback-platform"
       },
       "protocolMappers": [
         {

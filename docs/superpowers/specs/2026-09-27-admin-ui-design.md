@@ -53,6 +53,8 @@ Out (later slices): tenant provisioning screen (F-01b), suspend and TLS actions 
 ### 3.1 Host and access
 - `PlatformHostMiddleware` runs before `TenantMiddleware`: when the host equals the configured `Platform:Host` (`platform.localhost` in Development), it marks the request as a platform request and `TenantMiddleware` does not run; tenant pages on the platform host return 404, and platform pages on a tenant host return 404 (docs/09 F-51: a tenant admin requesting the URL gets 404).
 - Authentication on the platform host uses a second OIDC scheme `PlatformOidc` against realm `waslabid-platform`, with its own cookie `waslabid.platform`. Policy `PlatformAdmin`: authenticated with the platform scheme, realm role `platform-admin`, and `acr` level at least 2 (D-2).
+- PlatformAdmin holds on every platform endpoint that is not explicitly anonymous (health, static assets, culture switch, sign-out), also where the endpoint names only a role or another policy: a middleware after `UseAuthorization` evaluates it. The platform cookie lives a fixed 15 minutes (no sliding). The platform realm has brute-force detection (temporary lockout after five failures) and the password policy `length(12) and notUsername and passwordHistory(5)`; its client requires PAR (`infra/compose/keycloak/import/README.md`).
+- Sign-out: `POST /platform/sign-out` and `POST /account/sign-out`, antiforgery-validated, each clears only its own host's cookie and ends the session at its own realm, returning to `/platform` or `/`.
 - Pages under `/platform/*` in `Platform.Web`, Interactive Server, rendered with the tenant-neutral WaslaBid brand (the platform is the vendor-of-record brand, CLAUDE.md).
 
 ### 3.2 Health board (F-51 as narrowed)

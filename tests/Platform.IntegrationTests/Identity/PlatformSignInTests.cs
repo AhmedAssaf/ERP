@@ -1,12 +1,15 @@
 using System.Net;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Platform.IntegrationTests.Infrastructure;
@@ -174,6 +177,218 @@ public class PlatformSignInTests(DatabaseFixture db, PlatformKeycloakFixture key
         ShouldBeChallengedBy(await GetAsync(factory, AcmeBase, "/", PlatformCookie, cookie), keycloak.TenantAuthority);
         ShouldBeChallengedBy(await GetAsync(factory, AcmeBase, "/", TenantCookie, cookie), keycloak.TenantAuthority);
     }
+
+    [Fact]
+    public async Task Five_wrong_passwords_lock_the_account_so_the_right_one_is_refused()
+    {
+        // Control: the right password alone moves this user past the password form (to its OTP setup).
+        using (var control = new KeycloakBrowser(keycloak.BaseAddress))
+        {
+            var first = await control.OpenAsync(keycloak.ProbeAuthorizationUrl(), Ct);
+            var accepted = await control.SubmitAsync(
+                first, "kc-form-login", Credentials(PlatformKeycloakFixture.LockoutUser, PlatformKeycloakFixture.UserPassword), Ct);
+            var next = accepted.Page.ShouldNotBeNull();
+            KeycloakBrowser.HasForm(next, "kc-form-login").ShouldBeFalse(KeycloakBrowser.Feedback(next));
+        }
+
+        using var browser = new KeycloakBrowser(keycloak.BaseAddress);
+        var page = await browser.OpenAsync(keycloak.ProbeAuthorizationUrl(), Ct);
+        for (var attempt = 1; attempt <= 5; attempt++)
+        {
+            var refused = await browser.SubmitAsync(
+                page, "kc-form-login", Credentials(PlatformKeycloakFixture.LockoutUser, $"wrong-password-{attempt}"), Ct);
+            page = refused.Page.ShouldNotBeNull();
+            KeycloakBrowser.HasForm(page, "kc-form-login").ShouldBeTrue(KeycloakBrowser.Feedback(page));
+        }
+
+        var locked = await browser.SubmitAsync(
+            page, "kc-form-login", Credentials(PlatformKeycloakFixture.LockoutUser, PlatformKeycloakFixture.UserPassword), Ct);
+
+        locked.Callback.ShouldBeNull();
+        var lockedPage = locked.Page.ShouldNotBeNull();
+        KeycloakBrowser.HasForm(lockedPage, "kc-form-login").ShouldBeTrue(KeycloakBrowser.Feedback(lockedPage));
+    }
+
+    [Theory]
+    [InlineData(PlatformKeycloakFixture.ProbeClientId, true)]
+    [InlineData(PlatformKeycloakFixture.NoMinimumAcrProbeClientId, false)]
+    public async Task Without_acr_values_the_clients_minimum_acr_alone_asks_for_the_code(string clientId, bool asksForCode)
+    {
+        // The request carries no acr_values. The probe client is the repository's web client without PAR; its control
+        // copy also lacks minimum.acr.value, so the difference between the two outcomes is that attribute alone.
+        using var browser = new KeycloakBrowser(keycloak.BaseAddress);
+        var authorization = keycloak.ProbeAuthorizationUrl(clientId);
+        authorization.Query.ShouldNotContain("acr_values");
+        var login = await browser.OpenAsync(authorization, Ct);
+
+        var step = await browser.SubmitAsync(
+            login, "kc-form-login", Credentials(PlatformKeycloakFixture.OtpAdmin, PlatformKeycloakFixture.UserPassword), Ct);
+
+        if (asksForCode)
+        {
+            step.Callback.ShouldBeNull("the password alone must not complete a login for this client");
+            var page = step.Page.ShouldNotBeNull();
+            KeycloakBrowser.HasForm(page, "kc-otp-login-form").ShouldBeTrue(KeycloakBrowser.Feedback(page));
+        }
+        else
+        {
+            step.Callback.ShouldNotBeNull(step.Page is null ? null : KeycloakBrowser.Feedback(step.Page))
+                .Url.GetLeftPart(UriPartial.Path).ShouldBe(PlatformKeycloakFixture.ProbeRedirectUri);
+        }
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task A_sign_out_without_an_antiforgery_token_is_refused(bool platform)
+    {
+        var target = SignOutTarget.For(platform, keycloak);
+        await using var factory = Factory();
+        var cookie = AuthCookies.Protect(factory.Services, target.CookieScheme, target.User());
+        using var client = Client(factory, target.Base, handleCookies: false);
+        using var request = new HttpRequestMessage(HttpMethod.Post, target.Path)
+        {
+            Content = new FormUrlEncodedContent(new Dictionary<string, string>()),
+        }.WithCookie(target.CookieName, cookie);
+
+        using var response = await client.SendAsync(request, Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (response.Headers.TryGetValues("Set-Cookie", out var setCookies) ? setCookies : [])
+            .ShouldNotContain(c => c.StartsWith(target.CookieName + "=", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task A_sign_out_clears_only_this_hosts_cookie_and_returns_home_through_the_realm(bool platform)
+    {
+        var target = SignOutTarget.For(platform, keycloak);
+        var other = SignOutTarget.For(!platform, keycloak);
+        await using var factory = Factory();
+        using var client = Client(factory, target.Base, handleCookies: false);
+
+        using var response = await PostSignOutAsync(factory, client, target, other);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        var logout = response.Headers.Location.ShouldNotBeNull();
+        logout.GetLeftPart(UriPartial.Path).ShouldBe($"{target.Authority}/protocol/openid-connect/logout");
+        var query = QueryHelpers.ParseQuery(logout.Query);
+        query["client_id"].ToString().ShouldBe(target.ClientId);
+        query["post_logout_redirect_uri"].ToString().ShouldBe(target.SignedOutCallback);
+        var setCookies = response.Headers.GetValues("Set-Cookie").ToList();
+        setCookies.ShouldContain(c => c.StartsWith(target.CookieName + "=;", StringComparison.Ordinal)
+            && c.Contains("expires=Thu, 01 Jan 1970", StringComparison.OrdinalIgnoreCase));
+        setCookies.ShouldNotContain(c => c.StartsWith(other.CookieName + "=", StringComparison.Ordinal));
+
+        // Keycloak accepts the registered post-logout URI (this browser has no realm session, so no confirmation) and
+        // hands back to it; the app then returns to the host's home.
+        using var browser = new KeycloakBrowser(keycloak.BaseAddress);
+        var step = await browser.NavigateAsync(logout, Ct);
+        await ShouldReturnHomeAsync(client, target, step);
+    }
+
+    [Fact]
+    public async Task A_platform_sign_out_ends_the_realm_session()
+    {
+        var target = SignOutTarget.For(platform: true, keycloak);
+        await using var factory = Factory();
+        using var client = Client(factory, target.Base, handleCookies: false);
+        using var browser = new KeycloakBrowser(keycloak.BaseAddress);
+        await SignInWithOtpAsync(browser, PlatformKeycloakFixture.SignOutAdmin);
+        // Control: with the realm session alive, a new login skips the password and asks only for the code.
+        (await browser.OpenAsync(keycloak.ProbeAuthorizationUrl(), Ct)).ShouldSatisfyAllConditions(
+            page => KeycloakBrowser.HasForm(page, "kc-form-login").ShouldBeFalse(KeycloakBrowser.Feedback(page)),
+            page => KeycloakBrowser.HasForm(page, "kc-otp-login-form").ShouldBeTrue(KeycloakBrowser.Feedback(page)));
+
+        using var response = await PostSignOutAsync(factory, client, target, SignOutTarget.For(platform: false, keycloak));
+        var step = await browser.NavigateAsync(response.Headers.Location.ShouldNotBeNull(), Ct);
+        // Without an id token hint Keycloak asks the user to confirm before ending a live session.
+        var confirm = step.Page.ShouldNotBeNull("Keycloak should ask to confirm the sign-out of a live session");
+        await ShouldReturnHomeAsync(client, target, await browser.SubmitFirstFormAsync(confirm, Ct));
+
+        var again = await browser.OpenAsync(keycloak.ProbeAuthorizationUrl(), Ct);
+        KeycloakBrowser.HasForm(again, "kc-form-login").ShouldBeTrue(KeycloakBrowser.Feedback(again));
+    }
+
+    private async Task SignInWithOtpAsync(KeycloakBrowser browser, string username)
+    {
+        var login = await browser.OpenAsync(keycloak.ProbeAuthorizationUrl(), Ct);
+        var otp = await browser.SubmitAsync(login, "kc-form-login", Credentials(username, PlatformKeycloakFixture.UserPassword), Ct);
+        var otpPage = otp.Page.ShouldNotBeNull();
+        var done = await browser.SubmitAsync(otpPage, "kc-otp-login-form", new Dictionary<string, string>
+        {
+            ["otp"] = PlatformKeycloakFixture.CurrentOtp(),
+        }, Ct);
+        done.Callback.ShouldNotBeNull(done.Page is null ? null : KeycloakBrowser.Feedback(done.Page))
+            .Url.GetLeftPart(UriPartial.Path).ShouldBe(PlatformKeycloakFixture.ProbeRedirectUri);
+    }
+
+    /// <summary>Posts the sign-out form as the page would: this host's cookie, the other host's cookie, antiforgery tokens.</summary>
+    private static async Task<HttpResponseMessage> PostSignOutAsync(
+        WebApplicationFactory<Program> factory, HttpClient client, SignOutTarget target, SignOutTarget other)
+    {
+        var user = target.User();
+        var cookie = AuthCookies.Protect(factory.Services, target.CookieScheme, user);
+        var otherCookie = AuthCookies.Protect(factory.Services, other.CookieScheme, other.User());
+        var antiforgery = AntiforgeryTokens(factory.Services, user);
+        using var request = new HttpRequestMessage(HttpMethod.Post, target.Path)
+        {
+            Content = new FormUrlEncodedContent(new Dictionary<string, string> { [antiforgery.FormField] = antiforgery.RequestToken }),
+        };
+        request.Headers.Add(
+            "Cookie", $"{target.CookieName}={cookie}; {other.CookieName}={otherCookie}; {antiforgery.CookieName}={antiforgery.CookieToken}");
+        return await client.SendAsync(request, Ct);
+    }
+
+    private static async Task ShouldReturnHomeAsync(HttpClient client, SignOutTarget target, KeycloakStep step)
+    {
+        var callback = step.Callback.ShouldNotBeNull(step.Page is null ? null : KeycloakBrowser.Feedback(step.Page));
+        callback.Url.GetLeftPart(UriPartial.Path).ShouldBe(target.SignedOutCallback);
+        using var back = await client.GetAsync(new Uri(callback.Url.PathAndQuery, UriKind.Relative), Ct);
+        back.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        back.Headers.Location.ShouldNotBeNull().OriginalString.ShouldBe(target.Home);
+    }
+
+    private static Dictionary<string, string> Credentials(string username, string password) =>
+        new() { ["username"] = username, ["password"] = password };
+
+    /// <summary>Antiforgery tokens for <paramref name="user"/>, as the page's sign-out form would carry them.</summary>
+    private static (string CookieName, string CookieToken, string FormField, string RequestToken) AntiforgeryTokens(
+        IServiceProvider services, ClaimsPrincipal user)
+    {
+        using var scope = services.CreateScope();
+        var context = new DefaultHttpContext { RequestServices = scope.ServiceProvider, User = user };
+        var tokens = scope.ServiceProvider.GetRequiredService<IAntiforgery>().GetTokens(context);
+        var cookieName = services.GetRequiredService<IOptions<AntiforgeryOptions>>().Value.Cookie.Name!;
+        return (cookieName, tokens.CookieToken!, tokens.FormFieldName, tokens.RequestToken!);
+    }
+
+    /// <summary>One host's sign-out: its endpoint, cookie, realm, and where the realm and then the app send the browser.</summary>
+    private sealed record SignOutTarget(
+        Uri Base, string Path, string CookieName, string CookieScheme, string Authority, string ClientId, string SignedOutCallback,
+        string Home, Func<ClaimsPrincipal> User)
+    {
+        public static SignOutTarget For(bool platform, PlatformKeycloakFixture keycloak) => platform
+            ? new(PlatformBase, "/platform/sign-out", PlatformCookie, PlatformAuthentication.CookieScheme, keycloak.PlatformAuthority,
+                "waslabid-platform-web", "https://platform.localhost/signout-callback-platform", "/platform",
+                () => AuthCookies.Principal(
+                [
+                    new Claim("sub", "platform.admin"),
+                    new Claim("preferred_username", "platform.admin"),
+                    new Claim("acr", "2"),
+                    new Claim("roles", "platform-admin"),
+                ]))
+            : new(AcmeBase, "/account/sign-out", TenantCookie, CookieAuthenticationDefaults.AuthenticationScheme, keycloak.TenantAuthority,
+                "waslabid-web", "https://acme.localhost/signout-callback-oidc", "/",
+                () => AuthCookies.Principal(
+                [
+                    new Claim("sub", "acme.admin"),
+                    new Claim("preferred_username", "acme.admin"),
+                    new Claim("organization", "acme"),
+                ]));
+    }
+
 
     private WebApplicationFactory<Program> Factory(Action<IServiceCollection>? configure = null) =>
         new PlatformWebFactory(db.AppConnectionString, keycloak.OidcSettings).WithWebHostBuilder(builder =>
