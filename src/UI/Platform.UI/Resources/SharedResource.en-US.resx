@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Home.Title" xml:space="preserve"><value>Home</value></data>
+  <data name="Home.Welcome" xml:space="preserve"><value>Welcome to {0}</value></data>
+  <data name="Home.SignedInAs" xml:space="preserve"><value>Signed in as {0}</value></data>
+  <data name="Language.Other" xml:space="preserve"><value>العربية</value></data>
+  <data name="Language.OtherCulture" xml:space="preserve"><value>ar-SA</value></data>
+  <data name="Brand.Name" xml:space="preserve"><value>WaslaBid</value></data>
+  <data name="AppShell.SkipToContent" xml:space="preserve"><value>Skip to main content</value></data>
+  <data name="AppShell.MainNavigation" xml:space="preserve"><value>Main navigation</value></data>
+  <data name="AppShell.PlatformConsole" xml:space="preserve"><value>Platform console</value></data>
+  <data name="AppShell.SignOut" xml:space="preserve"><value>Sign out</value></data>
+  <data name="Button.Working" xml:space="preserve"><value>Working, please wait</value></data>
+  <data name="Field.Required" xml:space="preserve"><value>required</value></data>
+  <data name="ColorField.Invalid" xml:space="preserve"><value>Enter the colour as # followed by six hexadecimal digits, for example #1E4E79.</value></data>
+  <data name="ColorField.Picker" xml:space="preserve"><value>{0} (colour picker)</value></data>
+  <data name="DataTable.CompactRows" xml:space="preserve"><value>Compact rows</value></data>
+  <data name="DataTable.NoRows" xml:space="preserve"><value>There are no rows to show.</value></data>
+  <data name="Dialog.Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Toast.Region" xml:space="preserve"><value>Notifications</value></data>
+  <data name="Toast.Dismiss" xml:space="preserve"><value>Dismiss message</value></data>
+  <data name="AuditList.Empty" xml:space="preserve"><value>No events have been recorded yet.</value></data>
+  <data name="AuditList.RiyadhTime" xml:space="preserve"><value>Times are in Riyadh time.</value></data>
+  <data name="AuditList.TimeFormat" xml:space="preserve"><value>d MMMM yyyy, HH:mm</value></data>
+  <data name="Gallery.Title" xml:space="preserve"><value>Component gallery</value></data>
+  <data name="Gallery.Intro" xml:space="preserve"><value>Every shared component in Arabic and English, side by side. This page exists only in Development.</value></data>
+  <data name="Gallery.Panel" xml:space="preserve"><value>English, left to right</value></data>
+  <data name="Gallery.Section.AppShell" xml:space="preserve"><value>Application frame</value></data>
+  <data name="Gallery.Section.Button" xml:space="preserve"><value>Buttons</value></data>
+  <data name="Gallery.Section.Fields" xml:space="preserve"><value>Form fields</value></data>
+  <data name="Gallery.Section.DataTable" xml:space="preserve"><value>Data table</value></data>
+  <data name="Gallery.Section.StatusBadge" xml:space="preserve"><value>Status badges</value></data>
+  <data name="Gallery.Section.Dialog" xml:space="preserve"><value>Confirmation dialog</value></data>
+  <data name="Gallery.Section.Toast" xml:space="preserve"><value>Result messages</value></data>
+  <data name="Gallery.Section.EmptyState" xml:space="preserve"><value>Empty state</value></data>
+  <data name="Gallery.Section.AuditList" xml:space="preserve"><value>Event history</value></data>
+  <data name="Gallery.Sample.PortalName" xml:space="preserve"><value>Acme Contracting</value></data>
+  <data name="Gallery.Sample.UserName" xml:space="preserve"><value>Sara Ahmed</value></data>
+  <data name="Gallery.Sample.NavTenders" xml:space="preserve"><value>Tenders</value></data>
+  <data name="Gallery.Sample.NavStaff" xml:space="preserve"><value>Staff</value></data>
+  <data name="Gallery.Sample.NavBranding" xml:space="preserve"><value>Branding</value></data>
+  <data name="Gallery.Sample.NavHealth" xml:space="preserve"><value>Health board</value></data>
+  <data name="Gallery.Sample.NavTenants" xml:space="preserve"><value>Tenants</value></data>
+  <data name="Gallery.Sample.PageBody" xml:space="preserve"><value>Page content goes here.</value></data>
+  <data name="Gallery.Sample.Publish" xml:space="preserve"><value>Publish tender</value></data>
+  <data name="Gallery.Sample.SaveDraft" xml:space="preserve"><value>Save draft</value></data>
+  <data name="Gallery.Sample.CancelTender" xml:space="preserve"><value>Cancel tender</value></data>
+  <data name="Gallery.Sample.ViewHistory" xml:space="preserve"><value>View history</value></data>
+  <data name="Gallery.Sample.PortalNameLabel" xml:space="preserve"><value>Portal name</value></data>
+  <data name="Gallery.Sample.PortalNameHelp" xml:space="preserve"><value>Shown in the header and in emails.</value></data>
+  <data name="Gallery.Sample.PortalNameError" xml:space="preserve"><value>Enter a portal name of up to 80 characters.</value></data>
+  <data name="Gallery.Sample.RoleLabel" xml:space="preserve"><value>Role</value></data>
+  <data name="Gallery.Sample.RolePlaceholder" xml:space="preserve"><value>Choose a role</value></data>
+  <data name="Gallery.Sample.RoleAdmin" xml:space="preserve"><value>Tenant administrator</value></data>
+  <data name="Gallery.Sample.RoleContracts" xml:space="preserve"><value>Contracts officer</value></data>
+  <data name="Gallery.Sample.RoleFinance" xml:space="preserve"><value>Finance approver</value></data>
+  <data name="Gallery.Sample.ColourLabel" xml:space="preserve"><value>Primary colour</value></data>
+  <data name="Gallery.Sample.ColourHelp" xml:space="preserve"><value>Used for the header and the focus ring.</value></data>
+  <data name="Gallery.Sample.TableLabel" xml:space="preserve"><value>Component health</value></data>
+  <data name="Gallery.Sample.ColumnComponent" xml:space="preserve"><value>Component</value></data>
+  <data name="Gallery.Sample.ColumnStatus" xml:space="preserve"><value>Status</value></data>
+  <data name="Gallery.Sample.ColumnChecks" xml:space="preserve"><value>Checks today</value></data>
+  <data name="Gallery.Sample.Database" xml:space="preserve"><value>Database</value></data>
+  <data name="Gallery.Sample.SignIn" xml:space="preserve"><value>Sign-in service</value></data>
+  <data name="Gallery.Sample.Storage" xml:space="preserve"><value>File storage</value></data>
+  <data name="Gallery.Sample.Healthy" xml:space="preserve"><value>Healthy</value></data>
+  <data name="Gallery.Sample.Slow" xml:space="preserve"><value>Slow</value></data>
+  <data name="Gallery.Sample.Failing" xml:space="preserve"><value>Failing</value></data>
+  <data name="Gallery.Sample.Draft" xml:space="preserve"><value>Draft</value></data>
+  <data name="Gallery.Sample.Published" xml:space="preserve"><value>Published</value></data>
+  <data name="Gallery.Sample.DialogTitle" xml:space="preserve"><value>Revoke access for Omar Khalid?</value></data>
+  <data name="Gallery.Sample.DialogBody" xml:space="preserve"><value>Omar Khalid loses access to this workspace at once. His past actions stay in the audit log.</value></data>
+  <data name="Gallery.Sample.DialogConfirm" xml:space="preserve"><value>Revoke access</value></data>
+  <data name="Gallery.Sample.ToastSaved" xml:space="preserve"><value>Branding saved</value></data>
+  <data name="Gallery.Sample.ToastFailed" xml:space="preserve"><value>The invitation was not sent. Check the email address and try again.</value></data>
+  <data name="Gallery.Sample.EmptyTitle" xml:space="preserve"><value>No staff invited yet</value></data>
+  <data name="Gallery.Sample.EmptyBody" xml:space="preserve"><value>Invite the first member of your team to start working on tenders.</value></data>
+  <data name="Gallery.Sample.EmptyAction" xml:space="preserve"><value>Invite staff member</value></data>
+  <data name="Gallery.Sample.AuditLabel" xml:space="preserve"><value>Staff history</value></data>
+  <data name="Gallery.Sample.AuditActorOmar" xml:space="preserve"><value>Omar Khalid</value></data>
+  <data name="Gallery.Sample.AuditInvited" xml:space="preserve"><value>invited Omar Khalid as contracts officer</value></data>
+  <data name="Gallery.Sample.AuditAccepted" xml:space="preserve"><value>accepted the invitation</value></data>
+  <data name="Gallery.Sample.AuditDetail" xml:space="preserve"><value>From the link in the invitation email</value></data>
+  <data name="Console.Nav.Health" xml:space="preserve"><value>Health</value></data>
+  <data name="Console.Nav.Tenants" xml:space="preserve"><value>Tenants and jobs</value></data>
+  <data name="Console.Nav.Jobs" xml:space="preserve"><value>Job dashboard</value></data>
+  <data name="Console.TimeFormat" xml:space="preserve"><value>d MMMM yyyy, HH:mm</value></data>
+  <data name="Console.Unknown" xml:space="preserve"><value>Unknown</value></data>
+  <data name="Console.Loading" xml:space="preserve"><value>Loading…</value></data>
+  <data name="Console.Board.Title" xml:space="preserve"><value>Platform health</value></data>
+  <data name="Console.Board.Refresh" xml:space="preserve"><value>Refresh</value></data>
+  <data name="Console.Board.Components" xml:space="preserve"><value>Components</value></data>
+  <data name="Console.Board.Latency" xml:space="preserve"><value>Latency</value></data>
+  <data name="Console.Board.Milliseconds" xml:space="preserve"><value>{0} ms</value></data>
+  <data name="Console.Board.LastCheck" xml:space="preserve"><value>Last check</value></data>
+  <data name="Console.Board.LastFailure" xml:space="preserve"><value>Last failure</value></data>
+  <data name="Console.Component.Web" xml:space="preserve"><value>Web host</value></data>
+  <data name="Console.Component.Worker" xml:space="preserve"><value>Background worker</value></data>
+  <data name="Console.Component.PostgreSQL" xml:space="preserve"><value>Database (PostgreSQL)</value></data>
+  <data name="Console.Component.MinIO" xml:space="preserve"><value>Object storage (MinIO)</value></data>
+  <data name="Console.Component.Keycloak" xml:space="preserve"><value>Sign-in (Keycloak)</value></data>
+  <data name="Console.Component.ClamAV" xml:space="preserve"><value>Virus scanning (ClamAV)</value></data>
+  <data name="Console.Component.SMTP" xml:space="preserve"><value>Email (SMTP)</value></data>
+  <data name="Console.Component.Disk" xml:space="preserve"><value>Disk space</value></data>
+  <data name="Console.Status.Healthy" xml:space="preserve"><value>Healthy</value></data>
+  <data name="Console.Status.Degraded" xml:space="preserve"><value>Degraded</value></data>
+  <data name="Console.Status.Unhealthy" xml:space="preserve"><value>Failing</value></data>
+  <data name="Console.Status.Unknown" xml:space="preserve"><value>Unknown</value></data>
+  <data name="Console.Incidents.Title" xml:space="preserve"><value>Incidents in the last 30 days</value></data>
+  <data name="Console.Incidents.Component" xml:space="preserve"><value>Component</value></data>
+  <data name="Console.Incidents.Started" xml:space="preserve"><value>Started</value></data>
+  <data name="Console.Incidents.Ended" xml:space="preserve"><value>Ended</value></data>
+  <data name="Console.Incidents.Open" xml:space="preserve"><value>Still open</value></data>
+  <data name="Console.Incidents.LastMessage" xml:space="preserve"><value>Last message</value></data>
+  <data name="Console.Incidents.EmptyTitle" xml:space="preserve"><value>No incidents in the last 30 days</value></data>
+  <data name="Console.Incidents.EmptyBody" xml:space="preserve"><value>Every component has passed its checks. An incident appears here when a check fails.</value></data>
+  <data name="Console.Tenants.Title" xml:space="preserve"><value>Tenants and jobs</value></data>
+  <data name="Console.Tenants.Heading" xml:space="preserve"><value>Tenants</value></data>
+  <data name="Console.Tenants.Tenant" xml:space="preserve"><value>Tenant</value></data>
+  <data name="Console.Tenants.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Console.Tenants.Users" xml:space="preserve"><value>Users</value></data>
+  <data name="Console.Tenants.ActiveTenders" xml:space="preserve"><value>Active tenders</value></data>
+  <data name="Console.Tenants.Storage" xml:space="preserve"><value>Storage used</value></data>
+  <data name="Console.Tenants.FailedJobs" xml:space="preserve"><value>Failing jobs</value></data>
+  <data name="Console.Tenants.EmptyTitle" xml:space="preserve"><value>No tenants yet</value></data>
+  <data name="Console.Tenants.EmptyBody" xml:space="preserve"><value>Tenants appear here once they are provisioned.</value></data>
+  <data name="Console.TenantStatus.active" xml:space="preserve"><value>Active</value></data>
+  <data name="Console.Jobs.Heading" xml:space="preserve"><value>Failed jobs</value></data>
+  <data name="Console.Jobs.Job" xml:space="preserve"><value>Job</value></data>
+  <data name="Console.Jobs.Id" xml:space="preserve"><value>Job {0}</value></data>
+  <data name="Console.Jobs.Tenant" xml:space="preserve"><value>Tenant</value></data>
+  <data name="Console.Jobs.PlatformJob" xml:space="preserve"><value>Platform</value></data>
+  <data name="Console.Jobs.FailedAt" xml:space="preserve"><value>Failed at</value></data>
+  <data name="Console.Jobs.Error" xml:space="preserve"><value>Error</value></data>
+  <data name="Console.Jobs.Action" xml:space="preserve"><value>Action</value></data>
+  <data name="Console.Jobs.Rerun" xml:space="preserve"><value>Re-run job</value></data>
+  <data name="Console.Jobs.EmptyTitle" xml:space="preserve"><value>No failed jobs</value></data>
+  <data name="Console.Jobs.EmptyBody" xml:space="preserve"><value>Background jobs that fail after their retries appear here, with a way to run them again.</value></data>
+  <data name="Console.Jobs.RerunTitle" xml:space="preserve"><value>Re-run {0} for {1}?</value></data>
+  <data name="Console.Jobs.RerunConfirm" xml:space="preserve"><value>Re-run job</value></data>
+  <data name="Console.Jobs.RerunBody" xml:space="preserve"><value>The job goes back to the queue and runs again with the same data. The re-run is recorded in the platform audit log with your name.</value></data>
+  <data name="Console.Jobs.Requeued" xml:space="preserve"><value>{0} is queued to run again</value></data>
+  <data name="Console.Jobs.NotFailed" xml:space="preserve"><value>{0} is no longer failed; nothing was changed</value></data>
+  <data name="Console.Jobs.NotAllowed" xml:space="preserve"><value>Your session cannot re-run jobs. Sign in again with your one-time code.</value></data>
+  <data name="Console.Jobs.RerunFailed" xml:space="preserve"><value>The job could not be re-run. Try again; if it keeps failing, check the worker.</value></data>
+  <data name="Console.Size.Bytes" xml:space="preserve"><value>{0} B</value></data>
+  <data name="Console.Size.KB" xml:space="preserve"><value>{0} KB</value></data>
+  <data name="Console.Size.MB" xml:space="preserve"><value>{0} MB</value></data>
+  <data name="Console.Size.GB" xml:space="preserve"><value>{0} GB</value></data>
+  <data name="Admin.Nav.Staff" xml:space="preserve"><value>Staff</value></data>
+  <data name="Staff.Title" xml:space="preserve"><value>Staff</value></data>
+  <data name="Staff.Heading" xml:space="preserve"><value>Members</value></data>
+  <data name="Staff.Loading" xml:space="preserve"><value>Loading staff…</value></data>
+  <data name="Staff.Invite" xml:space="preserve"><value>Invite staff member</value></data>
+  <data name="Staff.Column.Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Staff.Column.Email" xml:space="preserve"><value>Email</value></data>
+  <data name="Staff.Column.Roles" xml:space="preserve"><value>Roles</value></data>
+  <data name="Staff.Column.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Staff.Column.Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="Staff.Status.Active" xml:space="preserve"><value>Active</value></data>
+  <data name="Staff.Status.Invited" xml:space="preserve"><value>Invited</value></data>
+  <data name="Staff.ChangeRoles" xml:space="preserve"><value>Change roles</value></data>
+  <data name="Staff.Resend" xml:space="preserve"><value>Resend invitation</value></data>
+  <data name="Staff.EmptyTitle" xml:space="preserve"><value>No staff invited yet</value></data>
+  <data name="Staff.EmptyBody" xml:space="preserve"><value>Invite the first member of your team to start working on tenders.</value></data>
+  <data name="Staff.InviteTitle" xml:space="preserve"><value>Invite a staff member</value></data>
+  <data name="Staff.InviteConfirm" xml:space="preserve"><value>Send invitation</value></data>
+  <data name="Staff.InviteBody" xml:space="preserve"><value>We email a link to set a password and an authenticator app. The link works for 72 hours.</value></data>
+  <data name="Staff.Field.Email" xml:space="preserve"><value>Work email</value></data>
+  <data name="Staff.Field.Name" xml:space="preserve"><value>Full name</value></data>
+  <data name="Staff.Field.Roles" xml:space="preserve"><value>Roles</value></data>
+  <data name="Staff.Role.tenant-admin" xml:space="preserve"><value>Tenant administrator</value></data>
+  <data name="Staff.Role.contracts-officer" xml:space="preserve"><value>Contracts officer</value></data>
+  <data name="Staff.Role.technical-evaluator" xml:space="preserve"><value>Technical evaluator</value></data>
+  <data name="Staff.Role.finance-approver" xml:space="preserve"><value>Finance approver</value></data>
+  <data name="Staff.NoRoles" xml:space="preserve"><value>No role</value></data>
+  <data name="Staff.RoleSeparator" xml:space="preserve"><value>, </value></data>
+  <data name="Staff.RolesTitle" xml:space="preserve"><value>Change the roles of {0}?</value></data>
+  <data name="Staff.RolesConfirm" xml:space="preserve"><value>Save roles</value></data>
+  <data name="Staff.RolesBody" xml:space="preserve"><value>The new roles apply from the next page they open.</value></data>
+  <data name="Staff.NotAllowed" xml:space="preserve"><value>Only a tenant administrator can do this.</value></data>
+  <data name="Staff.Error.Email" xml:space="preserve"><value>Enter the person's work email address, for example name@company.com.</value></data>
+  <data name="Staff.Error.Exists" xml:space="preserve"><value>This person is already a member of your team.</value></data>
+  <data name="Staff.Error.Name" xml:space="preserve"><value>Enter the person's full name, up to 100 characters, using letters, spaces, apostrophes, hyphens and periods.</value></data>
+  <data name="Staff.Error.Roles" xml:space="preserve"><value>Choose at least one role.</value></data>
+  <data name="Staff.Error.LastAdmin" xml:space="preserve"><value>Your team must keep at least one active tenant administrator, so this administrator role cannot be removed.</value></data>
+  <data name="Staff.Error.NotFound" xml:space="preserve"><value>This person is no longer a member of your team. Reload the page.</value></data>
+  <data name="Staff.Error.AlreadyActive" xml:space="preserve"><value>{0} has already signed in, so there is no invitation to resend.</value></data>
+  <data name="Staff.Error.CannotInvite" xml:space="preserve"><value>This person cannot be invited. Contact support.</value></data>
+  <data name="Staff.Error.Generic" xml:space="preserve"><value>The change could not be completed. Try again in a moment.</value></data>
+  <data name="Staff.Invited" xml:space="preserve"><value>Invitation sent to {0}</value></data>
+  <data name="Staff.EmailFailed" xml:space="preserve"><value>{0} was added, but the invitation email was not sent. Use Resend invitation.</value></data>
+  <data name="Staff.RolesSaved" xml:space="preserve"><value>Roles saved for {0}</value></data>
+  <data name="Staff.Resent" xml:space="preserve"><value>Invitation sent again to {0}</value></data>
+  <data name="Admin.Nav.Branding" xml:space="preserve"><value>Branding</value></data>
+  <data name="Branding.Title" xml:space="preserve"><value>Branding</value></data>
+  <data name="Branding.Intro" xml:space="preserve"><value>Your portal name, colour and logo appear on every page your staff and vendors see, in place of ours.</value></data>
+  <data name="Branding.Details" xml:space="preserve"><value>Name and colour</value></data>
+  <data name="Branding.Field.PortalName" xml:space="preserve"><value>Portal name</value></data>
+  <data name="Branding.Field.Color" xml:space="preserve"><value>Primary colour</value></data>
+  <data name="Branding.Field.ColorHelp" xml:space="preserve"><value>Used for the header and main buttons, with white text. A colour too light for white text is darkened when you save.</value></data>
+  <data name="Branding.Save" xml:space="preserve"><value>Save name and colour</value></data>
+  <data name="Branding.Saved" xml:space="preserve"><value>Branding saved.</value></data>
+  <data name="Branding.ColorAdjusted" xml:space="preserve"><value>{0} has too little contrast with white text, so the darker {1} was saved instead.</value></data>
+  <data name="Branding.Error.PortalName" xml:space="preserve"><value>Enter a portal name of up to 100 characters.</value></data>
+  <data name="Branding.Error.Color" xml:space="preserve"><value>Enter the colour as # followed by six hexadecimal digits, for example #0F766E.</value></data>
+  <data name="Branding.Error.Generic" xml:space="preserve"><value>The branding was not saved. Try again; if it keeps failing, contact support.</value></data>
+  <data name="Branding.NotAllowed" xml:space="preserve"><value>You are no longer a tenant admin, so this change was not saved.</value></data>
+  <data name="Branding.Logo.Heading" xml:space="preserve"><value>Logo</value></data>
+  <data name="Branding.Logo.Current" xml:space="preserve"><value>Current logo</value></data>
+  <data name="Branding.Logo.None" xml:space="preserve"><value>No logo yet. The header shows the portal name on its own.</value></data>
+  <data name="Branding.Logo.Field" xml:space="preserve"><value>Logo file</value></data>
+  <data name="Branding.Logo.Help" xml:space="preserve"><value>PNG or JPEG, up to 512 KB. Larger images are scaled down to 1024 pixels on the longer side.</value></data>
+  <data name="Branding.Logo.Upload" xml:space="preserve"><value>Upload logo</value></data>
+  <data name="Branding.Logo.Saved" xml:space="preserve"><value>Logo saved. It now shows in the header.</value></data>
+  <data name="Branding.Logo.Error.TooLarge" xml:space="preserve"><value>The file is larger than 512 KB. Save a smaller PNG or JPEG and upload it again.</value></data>
+  <data name="Branding.Logo.Error.NotImage" xml:space="preserve"><value>The file is not a PNG or JPEG image. Choose a PNG or JPEG file.</value></data>
+  <data name="Branding.Logo.Error.Dimensions" xml:space="preserve"><value>The image is wider or taller than 4096 pixels. Resize it and upload it again.</value></data>
+  <data name="Branding.Logo.Error.Unreadable" xml:space="preserve"><value>The image could not be read; it may be damaged. Export it again as PNG or JPEG and upload it.</value></data>
+  <data name="Branding.Logo.Error.Missing" xml:space="preserve"><value>Choose a logo file to upload.</value></data>
+</root>

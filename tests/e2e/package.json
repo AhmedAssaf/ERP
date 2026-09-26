@@ -1,0 +1,14 @@
+{
+  "name": "waslabid-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "description": "End-to-end Playwright scripts for the foundation and admin-ui slices (docs/07); not a dotnet test project.",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"There is no single entry point; run each script as documented in README.md\" && exit 1"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "playwright": "1.63.0"
+  }
+}

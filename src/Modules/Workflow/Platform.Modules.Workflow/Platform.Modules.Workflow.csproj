@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Platform.Shared\Platform.Shared.csproj" />
+    <ProjectReference Include="..\..\Audit\Platform.Modules.Audit.Contracts\Platform.Modules.Audit.Contracts.csproj" />
+    <ProjectReference Include="..\Platform.Modules.Workflow.Contracts\Platform.Modules.Workflow.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Migrations\*.sql" LogicalName="Migrations.%(Filename)%(Extension)" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Platform.UnitTests" />
+    <InternalsVisibleTo Include="Platform.IntegrationTests" />
+  </ItemGroup>
+</Project>

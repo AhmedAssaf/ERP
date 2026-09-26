@@ -11,7 +11,7 @@
 	tls internal
 	reverse_proxy host.docker.internal:5273 {
 		# Blazor Server needs WebSockets; Caddy proxies them by default. Keep the client's Host so the app can resolve the tenant.
-		header_up Host {host}
+		header_up Host {hostport}
 		header_up X-Forwarded-Proto {scheme}
 	}
 }

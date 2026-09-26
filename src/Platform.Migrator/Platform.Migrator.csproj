@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <UserSecretsId>waslabid-migrator</UserSecretsId>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Platform.Shared\Platform.Shared.csproj" />
+    <ProjectReference Include="..\Modules\Audit\Platform.Modules.Audit\Platform.Modules.Audit.csproj" />
+    <ProjectReference Include="..\Modules\Tenancy\Platform.Modules.Tenancy\Platform.Modules.Tenancy.csproj" />
+    <ProjectReference Include="..\Modules\Identity\Platform.Modules.Identity\Platform.Modules.Identity.csproj" />
+    <ProjectReference Include="..\Modules\Workflow\Platform.Modules.Workflow\Platform.Modules.Workflow.csproj" />
+    <ProjectReference Include="..\Modules\Operations\Platform.Modules.Operations\Platform.Modules.Operations.csproj" />
+  </ItemGroup>
+</Project>

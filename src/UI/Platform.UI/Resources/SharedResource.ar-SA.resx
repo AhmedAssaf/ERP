@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Home.Title" xml:space="preserve"><value>الصفحة الرئيسية</value></data>
+  <data name="Home.Welcome" xml:space="preserve"><value>مرحباً بك في {0}</value></data>
+  <data name="Home.SignedInAs" xml:space="preserve"><value>دخلت باسم {0}</value></data>
+  <data name="Language.Other" xml:space="preserve"><value>English</value></data>
+  <data name="Language.OtherCulture" xml:space="preserve"><value>en-US</value></data>
+  <data name="Brand.Name" xml:space="preserve"><value>وصلة بد</value></data>
+  <data name="AppShell.SkipToContent" xml:space="preserve"><value>انتقل إلى المحتوى الرئيسي</value></data>
+  <data name="AppShell.MainNavigation" xml:space="preserve"><value>التنقل الرئيسي</value></data>
+  <data name="AppShell.PlatformConsole" xml:space="preserve"><value>لوحة تشغيل المنصة</value></data>
+  <data name="AppShell.SignOut" xml:space="preserve"><value>تسجيل الخروج</value></data>
+  <data name="Button.Working" xml:space="preserve"><value>جارٍ التنفيذ، يرجى الانتظار</value></data>
+  <data name="Field.Required" xml:space="preserve"><value>مطلوب</value></data>
+  <data name="ColorField.Invalid" xml:space="preserve"><value>أدخل اللون بالرمز # متبوعاً بستة أرقام ست عشرية، مثل #1E4E79.</value></data>
+  <data name="ColorField.Picker" xml:space="preserve"><value>{0} (منتقي الألوان)</value></data>
+  <data name="DataTable.CompactRows" xml:space="preserve"><value>صفوف مضغوطة</value></data>
+  <data name="DataTable.NoRows" xml:space="preserve"><value>لا توجد صفوف لعرضها.</value></data>
+  <data name="Dialog.Cancel" xml:space="preserve"><value>إلغاء</value></data>
+  <data name="Toast.Region" xml:space="preserve"><value>الإشعارات</value></data>
+  <data name="Toast.Dismiss" xml:space="preserve"><value>إغلاق الرسالة</value></data>
+  <data name="AuditList.Empty" xml:space="preserve"><value>لم تُسجَّل أي أحداث بعد.</value></data>
+  <data name="AuditList.RiyadhTime" xml:space="preserve"><value>الأوقات بتوقيت الرياض.</value></data>
+  <data name="AuditList.TimeFormat" xml:space="preserve"><value>d MMMM yyyy، HH:mm</value></data>
+  <data name="Gallery.Title" xml:space="preserve"><value>معرض المكوّنات</value></data>
+  <data name="Gallery.Intro" xml:space="preserve"><value>كل المكوّنات المشتركة بالعربية والإنجليزية جنباً إلى جنب. هذه الصفحة متاحة في بيئة التطوير فقط.</value></data>
+  <data name="Gallery.Panel" xml:space="preserve"><value>العربية، من اليمين إلى اليسار</value></data>
+  <data name="Gallery.Section.AppShell" xml:space="preserve"><value>إطار التطبيق</value></data>
+  <data name="Gallery.Section.Button" xml:space="preserve"><value>الأزرار</value></data>
+  <data name="Gallery.Section.Fields" xml:space="preserve"><value>حقول النموذج</value></data>
+  <data name="Gallery.Section.DataTable" xml:space="preserve"><value>جدول البيانات</value></data>
+  <data name="Gallery.Section.StatusBadge" xml:space="preserve"><value>شارات الحالة</value></data>
+  <data name="Gallery.Section.Dialog" xml:space="preserve"><value>نافذة التأكيد</value></data>
+  <data name="Gallery.Section.Toast" xml:space="preserve"><value>رسائل النتيجة</value></data>
+  <data name="Gallery.Section.EmptyState" xml:space="preserve"><value>الحالة الفارغة</value></data>
+  <data name="Gallery.Section.AuditList" xml:space="preserve"><value>سجل الأحداث</value></data>
+  <data name="Gallery.Sample.PortalName" xml:space="preserve"><value>شركة أكمي للمقاولات</value></data>
+  <data name="Gallery.Sample.UserName" xml:space="preserve"><value>سارة أحمد</value></data>
+  <data name="Gallery.Sample.NavTenders" xml:space="preserve"><value>المنافسات</value></data>
+  <data name="Gallery.Sample.NavStaff" xml:space="preserve"><value>الموظفون</value></data>
+  <data name="Gallery.Sample.NavBranding" xml:space="preserve"><value>الهوية</value></data>
+  <data name="Gallery.Sample.NavHealth" xml:space="preserve"><value>لوحة السلامة</value></data>
+  <data name="Gallery.Sample.NavTenants" xml:space="preserve"><value>المنشآت</value></data>
+  <data name="Gallery.Sample.PageBody" xml:space="preserve"><value>يظهر محتوى الصفحة هنا.</value></data>
+  <data name="Gallery.Sample.Publish" xml:space="preserve"><value>نشر المنافسة</value></data>
+  <data name="Gallery.Sample.SaveDraft" xml:space="preserve"><value>حفظ المسودة</value></data>
+  <data name="Gallery.Sample.CancelTender" xml:space="preserve"><value>إلغاء المنافسة</value></data>
+  <data name="Gallery.Sample.ViewHistory" xml:space="preserve"><value>عرض السجل</value></data>
+  <data name="Gallery.Sample.PortalNameLabel" xml:space="preserve"><value>اسم البوابة</value></data>
+  <data name="Gallery.Sample.PortalNameHelp" xml:space="preserve"><value>يظهر في الترويسة وفي الرسائل.</value></data>
+  <data name="Gallery.Sample.PortalNameError" xml:space="preserve"><value>أدخل اسماً للبوابة لا يتجاوز 80 حرفاً.</value></data>
+  <data name="Gallery.Sample.RoleLabel" xml:space="preserve"><value>الدور</value></data>
+  <data name="Gallery.Sample.RolePlaceholder" xml:space="preserve"><value>اختر دوراً</value></data>
+  <data name="Gallery.Sample.RoleAdmin" xml:space="preserve"><value>مدير المنشأة</value></data>
+  <data name="Gallery.Sample.RoleContracts" xml:space="preserve"><value>موظف العقود</value></data>
+  <data name="Gallery.Sample.RoleFinance" xml:space="preserve"><value>معتمد المالية</value></data>
+  <data name="Gallery.Sample.ColourLabel" xml:space="preserve"><value>اللون الأساسي</value></data>
+  <data name="Gallery.Sample.ColourHelp" xml:space="preserve"><value>يُستخدم في الترويسة وفي حلقة التركيز.</value></data>
+  <data name="Gallery.Sample.TableLabel" xml:space="preserve"><value>سلامة المكوّنات</value></data>
+  <data name="Gallery.Sample.ColumnComponent" xml:space="preserve"><value>المكوّن</value></data>
+  <data name="Gallery.Sample.ColumnStatus" xml:space="preserve"><value>الحالة</value></data>
+  <data name="Gallery.Sample.ColumnChecks" xml:space="preserve"><value>فحوصات اليوم</value></data>
+  <data name="Gallery.Sample.Database" xml:space="preserve"><value>قاعدة البيانات</value></data>
+  <data name="Gallery.Sample.SignIn" xml:space="preserve"><value>خدمة تسجيل الدخول</value></data>
+  <data name="Gallery.Sample.Storage" xml:space="preserve"><value>تخزين الملفات</value></data>
+  <data name="Gallery.Sample.Healthy" xml:space="preserve"><value>سليم</value></data>
+  <data name="Gallery.Sample.Slow" xml:space="preserve"><value>بطيء</value></data>
+  <data name="Gallery.Sample.Failing" xml:space="preserve"><value>متعطل</value></data>
+  <data name="Gallery.Sample.Draft" xml:space="preserve"><value>مسودة</value></data>
+  <data name="Gallery.Sample.Published" xml:space="preserve"><value>منشورة</value></data>
+  <data name="Gallery.Sample.DialogTitle" xml:space="preserve"><value>إلغاء صلاحية عمر خالد؟</value></data>
+  <data name="Gallery.Sample.DialogBody" xml:space="preserve"><value>يفقد عمر خالد الوصول إلى مساحة العمل فوراً. تبقى إجراءاته السابقة في سجل التدقيق.</value></data>
+  <data name="Gallery.Sample.DialogConfirm" xml:space="preserve"><value>إلغاء الصلاحية</value></data>
+  <data name="Gallery.Sample.ToastSaved" xml:space="preserve"><value>تم حفظ الهوية</value></data>
+  <data name="Gallery.Sample.ToastFailed" xml:space="preserve"><value>لم تُرسل الدعوة. تحقق من عنوان البريد الإلكتروني وحاول مرة أخرى.</value></data>
+  <data name="Gallery.Sample.EmptyTitle" xml:space="preserve"><value>لم تتم دعوة أي موظف بعد</value></data>
+  <data name="Gallery.Sample.EmptyBody" xml:space="preserve"><value>ادعُ أول عضو في فريقك لبدء العمل على المنافسات.</value></data>
+  <data name="Gallery.Sample.EmptyAction" xml:space="preserve"><value>دعوة موظف</value></data>
+  <data name="Gallery.Sample.AuditLabel" xml:space="preserve"><value>سجل الموظفين</value></data>
+  <data name="Gallery.Sample.AuditActorOmar" xml:space="preserve"><value>عمر خالد</value></data>
+  <data name="Gallery.Sample.AuditInvited" xml:space="preserve"><value>دعت عمر خالد بصفة موظف عقود</value></data>
+  <data name="Gallery.Sample.AuditAccepted" xml:space="preserve"><value>قبل الدعوة</value></data>
+  <data name="Gallery.Sample.AuditDetail" xml:space="preserve"><value>من الرابط في رسالة الدعوة</value></data>
+  <data name="Console.Nav.Health" xml:space="preserve"><value>صحة المنصة</value></data>
+  <data name="Console.Nav.Tenants" xml:space="preserve"><value>الجهات والمهام</value></data>
+  <data name="Console.Nav.Jobs" xml:space="preserve"><value>لوحة المهام</value></data>
+  <data name="Console.TimeFormat" xml:space="preserve"><value>d MMMM yyyy، HH:mm</value></data>
+  <data name="Console.Unknown" xml:space="preserve"><value>غير معروف</value></data>
+  <data name="Console.Loading" xml:space="preserve"><value>جارٍ التحميل…</value></data>
+  <data name="Console.Board.Title" xml:space="preserve"><value>صحة المنصة</value></data>
+  <data name="Console.Board.Refresh" xml:space="preserve"><value>تحديث</value></data>
+  <data name="Console.Board.Components" xml:space="preserve"><value>المكوّنات</value></data>
+  <data name="Console.Board.Latency" xml:space="preserve"><value>زمن الاستجابة</value></data>
+  <data name="Console.Board.Milliseconds" xml:space="preserve"><value>{0} ملّي ثانية</value></data>
+  <data name="Console.Board.LastCheck" xml:space="preserve"><value>آخر فحص</value></data>
+  <data name="Console.Board.LastFailure" xml:space="preserve"><value>آخر عطل</value></data>
+  <data name="Console.Component.Web" xml:space="preserve"><value>خادم الويب</value></data>
+  <data name="Console.Component.Worker" xml:space="preserve"><value>خادم المهام الخلفية</value></data>
+  <data name="Console.Component.PostgreSQL" xml:space="preserve"><value>قاعدة البيانات (PostgreSQL)</value></data>
+  <data name="Console.Component.MinIO" xml:space="preserve"><value>تخزين الملفات (MinIO)</value></data>
+  <data name="Console.Component.Keycloak" xml:space="preserve"><value>تسجيل الدخول (Keycloak)</value></data>
+  <data name="Console.Component.ClamAV" xml:space="preserve"><value>فحص الفيروسات (ClamAV)</value></data>
+  <data name="Console.Component.SMTP" xml:space="preserve"><value>البريد الإلكتروني (SMTP)</value></data>
+  <data name="Console.Component.Disk" xml:space="preserve"><value>مساحة القرص</value></data>
+  <data name="Console.Status.Healthy" xml:space="preserve"><value>سليم</value></data>
+  <data name="Console.Status.Degraded" xml:space="preserve"><value>متراجع</value></data>
+  <data name="Console.Status.Unhealthy" xml:space="preserve"><value>متعطل</value></data>
+  <data name="Console.Status.Unknown" xml:space="preserve"><value>غير معروف</value></data>
+  <data name="Console.Incidents.Title" xml:space="preserve"><value>الأعطال خلال آخر 30 يوماً</value></data>
+  <data name="Console.Incidents.Component" xml:space="preserve"><value>المكوّن</value></data>
+  <data name="Console.Incidents.Started" xml:space="preserve"><value>بدأ</value></data>
+  <data name="Console.Incidents.Ended" xml:space="preserve"><value>انتهى</value></data>
+  <data name="Console.Incidents.Open" xml:space="preserve"><value>ما زال قائماً</value></data>
+  <data name="Console.Incidents.LastMessage" xml:space="preserve"><value>آخر رسالة</value></data>
+  <data name="Console.Incidents.EmptyTitle" xml:space="preserve"><value>لا أعطال خلال آخر 30 يوماً</value></data>
+  <data name="Console.Incidents.EmptyBody" xml:space="preserve"><value>اجتازت كل المكوّنات فحوصها. يظهر العطل هنا عند فشل أي فحص.</value></data>
+  <data name="Console.Tenants.Title" xml:space="preserve"><value>الجهات والمهام</value></data>
+  <data name="Console.Tenants.Heading" xml:space="preserve"><value>الجهات</value></data>
+  <data name="Console.Tenants.Tenant" xml:space="preserve"><value>الجهة</value></data>
+  <data name="Console.Tenants.Status" xml:space="preserve"><value>الحالة</value></data>
+  <data name="Console.Tenants.Users" xml:space="preserve"><value>المستخدمون</value></data>
+  <data name="Console.Tenants.ActiveTenders" xml:space="preserve"><value>المنافسات القائمة</value></data>
+  <data name="Console.Tenants.Storage" xml:space="preserve"><value>التخزين المستخدم</value></data>
+  <data name="Console.Tenants.FailedJobs" xml:space="preserve"><value>المهام المتعطلة</value></data>
+  <data name="Console.Tenants.EmptyTitle" xml:space="preserve"><value>لا توجد جهات بعد</value></data>
+  <data name="Console.Tenants.EmptyBody" xml:space="preserve"><value>تظهر الجهات هنا بعد تجهيزها.</value></data>
+  <data name="Console.TenantStatus.active" xml:space="preserve"><value>نشطة</value></data>
+  <data name="Console.Jobs.Heading" xml:space="preserve"><value>المهام المتعطلة</value></data>
+  <data name="Console.Jobs.Job" xml:space="preserve"><value>المهمة</value></data>
+  <data name="Console.Jobs.Id" xml:space="preserve"><value>المهمة {0}</value></data>
+  <data name="Console.Jobs.Tenant" xml:space="preserve"><value>الجهة</value></data>
+  <data name="Console.Jobs.PlatformJob" xml:space="preserve"><value>المنصة</value></data>
+  <data name="Console.Jobs.FailedAt" xml:space="preserve"><value>وقت التعطل</value></data>
+  <data name="Console.Jobs.Error" xml:space="preserve"><value>الخطأ</value></data>
+  <data name="Console.Jobs.Action" xml:space="preserve"><value>الإجراء</value></data>
+  <data name="Console.Jobs.Rerun" xml:space="preserve"><value>إعادة تشغيل المهمة</value></data>
+  <data name="Console.Jobs.EmptyTitle" xml:space="preserve"><value>لا مهام متعطلة</value></data>
+  <data name="Console.Jobs.EmptyBody" xml:space="preserve"><value>تظهر هنا المهام الخلفية التي تتعطل بعد إعادة المحاولة، مع إمكانية تشغيلها من جديد.</value></data>
+  <data name="Console.Jobs.RerunTitle" xml:space="preserve"><value>إعادة تشغيل {0} لصالح {1}؟</value></data>
+  <data name="Console.Jobs.RerunConfirm" xml:space="preserve"><value>إعادة تشغيل المهمة</value></data>
+  <data name="Console.Jobs.RerunBody" xml:space="preserve"><value>تعود المهمة إلى قائمة الانتظار وتعمل من جديد بالبيانات نفسها. تُسجَّل إعادة التشغيل في سجل تدقيق المنصة باسمك.</value></data>
+  <data name="Console.Jobs.Requeued" xml:space="preserve"><value>أُعيدت {0} إلى قائمة الانتظار</value></data>
+  <data name="Console.Jobs.NotFailed" xml:space="preserve"><value>لم تعد {0} متعطلة؛ لم يتغير شيء</value></data>
+  <data name="Console.Jobs.NotAllowed" xml:space="preserve"><value>لا تسمح جلستك بإعادة تشغيل المهام. سجّل الدخول من جديد برمز التحقق.</value></data>
+  <data name="Console.Jobs.RerunFailed" xml:space="preserve"><value>تعذّرت إعادة تشغيل المهمة. حاول مرة أخرى، وإن تكرر الفشل فافحص خادم المهام.</value></data>
+  <data name="Console.Size.Bytes" xml:space="preserve"><value>{0} بايت</value></data>
+  <data name="Console.Size.KB" xml:space="preserve"><value>{0} ك.بايت</value></data>
+  <data name="Console.Size.MB" xml:space="preserve"><value>{0} م.بايت</value></data>
+  <data name="Console.Size.GB" xml:space="preserve"><value>{0} ج.بايت</value></data>
+  <data name="Admin.Nav.Staff" xml:space="preserve"><value>الموظفون</value></data>
+  <data name="Staff.Title" xml:space="preserve"><value>الموظفون</value></data>
+  <data name="Staff.Heading" xml:space="preserve"><value>الأعضاء</value></data>
+  <data name="Staff.Loading" xml:space="preserve"><value>جارٍ تحميل الموظفين…</value></data>
+  <data name="Staff.Invite" xml:space="preserve"><value>دعوة موظف</value></data>
+  <data name="Staff.Column.Name" xml:space="preserve"><value>الاسم</value></data>
+  <data name="Staff.Column.Email" xml:space="preserve"><value>البريد الإلكتروني</value></data>
+  <data name="Staff.Column.Roles" xml:space="preserve"><value>الأدوار</value></data>
+  <data name="Staff.Column.Status" xml:space="preserve"><value>الحالة</value></data>
+  <data name="Staff.Column.Actions" xml:space="preserve"><value>الإجراءات</value></data>
+  <data name="Staff.Status.Active" xml:space="preserve"><value>نشط</value></data>
+  <data name="Staff.Status.Invited" xml:space="preserve"><value>مدعو</value></data>
+  <data name="Staff.ChangeRoles" xml:space="preserve"><value>تغيير الأدوار</value></data>
+  <data name="Staff.Resend" xml:space="preserve"><value>إعادة إرسال الدعوة</value></data>
+  <data name="Staff.EmptyTitle" xml:space="preserve"><value>لم تتم دعوة أي موظف بعد</value></data>
+  <data name="Staff.EmptyBody" xml:space="preserve"><value>ادعُ أول عضو في فريقك لبدء العمل على المنافسات.</value></data>
+  <data name="Staff.InviteTitle" xml:space="preserve"><value>دعوة موظف</value></data>
+  <data name="Staff.InviteConfirm" xml:space="preserve"><value>إرسال الدعوة</value></data>
+  <data name="Staff.InviteBody" xml:space="preserve"><value>نرسل بالبريد الإلكتروني رابطاً لتعيين كلمة المرور وتطبيق المصادقة. يعمل الرابط لمدة 72 ساعة.</value></data>
+  <data name="Staff.Field.Email" xml:space="preserve"><value>البريد الإلكتروني للعمل</value></data>
+  <data name="Staff.Field.Name" xml:space="preserve"><value>الاسم الكامل</value></data>
+  <data name="Staff.Field.Roles" xml:space="preserve"><value>الأدوار</value></data>
+  <data name="Staff.Role.tenant-admin" xml:space="preserve"><value>مدير المنشأة</value></data>
+  <data name="Staff.Role.contracts-officer" xml:space="preserve"><value>موظف العقود</value></data>
+  <data name="Staff.Role.technical-evaluator" xml:space="preserve"><value>المقيّم الفني</value></data>
+  <data name="Staff.Role.finance-approver" xml:space="preserve"><value>معتمد المالية</value></data>
+  <data name="Staff.NoRoles" xml:space="preserve"><value>بلا دور</value></data>
+  <data name="Staff.RoleSeparator" xml:space="preserve"><value>، </value></data>
+  <data name="Staff.RolesTitle" xml:space="preserve"><value>تغيير أدوار {0}؟</value></data>
+  <data name="Staff.RolesConfirm" xml:space="preserve"><value>حفظ الأدوار</value></data>
+  <data name="Staff.RolesBody" xml:space="preserve"><value>تسري الأدوار الجديدة من الصفحة التالية التي يفتحها.</value></data>
+  <data name="Staff.NotAllowed" xml:space="preserve"><value>هذا الإجراء متاح لمدير المنشأة فقط.</value></data>
+  <data name="Staff.Error.Email" xml:space="preserve"><value>أدخل البريد الإلكتروني للعمل، مثل name@company.com.</value></data>
+  <data name="Staff.Error.Exists" xml:space="preserve"><value>هذا الشخص عضو في فريقك بالفعل.</value></data>
+  <data name="Staff.Error.Name" xml:space="preserve"><value>أدخل الاسم الكامل بما لا يزيد على 100 حرف، باستخدام الحروف والمسافات والفواصل العليا والشرطات والنقاط فقط.</value></data>
+  <data name="Staff.Error.Roles" xml:space="preserve"><value>اختر دوراً واحداً على الأقل.</value></data>
+  <data name="Staff.Error.LastAdmin" xml:space="preserve"><value>يجب أن يبقى في فريقك مدير منشأة نشط واحد على الأقل، لذلك لا يمكن إزالة دور المدير هذا.</value></data>
+  <data name="Staff.Error.NotFound" xml:space="preserve"><value>لم يعد هذا الشخص عضواً في فريقك. أعد تحميل الصفحة.</value></data>
+  <data name="Staff.Error.AlreadyActive" xml:space="preserve"><value>سجّل {0} الدخول بالفعل، لذلك لا توجد دعوة لإعادة إرسالها.</value></data>
+  <data name="Staff.Error.CannotInvite" xml:space="preserve"><value>لا يمكن دعوة هذا الشخص. تواصل مع الدعم.</value></data>
+  <data name="Staff.Error.Generic" xml:space="preserve"><value>تعذّر إتمام العملية. حاول مرة أخرى بعد قليل.</value></data>
+  <data name="Staff.Invited" xml:space="preserve"><value>أُرسلت الدعوة إلى {0}</value></data>
+  <data name="Staff.EmailFailed" xml:space="preserve"><value>أُضيف {0} لكن لم يُرسل بريد الدعوة. استخدم إعادة إرسال الدعوة.</value></data>
+  <data name="Staff.RolesSaved" xml:space="preserve"><value>حُفظت أدوار {0}</value></data>
+  <data name="Staff.Resent" xml:space="preserve"><value>أُعيد إرسال الدعوة إلى {0}</value></data>
+  <data name="Admin.Nav.Branding" xml:space="preserve"><value>الهوية</value></data>
+  <data name="Branding.Title" xml:space="preserve"><value>هوية البوابة</value></data>
+  <data name="Branding.Intro" xml:space="preserve"><value>يظهر اسم بوابتك ولونها وشعارها في كل صفحة يراها موظفوك والموردون، بدلًا من هويتنا.</value></data>
+  <data name="Branding.Details" xml:space="preserve"><value>الاسم واللون</value></data>
+  <data name="Branding.Field.PortalName" xml:space="preserve"><value>اسم البوابة</value></data>
+  <data name="Branding.Field.Color" xml:space="preserve"><value>اللون الأساسي</value></data>
+  <data name="Branding.Field.ColorHelp" xml:space="preserve"><value>يُستخدم في الترويسة والأزرار الرئيسية مع نص أبيض. إذا كان اللون فاتحًا جدًا على النص الأبيض فسيُغمَّق عند الحفظ.</value></data>
+  <data name="Branding.Save" xml:space="preserve"><value>حفظ الاسم واللون</value></data>
+  <data name="Branding.Saved" xml:space="preserve"><value>تم حفظ الهوية.</value></data>
+  <data name="Branding.ColorAdjusted" xml:space="preserve"><value>تباين اللون {0} مع النص الأبيض منخفض، لذا حُفظ اللون الأغمق {1} بدلًا منه.</value></data>
+  <data name="Branding.Error.PortalName" xml:space="preserve"><value>أدخل اسمًا للبوابة لا يتجاوز 100 حرف.</value></data>
+  <data name="Branding.Error.Color" xml:space="preserve"><value>أدخل اللون بالعلامة # متبوعة بستة أرقام ست عشرية، مثل ‎#0F766E.</value></data>
+  <data name="Branding.Error.Generic" xml:space="preserve"><value>لم تُحفظ الهوية. حاول مرة أخرى، وإذا تكرر الخطأ فتواصل مع الدعم.</value></data>
+  <data name="Branding.NotAllowed" xml:space="preserve"><value>لم تعد مسؤولًا عن الجهة، لذا لم يُحفظ هذا التغيير.</value></data>
+  <data name="Branding.Logo.Heading" xml:space="preserve"><value>الشعار</value></data>
+  <data name="Branding.Logo.Current" xml:space="preserve"><value>الشعار الحالي</value></data>
+  <data name="Branding.Logo.None" xml:space="preserve"><value>لا يوجد شعار بعد. تعرض الترويسة اسم البوابة وحده.</value></data>
+  <data name="Branding.Logo.Field" xml:space="preserve"><value>ملف الشعار</value></data>
+  <data name="Branding.Logo.Help" xml:space="preserve"><value>PNG أو JPEG بحجم لا يتجاوز 512 كيلوبايت. تُصغَّر الصور الأكبر إلى 1024 بكسل في الضلع الأطول.</value></data>
+  <data name="Branding.Logo.Upload" xml:space="preserve"><value>رفع الشعار</value></data>
+  <data name="Branding.Logo.Saved" xml:space="preserve"><value>تم حفظ الشعار، وهو يظهر الآن في الترويسة.</value></data>
+  <data name="Branding.Logo.Error.TooLarge" xml:space="preserve"><value>حجم الملف أكبر من 512 كيلوبايت. احفظ صورة PNG أو JPEG أصغر ثم ارفعها مجددًا.</value></data>
+  <data name="Branding.Logo.Error.NotImage" xml:space="preserve"><value>الملف ليس صورة PNG أو JPEG. اختر ملف PNG أو JPEG.</value></data>
+  <data name="Branding.Logo.Error.Dimensions" xml:space="preserve"><value>عرض الصورة أو ارتفاعها أكبر من 4096 بكسل. غيّر حجمها ثم ارفعها مجددًا.</value></data>
+  <data name="Branding.Logo.Error.Unreadable" xml:space="preserve"><value>تعذرت قراءة الصورة وقد تكون تالفة. صدّرها مجددًا بصيغة PNG أو JPEG ثم ارفعها.</value></data>
+  <data name="Branding.Logo.Error.Missing" xml:space="preserve"><value>اختر ملف الشعار لرفعه.</value></data>
+</root>

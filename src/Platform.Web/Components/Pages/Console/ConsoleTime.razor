@@ -1,0 +1,36 @@
+@*
+    A point in time on the console, the way AuditList shows one: Riyadh time (UTC+3 all year) on the Gregorian calendar in
+    both languages, the exact instant with its offset in the datetime attribute. No value shows a dash.
+*@
+@using System.Globalization
+@inject IStringLocalizer<SharedResource> T
+
+@if (At is { } at)
+{
+    var riyadh = at.ToOffset(RiyadhOffset);
+    <time datetime="@riyadh.ToString("yyyy-MM-dd'T'HH:mm:sszzz", CultureInfo.InvariantCulture)" class="whitespace-nowrap tabular-nums">@riyadh.ToString(T["Console.TimeFormat"].Value, GregorianCulture())</time>
+}
+else
+{
+    <span aria-label="@T["Console.Unknown"]">—</span>
+}
+
+@code {
+    private static readonly TimeSpan RiyadhOffset = TimeSpan.FromHours(3);
+
+    [Parameter] public DateTimeOffset? At { get; set; }
+
+    // ar-SA defaults to the Umm al-Qura calendar; the product shows Gregorian dates in both languages.
+    private static CultureInfo GregorianCulture()
+    {
+        var current = CultureInfo.CurrentCulture;
+        if (current.Calendar is GregorianCalendar)
+        {
+            return current;
+        }
+
+        var clone = (CultureInfo)current.Clone();
+        clone.DateTimeFormat.Calendar = new GregorianCalendar();
+        return clone;
+    }
+}

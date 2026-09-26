@@ -1,0 +1,128 @@
+@*
+    Confirmation for an irreversible action (docs/08 section 6): the title states the consequence, the body says what
+    cannot be undone, the confirm button repeats the verb. Focus moves to Cancel on open, is trapped between two guards,
+    Escape closes, and focus returns to ReturnFocus (the button that opened it) on close. Confirm does not close the
+    dialog: the page closes it when the action succeeded, and keeps it open with Busy while the action runs.
+*@
+@inject IStringLocalizer<SharedResource> T
+
+@if (_open)
+{
+    <div class="fixed inset-0 z-40 bg-ink/60" aria-hidden="true"></div>
+    <div class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4">
+        <span tabindex="0" data-focus-guard="start" @onfocus="FocusLastAsync"></span>
+        <div @ref="_panel" role="dialog" aria-modal="true" aria-labelledby="@TitleId" aria-describedby="@BodyId" tabindex="-1"
+             @onkeydown="OnKeyDownAsync"
+             class="grid w-full max-w-lg gap-4 rounded-card border border-line bg-surface p-6 text-ink shadow-xl">
+            <h2 id="@TitleId" class="text-heading">@Title</h2>
+            <div id="@BodyId" class="grid gap-2 text-body">@ChildContent</div>
+            <div class="flex flex-wrap justify-end gap-3">
+                <Button @ref="_cancel" Variant="ButtonVariant.Secondary" Disabled="Busy" OnClick="CloseAsync">@T["Dialog.Cancel"]</Button>
+                <Button @ref="_confirm" Variant="ConfirmVariant" Loading="Busy" OnClick="OnConfirm">@ConfirmText</Button>
+            </div>
+        </div>
+        <span tabindex="0" data-focus-guard="end" @onfocus="FocusPanelAsync"></span>
+    </div>
+}
+
+@code {
+    private readonly string _id = $"dialog-{Guid.NewGuid():N}";
+    private ElementReference _panel;
+    private Button? _cancel;
+    private Button? _confirm;
+    private bool _open;
+    private bool? _lastOpen;
+    private bool _focusOnOpen;
+    private bool _returnFocusOnClose;
+
+    [Parameter] public bool Open { get; set; }
+
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
+
+    /// <summary>States the consequence as a question: "Revoke access for Sara Ahmed?".</summary>
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+
+    /// <summary>Repeats the verb of the action: "Revoke access".</summary>
+    [Parameter, EditorRequired] public string ConfirmText { get; set; } = string.Empty;
+
+    [Parameter] public ButtonVariant ConfirmVariant { get; set; } = ButtonVariant.Primary;
+
+    [Parameter] public EventCallback OnConfirm { get; set; }
+
+    /// <summary>While true the action is running: confirm shows loading, Cancel and Escape do nothing.</summary>
+    [Parameter] public bool Busy { get; set; }
+
+    /// <summary>Where focus goes after the dialog closes; usually the Element of the button that opened it.</summary>
+    [Parameter] public ElementReference? ReturnFocus { get; set; }
+
+    /// <summary>What cannot be undone, in full sentences.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string TitleId => $"{_id}-title";
+
+    private string BodyId => $"{_id}-body";
+
+    protected override void OnParametersSet()
+    {
+        // React to changes of the parameter only, so a parent re-render never reopens a dialog the user closed.
+        if (Open == _lastOpen)
+        {
+            return;
+        }
+
+        _lastOpen = Open;
+        if (Open && !_open)
+        {
+            _focusOnOpen = true;
+        }
+        else if (!Open && _open)
+        {
+            _returnFocusOnClose = true;
+        }
+
+        _open = Open;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusOnOpen && _cancel is not null)
+        {
+            _focusOnOpen = false;
+            await _cancel.Element.FocusAsync();
+        }
+        else if (_returnFocusOnClose)
+        {
+            _returnFocusOnClose = false;
+            if (ReturnFocus is { } target)
+            {
+                await target.FocusAsync();
+            }
+        }
+    }
+
+    private async Task CloseAsync()
+    {
+        if (Busy || !_open)
+        {
+            return;
+        }
+
+        _open = false;
+        _returnFocusOnClose = true;
+        await OpenChanged.InvokeAsync(false);
+    }
+
+    private Task OnKeyDownAsync(KeyboardEventArgs e) => e.Key == "Escape" ? CloseAsync() : Task.CompletedTask;
+
+    // Tabbing past the last control lands on the end guard, which sends focus back to the panel (the next Tab reaches
+    // the first control); Shift+Tab before the first control lands on the start guard, which sends focus to confirm.
+    private async Task FocusPanelAsync() => await _panel.FocusAsync();
+
+    private async Task FocusLastAsync()
+    {
+        if (_confirm is not null)
+        {
+            await _confirm.Element.FocusAsync();
+        }
+    }
+}

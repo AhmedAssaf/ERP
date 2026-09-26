@@ -1,0 +1,84 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <TailwindVersion>v4.3.3</TailwindVersion>
+    <TailwindDir>$(MSBuildThisFileDirectory)..\..\..\.tools\tailwind\$(TailwindVersion)\</TailwindDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+    <TailwindAsset>tailwindcss-windows-x64.exe</TailwindAsset>
+    <TailwindSha256>e0e260ce048014e9268f6237ff18f8ccf02cef521cbd0ae04e82c2cdf7aa3955</TailwindSha256>
+  </PropertyGroup>
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+    <TailwindAsset>tailwindcss-linux-x64</TailwindAsset>
+    <TailwindSha256>dc61b3ac6b8c9ca874c0cc4c57b2409791a64c5540404ca5f5367360babc313a</TailwindSha256>
+  </PropertyGroup>
+  <PropertyGroup>
+    <TailwindExe>$(TailwindDir)$(TailwindAsset)</TailwindExe>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Platform.Shared\Platform.Shared.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- DataTable wraps QuickGrid (docs/08 section 6); pinned to the ASP.NET Core version in use. -->
+    <PackageReference Include="Microsoft.AspNetCore.Components.QuickGrid" />
+  </ItemGroup>
+
+  <!--
+    The generated file already exists on disk after the first build, so the SDK's implicit
+    wwwroot/** glob would pick it up as a Content item at project evaluation time (before any
+    target runs). Excluding it here, unconditionally, means the TailwindBuild target below is
+    the only place that ever adds it, so it is never registered twice as a static web asset.
+  -->
+  <ItemGroup>
+    <Content Remove="wwwroot/css/app.css" />
+  </ItemGroup>
+
+  <!--
+    The files that can change what Tailwind must emit: this project's stylesheet and its own
+    markup/code, plus Platform.Web's markup/code (it is scanned too, via @source in app.css).
+    Used as the TailwindBuild target's Inputs so an up-to-date build skips the CLI invocation.
+  -->
+  <ItemGroup>
+    <TailwindWatchFile Include="Styles/app.css" />
+    <TailwindWatchFile Include="@(Content)" />
+    <TailwindWatchFile Include="**/*.razor;**/*.cs" Exclude="bin/**;obj/**" />
+    <TailwindWatchFile Include="../../Platform.Web/**/*.razor;../../Platform.Web/**/*.cs" Exclude="../../Platform.Web/bin/**;../../Platform.Web/obj/**" />
+  </ItemGroup>
+
+  <!-- Downloads the pinned Tailwind standalone CLI once (no Node.js in the build). SHA-256 is checked by TailwindVerify below, every build, not just here. -->
+  <Target Name="TailwindDownload" Condition="!Exists('$(TailwindExe)')">
+    <Error Condition="'$(TailwindAsset)' == ''" Text="Tailwind: no standalone binary is configured for this operating system." />
+    <DownloadFile SourceUrl="https://github.com/tailwindlabs/tailwindcss/releases/download/$(TailwindVersion)/$(TailwindAsset)" DestinationFolder="$(TailwindDir)" />
+    <Exec Condition="!$([MSBuild]::IsOSPlatform('Windows'))" Command="chmod +x &quot;$(TailwindExe)&quot;" />
+  </Target>
+
+  <!-- Verifies the Tailwind binary's SHA-256 on every build (not only right after it is downloaded), so a tampered or corrupted cached binary is caught too. -->
+  <Target Name="TailwindVerify" DependsOnTargets="TailwindDownload">
+    <Error Condition="'$(TailwindAsset)' == ''" Text="Tailwind: no standalone binary is configured for this operating system." />
+    <GetFileHash Files="$(TailwindExe)" Algorithm="SHA256">
+      <Output TaskParameter="Hash" PropertyName="TailwindActualSha256" />
+    </GetFileHash>
+    <Delete Files="$(TailwindExe)" Condition="'$(TailwindActualSha256)' != '$(TailwindSha256)'" />
+    <Error Condition="'$(TailwindActualSha256)' != '$(TailwindSha256)'" Text="Tailwind: SHA-256 mismatch for $(TailwindAsset); the download was deleted." />
+  </Target>
+
+  <!-- Builds wwwroot/css/app.css from Styles/app.css. Skipped when no watched input changed since the file was last written. -->
+  <Target Name="TailwindBuild"
+          BeforeTargets="BeforeBuild;ResolveStaticWebAssetsInputs;DefineStaticWebAssets;AssignTargetPaths"
+          DependsOnTargets="TailwindVerify"
+          Inputs="@(TailwindWatchFile)"
+          Outputs="wwwroot/css/app.css">
+    <Exec Command="&quot;$(TailwindExe)&quot; --input Styles/app.css --output wwwroot/css/app.css --minify" WorkingDirectory="$(MSBuildProjectDirectory)" />
+  </Target>
+
+  <!-- Registers the built CSS as a static web asset. Always runs, even when TailwindBuild above is skipped as up-to-date. -->
+  <Target Name="TailwindRegister" BeforeTargets="BeforeBuild;ResolveStaticWebAssetsInputs;DefineStaticWebAssets;AssignTargetPaths" DependsOnTargets="TailwindBuild">
+    <ItemGroup>
+      <Content Include="wwwroot/css/app.css" />
+    </ItemGroup>
+  </Target>
+</Project>

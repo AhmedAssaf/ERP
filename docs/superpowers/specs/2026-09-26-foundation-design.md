@@ -129,7 +129,7 @@ W-05 acceptance: a `.razor` file containing `ml-4` fails the lint with its file 
 ### 3.2 Localisation
 
 - `IStringLocalizer<SharedResource>` with `Platform.UI/Resources/SharedResource.ar-SA.resx` and `SharedResource.en-US.resx`.
-- Culture order: the token's `locale` claim, then the `.AspNetCore.Culture` cookie, then the tenant's default culture, then `ar-SA`.
+- Culture order: the `.AspNetCore.Culture` cookie, then the token's `locale` claim, then the tenant's default culture, then `ar-SA`.
 - `App.razor` renders `<html lang="@lang" dir="@dir">` from the current UI culture.
 - `/culture/set?culture=&returnUrl=` writes the cookie and redirects with a local-URL check.
 - A unit test fails if either resource file has a key the other lacks.
@@ -267,3 +267,7 @@ Each was checked against the running tools before the plan was written; where th
 | Concurrency | `xmin` on `tender_workflow` | Same, plus `updated_at` touched on every decision | Adding a decision row alone does not change `tender_workflow`, so without the touch two last approvers could race. |
 | Secrets in the realm | not specified | The realm file uses `${WASLABID_WEB_CLIENT_SECRET}` and `${WASLABID_DEV_USER_PASSWORD}`, supplied from `infra/compose/.env` | Keycloak substitutes environment placeholders at import (verified); no secret values in the repository (N-10). |
 | Dev login URL | `https://acme.localhost:8443` | Same; plain `http://…:5273` does not complete an OIDC login | OIDC correlation cookies need `Secure`; Caddy must forward `Host {hostport}` so the redirect URI keeps the port. |
+| Test runner | not specified | `global.json` sets `"test": { "runner": "Microsoft.Testing.Platform" }` | The .NET 10 SDK no longer runs xUnit v3 through VSTest; filters use MTP syntax. |
+| Migrator entry point | not specified | `src/Platform.Migrator/Program.cs` uses an explicit `internal static class EntryPoint`, not top-level statements | Top-level statements synthesize a type named `Program` in the global namespace, which collides (CS0433) with `Platform.Web`'s `Program` once both assemblies are referenced together by `Platform.IntegrationTests` (`WebApplicationFactory<Program>` needs `Platform.Web`'s). |
+| Circuit tenant | from the host name at circuit start | from the `/_blazor` connection's HttpContext host, which must equal the BaseUri host | the BaseUri is client-supplied (review finding, 2026-09-26) |
+| No tenant on a connection | the interceptor sets nothing | it sets the empty string, which `platform.current_tenant()` reads as no tenant | overwrites any value left on a reused connection |

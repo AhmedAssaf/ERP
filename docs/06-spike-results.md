@@ -137,3 +137,50 @@ Other measurements: a five-step snapshot is 2,169 characters of JSON; the finish
 ### 6.4 Decision proposed
 
 ADR-0003 point 5 says Elsa executes the snapshot only if both the fixed points hold and the designer can be delivered in Arabic under the tenant's brand. The first holds, the second does not, so our own state machine executes the snapshot. Proposed as ADR-0004. The F-56b editor in version 1.1 is built in `Platform.UI` as an ordered step list, not as a flowchart canvas.
+
+## 7. Spike 4: offers to Markdown for LLM review (W-22)
+
+Date: 2026-09-26. Code, full score table, and run steps: `spikes/OfferToMarkdownSpike/`. Question: can DOCX, PDF, and scanned PDF offers, Arabic and English, become Markdown with page references that a cheap LLM can evaluate against the RFP (option (e), document 02 section 5 item 7)?
+
+Samples were generated with known text: a three-page Arabic technical offer with English product names and a compliance table, exported to PDF by Word, plus a 200 dpi image-only copy and an English control. Real offers from a prospect are still needed.
+
+```mermaid
+flowchart LR
+  D[DOCX] -->|MarkItDown or Docling<br/>100% words, in order| OK[Usable Markdown]
+  T[Text PDF, Arabic] -->|MarkItDown, PdfPig as is<br/>letters reversed, 5%| X[Unusable]
+  T -->|PyMuPDF4LLM<br/>word order reversed, lam-alef split| X
+  T -->|Docling: 100% words, tables kept<br/>PdfPig + our logical pass: 100% words| P[Usable, mixed<br/>Arabic-English lines out of order]
+  S[Scanned PDF] -->|Docling OCR<br/>88% words, order lost,<br/>~35 s per page on CPU| W[Weak]
+```
+
+| Input | Best converter | Arabic word recall | Caveat |
+|---|---|---|---|
+| DOCX | MarkItDown or Docling | 100% | No page numbers; cite headings instead |
+| Word-exported PDF | Docling, or PdfPig with a visual-to-logical pass | 100% | Segment order on mixed Arabic and English lines is wrong in every tool |
+| Scanned PDF | Docling with OCR | 88% | OCR errors on Latin tokens inside Arabic text; slow on CPU |
+
+Decisions and follow-ups:
+
+1. Accept DOCX where the tender allows it and prefer it in vendor guidance.
+2. For PDFs, test the alternative before choosing a converter: give the PDF to an LLM that reads PDFs natively, which sidesteps text extraction at a higher token cost.
+3. Evidence quotes must be matched on words, not as exact substrings, because segment order on mixed lines is unreliable.
+4. W-22 stays in progress until two or three real Arabic offers are converted and read by a human.
+
+### 7.1 Three test tenders, end to end
+
+Three fictional tenders with nine offers and answer keys (`spikes/OfferToMarkdownSpike/samples/tenders/`) were converted and reviewed by Claude Haiku 4.5 as a stand-in for the cheapest model, one isolated run per offer.
+
+| Input | Facts kept after conversion | Verdicts matching the answer key |
+|---|---|---|
+| DOCX | 100% | 33 of 41 |
+| Word PDF (Docling) | 94 to 100% | 31 of 41 |
+| Scanned PDF (Docling OCR) | 46 to 71% | 12 of 41 |
+
+- A requirement was wrongly called "met" 3 times in 123; on unreadable scans the model said so instead of guessing.
+- A deterministic price checker found every planted financial error with no false positive, so F-48 arithmetic, missing-line, quantity, and unit checks need no LLM.
+- OCR lost the evidence behind several red flags (shared phone number, subcontractor name, certificate holder), so scans are not fit for this pipeline; test giving the PDF directly to a model that reads PDFs.
+- Prompt version 2 (`prompts/offer-review-v2.md`: explicit number comparison, obligations moved to the buyer are partial, contract-long validity only when the RFP says so) raised agreement on DOCX and Word PDF from 63 to 72 of 82 (77 to 88 percent), scans from 12 to 16 of 41, and cut wrong "met" verdicts from 3 to 1.
+- Decided 2026-09-26: a shortfall against a minimum (3 training days of 5, 2 references of 3) is `partial`; none at all is `not_met`; exceeding a maximum such as a deadline stays `not_met`. Written into prompt version 3. It may later become a tenant setting.
+- Prompt version 3 run: 94 of 123 overall (76 percent), 73 of 82 on DOCX and Word PDF (89 percent, level with v2), 21 of 41 on scans, all three compliant offers fully right, but 3 wrong "met" verdicts and the shortfall rule ignored on one offer. Single runs vary as much as prompts do, so the next comparison uses three runs per offer with a majority verdict, plus one stronger model on the same set.
+- Three runs per offer with prompt v3: single runs 75 to 77 percent overall, majority 93 percent on DOCX and Word PDF with 2 wrong "met", all three runs agreeing on 85 percent of requirements. Where runs disagree is where a human should look, so the product can show run agreement as confidence. The remaining text-document errors repeat in every run (Excel reports accepted as an electronic system, a split warranty read as five years from the manufacturer), so they need a stronger model or a sharper requirement, not more runs. Malformed JSON in 3 of 27 runs.
+- One v2 run returned malformed JSON, so the product must use schema-enforced structured output.

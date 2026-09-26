@@ -58,6 +58,9 @@ Expected: a line starting `10.0.401`.
   "sdk": {
     "version": "10.0.401",
     "rollForward": "latestFeature"
+  },
+  "test": {
+    "runner": "Microsoft.Testing.Platform"
   }
 }
 ```
@@ -387,7 +390,7 @@ public sealed class TenantAccessor : ITenantAccessor
 - [ ] **Step 5: Run the tests to verify they pass**
 
 Run: `dotnet test tests/Platform.UnitTests`
-Expected: `Passed!  - Failed: 0, Passed: 2`.
+Expected: `total: 2` and `failed: 0`.
 
 - [ ] **Step 6: Commit**
 
@@ -624,7 +627,7 @@ Create an empty `Migrations` folder in each implementation project so the embedd
 - [ ] **Step 5: Run to verify pass**
 
 Run: `dotnet build WaslaBid.slnx -warnaserror && dotnet test tests/Platform.UnitTests`
-Expected: `Build succeeded.` then `Passed!  - Failed: 0, Passed: 14` (2 result + 8 architecture + 4 registration).
+Expected: `Build succeeded.` then `total: 14` and `failed: 0` (2 result + 8 architecture + 4 registration).
 
 - [ ] **Step 6: Commit**
 
@@ -1362,7 +1365,11 @@ internal sealed class ModuleHost : IAsyncDisposable
     public AsyncServiceScope ScopeFor(TenantContext? tenant)
     {
         var scope = _root.CreateAsyncScope();
-        scope.ServiceProvider.GetRequiredService<TenantAccessor>().Current = tenant;
+        if (tenant is not null)
+        {
+            scope.ServiceProvider.GetRequiredService<TenantAccessor>().Set(tenant);
+        }
+
         return scope;
     }
 
@@ -2028,7 +2035,7 @@ git commit -m "Tenancy module: host resolution through a security-definer functi
 **Files:**
 - Create: `src/Platform.Web/Tenancy/TenantMiddleware.cs`, `src/Platform.Web/Tenancy/TenantCircuitHandler.cs`
 - Modify: `src/Platform.Web/Program.cs`
-- Create: `tests/Platform.IntegrationTests/Infrastructure/PlatformWebFactory.cs`, `tests/Platform.IntegrationTests/Web/TenantResolutionTests.cs`, `tests/Platform.IntegrationTests/Web/TenantCircuitHandlerTests.cs`
+- Create: `tests/Platform.IntegrationTests/Infrastructure/PlatformWebFactory.cs`, `tests/Platform.IntegrationTests/Web/TenantResolutionTests.cs`, `tests/Platform.IntegrationTests/Web/TenantCircuitHandlerTests.cs`, `tests/Platform.IntegrationTests/Web/TenantMiddlewareTests.cs`
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -2055,6 +2062,7 @@ internal sealed class PlatformWebFactory(string appConnectionString) : WebApplic
 `tests/Platform.IntegrationTests/Web/TenantResolutionTests.cs`:
 ```csharp
 using System.Net;
+using Microsoft.AspNetCore.Http;
 using Platform.IntegrationTests.Infrastructure;
 
 namespace Platform.IntegrationTests.Web;
@@ -2083,7 +2091,37 @@ public class TenantResolutionTests(DatabaseFixture db)
 
         var response = await client.GetAsync(new Uri("/", UriKind.Relative), Ct);
 
-        response.StatusCode.ShouldNotBe(HttpStatusCode.NotFound);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Health_bypass_covers_only_the_exact_health_path()
+    {
+        await using var factory = new PlatformWebFactory(db.AppConnectionString);
+        using var client = factory.ClientFor("nobody.localhost");
+
+        var response = await client.GetAsync(new Uri("/health/x", UriKind.Relative), Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Empty_host_gets_404()
+    {
+        // HttpClient and TestServer's client handler both fill in a missing Host header, so set it on the context.
+        await using var factory = new PlatformWebFactory(db.AppConnectionString);
+
+        var context = await factory.Server.SendAsync(
+            c =>
+            {
+                c.Request.Method = HttpMethods.Get;
+                c.Request.Path = "/";
+                c.Request.Host = default;
+            },
+            Ct);
+
+        context.Request.Host.HasValue.ShouldBeFalse();
+        context.Response.StatusCode.ShouldBe(StatusCodes.Status404NotFound);
     }
 }
 ```
@@ -2091,6 +2129,7 @@ public class TenantResolutionTests(DatabaseFixture db)
 `tests/Platform.IntegrationTests/Web/TenantCircuitHandlerTests.cs`:
 ```csharp
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Http;
 using Platform.IntegrationTests.Infrastructure;
 using Platform.Modules.Tenancy.Contracts;
 using Platform.Shared.Tenancy;
@@ -2100,15 +2139,82 @@ namespace Platform.IntegrationTests.Web;
 
 public class TenantCircuitHandlerTests
 {
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
     [Fact]
-    public async Task Circuit_start_sets_the_tenant_from_the_base_uri()
+    public async Task Circuit_start_sets_the_tenant_from_the_connection_host()
     {
         var accessor = new TenantAccessor();
-        var handler = new TenantCircuitHandler(new FixedNavigation("https://acme.localhost:8443/"), new OneTenantDirectory(), accessor);
+        var handler = new TenantCircuitHandler(
+            new FixedNavigation("https://acme.localhost:8443/"), ConnectionFrom("acme.localhost"), new TwoTenantDirectory(), accessor);
 
-        await handler.OnCircuitOpenedAsync(null!, TestContext.Current.CancellationToken);
+        await handler.OnCircuitOpenedAsync(null!, Ct);
 
         accessor.Current.ShouldBe(TestTenants.Acme);
+    }
+
+    [Fact]
+    public async Task Circuit_start_accepts_a_base_uri_host_that_differs_only_in_case()
+    {
+        var accessor = new TenantAccessor();
+        var handler = new TenantCircuitHandler(
+            new FixedNavigation("https://ACME.localhost:8443/"), ConnectionFrom("acme.localhost"), new TwoTenantDirectory(), accessor);
+
+        await handler.OnCircuitOpenedAsync(null!, Ct);
+
+        accessor.Current.ShouldBe(TestTenants.Acme);
+    }
+
+    [Fact]
+    public async Task Circuit_start_refuses_a_base_uri_for_another_host()
+    {
+        var accessor = new TenantAccessor();
+        var handler = new TenantCircuitHandler(
+            new FixedNavigation("https://beta.localhost:8443/"), ConnectionFrom("acme.localhost"), new TwoTenantDirectory(), accessor);
+
+        await Should.ThrowAsync<InvalidOperationException>(() => handler.OnCircuitOpenedAsync(null!, Ct));
+
+        accessor.Current.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Circuit_start_refuses_when_there_is_no_connection()
+    {
+        var accessor = new TenantAccessor();
+        var handler = new TenantCircuitHandler(
+            new FixedNavigation("https://acme.localhost:8443/"), new HttpContextAccessor(), new TwoTenantDirectory(), accessor);
+
+        await Should.ThrowAsync<InvalidOperationException>(() => handler.OnCircuitOpenedAsync(null!, Ct));
+
+        accessor.Current.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Circuit_start_refuses_a_host_no_tenant_owns()
+    {
+        var accessor = new TenantAccessor();
+        var handler = new TenantCircuitHandler(
+            new FixedNavigation("https://nobody.localhost:8443/"), ConnectionFrom("nobody.localhost"), new TwoTenantDirectory(), accessor);
+
+        await Should.ThrowAsync<InvalidOperationException>(() => handler.OnCircuitOpenedAsync(null!, Ct));
+
+        accessor.Current.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Runs_before_any_other_circuit_handler()
+    {
+        var handler = new TenantCircuitHandler(
+            new FixedNavigation("https://acme.localhost:8443/"), new HttpContextAccessor(), new TwoTenantDirectory(), new TenantAccessor());
+
+        handler.Order.ShouldBe(int.MinValue);
+    }
+
+    private static HttpContextAccessor ConnectionFrom(string host)
+    {
+        var context = new DefaultHttpContext();
+        context.Request.Host = new HostString(host, 8443);
+        return new HttpContextAccessor { HttpContext = context };
     }
 
     private sealed class FixedNavigation : NavigationManager
@@ -2116,10 +2222,57 @@ public class TenantCircuitHandlerTests
         public FixedNavigation(string baseUri) => Initialize(baseUri, baseUri);
     }
 
-    private sealed class OneTenantDirectory : ITenantDirectory
+    private sealed class TwoTenantDirectory : ITenantDirectory
     {
         public Task<TenantContext?> FindByHostAsync(string host, CancellationToken cancellationToken = default) =>
-            Task.FromResult(host == "acme.localhost" ? TestTenants.Acme : null);
+            Task.FromResult(host switch { "acme.localhost" => TestTenants.Acme, "beta.localhost" => TestTenants.Beta, _ => null });
+
+        public void Invalidate(string host)
+        {
+        }
+    }
+}
+```
+
+`tests/Platform.IntegrationTests/Web/TenantMiddlewareTests.cs`:
+```csharp
+using Microsoft.AspNetCore.Http;
+using Platform.Modules.Tenancy.Contracts;
+using Platform.Shared.Tenancy;
+using Platform.Web.Tenancy;
+
+namespace Platform.IntegrationTests.Web;
+
+public class TenantMiddlewareTests
+{
+    [Fact]
+    public async Task Missing_host_is_404_without_a_lookup()
+    {
+        var nextCalled = false;
+        var middleware = new TenantMiddleware(_ =>
+        {
+            nextCalled = true;
+            return Task.CompletedTask;
+        });
+        var context = new DefaultHttpContext();
+        context.Request.Path = "/";
+        var accessor = new TenantAccessor();
+
+        await middleware.InvokeAsync(context, new ThrowingDirectory(), accessor);
+
+        context.Response.StatusCode.ShouldBe(StatusCodes.Status404NotFound);
+        nextCalled.ShouldBeFalse();
+        accessor.Current.ShouldBeNull();
+    }
+
+    private sealed class ThrowingDirectory : ITenantDirectory
+    {
+        public Task<TenantContext?> FindByHostAsync(string host, CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException("The directory must not be asked about an empty host.");
+
+        public void Invalidate(string host)
+        {
+        }
     }
 }
 ```
@@ -2141,20 +2294,22 @@ internal sealed class TenantMiddleware(RequestDelegate next)
 {
     public async Task InvokeAsync(HttpContext context, ITenantDirectory directory, TenantAccessor accessor)
     {
-        if (context.Request.Path.StartsWithSegments("/health"))
+        // Only the exact health path skips tenant resolution; /health/anything is an ordinary tenant path.
+        if (context.Request.Path.Equals("/health", StringComparison.OrdinalIgnoreCase))
         {
             await next(context);
             return;
         }
 
-        var tenant = await directory.FindByHostAsync(context.Request.Host.Host, context.RequestAborted);
+        var host = context.Request.Host.Host;
+        var tenant = string.IsNullOrWhiteSpace(host) ? null : await directory.FindByHostAsync(host, context.RequestAborted);
         if (tenant is null)
         {
             context.Response.StatusCode = StatusCodes.Status404NotFound;
             return;
         }
 
-        accessor.Current = tenant;
+        accessor.Set(tenant);
         await next(context);
     }
 }
@@ -2171,15 +2326,37 @@ namespace Platform.Web.Tenancy;
 
 /// <summary>
 /// A Blazor circuit has its own DI scope, separate from the HTTP request that started it. This handler sets the
-/// circuit's tenant from the host name when the circuit opens, before any component renders.
+/// circuit's tenant when the circuit opens, before any other circuit handler runs and before any component renders.
+/// The host comes from the <c>/_blazor</c> connection request, which already passed <see cref="TenantMiddleware"/> and
+/// authorization. <see cref="NavigationManager.BaseUri"/> is supplied by the browser in the circuit start message, so
+/// it is only checked against the connection host, never trusted on its own.
 /// </summary>
-internal sealed class TenantCircuitHandler(NavigationManager navigation, ITenantDirectory directory, TenantAccessor accessor) : CircuitHandler
+internal sealed class TenantCircuitHandler(
+    NavigationManager navigation,
+    IHttpContextAccessor httpContextAccessor,
+    ITenantDirectory directory,
+    TenantAccessor accessor) : CircuitHandler
 {
+    public override int Order => int.MinValue;
+
     public override async Task OnCircuitOpenedAsync(Circuit circuit, CancellationToken cancellationToken)
     {
-        var host = new Uri(navigation.BaseUri).Host;
-        accessor.Current = await directory.FindByHostAsync(host, cancellationToken)
-            ?? throw new InvalidOperationException($"No tenant owns the host '{host}'.");
+        var connectionHost = httpContextAccessor.HttpContext?.Request.Host.Host;
+        if (string.IsNullOrEmpty(connectionHost))
+        {
+            throw new InvalidOperationException("The circuit has no connection request to take the tenant host from.");
+        }
+
+        var baseUriHost = new Uri(navigation.BaseUri).Host;
+        if (!string.Equals(baseUriHost, connectionHost, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"The circuit base URI host '{baseUriHost}' does not match the connection host '{connectionHost}'.");
+        }
+
+        var tenant = await directory.FindByHostAsync(connectionHost, cancellationToken)
+            ?? throw new InvalidOperationException($"No tenant owns the host '{connectionHost}'.");
+        accessor.Set(tenant);
     }
 }
 ```
@@ -2210,6 +2387,7 @@ builder.Services.AddAuditModule(platformDb);
 builder.Services.AddTenancyModule(platformDb);
 builder.Services.AddIdentityModule();
 builder.Services.AddWorkflowModule(platformDb);
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<CircuitHandler, TenantCircuitHandler>();
 
 var app = builder.Build();
@@ -2253,7 +2431,7 @@ git commit -m "Web: host-name tenant middleware and circuit tenant handler"
 - Create: `src/Modules/Identity/Platform.Modules.Identity/OrganizationClaims.cs`, `SameTenantAuthorization.cs`
 - Modify: `src/Modules/Identity/Platform.Modules.Identity/IdentityModule.cs`, `Platform.Modules.Identity.csproj`, `src/Platform.Web/Platform.Web.csproj`, `src/Platform.Web/Program.cs`, `src/Platform.Web/appsettings.json`, `src/Platform.Web/appsettings.Development.json`
 - Create: `tests/Platform.UnitTests/Identity/OrganizationClaimsTests.cs`, `tests/Platform.IntegrationTests/Infrastructure/TestAuthentication.cs`, `tests/Platform.IntegrationTests/Infrastructure/KeycloakFixture.cs`, `tests/Platform.IntegrationTests/Identity/KeycloakTokenTests.cs`, `tests/Platform.IntegrationTests/Web/SameTenantTests.cs`
-- Modify: `tests/Platform.IntegrationTests/Infrastructure/PlatformWebFactory.cs`
+- Modify: `tests/Platform.IntegrationTests/Infrastructure/PlatformWebFactory.cs`, `tests/Platform.IntegrationTests/Web/TenantResolutionTests.cs`
 
 - [ ] **Step 1: Write the failing unit tests** — `tests/Platform.UnitTests/Identity/OrganizationClaimsTests.cs`
 
@@ -2580,6 +2758,11 @@ Expected: `Container erp-keycloak Started`; healthy within about a minute.
 
 - [ ] **Step 5: Write the failing integration tests**
 
+In `tests/Platform.IntegrationTests/Web/TenantResolutionTests.cs`, `Known_host_is_served` asserts `HttpStatusCode.OK` since Task 8. Once the fallback policy requires an authenticated user, an anonymous request to a known host is challenged, so change its assertion to:
+```csharp
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+```
+
 `tests/Platform.IntegrationTests/Infrastructure/TestAuthentication.cs`:
 ```csharp
 using System.Security.Claims;
@@ -2885,6 +3068,7 @@ builder.Services.AddAuditModule(platformDb);
 builder.Services.AddTenancyModule(platformDb);
 builder.Services.AddIdentityModule();
 builder.Services.AddWorkflowModule(platformDb);
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<CircuitHandler, TenantCircuitHandler>();
 
 builder.Services
@@ -2949,7 +3133,7 @@ dotnet user-secrets set "Oidc:ClientSecret" "$(grep '^WASLABID_WEB_CLIENT_SECRET
 - [ ] **Step 7: Run to verify pass**
 
 Run: `dotnet build WaslaBid.slnx -warnaserror && dotnet test WaslaBid.slnx`
-Expected: all pass. `/health` is anonymous; an unknown host is still a 404 before authentication; `Known_host_is_served` now gets 401, which is not 404.
+Expected: all pass. `/health` is anonymous; an unknown host is still a 404 before authentication; `Known_host_is_served` now asserts 401 (Step 5).
 
 - [ ] **Step 8: Commit and move W-04 to Done**
 
@@ -4889,7 +5073,8 @@ internal sealed class WorkflowService(
                 ["definition"] = Format(definition.Id),
                 ["definitionVersion"] = Format(definition.Version),
             }),
-            cancellationToken);
+            // the change is committed; do not let a cancelled request skip its audit row
+            CancellationToken.None);
         return Result.Success(ToStatus(workflow));
     }
 
@@ -4964,7 +5149,8 @@ internal sealed class WorkflowService(
                 ["decision"] = Name(decision),
                 ["stepState"] = Name(step.Status),
             }),
-            cancellationToken);
+            // the change is committed; do not let a cancelled request skip its audit row
+            CancellationToken.None);
         return Result.Success(ToStatus(workflow));
     }
 
@@ -5011,7 +5197,8 @@ internal sealed class WorkflowService(
             {
                 ["stage"] = Name(stage),
             }),
-            cancellationToken);
+            // the change is committed; do not let a cancelled request skip its audit row
+            CancellationToken.None);
         return Result.Success(ToStatus(workflow));
     }
 
@@ -5177,7 +5364,7 @@ Add to `src/Platform.Migrator/DevSeed.cs` (with `using Microsoft.Extensions.Depe
         foreach (var tenant in Tenants)
         {
             await using var scope = provider.CreateAsyncScope();
-            scope.ServiceProvider.GetRequiredService<TenantAccessor>().Current = tenant.ToContext();
+            scope.ServiceProvider.GetRequiredService<TenantAccessor>().Set(tenant.ToContext());
             var definitions = scope.ServiceProvider.GetRequiredService<IWorkflowDefinitions>();
             if (await definitions.FindDefaultAsync(cancellationToken) is not null)
             {
@@ -5193,43 +5380,50 @@ Add to `src/Platform.Migrator/DevSeed.cs` (with `using Microsoft.Extensions.Depe
     }
 ```
 
-Replace `src/Platform.Migrator/Program.cs`:
+Replace `src/Platform.Migrator/Program.cs`. Keep the `internal static class EntryPoint` shape from Task 5 (top-level statements synthesize a type named `Program`, which collides with `Platform.Web`'s `Program` once `Platform.IntegrationTests` references both — see spec section 7):
 ```csharp
 using Microsoft.Extensions.Configuration;
-using Platform.Migrator;
 
-var seedDev = args.Contains("--seed-dev", StringComparer.Ordinal);
-var configuration = new ConfigurationBuilder()
-    .AddUserSecrets(typeof(MigrationRunner).Assembly, optional: true)
-    .AddEnvironmentVariables()
-    .AddCommandLine(args.Where(a => a != "--seed-dev").ToArray())
-    .Build();
+namespace Platform.Migrator;
 
-var owner = configuration.GetConnectionString("Owner");
-if (string.IsNullOrWhiteSpace(owner))
+internal static class EntryPoint
 {
-    Console.Error.WriteLine("Connection string 'Owner' is not configured (user secrets or ConnectionStrings__Owner).");
-    return 1;
-}
-
-var applied = await MigrationRunner.RunAsync(owner);
-Console.WriteLine(applied.Count == 0 ? "Database is up to date." : $"Applied {applied.Count} scripts: {string.Join(", ", applied)}");
-
-if (seedDev)
-{
-    var app = configuration.GetConnectionString("Platform");
-    if (string.IsNullOrWhiteSpace(app))
+    public static async Task<int> Main(string[] args)
     {
-        Console.Error.WriteLine("--seed-dev needs connection string 'Platform' (the erp_app role).");
-        return 1;
+        var seedDev = args.Contains("--seed-dev", StringComparer.Ordinal);
+        var configuration = new ConfigurationBuilder()
+            .AddUserSecrets(typeof(MigrationRunner).Assembly, optional: true)
+            .AddEnvironmentVariables()
+            .AddCommandLine(args.Where(a => a != "--seed-dev").ToArray())
+            .Build();
+
+        var owner = configuration.GetConnectionString("Owner");
+        if (string.IsNullOrWhiteSpace(owner))
+        {
+            Console.Error.WriteLine("Connection string 'Owner' is not configured (user secrets or ConnectionStrings__Owner).");
+            return 1;
+        }
+
+        var applied = await MigrationRunner.RunAsync(owner);
+        Console.WriteLine(applied.Count == 0 ? "Database is up to date." : $"Applied {applied.Count} scripts: {string.Join(", ", applied)}");
+
+        if (seedDev)
+        {
+            var app = configuration.GetConnectionString("Platform");
+            if (string.IsNullOrWhiteSpace(app))
+            {
+                Console.Error.WriteLine("--seed-dev needs connection string 'Platform' (the erp_app role).");
+                return 1;
+            }
+
+            await DevSeed.SeedTenantsAsync(owner);
+            await DevSeed.SeedWorkflowsAsync(app);
+            Console.WriteLine("Seeded development tenants acme and beta with the default approval chain.");
+        }
+
+        return 0;
     }
-
-    await DevSeed.SeedTenantsAsync(owner);
-    await DevSeed.SeedWorkflowsAsync(app);
-    Console.WriteLine("Seeded development tenants acme and beta with the default approval chain.");
 }
-
-return 0;
 ```
 
 - [ ] **Step 3: Run to verify pass**
@@ -5293,7 +5487,7 @@ dotnet user-secrets set "ConnectionStrings:Platform" "Host=localhost;Port=5432;D
 docker compose -f infra/compose/docker-compose.yml --env-file infra/compose/.env restart caddy
 dotnet run --project src/Platform.Migrator -- --seed-dev
 ```
-Expected: `Applied 4 scripts: platform/0001_platform.sql, audit/0001_audit.sql, tenancy/0001_tenancy.sql, workflow/0001_workflow.sql` and `Seeded development tenants acme and beta with the default approval chain.`
+Expected: `Applied 7 scripts: platform/0001_platform.sql, platform/0002_platform_hygiene.sql, audit/0001_audit.sql, tenancy/0001_tenancy.sql, tenancy/0002_tenancy_logo_url.sql, tenancy/0003_tenancy_alias_lowercase.sql, workflow/0001_workflow.sql` and `Seeded development tenants acme and beta with the default approval chain.`
 
 - [ ] **Step 3: Run the app and check the edge**
 

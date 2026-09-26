@@ -1,0 +1,3 @@
+<Project>
+  <!-- Spikes are throwaway (docs/07); they must not inherit the product's build rules. -->
+</Project>

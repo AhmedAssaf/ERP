@@ -1,0 +1,20 @@
+@* A single-line text input with label, help and error (docs/08 section 6). *@
+@inherits FieldBase
+
+<div class="grid gap-1.5">
+    <FieldLabel For="@Id" Label="@Label" Required="Required" />
+    <input id="@Id" type="@Type" value="@Value" class="@ControlClass" required="@Required" disabled="@Disabled"
+           aria-invalid="@AriaInvalid" aria-describedby="@DescribedBy" @onchange="OnChangeAsync" @attributes="AdditionalAttributes" />
+    <FieldHints Help="@Help" Error="@ShownError" HelpId="@HelpId" ErrorId="@ErrorId" />
+</div>
+
+@code {
+    [Parameter] public string? Value { get; set; }
+
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+
+    /// <summary>The input type: text, email, url, tel, or password.</summary>
+    [Parameter] public string Type { get; set; } = "text";
+
+    private Task OnChangeAsync(ChangeEventArgs e) => ValueChanged.InvokeAsync(e.Value as string ?? string.Empty);
+}

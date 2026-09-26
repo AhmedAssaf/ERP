@@ -182,12 +182,13 @@ sequenceDiagram
     API->>API: Host -> tenant slug "customer"
     API->>B: Redirect to Keycloak login (org = customer)
     B->>KC: Login (password + TOTP, or customer's Entra ID)
-    KC-->>B: Token with org = customer, roles
+    KC-->>B: Token with org = customer (no tenant roles)
     B->>GW: GET /api/tenders (Bearer token)
     GW->>API: Forward (TLS terminated)
     API->>KC: Validate token signature and expiry
     API->>API: Assert token.org == host tenant, else 403
     API->>DB: SET app.tenant_id = customer
+    API->>DB: Roles of token.sub from identity.members (F-07)
     API->>DB: SELECT ... FROM tenders
     DB->>DB: RLS policy: tenant_id = current_setting('app.tenant_id')
     DB-->>API: Only customer's rows
@@ -363,12 +364,14 @@ erDiagram
 
 ## 8. Application modules and how they depend on each other
 
-Read it as: arrows point from the module that calls to the module it depends on. Nothing points back up, which keeps the monolith splittable later.
+Read it as: arrows point from the module that calls to the module it depends on. Nothing points back up, which keeps the monolith splittable later. Boxes with a thick dark border (tenancy, identity, audit, workflow, operations) exist in code today (`src/Modules/*`, checked against the project references); modules depend on each other only through their `*.Contracts` projects. Operations (F-51, F-54, F-60) is platform-level, not tenant-level: it depends on no other module, and the hosts (web, worker) wire it in.
 
 ```mermaid
 flowchart TB
     classDef core fill:#2F5496,color:#fff,stroke:none
     classDef shared fill:#E7E6F5,color:#222,stroke:#9B96C9
+    classDef platform fill:#FFF4E5,color:#222,stroke:#C77700
+    classDef built stroke:#111,stroke-width:3px
 
     TEN[tenancy + branding]:::shared
     IDN[identity + roles]:::shared
@@ -381,12 +384,19 @@ flowchart TB
     EVA[evaluation]:::core
     AWD[awards + PO]:::core
     AI[ai review]:::core
+    WF[workflow]:::core
+    OPS[operations<br/>health, incidents, platform audit]:::platform
 
     VEN --> TEN & IDN & DOC & NOT & AUD
     TDR --> VEN & TEN & IDN & DOC & NOT & AUD
     EVA --> TDR & IDN & AUD & NOT
+    EVA --> WF
     AWD --> EVA & TDR & DOC & NOT & AUD
     AI --> TDR & EVA & DOC & AUD
+    WF --> AUD
+    IDN --> AUD
+    TEN --> AUD
+    class TEN,IDN,AUD,WF,OPS built
 ```
 
 ## 9. Deployment in a Saudi region
@@ -410,7 +420,7 @@ flowchart TB
             WEB[Static web apps<br/>tenant-app, vendor-portal]
             WRK[Hangfire worker<br/>parse, OCR, PDF, AI, notify]
             AV[ClamAV]
-            OBS[OpenTelemetry collector<br/>Prometheus, Grafana, Loki, Sentry]
+            OBS[OpenTelemetry collector<br/>Prometheus, Grafana, Loki, Tempo, Sentry]
         end
         PG[(Managed PostgreSQL<br/>primary + replica, daily backup N-07)]
         RD[(Redis)]
@@ -568,4 +578,5 @@ mindmap
       F-52 connections registry
       F-53 logs and traces
       F-54 tenants and jobs
+      F-60 alerts
 ```

@@ -1,0 +1,92 @@
+@*
+    The page frame (docs/08 section 6): skip link, header with the brand, primary navigation, culture switch and the user
+    menu, then the main content. Tenant variant: the tenant's logo and portal name on its primary colour (F-02).
+    Platform variant: the WaslaBid mark for the platform console. Sign-out is a POST with an antiforgery token.
+*@
+@using System.Globalization
+@inject IStringLocalizer<SharedResource> T
+@inject NavigationManager Nav
+
+<a href="@SkipHref"
+   class="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-4 focus:z-50 focus:rounded-control focus:bg-surface focus:px-4 focus:py-2 focus:text-ink focus:shadow-lg">@T["AppShell.SkipToContent"]</a>
+<header class="@HeaderClass">
+    <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3 sm:px-6">
+        <div class="flex min-w-0 items-center gap-3">
+            @if (Variant == AppShellVariant.Platform)
+            {
+                <span class="text-subheading">@T["Brand.Name"]</span>
+                <span class="text-small opacity-80">@T["AppShell.PlatformConsole"]</span>
+            }
+            else
+            {
+                @if (!string.IsNullOrWhiteSpace(LogoUrl))
+                {
+                    @* The portal name sits beside the logo, so the image itself is decorative. *@
+                    <img src="@LogoUrl" alt="" class="h-9 w-auto max-w-32 shrink-0 object-contain" />
+                }
+                <span class="truncate text-subheading">@PortalName</span>
+            }
+        </div>
+        <div class="ms-auto flex items-center gap-4">
+            <a href="@CultureHref" hreflang="@OtherLanguage" lang="@OtherLanguage" class="text-small underline underline-offset-4">@T["Language.Other"]</a>
+            @if (!string.IsNullOrWhiteSpace(UserName))
+            {
+                <details class="relative">
+                    <summary class="flex min-h-9 cursor-pointer list-none items-center gap-1 rounded-control px-2 text-small">
+                        @UserName
+                        <svg aria-hidden="true" viewBox="0 0 16 16" class="size-4" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6l4 4 4-4" /></svg>
+                    </summary>
+                    <div class="absolute end-0 top-full z-30 mt-2 min-w-48 rounded-card border border-line bg-surface p-2 text-ink shadow-lg">
+                        <form method="post" action="@SignOutUrl">
+                            <AntiforgeryToken />
+                            <button type="submit" class="w-full rounded-control px-3 py-2 text-start text-body hover:bg-canvas">@T["AppShell.SignOut"]</button>
+                        </form>
+                    </div>
+                </details>
+            }
+        </div>
+        @if (Navigation is not null)
+        {
+            <nav aria-label="@T["AppShell.MainNavigation"]" class="flex w-full gap-5 overflow-x-auto text-body">@Navigation</nav>
+        }
+    </div>
+</header>
+<main id="main" tabindex="-1" class="mx-auto grid max-w-7xl gap-6 px-4 py-6 focus:outline-none sm:px-6">
+    @ChildContent
+</main>
+
+@code {
+    [Parameter] public AppShellVariant Variant { get; set; }
+
+    /// <summary>The tenant's portal name (tenant variant).</summary>
+    [Parameter] public string? PortalName { get; set; }
+
+    /// <summary>The tenant's logo (tenant variant); without one the portal name stands alone.</summary>
+    [Parameter] public string? LogoUrl { get; set; }
+
+    /// <summary>The signed-in user's display name; without one there is no user menu.</summary>
+    [Parameter] public string? UserName { get; set; }
+
+    /// <summary>The sign-out endpoint, posted to with an antiforgery token.</summary>
+    [Parameter] public string SignOutUrl { get; set; } = "/account/sign-out";
+
+    /// <summary>The primary navigation links.</summary>
+    [Parameter] public RenderFragment? Navigation { get; set; }
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string HeaderClass => Variant == AppShellVariant.Platform
+        ? "relative bg-ink text-white"
+        : "relative bg-primary text-on-primary";
+
+    private string OtherCulture => T["Language.OtherCulture"];
+
+    private string OtherLanguage => CultureInfo.GetCultureInfo(OtherCulture).TwoLetterISOLanguageName;
+
+    private string CurrentPath => "/" + Nav.ToBaseRelativePath(Nav.Uri).Split('#')[0];
+
+    private string CultureHref => $"/culture/set?culture={OtherCulture}&returnUrl={Uri.EscapeDataString(CurrentPath)}";
+
+    // Absolute, because <base href="/"> would otherwise turn "#main" into a link to the home page.
+    private string SkipHref => $"{Nav.Uri.Split('#')[0]}#main";
+}

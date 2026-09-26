@@ -1,0 +1,44 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- MinIO health check (path-style S3): AWSSDK.S3 4.0.103.4 and MailKit 4.18.0 are both current stable with no
+         known advisories (checked against OSV at the time of pinning, plan task 3). -->
+    <PackageVersion Include="AWSSDK.S3" Version="4.0.103.4" />
+    <!-- Component tests (plan task 5): bUnit 2.11.3 is current stable, framework-agnostic, runs under xUnit v3 and MTP. -->
+    <PackageVersion Include="bunit" Version="2.11.3" />
+    <PackageVersion Include="EFCore.NamingConventions" Version="10.0.1" />
+    <PackageVersion Include="Hangfire.AspNetCore" Version="1.8.25" />
+    <PackageVersion Include="Hangfire.Core" Version="1.8.25" />
+    <PackageVersion Include="Hangfire.NetCore" Version="1.8.25" />
+    <PackageVersion Include="Hangfire.PostgreSql" Version="1.21.1" />
+    <PackageVersion Include="MailKit" Version="4.18.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.QuickGrid" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+    <!-- Hangfire.Core asks for Newtonsoft.Json >= 11.0.1, which has a high-severity advisory; pinned to the patched line. -->
+    <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageVersion Include="Npgsql" Version="10.0.3" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+    <!-- Tests only (plan task 6): computes TOTP codes for the platform realm's seeded OTP credential. 1.4.1 is current
+         stable, MIT, no known advisories. -->
+    <PackageVersion Include="Otp.NET" Version="1.4.1" />
+    <PackageVersion Include="Shouldly" Version="4.3.0" />
+    <!-- Logo re-encoding (F-02, spec D-10; MIT). 4.152.1 is current stable, no known advisories (OSV, checked at pinning).
+         SkiaSharp brings the Windows and macOS native assets; containers need the Linux build without fontconfig. -->
+    <PackageVersion Include="SkiaSharp" Version="4.152.1" />
+    <PackageVersion Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.152.1" />
+    <PackageVersion Include="Testcontainers" Version="4.15.0" />
+    <PackageVersion Include="Testcontainers.Keycloak" Version="4.15.0" />
+    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.15.0" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0" />
+    <PackageVersion Include="xunit.v3" Version="4.0.1" />
+  </ItemGroup>
+</Project>

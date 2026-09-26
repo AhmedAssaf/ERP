@@ -1,0 +1,30 @@
+@* One result message, worded with the verb of the button that caused it ("Branding saved"). ToastRegion shows the queue. *@
+@inject IStringLocalizer<SharedResource> T
+
+<div data-toast class="@($"pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-card border border-s-4 bg-surface p-4 text-ink shadow-lg {ToneClass}")">
+    <p class="flex-1 text-body">@Message</p>
+    @if (OnDismiss.HasDelegate)
+    {
+        <button type="button" aria-label="@T["Toast.Dismiss"]" @onclick="OnDismiss"
+                class="-me-1 -mt-1 inline-flex size-8 shrink-0 items-center justify-center rounded-control text-ink-muted hover:bg-canvas">
+            <svg aria-hidden="true" viewBox="0 0 16 16" class="size-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M4 4l8 8M12 4l-8 8" />
+            </svg>
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Message { get; set; } = string.Empty;
+
+    [Parameter] public ToastTone Tone { get; set; }
+
+    [Parameter] public EventCallback OnDismiss { get; set; }
+
+    private string ToneClass => Tone switch
+    {
+        ToastTone.Danger => "border-danger",
+        ToastTone.Info => "border-action",
+        _ => "border-success",
+    };
+}

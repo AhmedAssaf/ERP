@@ -1,0 +1,16 @@
+@* A DataTable with two columns, the way a page declares one. *@
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using Platform.UI.Components
+
+<DataTable TGridItem="HealthRow" Items="Items" Label="Component health" Density="Density" EmptyContent="EmptyContent">
+    <PropertyColumn Property="r => r.Component" Title="Component" />
+    <PropertyColumn Property="r => r.Checks" Title="Checks" />
+</DataTable>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<HealthRow> Items { get; set; } = default!;
+
+    [Parameter] public TableDensity Density { get; set; }
+
+    [Parameter] public RenderFragment? EmptyContent { get; set; }
+}

@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Shouldly" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Shouldly" />
+    <Using Include="Xunit" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Platform.Shared\Platform.Shared.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Audit\Platform.Modules.Audit\Platform.Modules.Audit.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Tenancy\Platform.Modules.Tenancy\Platform.Modules.Tenancy.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Identity\Platform.Modules.Identity\Platform.Modules.Identity.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Workflow\Platform.Modules.Workflow\Platform.Modules.Workflow.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Operations\Platform.Modules.Operations\Platform.Modules.Operations.csproj" />
+    <ProjectReference Include="..\..\src\UI\Platform.UI\Platform.UI.csproj" />
+  </ItemGroup>
+</Project>

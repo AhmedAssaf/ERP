@@ -1,0 +1,101 @@
+{
+  "tender": "T1-network-riyadh",
+  "requirements": {
+    "M-01": "سجل تجاري ساري المفعول حتى تاريخ تقديم العروض",
+    "M-02": "شهادة تسجيل في ضريبة القيمة المضافة",
+    "M-03": "شهادة الزكاة سارية",
+    "M-04": "شهادة التأمينات الاجتماعية سارية",
+    "M-05": "شهادة نطاقات بالنطاق الأخضر أو أعلى",
+    "M-06": "ضمان ابتدائي بنكي بنسبة 2% من قيمة العرض ساري لمدة 90 يوما",
+    "T-01": "توريد 24 محول شبكة بعدد 48 منفذا لكل محول مع دعم PoE+ وفق معيار IEEE 802.3at أو أعلى",
+    "T-02": "توريد محولي قلب شبكة (عدد 2) بتكرار كامل Redundancy",
+    "T-03": "ضمان من الشركة المصنعة لمدة خمس سنوات على جميع الأجهزة",
+    "T-04": "دعم فني على مدار الساعة 24/7 باللغة العربية، وزمن استجابة لا يتجاوز 4 ساعات للأعطال الحرجة",
+    "T-05": "مدة تنفيذ لا تتجاوز 90 يوما من تاريخ أمر الشراء",
+    "T-06": "تدريب 8 موظفين من إدارة تقنية المعلومات لمدة 5 أيام",
+    "T-07": "مهندس مشروع حاصل على شهادة CCNP أو ما يعادلها وخبرة لا تقل عن 7 سنوات",
+    "T-08": "تسليم المخططات النهائية As-built خلال 14 يوما من الاستلام الابتدائي"
+  },
+  "offers": {
+    "V1-alufuq": {
+      "name": "شركة الأفق للحلول التقنية",
+      "format": "docx",
+      "technical": "offers/V1-alufuq/technical.docx",
+      "financial": "offers/V1-alufuq/financial.docx",
+      "expected": {
+        "M-01": "met",
+        "M-02": "met",
+        "M-03": "met",
+        "M-04": "met",
+        "M-05": "met",
+        "M-06": "met",
+        "T-01": "met",
+        "T-02": "met",
+        "T-03": "met",
+        "T-04": "met",
+        "T-05": "met",
+        "T-06": "met",
+        "T-07": "met",
+        "T-08": "met"
+      },
+      "flags": []
+    },
+    "V2-alrabt": {
+      "name": "مؤسسة الربط المتقدم للاتصالات",
+      "format": "pdf",
+      "technical": "offers/V2-alrabt/technical.pdf",
+      "financial": "offers/V2-alrabt/financial.pdf",
+      "expected": {
+        "M-01": "met",
+        "M-02": "met",
+        "M-03": "unclear",
+        "M-04": "met",
+        "M-05": "not_met",
+        "M-06": "met",
+        "T-01": "met",
+        "T-02": "not_met",
+        "T-03": "partial",
+        "T-04": "partial",
+        "T-05": "not_met",
+        "T-06": "partial",
+        "T-07": "not_met",
+        "T-08": "not_met"
+      },
+      "flags": [
+        "financial: core switch quantity 1, BoQ asks for 2",
+        "integrity: same phone +966 11 555 0142 as V3",
+        "integrity: implementation methodology paragraph identical to V3"
+      ]
+    },
+    "V3-alnukhba": {
+      "name": "شركة النخبة للأنظمة المتكاملة",
+      "format": "scanned",
+      "technical": "offers/V3-alnukhba/technical.pdf",
+      "financial": "offers/V3-alnukhba/financial.pdf",
+      "expected": {
+        "M-01": "not_met",
+        "M-02": "met",
+        "M-03": "met",
+        "M-04": "met",
+        "M-05": "met",
+        "M-06": "not_met",
+        "T-01": "unclear",
+        "T-02": "unclear",
+        "T-03": "unclear",
+        "T-04": "unclear",
+        "T-05": "met",
+        "T-06": "unclear",
+        "T-07": "not_met",
+        "T-08": "unclear"
+      },
+      "flags": [
+        "compliance: commercial registration expired 2026-03-15, before the deadline",
+        "risk: vague commitments, no product models, warranty or response times",
+        "risk: installation subcontracted to another bidder in the same tender (V2)",
+        "integrity: same phone +966 11 555 0142 as V2",
+        "financial: 24 x 16,000 written as 348,000, correct is 384,000",
+        "financial: training line missing; installation priced as included"
+      ]
+    }
+  }
+}

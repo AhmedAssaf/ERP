@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="bunit" />
+    <PackageReference Include="MailKit" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Otp.NET" />
+    <PackageReference Include="Shouldly" />
+    <PackageReference Include="Testcontainers" />
+    <PackageReference Include="Testcontainers.Keycloak" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Shouldly" />
+    <Using Include="Xunit" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Platform.Web\Platform.Web.csproj" />
+    <ProjectReference Include="..\..\src\Platform.Migrator\Platform.Migrator.csproj" />
+  </ItemGroup>
+</Project>

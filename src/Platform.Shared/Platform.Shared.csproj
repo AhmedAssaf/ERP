@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="AWSSDK.S3" />
+    <PackageReference Include="EFCore.NamingConventions" />
+    <PackageReference Include="Hangfire.Core" />
+    <PackageReference Include="Hangfire.NetCore" />
+    <PackageReference Include="Hangfire.PostgreSql" />
+    <PackageReference Include="MailKit" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Newtonsoft.Json" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Data\Migrations\*.sql" LogicalName="Migrations.%(Filename)%(Extension)" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Platform.UnitTests" />
+    <InternalsVisibleTo Include="Platform.IntegrationTests" />
+  </ItemGroup>
+</Project>

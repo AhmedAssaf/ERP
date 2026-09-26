@@ -1,0 +1,18 @@
+@* One block of the gallery; data-gallery names the component for the screenshot pass. *@
+
+<section data-gallery="@Name" class="grid gap-3">
+    @if (Title is not null)
+    {
+        <h2 class="text-heading">@Title</h2>
+    }
+    @ChildContent
+</section>
+
+@code {
+    /// <summary>The component's code name, for tests and screenshots only (never shown).</summary>
+    [Parameter, EditorRequired] public string Name { get; set; } = string.Empty;
+
+    [Parameter] public string? Title { get; set; }
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

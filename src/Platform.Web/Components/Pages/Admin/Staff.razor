@@ -1,0 +1,358 @@
+@*
+    F-06 as narrowed (docs/05 row 3, spec 4.2): the tenant's staff with roles and status, inviting by email with roles
+    (Keycloak sends the set-password and TOTP link, D-4), changing roles (the last active admin is kept, F-07) and resending
+    an invitation to someone who has not signed in yet. Tenant admins only; every action checks the admin role again
+    against identity.members at the moment it runs, since the circuit's claims date from when the page opened.
+*@
+@page "/admin/staff"
+@attribute [Authorize(Policy = TenantPolicies.TenantAdmin)]
+@rendermode InteractiveServer
+@inject IStaffService StaffService
+@inject IMemberDirectory Members
+@inject IAuthorizationService Authorization
+@inject ToastService Toasts
+@inject ILogger<Staff> Logger
+@inject IStringLocalizer<SharedResource> T
+
+<PageTitle>@T["Staff.Title"]</PageTitle>
+
+<div class="flex flex-wrap items-center justify-between gap-4">
+    <h1 class="text-display">@T["Staff.Title"]</h1>
+    <Button @ref="_inviteButton" Variant="ButtonVariant.Primary" data-invite OnClick="OpenInvite">@T["Staff.Invite"]</Button>
+</div>
+
+@if (_members is null)
+{
+    <p class="text-ink-muted" role="status">@T["Staff.Loading"]</p>
+}
+else
+{
+    <section aria-labelledby="staff-heading" class="grid gap-4">
+        <h2 id="staff-heading" class="text-heading">@T["Staff.Heading"]</h2>
+        <DataTable Items="_members" Label="@T["Staff.Heading"]">
+            <ChildContent>
+                <TemplateColumn TGridItem="Member" Title="@T["Staff.Column.Name"]">
+                    <span data-member="@context.Email" class="font-semibold">@context.DisplayName</span>
+                </TemplateColumn>
+                <TemplateColumn TGridItem="Member" Title="@T["Staff.Column.Email"]">
+                    <span dir="ltr">@context.Email</span>
+                </TemplateColumn>
+                <TemplateColumn TGridItem="Member" Title="@T["Staff.Column.Roles"]">
+                    @RoleNames(context.Roles)
+                </TemplateColumn>
+                <TemplateColumn TGridItem="Member" Title="@T["Staff.Column.Status"]">
+                    @if (context.Status == MemberStatus.Active)
+                    {
+                        <StatusBadge Tone="StatusTone.Success" data-status="active">@T["Staff.Status.Active"]</StatusBadge>
+                    }
+                    else
+                    {
+                        <StatusBadge Tone="StatusTone.Warning" data-status="invited">@T["Staff.Status.Invited"]</StatusBadge>
+                    }
+                </TemplateColumn>
+                <TemplateColumn TGridItem="Member" Title="@T["Staff.Column.Actions"]">
+                    <span class="flex flex-wrap gap-2">
+                        @if (context.UserId is { } userId)
+                        {
+                            <Button Variant="ButtonVariant.Secondary" data-change-roles="@userId" OnClick="() => OpenRoles(context)">@T["Staff.ChangeRoles"]</Button>
+                            @if (context.Status == MemberStatus.Invited)
+                            {
+                                <Button Variant="ButtonVariant.Quiet" data-resend="@userId" Loading="_resending == userId" OnClick="() => ResendAsync(context)">@T["Staff.Resend"]</Button>
+                            }
+                        }
+                    </span>
+                </TemplateColumn>
+            </ChildContent>
+            <EmptyContent>
+                <EmptyState Title="@T["Staff.EmptyTitle"]" HeadingLevel="3">@T["Staff.EmptyBody"]</EmptyState>
+            </EmptyContent>
+        </DataTable>
+    </section>
+}
+
+<Dialog @bind-Open="_inviteOpen" Busy="_busy" OnConfirm="InviteAsync" ReturnFocus="_inviteButton?.Element"
+        Title="@T["Staff.InviteTitle"]" ConfirmText="@T["Staff.InviteConfirm"]">
+    <p>@T["Staff.InviteBody"]</p>
+    <TextField Label="@T["Staff.Field.Email"]" Type="email" Required="true" dir="ltr" autocomplete="off"
+               @bind-Value="_email" Error="@_emailError" />
+    <TextField Label="@T["Staff.Field.Name"]" Required="true" autocomplete="off" @bind-Value="_name" Error="@_nameError" />
+    @RoleChoices("invite", _inviteRoles, _inviteRolesError)
+    @if (_inviteError is not null)
+    {
+        <p role="alert" class="text-small text-danger">@_inviteError</p>
+    }
+</Dialog>
+
+@if (_editing is { } editing)
+{
+    <Dialog @bind-Open="_rolesOpen" Busy="_busy" OnConfirm="SaveRolesAsync"
+            Title="@T["Staff.RolesTitle", editing.DisplayName]" ConfirmText="@T["Staff.RolesConfirm"]">
+        <p>@T["Staff.RolesBody"]</p>
+        @RoleChoices("edit", _editRoles, _editRolesError)
+    </Dialog>
+}
+
+<ToastRegion />
+
+@code {
+    private IReadOnlyList<Member>? _members;
+    private Button? _inviteButton;
+    private bool _busy;
+    private string? _resending;
+
+    private bool _inviteOpen;
+    private string? _email;
+    private string? _name;
+    private readonly HashSet<string> _inviteRoles = new(StringComparer.Ordinal);
+    private string? _emailError;
+    private string? _nameError;
+    private string? _inviteRolesError;
+    private string? _inviteError;
+
+    private bool _rolesOpen;
+    private Member? _editing;
+    private readonly HashSet<string> _editRoles = new(StringComparer.Ordinal);
+    private string? _editRolesError;
+
+    [CascadingParameter] private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    protected override async Task OnInitializedAsync() => _members = await StaffService.ListAsync();
+
+    private RenderFragment RoleChoices(string prefix, HashSet<string> chosen, string? error) => __builder =>
+    {
+        <fieldset class="grid gap-2" aria-describedby="@(error is null ? null : $"{prefix}-roles-error")" aria-invalid="@(error is null ? null : "true")">
+            <legend class="mb-1 text-small font-semibold">@T["Staff.Field.Roles"]</legend>
+            @foreach (var role in TenantRoles.All)
+            {
+                <label class="flex min-h-11 cursor-pointer items-center gap-3 text-body">
+                    <input type="checkbox" class="size-5 shrink-0 accent-action" data-role="@role" checked="@chosen.Contains(role)"
+                           @onchange="e => Toggle(chosen, role, e)" />
+                    @T[$"Staff.Role.{role}"]
+                </label>
+            }
+            @if (error is not null)
+            {
+                <p id="@($"{prefix}-roles-error")" class="text-small text-danger">@error</p>
+            }
+        </fieldset>
+    };
+
+    private static void Toggle(HashSet<string> chosen, string role, ChangeEventArgs e)
+    {
+        if (e.Value is true)
+        {
+            chosen.Add(role);
+        }
+        else
+        {
+            chosen.Remove(role);
+        }
+    }
+
+    private void OpenInvite()
+    {
+        _email = null;
+        _name = null;
+        _inviteRoles.Clear();
+        ClearInviteErrors();
+        _inviteOpen = true;
+    }
+
+    private void OpenRoles(Member member)
+    {
+        _editing = member;
+        _editRoles.Clear();
+        _editRoles.UnionWith(member.Roles);
+        _editRolesError = null;
+        _rolesOpen = true;
+    }
+
+    private async Task InviteAsync()
+    {
+        ClearInviteErrors();
+        _busy = true;
+        try
+        {
+            if (await ActorAsync() is not { } actor)
+            {
+                _inviteError = T["Staff.NotAllowed"];
+                return;
+            }
+
+            var email = _email?.Trim() ?? string.Empty;
+            var result = await StaffService.InviteAsync(email, _name ?? string.Empty, [.. _inviteRoles], actor);
+            if (!result.IsSuccess)
+            {
+                switch (result.Error.Code)
+                {
+                    case "identity.invalid_email":
+                        _emailError = T["Staff.Error.Email"];
+                        break;
+                    case "identity.member_exists":
+                        _emailError = T["Staff.Error.Exists"];
+                        break;
+                    case "identity.invalid_display_name":
+                        _nameError = T["Staff.Error.Name"];
+                        break;
+                    case "identity.account_disabled":
+                        _inviteError = T["Staff.Error.CannotInvite"];
+                        break;
+                    case "identity.no_role" or "identity.unknown_role":
+                        _inviteRolesError = T["Staff.Error.Roles"];
+                        break;
+                    default:
+                        _inviteError = T["Staff.Error.Generic"];
+                        break;
+                }
+
+                return;
+            }
+
+            // One neutral message whether or not the person already had an account (no account oracle).
+            var invitation = result.Value;
+            if (invitation.Email == InvitationEmail.Sent)
+            {
+                Toasts.Show(T["Staff.Invited", invitation.Member.Email]);
+            }
+            else
+            {
+                Toasts.Show(T["Staff.EmailFailed", invitation.Member.Email], ToastTone.Danger);
+            }
+
+            _inviteOpen = false;
+            _members = await StaffService.ListAsync();
+        }
+        catch (Exception ex)
+        {
+            StaffLog.InviteFailed(Logger, ex.GetType().Name);
+            _inviteError = T["Staff.Error.Generic"];
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task SaveRolesAsync()
+    {
+        if (_editing is not { UserId: { } userId } editing)
+        {
+            return;
+        }
+
+        _editRolesError = null;
+        _busy = true;
+        try
+        {
+            if (await ActorAsync() is not { } actor)
+            {
+                _editRolesError = T["Staff.NotAllowed"];
+                return;
+            }
+
+            var result = await StaffService.SetRolesAsync(userId, [.. _editRoles], actor);
+            if (!result.IsSuccess)
+            {
+                _editRolesError = result.Error.Code switch
+                {
+                    "identity.last_tenant_admin" => T["Staff.Error.LastAdmin"],
+                    "identity.unknown_role" => T["Staff.Error.Roles"],
+                    "identity.member_not_found" => T["Staff.Error.NotFound"],
+                    _ => T["Staff.Error.Generic"],
+                };
+                return;
+            }
+
+            Toasts.Show(T["Staff.RolesSaved", editing.DisplayName]);
+            _rolesOpen = false;
+            _editing = null;
+            _members = await StaffService.ListAsync();
+        }
+        catch (Exception ex)
+        {
+            StaffLog.SetRolesFailed(Logger, ex.GetType().Name);
+            _editRolesError = T["Staff.Error.Generic"];
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task ResendAsync(Member member)
+    {
+        if (member.UserId is not { } userId || _resending is not null)
+        {
+            return;
+        }
+
+        _resending = userId;
+        try
+        {
+            if (await ActorAsync() is not { } actor)
+            {
+                Toasts.Show(T["Staff.NotAllowed"], ToastTone.Danger);
+                return;
+            }
+
+            var result = await StaffService.ResendAsync(userId, actor);
+            if (!result.IsSuccess)
+            {
+                Toasts.Show(
+                    result.Error.Code switch
+                    {
+                        "identity.member_active" => T["Staff.Error.AlreadyActive", member.DisplayName],
+                        "identity.member_not_found" => T["Staff.Error.NotFound"],
+                        _ => T["Staff.Error.Generic"],
+                    },
+                    ToastTone.Danger);
+                return;
+            }
+
+            Toasts.Show(
+                result.Value.Email == InvitationEmail.Sent ? T["Staff.Resent", member.Email] : T["Staff.EmailFailed", member.Email],
+                result.Value.Email == InvitationEmail.Sent ? ToastTone.Success : ToastTone.Danger);
+        }
+        catch (Exception ex)
+        {
+            StaffLog.ResendFailed(Logger, ex.GetType().Name);
+            Toasts.Show(T["Staff.Error.Generic"], ToastTone.Danger);
+        }
+        finally
+        {
+            _resending = null;
+        }
+    }
+
+    /// <summary>
+    /// The signed-in admin's id when they may act now: the TenantAdmin policy passes for the circuit's user and the admin
+    /// role is still in identity.members (it may have been removed since the page opened). Null otherwise.
+    /// </summary>
+    private async Task<string?> ActorAsync()
+    {
+        if (AuthenticationState is null)
+        {
+            return null;
+        }
+
+        var user = (await AuthenticationState).User;
+        var actor = user.FindFirst(IdentityClaims.Subject)?.Value;
+        if (string.IsNullOrWhiteSpace(actor) || !(await Authorization.AuthorizeAsync(user, TenantPolicies.TenantAdmin)).Succeeded)
+        {
+            return null;
+        }
+
+        return (await Members.GetRolesAsync(actor)).Contains(TenantRoles.TenantAdmin) ? actor : null;
+    }
+
+    private void ClearInviteErrors()
+    {
+        _emailError = null;
+        _nameError = null;
+        _inviteRolesError = null;
+        _inviteError = null;
+    }
+
+    private string RoleNames(IReadOnlyList<string> roles) =>
+        roles.Count == 0 ? T["Staff.NoRoles"] : string.Join(T["Staff.RoleSeparator"], roles.Select(r => T[$"Staff.Role.{r}"].Value));
+}

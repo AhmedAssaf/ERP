@@ -1,0 +1,49 @@
+@* docs/08 section 6: the label is the verb and its object ("Publish tender"); Loading disables the button and says so. *@
+@inject IStringLocalizer<SharedResource> T
+
+<button @ref="Element" type="@Type" class="@CssClass" disabled="@(Disabled || Loading)" aria-busy="@(Loading ? "true" : null)"
+        @onclick="OnClickAsync" @attributes="AdditionalAttributes">
+    @if (Loading)
+    {
+        <span data-spinner aria-hidden="true" class="size-4 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
+    }
+    @ChildContent
+    @if (Loading)
+    {
+        <span class="sr-only">@T["Button.Working"]</span>
+    }
+</button>
+
+@code {
+    private const string Base =
+        "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-control text-body "
+        + "disabled:cursor-not-allowed disabled:opacity-60";
+
+    [Parameter] public ButtonVariant Variant { get; set; } = ButtonVariant.Secondary;
+
+    /// <summary>button (default) or submit.</summary>
+    [Parameter] public string Type { get; set; } = "button";
+
+    [Parameter] public bool Loading { get; set; }
+
+    [Parameter] public bool Disabled { get; set; }
+
+    [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+
+    /// <summary>The rendered button, for moving focus to it (a dialog returns focus to the button that opened it).</summary>
+    public ElementReference Element { get; private set; }
+
+    private string CssClass => Variant switch
+    {
+        ButtonVariant.Primary => $"{Base} min-h-11 px-4 py-2 border border-action bg-action font-semibold text-white hover:brightness-110",
+        ButtonVariant.Danger => $"{Base} min-h-11 px-4 py-2 border border-danger bg-danger font-semibold text-white hover:brightness-110",
+        ButtonVariant.Quiet => $"{Base} px-1.5 py-1 border border-transparent bg-transparent font-medium text-action underline underline-offset-4",
+        _ => $"{Base} min-h-11 px-4 py-2 border border-ink-muted bg-surface font-medium text-ink hover:bg-canvas",
+    };
+
+    private Task OnClickAsync(MouseEventArgs e) => Disabled || Loading ? Task.CompletedTask : OnClick.InvokeAsync(e);
+}

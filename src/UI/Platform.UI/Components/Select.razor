@@ -1,0 +1,31 @@
+@* A native select with label, help and error; native so it works with a keyboard, a screen reader and a phone picker. *@
+@inherits FieldBase
+
+<div class="grid gap-1.5">
+    <FieldLabel For="@Id" Label="@Label" Required="Required" />
+    <select id="@Id" class="@ControlClass" required="@Required" disabled="@Disabled"
+            aria-invalid="@AriaInvalid" aria-describedby="@DescribedBy" @onchange="OnChangeAsync" @attributes="AdditionalAttributes">
+        @if (Placeholder is not null)
+        {
+            <option value="" disabled selected="@string.IsNullOrEmpty(Value)">@Placeholder</option>
+        }
+        @foreach (var option in Options)
+        {
+            <option value="@option.Value" selected="@(option.Value == Value)">@option.Text</option>
+        }
+    </select>
+    <FieldHints Help="@Help" Error="@ShownError" HelpId="@HelpId" ErrorId="@ErrorId" />
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<SelectOption> Options { get; set; } = [];
+
+    [Parameter] public string? Value { get; set; }
+
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+
+    /// <summary>Shown, and not selectable, while nothing is chosen: "Choose a role".</summary>
+    [Parameter] public string? Placeholder { get; set; }
+
+    private Task OnChangeAsync(ChangeEventArgs e) => ValueChanged.InvokeAsync(e.Value as string ?? string.Empty);
+}

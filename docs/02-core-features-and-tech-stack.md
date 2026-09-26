@@ -138,6 +138,8 @@ Added 2026-09-21. One place for the platform team to see every component, every 
 | F-52 | Connections and credentials registry | Each external connection lists endpoint, account or username, the secret reference (key name in the KMS or secret store), owner, last rotated date, and a test-connection action. Secret values are never rendered, logged, or returned by any API. Rotation is triggered from the page and executed through the secret store; every view and action is audited. |
 | F-53 | Logs and traces view | Filter recent logs by tenant, correlation id, level, component, and time; open the matching trace; link to Grafana, Loki, and Sentry for deep dives. A 24-hour error summary per component sits at the top. Tenant data in log lines is redacted according to the PDPL rules. |
 | F-54 | Tenants and jobs overview | Per tenant: status, plan, domain and TLS state, user counts, active tenders, storage used, failing background jobs. Actions: suspend or resume tenant, re-issue TLS, re-run or cancel a job. Every action is audited and confirmed in a dialog that names the tenant. |
+| F-61 | Consented support access | Added 2026-09-26 (ADR-0005). The tenant admin grants WaslaBid support a read-only session for a chosen time (for example four hours) and can end it at any time. During the session staff see the tenant's screens with a banner naming the session; offers, envelopes and scores stay hidden; every page viewed is written to the tenant's own audit log. Without a granted session staff see only the console's metadata. |
+| F-60 | Alerts and notifications | Added 2026-09-26. The platform admin is notified by email and SMS when a component's health check fails or its latency exceeds a threshold, a background job fails three times in a row, a tender's deadline-closure job misses its time, a tenant's TLS certificate expires within 14 days, ClamAV or the AI provider is unavailable, or disk or database space passes 80 percent. Each alert names the component and tenant, links to the F-51 board, is sent once per incident with a recovery notice when it clears, and appears in an alert history on the F-51 board. Thresholds and recipients are configured on the console; no secret value appears in an alert (N-10). |
 
 ## 3. Non-functional requirements
 
@@ -189,7 +191,7 @@ Chosen by you: .NET with Blazor. This section fits the rest of the stack around 
 | Local development | Docker Compose stack in `infra/compose` (PostgreSQL with pgvector, Keycloak 26, Redis, MinIO, ClamAV, Mailpit, Caddy) with the app on the host under `dotnet watch` | One command from a clean clone, same images as production, Windows-friendly. .NET Aspire can be layered on later for the dashboard; it is not required. Decided 2026-09-21. |
 | Containers and deployment | Docker images (`dotnet publish` container support), Kubernetes in production | Matches your existing container work. |
 | Hosting | A Saudi-region cloud: Oracle Cloud (Jeddah, Riyadh), Google Cloud (Dammam), STC Cloud, or AWS once its Saudi region is available | Pick the one with managed PostgreSQL, S3-compatible storage, KMS, and Kubernetes in-Kingdom at the best price. Verify at signing time. |
-| Observability | OpenTelemetry for .NET, Serilog structured logs, Prometheus, Grafana, Loki, self-hosted Sentry | You already run Sentry. |
+| Observability | OpenTelemetry for .NET, Serilog structured logs, Prometheus, Grafana, Loki for logs, Tempo for traces, self-hosted Sentry. The platform console reads Loki and Tempo directly; Grafana serves search, traces and alerts (ADR-0005) | You already run Sentry. |
 | CI/CD | GitHub Actions | Build, test, `dotnet format`, dependency and container scan (Trivy), publish image, deploy. |
 | Diagrams and docs | Markdown, Mermaid, PlantUML for detailed design, ADRs in `docs/adr` | Your existing practice. GitHub renders Mermaid in place. |
 
@@ -229,13 +231,13 @@ flowchart TB
     M5 --> SMS[Unifonic SMS]
     M4 --> PDF[QuestPDF<br/>Arabic-safe rendering]
 
-    HOST & WRK --> OTEL[OpenTelemetry<br/>Prometheus, Grafana, Loki, Sentry]
+    HOST & WRK --> OTEL[OpenTelemetry<br/>Prometheus, Grafana, Loki, Tempo, Sentry]
 ```
 
 ### 4.3 Tenancy model
 
 - **Database:** single PostgreSQL instance, shared schema, `tenant_id` column on every tenant-owned table. Two layers: EF Core global query filters on `TenantId` for everyday safety, and PostgreSQL row-level security policies `tenant_id = current_setting('app.tenant_id')` as the hard boundary. A `DbConnection` interceptor sets the setting at the start of each request or job from the validated token. Platform-admin operations use a separate database role that bypasses RLS and is never used by the web request path.
-- **Identity:** one Keycloak realm. Each tenant is a Keycloak Organization with its own domain, login theme, and optional identity provider. Tenant staff are organization members with roles. Vendor users live in the same realm and are members of every organization that has approved their company, with a `vendor` role. Tokens carry the active organization; the ASP.NET Core authentication pipeline turns it into a `TenantContext` scoped service used by EF Core and authorization policies.
+- **Identity:** one Keycloak realm for tenants and vendors, and a separate realm `waslabid-platform` for WaslaBid staff with OTP required (ADR-0005). Each tenant is a Keycloak Organization with its own domain, login theme, and optional identity provider. Tenant staff are organization members; their roles live in our `identity.members` table, because Keycloak organizations have no organization-scoped roles. Vendor users live in the same realm and are members of every organization that has approved their company, with a `vendor` role. Tokens carry the active organization; the ASP.NET Core authentication pipeline turns it into a `TenantContext` scoped service used by EF Core and authorization policies.
 - **Routing and Blazor circuits:** Caddy terminates TLS and forwards the original `Host` header unchanged. ASP.NET Core middleware maps the host to a tenant slug and verifies it against the token's organization before a Blazor circuit is created, so a user on tenant A can never open a circuit against tenant B's host. Each circuit is bound to one tenant for its lifetime.
 - **Storage:** one bucket per environment, object keys prefixed by tenant, with a per-tender data key for financial envelopes held in the database encrypted by a master key in the cloud KMS.
 
@@ -251,7 +253,7 @@ flowchart TB
 | Odoo or ERPNext as the base | Fastest to a demo, includes accounting. | Weak vendor experience, hard to white-label, customisations become the product with no moat. |
 | Elsa or Temporal for the tender workflow | Decided 2026-09-21 (ADR-0003): tenant-configurable workflows are in scope from day one. Executor decided 2026-09-26 (ADR-0004): our own state machine, after spike W-20 found Elsa Studio cannot serve tenants in Arabic right to left (docs/06 section 6). | Temporal is a separate service in Go; wrong shape for the monolith. Elsa stays a candidate, not a default, until the spike proves the invariants can be enforced and the designer can be Arabic. |
 
-### 4.5 Repository layout (proposed)
+### 4.5 Repository layout
 
 ```
 ERP/
@@ -265,7 +267,8 @@ ERP/
       Identity/                      Keycloak integration, roles, committees
       Vendors/                       vendor companies, users, documents, approvals
       Tenders/                       tender authoring, versions, clarifications, submissions, envelopes
-      Evaluation/                    state machine, compliance, scoring, comparison, approvals
+      Evaluation/                    compliance, scoring, comparison; calls Workflow for the approval chain
+      Workflow/                      tenant workflow definitions, per-tender snapshots, executor (ADR-0004)
       Awards/                        award letters, PO, exports
       Notifications/                 email, SMS, in-app, preferences
       Documents/                     storage, scanning, parsing, OCR
@@ -278,12 +281,15 @@ ERP/
     Platform.IntegrationTests/       Testcontainers: Postgres, Keycloak, MinIO
     Platform.UITests/                bUnit + Playwright
   infra/
-    compose/                         local development stack (docker-compose.yml, .env.example, caddy, keycloak, postgres init)
+    compose/                         local development stack (docker-compose.yml, .env.example, caddy, postgres init)
+      keycloak/import/               development realm export (waslabid-realm.json)
     k8s/                             production manifests or Helm chart
-    keycloak/                        realm export, themes
+    keycloak/                        production realm export and themes (later)
     caddy/                           Caddyfile, on-demand TLS ask endpoint config
   .github/workflows/
 ```
+
+Each module is two projects: `Platform.Modules.<Name>.Contracts` (public interfaces and records) and `Platform.Modules.<Name>` (everything else, internal, plus a `<Name>Module` entry class). Modules reference each other's `.Contracts` only, own one PostgreSQL schema each, and ship their schema as SQL scripts under `Migrations/` (design spec 2026-09-26). Modules are created by the first slice that needs them; the foundation created Audit, Tenancy, Identity and Workflow.
 
 ## 5. Decisions needed before design
 
@@ -293,3 +299,11 @@ ERP/
 4. **UI stack and edge:** decided 2026-09-21: Blazor Web App (Interactive Server) with Tailwind CSS and the in-house `Platform.UI` components (ADR-0002). Caddy at the edge for TLS and routing, no API gateway product in version 1.
 5. **First customer:** name the company whose workflow becomes the default template.
 6. **Product name:** decided 2026-09-26: WaslaBid (وصلة بد). Details and remaining trademark and domain checks in document 01 section 1.1.
+7. **AI provider and data residency (F-45 to F-50):** opened 2026-09-26. N-01 requires AI processing inside Saudi Arabia, and the Claude API named in the stack table has no in-Kingdom endpoint today. Options:
+   - (a) Per-tenant consent to process AI outside the Kingdom, with personal data redacted before sending and the consent logged.
+   - (b) AI off for the pilot; enable it when an in-Kingdom endpoint exists (Azure or AWS Saudi regions, if they offer the model).
+   - (c) Self-host a large open-weight model in-Kingdom on a paid GPU instance.
+   - (d) Self-host a small open-weight model (for example ALLaM from SDAIA, or Qwen, about 7B, quantized) with Ollama or llama.cpp on the pilot's Oracle Always Free host in Jeddah. Free and in-Kingdom, but CPU only: an offer can take many minutes, so it runs as a background job after closing, not while the evaluator waits. Good enough for F-45 (pass, fail, unclear); F-47 and F-49 likely need a larger model. The 12 GB host is shared with the app, PostgreSQL and Keycloak, so memory is tight; a small paid instance is the fallback. Verify model licenses and current versions before choosing.
+   - (e) Startup MVP shortcut, added 2026-09-26: convert the RFP and each offer's technical part from DOCX or PDF to Markdown with page markers (MarkItDown, Docling, or PyMuPDF4LLM), then send the RFP plus one offer to the cheapest capable hosted LLM, which returns JSON per RFP requirement: met, partial, or missing, with pros, cons, a quote, and a page. About USD 0.05 per 80-page offer on a cheap paid tier. Free tiers are for demos with sample offers only, because providers may train on or review free-tier inputs and these are third parties' confidential bids; real offers go to a paid tier with no-training terms and the customer's written consent to processing outside the Kingdom. The first risk is Arabic text extraction. Spike W-22 (document 06 section 7): DOCX converts cleanly; Arabic PDFs lose letter or word order in most tools, with Docling or PdfPig plus a visual-to-logical pass the usable options; scans need OCR and stay weak. Next: test sending the PDF directly to an LLM that reads PDFs, and repeat with real offers.
+
+   Recommended: (d) for F-45 in the pilot, measured against about 20 past offers with human decisions, with (a) as a per-tenant opt-in. Whatever is chosen, the model sits behind one interface in the `Ai` module, every claim cites a page chunk whose quote is checked server-side, and F-50 audit rows are written.

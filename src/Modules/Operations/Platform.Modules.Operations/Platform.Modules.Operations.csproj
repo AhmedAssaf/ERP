@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Platform.Shared\Platform.Shared.csproj" />
+    <ProjectReference Include="..\Platform.Modules.Operations.Contracts\Platform.Modules.Operations.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="AWSSDK.S3" />
+    <PackageReference Include="Hangfire.Core" />
+    <PackageReference Include="MailKit" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Migrations\*.sql" LogicalName="Migrations.%(Filename)%(Extension)" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Platform.UnitTests" />
+    <InternalsVisibleTo Include="Platform.IntegrationTests" />
+  </ItemGroup>
+</Project>

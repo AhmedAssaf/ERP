@@ -1,0 +1,201 @@
+@*
+    F-02 as narrowed (docs/05 row 2, spec 4.3): the tenant's portal name, primary colour and logo. A colour with under
+    4.5:1 contrast on white is stored darkened and the admin is told both values (D-11). The logo goes through a plain
+    multipart form to /admin/branding/logo, never through the circuit (ADR-0001, D-10), and comes back here with its
+    outcome in the query. After a save the page reloads, so the header and theme show the new branding at once. Tenant
+    admins only; saving checks the admin role again against identity.members, since the circuit's claims are older.
+*@
+@page "/admin/branding"
+@attribute [Authorize(Policy = TenantPolicies.TenantAdmin)]
+@rendermode InteractiveServer
+@using System.Text.RegularExpressions
+@using Platform.Modules.Tenancy.Contracts
+@inject IBrandingService BrandingService
+@inject IMemberDirectory Members
+@inject IAuthorizationService Authorization
+@inject NavigationManager Nav
+@inject ILogger<BrandingPage> Logger
+@inject IStringLocalizer<SharedResource> T
+
+<PageTitle>@T["Branding.Title"]</PageTitle>
+
+<h1 class="text-display">@T["Branding.Title"]</h1>
+<p class="max-w-prose text-ink-muted">@T["Branding.Intro"]</p>
+
+@if (Saved == 1)
+{
+    <div role="status" data-branding-saved class="max-w-prose rounded-card border border-line bg-surface p-4">
+        <p class="font-semibold">@T["Branding.Saved"]</p>
+        @if (AdjustedFrom is { } requested && _current is not null)
+        {
+            <p data-color-adjusted class="mt-2 flex flex-wrap items-center gap-2">
+                <span aria-hidden="true" class="inline-block size-5 rounded-control border border-line" style="background-color: @requested"></span>
+                <span aria-hidden="true" class="inline-block size-5 rounded-control border border-line" style="background-color: @_current.PrimaryColor"></span>
+                <span>@T["Branding.ColorAdjusted", requested, _current.PrimaryColor]</span>
+            </p>
+        }
+    </div>
+}
+
+<section aria-labelledby="branding-details" class="grid max-w-prose gap-4">
+    <h2 id="branding-details" class="text-heading">@T["Branding.Details"]</h2>
+    <form data-branding-form class="grid gap-4" @onsubmit="SaveAsync" @onsubmit:preventDefault>
+        <TextField Label="@T["Branding.Field.PortalName"]" Required="true" maxlength="100" autocomplete="off"
+                   @bind-Value="_portalName" Error="@_nameError" />
+        <ColorField Label="@T["Branding.Field.Color"]" Help="@T["Branding.Field.ColorHelp"]" Required="true"
+                    @bind-Value="_color" Error="@_colorError" />
+        @if (_saveError is not null)
+        {
+            <p role="alert" class="text-small text-danger">@_saveError</p>
+        }
+        <div>
+            <Button Type="submit" Variant="ButtonVariant.Primary" Loading="_busy" data-save-branding>@T["Branding.Save"]</Button>
+        </div>
+    </form>
+</section>
+
+<section aria-labelledby="branding-logo" class="grid max-w-prose gap-4">
+    <h2 id="branding-logo" class="text-heading">@T["Branding.Logo.Heading"]</h2>
+    @if (LogoMessage is { } message)
+    {
+        <p role="@(Logo == "saved" ? "status" : "alert")" data-logo-outcome="@Logo"
+           class="@(Logo == "saved" ? "text-small text-success" : "text-small text-danger")">@message</p>
+    }
+    <div class="flex items-center gap-4">
+        @if (!string.IsNullOrWhiteSpace(_current?.LogoUrl))
+        {
+            @* The preview sits on the header colour, as the header shows it. *@
+            <div class="rounded-card bg-primary p-3">
+                <img src="@_current.LogoUrl" alt="@T["Branding.Logo.Current"]" data-logo-preview class="h-12 w-auto max-w-48 object-contain" />
+            </div>
+        }
+        else
+        {
+            <p class="text-ink-muted">@T["Branding.Logo.None"]</p>
+        }
+    </div>
+    <form method="post" action="/admin/branding/logo" enctype="multipart/form-data" class="grid gap-3" data-logo-form>
+        <AntiforgeryToken />
+        <div class="grid gap-1.5">
+            <label for="logo-file" class="text-small font-semibold">@T["Branding.Logo.Field"]</label>
+            <input id="logo-file" name="logo" type="file" accept="image/png,image/jpeg" required aria-describedby="logo-help"
+                   class="text-body file:me-3 file:min-h-11 file:cursor-pointer file:rounded-control file:border file:border-line file:bg-surface file:px-4 file:py-2" />
+            <p id="logo-help" class="text-small text-ink-muted">@T["Branding.Logo.Help"]</p>
+        </div>
+        <div>
+            <Button Type="submit" Variant="ButtonVariant.Secondary" data-upload-logo>@T["Branding.Logo.Upload"]</Button>
+        </div>
+    </form>
+</section>
+
+@code {
+    private static readonly Regex Hex = new("^#[0-9A-F]{6}$", RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
+
+    private TenantBranding? _current;
+    private string? _portalName;
+    private string? _color;
+    private string? _nameError;
+    private string? _colorError;
+    private string? _saveError;
+    private bool _busy;
+
+    [CascadingParameter] private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    /// <summary>1 after a save, set by the reload that follows it.</summary>
+    [SupplyParameterFromQuery] public int? Saved { get; set; }
+
+    /// <summary>The colour the admin asked for, when a darker one was stored instead.</summary>
+    [SupplyParameterFromQuery(Name = "adjustedFrom")] public string? AdjustedFromQuery { get; set; }
+
+    /// <summary>The outcome of a logo upload, set by the logo endpoint's redirect.</summary>
+    [SupplyParameterFromQuery] public string? Logo { get; set; }
+
+    private string? AdjustedFrom => AdjustedFromQuery is { } value && Hex.IsMatch(value) ? value : null;
+
+    private string? LogoMessage => Logo switch
+    {
+        "saved" => T["Branding.Logo.Saved"].Value,
+        "too-large" => T["Branding.Logo.Error.TooLarge"].Value,
+        "not-image" => T["Branding.Logo.Error.NotImage"].Value,
+        "too-many-pixels" => T["Branding.Logo.Error.Dimensions"].Value,
+        "unreadable" => T["Branding.Logo.Error.Unreadable"].Value,
+        "missing" => T["Branding.Logo.Error.Missing"].Value,
+        _ => null,
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        _current = await BrandingService.GetAsync();
+        _portalName = _current.PortalName;
+        _color = _current.PrimaryColor;
+    }
+
+    private async Task SaveAsync()
+    {
+        _nameError = null;
+        _colorError = null;
+        _saveError = null;
+        _busy = true;
+        try
+        {
+            if (await ActorAsync() is not { } actor)
+            {
+                _saveError = T["Branding.NotAllowed"];
+                return;
+            }
+
+            var result = await BrandingService.SaveAsync(_portalName ?? string.Empty, _color ?? string.Empty, actor);
+            if (!result.IsSuccess)
+            {
+                switch (result.Error.Code)
+                {
+                    case BrandingErrors.InvalidPortalName:
+                        _nameError = T["Branding.Error.PortalName"];
+                        break;
+                    case BrandingErrors.InvalidColor:
+                        _colorError = T["Branding.Error.Color"];
+                        break;
+                    default:
+                        _saveError = T["Branding.Error.Generic"];
+                        break;
+                }
+
+                return;
+            }
+
+            var adjusted = result.Value.ColorAdjusted ? $"&adjustedFrom={Uri.EscapeDataString(result.Value.RequestedColor)}" : string.Empty;
+            // A full load: the circuit keeps the tenant it started with, so only a new request shows the new header.
+            Nav.NavigateTo($"/admin/branding?saved=1{adjusted}", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            BrandingPageLog.SaveFailed(Logger, ex);
+            _saveError = T["Branding.Error.Generic"];
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    /// <summary>
+    /// The signed-in admin's id when they may act now: the TenantAdmin policy passes for the circuit's user and the admin
+    /// role is still in identity.members (it may have been removed since the page opened). Null otherwise.
+    /// </summary>
+    private async Task<string?> ActorAsync()
+    {
+        if (AuthenticationState is null)
+        {
+            return null;
+        }
+
+        var user = (await AuthenticationState).User;
+        var actor = user.FindFirst(IdentityClaims.Subject)?.Value;
+        if (string.IsNullOrWhiteSpace(actor) || !(await Authorization.AuthorizeAsync(user, TenantPolicies.TenantAdmin)).Succeeded)
+        {
+            return null;
+        }
+
+        return (await Members.GetRolesAsync(actor)).Contains(TenantRoles.TenantAdmin) ? actor : null;
+    }
+}

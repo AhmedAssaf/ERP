@@ -183,7 +183,7 @@ flowchart TD
 - **Determinism and audit:** low temperature, prompt and model version stored on each result, results are immutable once a human has acted on them.
 - **Fairness:** run the same prompt over every offer in a tender in one batch so all vendors get the same treatment. Never send one vendor's prices to the model while scoring another vendor's technical part.
 - **Sealed envelope respected:** the financial AI runs only after technical scoring is locked, exactly like the human process.
-- **Data residency and PDPL:** process in a Saudi region or via a provider with an in-Kingdom option; redact personal data of vendor staff before sending to the model where it is not needed.
+- **Data residency and PDPL:** process in a Saudi region or via a provider with an in-Kingdom option; redact personal data of vendor staff before sending to the model where it is not needed. The provider choice, including a free self-hosted open-weight model in Jeddah, is open decision 7 in document 02 section 5.
 - **Cost control:** cache the RFP context per tender, run capability 1 and 2 on submission, run 3 to 5 on demand when the evaluator opens the offer.
 
 ### 5.5 What AI should not do in version 1

@@ -1,0 +1,143 @@
+@*
+    F-51 health board and F-60 incident list (spec 3.2, 3.3). Reads what the worker's health-check job recorded; it never
+    probes a component itself (D-7). A result older than two minutes, or none at all, shows as Unknown.
+*@
+@page "/platform"
+@attribute [Authorize(Policy = PlatformAuthentication.PolicyName)]
+@layout ConsoleLayout
+@rendermode InteractiveServer
+@inject IHealthLog Health
+@inject TimeProvider Clock
+@inject IStringLocalizer<SharedResource> T
+
+<PageTitle>@T["Console.Board.Title"]</PageTitle>
+
+<div class="flex flex-wrap items-center justify-between gap-3">
+    <h1 class="text-display">@T["Console.Board.Title"]</h1>
+    <Button OnClick="LoadAsync" Loading="_loading">@T["Console.Board.Refresh"]</Button>
+</div>
+
+<section aria-labelledby="components-heading" class="grid gap-4">
+    <h2 id="components-heading" class="text-heading">@T["Console.Board.Components"]</h2>
+    <ul role="list" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        @foreach (var tile in _tiles)
+        {
+            <li>
+                <article data-component="@tile.Component" data-status="@tile.Status" class="grid h-full gap-3 rounded-card border border-line bg-surface p-4">
+                    <div class="flex items-start justify-between gap-2">
+                        <h3 class="text-subheading">@ComponentName(tile.Component)</h3>
+                        <StatusBadge Tone="tile.Tone">@T[$"Console.Status.{tile.Status}"]</StatusBadge>
+                    </div>
+                    <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-small">
+                        <dt class="text-ink-muted">@T["Console.Board.Latency"]</dt>
+                        <dd class="tabular-nums" data-latency-ms="@tile.Latest?.LatencyMs">
+                            @if (tile.Latest is { } latest)
+                            {
+                                @T["Console.Board.Milliseconds", latest.LatencyMs]
+                            }
+                            else
+                            {
+                                <span aria-label="@T["Console.Unknown"]">—</span>
+                            }
+                        </dd>
+                        <dt class="text-ink-muted">@T["Console.Board.LastCheck"]</dt>
+                        <dd><ConsoleTime At="tile.Latest?.CheckedAt" /></dd>
+                        <dt class="text-ink-muted">@T["Console.Board.LastFailure"]</dt>
+                        <dd class="grid gap-0.5">
+                            <ConsoleTime At="tile.LastFailure?.CheckedAt" />
+                            @if (!string.IsNullOrWhiteSpace(tile.LastFailure?.Message))
+                            {
+                                <span class="text-ink-muted">@tile.LastFailure.Message</span>
+                            }
+                        </dd>
+                    </dl>
+                </article>
+            </li>
+        }
+    </ul>
+</section>
+
+<section aria-labelledby="incidents-heading" class="grid gap-4">
+    <h2 id="incidents-heading" class="text-heading">@T["Console.Incidents.Title"]</h2>
+    <DataTable Items="_incidents" Label="@T["Console.Incidents.Title"]">
+        <ChildContent>
+            <TemplateColumn TGridItem="Incident" Title="@T["Console.Incidents.Component"]">
+                <span data-incident="@context.Id">@ComponentName(context.Component)</span>
+            </TemplateColumn>
+            <TemplateColumn TGridItem="Incident" Title="@T["Console.Incidents.Started"]">
+                <ConsoleTime At="context.OpenedAt" />
+            </TemplateColumn>
+            <TemplateColumn TGridItem="Incident" Title="@T["Console.Incidents.Ended"]">
+                @if (context.ClosedAt is { } closed)
+                {
+                    <ConsoleTime At="closed" />
+                }
+                else
+                {
+                    <StatusBadge Tone="StatusTone.Danger">@T["Console.Incidents.Open"]</StatusBadge>
+                }
+            </TemplateColumn>
+            <TemplateColumn TGridItem="Incident" Title="@T["Console.Incidents.LastMessage"]">
+                <span class="text-ink-muted">@context.LastMessage</span>
+            </TemplateColumn>
+        </ChildContent>
+        <EmptyContent>
+            <EmptyState Title="@T["Console.Incidents.EmptyTitle"]" HeadingLevel="3">@T["Console.Incidents.EmptyBody"]</EmptyState>
+        </EmptyContent>
+    </DataTable>
+</section>
+
+@code {
+    private static readonly TimeSpan IncidentWindow = TimeSpan.FromDays(30);
+
+    private IReadOnlyList<Tile> _tiles = [];
+    private IReadOnlyList<Incident> _incidents = [];
+    private bool _loading;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    // The board's seven and Disk have names in both languages; any other recorded component shows as recorded.
+    private string ComponentName(string component) =>
+        T[$"Console.Component.{component}"] is { ResourceNotFound: false } name ? name.Value : component;
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            var now = Clock.GetUtcNow();
+            var latest = (await Health.LatestAsync()).ToDictionary(r => r.Component, StringComparer.Ordinal);
+            var failures = (await Health.LastFailuresAsync()).ToDictionary(r => r.Component, StringComparer.Ordinal);
+            _tiles =
+            [
+                .. HealthComponents.Board.Select(component => Tile.For(
+                    component, latest.GetValueOrDefault(component), failures.GetValueOrDefault(component), now)),
+            ];
+            _incidents = await Health.IncidentsAsync(now - IncidentWindow);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private sealed record Tile(string Component, string Status, StatusTone Tone, HealthResult? Latest, HealthResult? LastFailure)
+    {
+        public static Tile For(string component, HealthResult? latest, HealthResult? lastFailure, DateTimeOffset now)
+        {
+            // Stale or missing: the worker has not reported recently, so the last status says nothing about now.
+            if (latest is null || now - latest.CheckedAt > HealthComponents.StaleAfter)
+            {
+                return new Tile(component, "Unknown", StatusTone.Neutral, latest, lastFailure);
+            }
+
+            var tone = latest.Status switch
+            {
+                HealthStatus.Healthy => StatusTone.Success,
+                HealthStatus.Degraded => StatusTone.Warning,
+                _ => StatusTone.Danger,
+            };
+            return new Tile(component, latest.Status.ToString(), tone, latest, lastFailure);
+        }
+    }
+}

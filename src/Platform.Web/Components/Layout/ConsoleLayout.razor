@@ -1,0 +1,31 @@
+@*
+    The platform console's frame (spec 3.1): the WaslaBid mark, never a tenant's brand, and the console's navigation.
+    The job dashboard is Hangfire's own page, so its link is a full page load, not enhanced navigation. The user menu
+    names the signed-in admin and signs out of the platform realm only.
+*@
+@inherits LayoutComponentBase
+@using Platform.Web.PlatformHost
+@inject IStringLocalizer<SharedResource> T
+
+<AppShell Variant="AppShellVariant.Platform" UserName="@_userName" SignOutUrl="@PlatformAuthentication.SignOutPath">
+    <Navigation>
+        <NavLink href="platform" Match="NavLinkMatch.All" class="@LinkClass">@T["Console.Nav.Health"]</NavLink>
+        <NavLink href="platform/tenants" class="@LinkClass">@T["Console.Nav.Tenants"]</NavLink>
+        <a href="platform/jobs" data-enhance-nav="false" class="@LinkClass">@T["Console.Nav.Jobs"]</a>
+    </Navigation>
+    <ChildContent>@Body</ChildContent>
+</AppShell>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    private string? _userName;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _userName = AuthenticationState is null ? null : (await AuthenticationState).User.Identity?.Name;
+    }
+
+    private const string LinkClass =
+        "whitespace-nowrap py-1 underline-offset-4 hover:underline aria-[current=page]:font-semibold aria-[current=page]:underline";
+}

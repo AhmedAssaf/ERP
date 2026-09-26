@@ -1,0 +1,59 @@
+@*
+    Events with actor, action and time (docs/08 section 6), in the order given; the caller sorts. Times show in Riyadh
+    time (UTC+3 all year) on the Gregorian calendar in both languages, with the exact instant in the datetime attribute.
+*@
+@using System.Globalization
+@inject IStringLocalizer<SharedResource> T
+
+@if (Entries.Count == 0)
+{
+    <p class="rounded-card border border-line bg-surface px-4 py-6 text-ink-muted">@T["AuditList.Empty"]</p>
+}
+else
+{
+    var culture = GregorianCulture();
+    var format = T["AuditList.TimeFormat"].Value;
+    <div class="grid gap-2">
+        <ol aria-label="@Label" class="divide-y divide-line rounded-card border border-line bg-surface">
+            @foreach (var entry in Entries)
+            {
+                var at = entry.At.ToOffset(RiyadhOffset);
+                <li class="grid gap-1 px-4 py-3 sm:grid-cols-[1fr_auto] sm:gap-6">
+                    <div class="grid gap-0.5">
+                        <p class="text-body text-ink"><span class="font-semibold">@entry.Actor</span> @entry.Action</p>
+                        @if (entry.Detail is not null)
+                        {
+                            <p class="text-small text-ink-muted">@entry.Detail</p>
+                        }
+                    </div>
+                    <time datetime="@at.ToString("yyyy-MM-dd'T'HH:mm:sszzz", CultureInfo.InvariantCulture)" class="text-small whitespace-nowrap text-ink-muted tabular-nums">@at.ToString(format, culture)</time>
+                </li>
+            }
+        </ol>
+        <p class="text-small text-ink-muted">@T["AuditList.RiyadhTime"]</p>
+    </div>
+}
+
+@code {
+    // Riyadh is UTC+3 all year with no daylight saving; a fixed offset needs no time zone database on the host.
+    private static readonly TimeSpan RiyadhOffset = TimeSpan.FromHours(3);
+
+    [Parameter, EditorRequired] public IReadOnlyList<AuditEntry> Entries { get; set; } = [];
+
+    /// <summary>The list's accessible name: "Staff history".</summary>
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+
+    // ar-SA defaults to the Umm al-Qura calendar; the product shows Gregorian dates in both languages.
+    private static CultureInfo GregorianCulture()
+    {
+        var current = CultureInfo.CurrentCulture;
+        if (current.Calendar is GregorianCalendar)
+        {
+            return current;
+        }
+
+        var clone = (CultureInfo)current.Clone();
+        clone.DateTimeFormat.Calendar = new GregorianCalendar();
+        return clone;
+    }
+}
