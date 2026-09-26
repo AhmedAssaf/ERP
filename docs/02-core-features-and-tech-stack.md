@@ -251,7 +251,7 @@ flowchart TB
 | Odoo or ERPNext as the base | Fastest to a demo, includes accounting. | Weak vendor experience, hard to white-label, customisations become the product with no moat. |
 | Elsa or Temporal for the tender workflow | Decided 2026-09-21 (ADR-0003): tenant-configurable workflows are in scope from day one. Executor decided 2026-09-26 (ADR-0004): our own state machine, after spike W-20 found Elsa Studio cannot serve tenants in Arabic right to left (docs/06 section 6). | Temporal is a separate service in Go; wrong shape for the monolith. Elsa stays a candidate, not a default, until the spike proves the invariants can be enforced and the designer can be Arabic. |
 
-### 4.5 Repository layout (proposed)
+### 4.5 Repository layout
 
 ```
 ERP/
@@ -265,7 +265,8 @@ ERP/
       Identity/                      Keycloak integration, roles, committees
       Vendors/                       vendor companies, users, documents, approvals
       Tenders/                       tender authoring, versions, clarifications, submissions, envelopes
-      Evaluation/                    state machine, compliance, scoring, comparison, approvals
+      Evaluation/                    compliance, scoring, comparison; calls Workflow for the approval chain
+      Workflow/                      tenant workflow definitions, per-tender snapshots, executor (ADR-0004)
       Awards/                        award letters, PO, exports
       Notifications/                 email, SMS, in-app, preferences
       Documents/                     storage, scanning, parsing, OCR
@@ -284,6 +285,8 @@ ERP/
     caddy/                           Caddyfile, on-demand TLS ask endpoint config
   .github/workflows/
 ```
+
+Each module is two projects: `Platform.Modules.<Name>.Contracts` (public interfaces and records) and `Platform.Modules.<Name>` (everything else, internal, plus a `<Name>Module` entry class). Modules reference each other's `.Contracts` only, own one PostgreSQL schema each, and ship their schema as SQL scripts under `Migrations/` (design spec 2026-09-26). Modules are created by the first slice that needs them; the foundation created Audit, Tenancy, Identity and Workflow.
 
 ## 5. Decisions needed before design
 

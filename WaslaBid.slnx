@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Platform.Shared/Platform.Shared.csproj" />
+    <Project Path="src/Platform.Web/Platform.Web.csproj" />
   </Folder>
   <Folder Name="/src/Modules/" />
   <Folder Name="/src/Modules/Audit/">
@@ -20,6 +21,7 @@
     <Project Path="src/Modules/Workflow/Platform.Modules.Workflow/Platform.Modules.Workflow.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Platform.IntegrationTests/Platform.IntegrationTests.csproj" />
     <Project Path="tests/Platform.UnitTests/Platform.UnitTests.csproj" />
   </Folder>
 </Solution>
