@@ -1,15 +1,23 @@
 @*
     The tenant administration frame (spec 4): the tenant's own brand (F-02), never WaslaBid's, and the admin navigation.
-    The user menu names the signed-in admin and signs out of the tenant realm.
+    The user menu names the signed-in admin and signs out of the tenant realm. The Staff and Branding links show only to
+    a tenant admin (QA observation: the layout used to show them to every role, though the pages themselves already
+    refuse anyone else); every other role, and a member of the organization with no member row, sees no nav at all.
 *@
 @inherits LayoutComponentBase
+@using Microsoft.AspNetCore.Authorization
+@using Platform.Modules.Identity.Contracts
 @inject IStringLocalizer<SharedResource> T
 @inject ITenantAccessor Tenants
+@inject IAuthorizationService Authorization
 
 <AppShell Variant="AppShellVariant.Tenant" PortalName="@Tenants.Current?.Branding.PortalName" LogoUrl="@Tenants.Current?.Branding.LogoUrl" UserName="@_userName">
     <Navigation>
-        <NavLink href="admin/staff" class="@LinkClass">@T["Admin.Nav.Staff"]</NavLink>
-        <NavLink href="admin/branding" class="@LinkClass">@T["Admin.Nav.Branding"]</NavLink>
+        @if (_isTenantAdmin)
+        {
+            <NavLink href="admin/staff" class="@LinkClass">@T["Admin.Nav.Staff"]</NavLink>
+            <NavLink href="admin/branding" class="@LinkClass">@T["Admin.Nav.Branding"]</NavLink>
+        }
     </Navigation>
     <ChildContent>@Body</ChildContent>
 </AppShell>
@@ -18,10 +26,13 @@
     [CascadingParameter] private Task<AuthenticationState>? AuthenticationState { get; set; }
 
     private string? _userName;
+    private bool _isTenantAdmin;
 
     protected override async Task OnParametersSetAsync()
     {
-        _userName = AuthenticationState is null ? null : (await AuthenticationState).User.Identity?.Name;
+        var user = AuthenticationState is null ? null : (await AuthenticationState).User;
+        _userName = user?.Identity?.Name;
+        _isTenantAdmin = user is not null && (await Authorization.AuthorizeAsync(user, TenantPolicies.TenantAdmin)).Succeeded;
     }
 
     private const string LinkClass =

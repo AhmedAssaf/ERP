@@ -1,25 +1,48 @@
+@*
+    The tenant's home page: the portal header and, for a tenant admin only, links to Staff and Branding (QA observation:
+    until now no page linked to the admin screens at all, so nothing proved an evaluator without the role could not
+    reach them). Every other role, and a member of the organization with no member row, sees no admin nav.
+*@
 @page "/"
+@using Microsoft.AspNetCore.Authorization
+@using Platform.Modules.Identity.Contracts
 @inject IStringLocalizer<SharedResource> T
 @inject ITenantAccessor Tenants
+@inject IAuthorizationService Authorization
 
 <PageTitle>@T["Home.Title"]</PageTitle>
 
-<header class="bg-primary text-on-primary px-6 py-4">
-    <p class="text-heading font-semibold">@PortalName</p>
-</header>
-
-<main class="mx-auto max-w-3xl px-6 py-8">
-    <h1 class="text-display font-semibold">@T["Home.Welcome", PortalName]</h1>
-    <AuthorizeView>
-        <Authorized>
-            <p class="mt-4 text-ink-muted">@T["Home.SignedInAs", context.User.Identity?.Name ?? string.Empty]</p>
-        </Authorized>
-    </AuthorizeView>
-    <p class="mt-6">
-        <a class="text-action underline" href="@($"/culture/set?culture={T["Language.OtherCulture"]}&returnUrl=/")">@T["Language.Other"]</a>
-    </p>
-</main>
+<AppShell Variant="AppShellVariant.Tenant" PortalName="@PortalName" LogoUrl="@Tenants.Current?.Branding.LogoUrl">
+    <Navigation>
+        @if (_isTenantAdmin)
+        {
+            <NavLink href="admin/staff" class="@LinkClass">@T["Admin.Nav.Staff"]</NavLink>
+            <NavLink href="admin/branding" class="@LinkClass">@T["Admin.Nav.Branding"]</NavLink>
+        }
+    </Navigation>
+    <ChildContent>
+        <h1 class="text-display font-semibold">@T["Home.Welcome", PortalName]</h1>
+        <AuthorizeView>
+            <Authorized>
+                <p class="mt-4 text-ink-muted">@T["Home.SignedInAs", context.User.Identity?.Name ?? string.Empty]</p>
+            </Authorized>
+        </AuthorizeView>
+    </ChildContent>
+</AppShell>
 
 @code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    private bool _isTenantAdmin;
+
     private string PortalName => Tenants.Current?.Branding.PortalName ?? string.Empty;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var user = AuthenticationState is null ? null : (await AuthenticationState).User;
+        _isTenantAdmin = user is not null && (await Authorization.AuthorizeAsync(user, TenantPolicies.TenantAdmin)).Succeeded;
+    }
+
+    private const string LinkClass =
+        "whitespace-nowrap py-1 underline-offset-4 hover:underline aria-[current=page]:font-semibold aria-[current=page]:underline";
 }

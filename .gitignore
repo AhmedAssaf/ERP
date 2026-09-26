@@ -22,3 +22,10 @@ TestResults/
 spikes/**/.venv/
 __pycache__/
 spikes/OfferToMarkdownSpike/samples/real/
+
+# End-to-end scripts (tests/e2e): captured TOTP seeds and generated passwords, screenshots and run output
+tests/e2e/.state/
+tests/e2e/shots-admin/
+tests/e2e/*-results.json
+tests/e2e/*-run.log
+tests/e2e/logo-e2e.png
