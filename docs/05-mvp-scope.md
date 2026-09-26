@@ -22,7 +22,7 @@ flowchart LR
 
     subgraph R3["Version 1: full document 02"]
         direction TB
-        C1[SSO F-06b,<br/>guarantee check F-65]:::v1
+        C1[SSO F-06b,<br/>guarantee check F-66]:::v1
         C2[Templates<br/>F-18]:::v1
         C3[Local content F-13,<br/>vendor list F-14]:::v1
         C4[Dashboards<br/>F-43]:::v1
@@ -33,7 +33,7 @@ flowchart LR
         direction TB
         B1[Custom domain F-03]:::next
         B2[Workflow editor, committees, DoA<br/>F-56b F-08 F-09]:::next
-        B3[Amendments F-20,<br/>vendor invites buyer F-62]:::next
+        B3[Amendments F-20,<br/>vendor invites buyer F-63]:::next
         B4[Receipts + vendor dashboard<br/>F-25 F-26]:::next
         B5[Ranking, cancellation,<br/>vendor requests, comments<br/>F-32 F-34 F-57 F-58]:::next
         B6[Letters + PO export<br/>F-35 F-37]:::next
@@ -55,7 +55,7 @@ flowchart LR
         A10[Email + audit log<br/>F-38 F-41]:::mvp
         A11[Platform console: health, connections,<br/>errors, tenants, alerts<br/>F-51 F-52 F-53 F-54 F-60]:::mvp
         A12[One vendor across tenants,<br/>open tenders F-10 F-19b]:::mvp
-        A13[Audit bundle, award record,<br/>consent ledger F-42 F-64 F-63]:::mvp
+        A13[Audit bundle, award record,<br/>consent ledger F-42 F-65 F-64]:::mvp
     end
 ```
 
@@ -86,17 +86,17 @@ Every row is a feature ID from document 02 with the MVP-sized version of its acc
 | 19 | F-60 | Email to the platform admin, once per incident plus a recovery notice, when a health check fails, a job fails three times, a deadline-closure job has not run five minutes after a deadline, or disk passes 80 percent. Incidents of the last 30 days listed on the F-51 page. Thresholds in configuration | No SMS, no TLS alerts, no threshold screen |
 | 20 | F-52 | Connections registry on the platform host: endpoint, account, secret reference, owner, last rotated, and a test action, audited. Added 2026-09-26 (ADR-0006) | No rotate action; rotation is done in the secret store by hand |
 | 21 | F-53 | 24-hour error summary per component on the F-51 page, read from Loki, with a link to Grafana for search and traces. Added 2026-09-26 (ADR-0006) | No log search or trace view in the console; Grafana over Loki and Tempo serves them until after three to five paying customers |
-| 22 | F-10 | One vendor company across all tenants, keyed by CR number; each tenant keeps its own approval state and address book entry, private under RLS. A vendor invited by a second tenant logs in with the same account. Added 2026-09-26 (ADR-0007) | Approval states pending and approved only; blocking arrives with F-14 |
-| 23 | F-19b | A tender is published as Invited or Open. Open tenders appear on the tenant's listing page with a register-and-submit link; the officer can switch the listing off. Added 2026-09-26 (ADR-0007) | No search or filters on the listing page |
+| 22 | F-10 | One vendor company across all tenants, keyed by CR number; each tenant keeps its own approval state and address book entry, private under RLS. A vendor invited by a second tenant logs in with the same account. Added 2026-09-26 (ADR-0008) | Approval states pending and approved only; blocking arrives with F-14 |
+| 23 | F-19b | A tender is published as Invited or Open. Open tenders appear on the tenant's listing page with a register-and-submit link; the officer can switch the listing off. Added 2026-09-26 (ADR-0008) | No search or filters on the listing page |
 | 24 | F-42 | Audit bundle PDF per tender: timeline of stages, envelope openings with names, scores, approvals, award, and file hashes. Added 2026-09-26 (docs/11 section 3) | Files listed by hash, not embedded; no auditor role, the tenant admin exports it |
-| 25 | F-64 | Signed award record at award and at PO issue, shown in the audit bundle, given to the vendor, and checkable on a public verification page. Added 2026-09-26 (ADR-0008) | One signing key, no rotation screen |
-| 26 | F-63 | Vendor consent ledger: grant, view, revoke per recipient, scope and period, audited; the only path any later export may use. Added 2026-09-26 (ADR-0009) | No external recipients yet, so no export exists; the ledger and its check ship ahead of them |
+| 25 | F-65 | Signed award record at award and at PO issue, shown in the audit bundle, given to the vendor, and checkable on a public verification page. Added 2026-09-26 (ADR-0009) | One signing key, no rotation screen |
+| 26 | F-64 | Vendor consent ledger: grant, view, revoke per recipient, scope and period, audited; the only path any later export may use. Added 2026-09-26 (ADR-0010) | No external recipients yet, so no export exists; the ledger and its check ship ahead of them |
 
 Also in the MVP because the pilot cannot run without them, though they carry no feature ID: Arabic and English UI with right-to-left (F-04 is treated as a constraint, not a feature), and the tender state machine (F-27) limited to the states the twenty-six features need.
 
 ## 4. Explicitly out of the MVP
 
-Custom domains, SSO, the workflow editor screen (F-56b; the model ships, the pilot uses the seeded default), per-tender committees, delegation of authority limits, information requests to vendors after submission and internal comment threads (F-57, F-58; during the pilot the officer emails the vendor and the reply is filed by hand), amendments, receipts with hashes, vendor dashboard, ranking other than lowest price, cancellation, award and regret letters, PO export, SMS, notification preferences, local content fields, the full tenant vendor list with approval states (the address book F-14a is in), templates, dashboards, the console's log search and trace view (rest of F-53; the pilot uses Grafana over Loki and Tempo, and Sentry), credential rotation from the console, consented support access (F-61), every AI feature (the AI offer review plan also waits for gate 1, section 8), vendors inviting buyers (F-62), guarantee verification (F-65), mobile apps, ERP integration, WaslaBid as an ERP.
+Custom domains, SSO, the workflow editor screen (F-56b; the model ships, the pilot uses the seeded default), per-tender committees, delegation of authority limits, information requests to vendors after submission and internal comment threads (F-57, F-58; during the pilot the officer emails the vendor and the reply is filed by hand), amendments, receipts with hashes, vendor dashboard, ranking other than lowest price, cancellation, award and regret letters, PO export, SMS, notification preferences, local content fields, the full tenant vendor list with approval states (the address book F-14a is in), templates, dashboards, the console's log search and trace view (rest of F-53; the pilot uses Grafana over Loki and Tempo, and Sentry), credential rotation from the console, consented support access (F-61), every AI feature (the AI offer review plan also waits for gate 1, section 8), vendors inviting buyers (F-63), guarantee verification (F-66), mobile apps, ERP integration, WaslaBid as an ERP.
 
 If the pilot customer asks for one of these, the answer is "version 1.1, after your tender closes", unless the tender cannot legally proceed without it.
 
@@ -171,6 +171,6 @@ About 18 weeks from first spike to the live tender at the durations shown (one w
 
 - Gate 1 before building past the foundation (decided 2026-09-26): the customer track (W-13, W-16) runs beside the foundation, and no slice after the foundation starts, including the AI offer review plan, until two of three interviewed firms would pay SAR 1,500 or more a month and one names a real tender (W-31).
 - PO scope: branded PDF only in the MVP; version 1 adds the structured export (F-37). ERP push is a later paid integration and WaslaBid does not become an ERP (open decision 1, decided 2026-09-26).
-- Vendor identity: one vendor account across all tenants from the MVP (ADR-0007; open decision 2, decided 2026-09-26).
+- Vendor identity: one vendor account across all tenants from the MVP (ADR-0008; open decision 2, decided 2026-09-26).
 - Hosting: any Saudi-region VM or small Kubernetes cluster for the pilot; the provider decision (open decision 3) can wait until version 1.
 - First customer: still to be named. The plan cannot start section "Pilot" without one, so finding them runs in parallel with the spikes and foundation.

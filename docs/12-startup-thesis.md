@@ -54,13 +54,13 @@ These are cheap now and expensive to retrofit later. All five were decided on 20
 
 | # | Choice | Why | Touches | Decision 2026-09-26 |
 |---|---|---|---|---|
-| 1 | **Global vendor identity**: one vendor across all tenants, with tenant-scoped relationship records under row-level security | The network and any future financing both depend on it | Closes open decision 2 in document 02 section 5 | In the MVP, keyed by CR number; tenders Invited or Open; vendors can invite buyers (ADR-0007, F-10, F-19b, F-62) |
-| 2 | **Signed award and PO events**: expose the existing audit hashes as a verifiable "award" record | This is the underwriting evidence a financier would buy | F-41, F-42, F-36 | In the MVP with the audit bundle (ADR-0008, F-64, F-42) |
-| 3 | **Consent ledger**: the vendor grants, scopes, and revokes sharing of award and PO data with a named financier | PDPL requires it before any data goes to a partner | New feature ID and ADR | In the MVP (ADR-0009, F-63) |
-| 4 | **Guarantee as a verifiable document type**: verify it against Wthaq or BwaTech; never issue guarantees | Guarantees are common on government tenders; issuing them needs a licence | F-12, F-16 | Verify, never issue; version 1 (ADR-0010, F-65) |
+| 1 | **Global vendor identity**: one vendor across all tenants, with tenant-scoped relationship records under row-level security | The network and any future financing both depend on it | Closes open decision 2 in document 02 section 5 | In the MVP, keyed by CR number; tenders Invited or Open; vendors can invite buyers (ADR-0008, F-10, F-19b, F-63) |
+| 2 | **Signed award and PO events**: expose the existing audit hashes as a verifiable "award" record | This is the underwriting evidence a financier would buy | F-41, F-42, F-36 | In the MVP with the audit bundle (ADR-0009, F-65, F-42) |
+| 3 | **Consent ledger**: the vendor grants, scopes, and revokes sharing of award and PO data with a named financier | PDPL requires it before any data goes to a partner | New feature ID and ADR | In the MVP (ADR-0010, F-64) |
+| 4 | **Guarantee as a verifiable document type**: verify it against Wthaq or BwaTech; never issue guarantees | Guarantees are common on government tenders; issuing them needs a licence | F-12, F-16 | Verify, never issue; version 1 (ADR-0011, F-66) |
 | 5 | **Vendors never pay**, until gate 2 proves the network | A supplier fee would slow the vendor-to-buyer loop | Document 11 section 8 | Adopted |
 
-The section 6 rules that keep the platform outside the licence perimeter were adopted as invariants on the same day (ADR-0010, N-11).
+The section 6 rules that keep the platform outside the licence perimeter were adopted as invariants on the same day (ADR-0011, N-11).
 
 ## 8. Funding reality
 

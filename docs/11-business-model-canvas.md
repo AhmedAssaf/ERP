@@ -21,7 +21,7 @@ No law forces a private company to run a sealed tender. Target the firms that al
 
 ![Features that really matter](diagrams/11-bmc/03-features.png)
 
-The MVP in document 05 is well cut, with one gap: add a simple audit bundle PDF (F-42). It is what the finance approver shows the board, and it is the reason a governance buyer pays. Added to the MVP 2026-09-26, with the signed award record (F-64).
+The MVP in document 05 is well cut, with one gap: add a simple audit bundle PDF (F-42). It is what the finance approver shows the board, and it is the reason a governance buyer pays. Added to the MVP 2026-09-26, with the signed award record (F-65).
 
 ## 4. The canvas
 

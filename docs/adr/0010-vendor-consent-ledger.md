@@ -1,13 +1,13 @@
-# ADR-0009: Vendor consent ledger before any vendor data leaves the platform
+# ADR-0010: Vendor consent ledger before any vendor data leaves the platform
 
 Date: 2026-09-26
 Status: Accepted
 Deciders: Ahmed Assaf
-Related: F-63, F-64, F-10, N-02, N-11; docs/12 section 7 choice 3; ADR-0007, ADR-0008
+Related: F-64, F-65, F-10, N-02, N-11; docs/12 section 7 choice 3; ADR-0008, ADR-0009
 
 ## Context
 
-With one vendor identity across tenants (ADR-0007) and signed award records (ADR-0008), a vendor's award and PO history becomes valuable to third parties such as a financier. The PDPL requires consent that is specific, recorded, and revocable before personal or business data goes to another party. The user chose on 2026-09-26 to build the ledger in the MVP so the rule exists before any integration does.
+With one vendor identity across tenants (ADR-0008) and signed award records (ADR-0009), a vendor's award and PO history becomes valuable to third parties such as a financier. The PDPL requires consent that is specific, recorded, and revocable before personal or business data goes to another party. The user chose on 2026-09-26 to build the ledger in the MVP so the rule exists before any integration does.
 
 ## Decision
 
@@ -20,7 +20,7 @@ With one vendor identity across tenants (ADR-0007) and signed award records (ADR
 
 - The legal basis for a future financier partner exists before the partner does.
 - The MVP carries a feature with no external user until stage 3 of path C; kept small (one table, one screen, one check).
-- Changes: docs/02 F-63 and N-02; docs/05 MVP rows; docs/09 F-63.
+- Changes: docs/02 F-64 and N-02; docs/05 MVP rows; docs/09 F-64.
 
 ## Alternatives considered
 
