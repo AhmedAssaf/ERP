@@ -82,7 +82,7 @@ flowchart LR
 
 Open questions for a demo or call: can one سجل vendor profile be reused across its customers; may a platform show Wathq data to buyers other than the caller with the vendor's consent (F-64); do BuildERP or Salis let subcontractors submit claims themselves; which A³ Audit rules exist, and does it accept a raw ERP export.
 
-Outside this document: Baten (batengate.com), a free marketplace for price requests between contractors and subcontractors with 4,000+ entities, touches the core product in the construction beachhead and should be added to docs/01.
+Outside this document: Baten (batengate.com), a freemium marketplace for price requests between contractors and subcontractors (4,000+ companies claimed; posting is free, replies need a paid annual subscription), touches the core product in the construction beachhead; added to docs/01 section 3.2 on 2026-09-27.
 
 ## 5. Use case flows
 
