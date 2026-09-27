@@ -1,0 +1,128 @@
+{
+  "name": "Your ERP name",
+  "status": "Copy this file, rename it, and replace every column name with the one in the customer's export. Delete sections you have no export for; the report then says which rules cannot run. Column specs are explained at the top of map_generic.py. Deduplicate line-level invoice exports by the ERP's internal document ID, never by invoice number, or real duplicate invoices disappear.",
+  "how_to_export": [
+    "Write here, in plain words, what the customer's IT team must export, with the file names you expect."
+  ],
+  "utc_offset_hours": 0,
+  "limits_hint": "where the approval limits live in this ERP",
+  "sources": {
+    "po_lines": {
+      "file": "Purchase order lines",
+      "fill_down": [],
+      "keep": {},
+      "drop": {
+        "Status": [
+          "Draft",
+          "Cancelled"
+        ]
+      }
+    },
+    "po_approvals": {
+      "file": "Approval history",
+      "optional": true,
+      "keep": {
+        "Action": [
+          "Approved"
+        ]
+      }
+    },
+    "bills": {
+      "file": "Supplier invoices",
+      "drop": {
+        "Status": [
+          "Cancelled"
+        ]
+      }
+    },
+    "payments": {
+      "file": "Payments",
+      "optional": true
+    },
+    "vendors": {
+      "file": "Suppliers",
+      "optional": true
+    },
+    "vendor_banks": {
+      "file": "Supplier bank accounts",
+      "optional": true
+    },
+    "staff": {
+      "file": "Staff bank accounts",
+      "optional": true
+    }
+  },
+  "purchase_orders": {
+    "source": "po_lines",
+    "columns": {
+      "po_id": "PO number",
+      "po_date": "PO date",
+      "vendor_id": "Supplier",
+      "category": "Category",
+      "item": "Item",
+      "quantity": "Quantity",
+      "unit_price": "Unit price",
+      "amount": "Line amount",
+      "requester_id": "Created by",
+      "approver_id": null,
+      "approved_at": null
+    }
+  },
+  "approvals": {
+    "source": "po_approvals",
+    "po": "PO number",
+    "user": "User",
+    "time": "Date and time"
+  },
+  "invoices": {
+    "source": "bills",
+    "unique_by": "Internal document ID",
+    "columns": {
+      "invoice_no": "Invoice number",
+      "vendor_id": "Supplier",
+      "po_id": "PO number",
+      "invoice_date": "Invoice date",
+      "amount": "Total",
+      "paid_date": null
+    },
+    "paid_date_lookup": {
+      "source": "payments",
+      "key": {
+        "all": [
+          "Invoice number",
+          "Supplier"
+        ]
+      },
+      "date": "Payment date",
+      "match": {
+        "all": [
+          "Invoice number",
+          "Supplier"
+        ]
+      }
+    }
+  },
+  "vendors": {
+    "source": "vendors",
+    "columns": {
+      "vendor_id": "Supplier",
+      "name": "Supplier",
+      "cr_number": "CR number",
+      "bank_iban": null,
+      "created_date": "Created on"
+    }
+  },
+  "vendor_banks": {
+    "source": "vendor_banks",
+    "key": "Supplier",
+    "iban": "IBAN"
+  },
+  "staff": {
+    "source": "staff",
+    "columns": {
+      "staff_id": "Employee number",
+      "bank_iban": "IBAN"
+    }
+  },
+  "date_order": "auto"
+}

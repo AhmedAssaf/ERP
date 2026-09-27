@@ -1,0 +1,135 @@
+{
+  "name": "Oracle NetSuite",
+  "status": "Draft profile: column names follow NetSuite's standard saved search labels; confirm against the customer's first export and edit here, not in code.",
+  "how_to_export": [
+    "The customer's NetSuite admin creates five saved searches with exactly these columns, filtered to the quarter, and exports each as CSV with the file name below.",
+    "PO Lines: Transaction search, Type = Purchase Order, Main Line = false, Tax Line = false. Columns: Document Number, Date, Name, Item, Class, Quantity, Item Rate, Amount, Approval Status, Created By.",
+    "PO Approvals: Transaction search, Type = Purchase Order, Main Line = true, with System Notes fields: Document Number, System Notes : Field, System Notes : New Value, System Notes : Set by, System Notes : Date.",
+    "Vendor Bills: Transaction search, Type = Bill, Main Line = true. Columns: Document Number, Reference No., Name, Date, Amount, Created From, Status.",
+    "Bill Payments: Transaction search, Type = Bill Payment, Main Line = false. Columns: Date, Applied To Transaction.",
+    "Vendors: Vendor search. Columns: Name, Tax Number, Date Created. Vendor Bank Details (optional, Electronic Bank Payments): Parent Vendor, IBAN.",
+    "Set the export user's time zone to Riyadh so System Notes dates are local time.",
+    "The profile reads dates as M/D/YYYY (NetSuite's default). If the export user's date format is D/M/YYYY, set date_order to dmy."
+  ],
+  "utc_offset_hours": 0,
+  "limits_hint": "NetSuite purchase approval routing limits per employee",
+  "sources": {
+    "po_lines": {
+      "file": "PO Lines",
+      "keep": {
+        "Approval Status": [
+          "Approved"
+        ]
+      }
+    },
+    "po_approvals": {
+      "file": "PO Approvals",
+      "optional": true,
+      "keep": {
+        "System Notes : Field": [
+          "Approval Status"
+        ],
+        "System Notes : New Value": [
+          "Approved"
+        ]
+      }
+    },
+    "bills": {
+      "file": "Vendor Bills",
+      "drop": {
+        "Status": [
+          "Cancelled",
+          "Rejected",
+          "Pending Approval"
+        ]
+      }
+    },
+    "payments": {
+      "file": "Bill Payments",
+      "optional": true
+    },
+    "vendors": {
+      "file": "Vendors",
+      "optional": true
+    },
+    "vendor_banks": {
+      "file": "Vendor Bank Details",
+      "optional": true
+    },
+    "staff": {
+      "file": "Employee Bank Details",
+      "optional": true
+    }
+  },
+  "purchase_orders": {
+    "source": "po_lines",
+    "columns": {
+      "po_id": "Document Number",
+      "po_date": "Date",
+      "vendor_id": "Name",
+      "category": "Class",
+      "item": "Item",
+      "quantity": "Quantity",
+      "unit_price": "Item Rate",
+      "amount": "Amount",
+      "requester_id": "Created By",
+      "approver_id": null,
+      "approved_at": null
+    }
+  },
+  "approvals": {
+    "source": "po_approvals",
+    "po": "Document Number",
+    "user": "System Notes : Set by",
+    "time": "System Notes : Date"
+  },
+  "invoices": {
+    "source": "bills",
+    "columns": {
+      "invoice_no": [
+        "Reference No.",
+        "Document Number"
+      ],
+      "vendor_id": "Name",
+      "po_id": {
+        "column": "Created From",
+        "after": "#"
+      },
+      "invoice_date": "Date",
+      "amount": "Amount",
+      "paid_date": null
+    },
+    "paid_date_lookup": {
+      "source": "payments",
+      "key": {
+        "column": "Applied To Transaction",
+        "after": "#"
+      },
+      "date": "Date",
+      "match": "Document Number"
+    }
+  },
+  "vendors": {
+    "source": "vendors",
+    "columns": {
+      "vendor_id": "Name",
+      "name": "Name",
+      "cr_number": "Tax Number",
+      "bank_iban": null,
+      "created_date": "Date Created"
+    }
+  },
+  "vendor_banks": {
+    "source": "vendor_banks",
+    "key": "Parent Vendor",
+    "iban": "IBAN"
+  },
+  "staff": {
+    "source": "staff",
+    "columns": {
+      "staff_id": "Parent Employee",
+      "bank_iban": "IBAN"
+    }
+  },
+  "date_order": "mdy"
+}

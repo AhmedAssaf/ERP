@@ -1,0 +1,22 @@
+rule,reference,note
+R1 split orders,PO1101;PO1102;PO1103,"3 POs to V004 just under SAR 50,000"
+R1 split orders,PO1104;PO1105;PO1106,"3 POs to V022 just under SAR 10,000"
+R2 single source,Rimal Madar Contracting (fictional),All Security services POs went to one vendor
+R3 duplicate invoice,INV-4358,Paid twice to V046
+R3 duplicate invoice,INV-5184,Paid twice to V046
+R3 duplicate invoice,INV-2688,Paid twice to V018
+R4 vendor bank = staff bank,Dana Madar Est. (fictional),Same IBAN as staff E008
+R5 new vendor paid fast,Taqa Quick Est. (fictional),"Created 2026-08-02, paid within 3 days (PO-01107)"
+R5 new vendor paid fast,Dana Quick Contracting (fictional),"Created 2026-08-16, paid within 3 days (PO-01108)"
+R6 price outlier,PO1109,Event catering per head at about 2x the median
+R6 price outlier,PO1110,Event catering per head at about 2x the median
+R6 price outlier,PO1111,Water carton at about 2x the median
+R6 price outlier,PO1112,Event catering per head at about 2x the median
+R6 price outlier,PO1113,Cement bag 50kg at about 2x the median
+R6 price outlier,PO1114,Water carton at about 2x the median
+R7 approval control,PO1115,Requester approved own PO
+R7 approval control,PO1116,Requester approved own PO
+R7 approval control,PO1117,Approved at night
+R7 approval control,PO1118,Approved at night
+R7 approval control,PO1119,Approved on Friday
+R8 round or sequential invoices,Najd Madar Supplies (fictional),5 round-number invoices numbered one after another

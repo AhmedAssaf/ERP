@@ -1,0 +1,22 @@
+rule,reference,note
+R1 split orders,21101;21102;21103,"3 POs to V004 just under SAR 50,000"
+R1 split orders,21104;21105;21106,"3 POs to V022 just under SAR 10,000"
+R2 single source,S00046,All Security services POs went to one vendor
+R3 duplicate invoice,INV-4358,Paid twice to V046
+R3 duplicate invoice,INV-5184,Paid twice to V046
+R3 duplicate invoice,INV-2688,Paid twice to V018
+R4 vendor bank = staff bank,S00041,Same IBAN as staff E008
+R5 new vendor paid fast,S00055,"Created 2026-08-02, paid within 3 days (PO-01107)"
+R5 new vendor paid fast,S00056,"Created 2026-08-16, paid within 3 days (PO-01108)"
+R6 price outlier,21109,Event catering per head at about 2x the median
+R6 price outlier,21110,Event catering per head at about 2x the median
+R6 price outlier,21111,Water carton at about 2x the median
+R6 price outlier,21112,Event catering per head at about 2x the median
+R6 price outlier,21113,Cement bag 50kg at about 2x the median
+R6 price outlier,21114,Water carton at about 2x the median
+R7 approval control,21115,Requester approved own PO
+R7 approval control,21116,Requester approved own PO
+R7 approval control,21117,Approved at night
+R7 approval control,21118,Approved at night
+R7 approval control,21119,Approved on Friday
+R8 round or sequential invoices,S00031,5 round-number invoices numbered one after another

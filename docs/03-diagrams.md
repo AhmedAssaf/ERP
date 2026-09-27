@@ -560,6 +560,7 @@ mindmap
       F-35 letters
       F-36 PO PDF
       F-37 PO export
+      F-37b ERP export profiles
     Notifications
       F-38 channels
       F-39 events

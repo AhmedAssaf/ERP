@@ -1,0 +1,7 @@
+SPRAS	MATKL	WGBEZ
+E	MG01	Building materials
+E	MG02	Catering
+E	MG03	Facility services
+E	MG04	IT hardware
+E	MG05	Office supplies
+E	MG06	Security services

@@ -128,7 +128,7 @@ Every plan lists the same checklist (pricing page, read 2026-09-21). This is the
 | Awarding & Contract | Purchase Orders (POs) | F-36, F-37 | Parity |
 | Awarding & Contract | Contracts, Framework Agreements / Utilization Tracking, Multi-Framework Agreement | none | Deliberate gap for version 1 |
 | AI | AI PR Assistant, AI Sourcing Assistant, AI Knowledge intelligence | F-45 to F-47 loosely | Different philosophy |
-| Integration | Major Cloud-based ERPs (SAP, Oracle, Microsoft, Odoo...etc) | F-37 export only | Their advantage |
+| Integration | Major Cloud-based ERPs (SAP, Oracle, Microsoft, Odoo...etc) | F-37 export; F-37b import files for Odoo, SAP and Oracle (P2), no live push | Their advantage, narrowed by F-37b |
 | Integration | E-Signature | none | Candidate, section 12 |
 | Integration | Other cloud-base Platforms | none | Their advantage |
 | Users | Unlimited basic users, core users To Be Defined | F-06, F-07 | Pricing lever they hold back; ours is per tenant |
@@ -334,6 +334,8 @@ Refreshed 2026-09-21. Items 1, 2, and 8 changed after the sweep.
 9. PQQ layer: is it a structured questionnaire with pass or fail per item, and does it block submission (F-12, F-28).
 10. Regret letters and the audit export: what a losing vendor receives, and what an internal auditor can download (F-35, F-42).
 11. Added 2026-09-26. Is Reference App Souq still operated, and is a tender listing across buyers planned for it or for the marketplace role (F-62, ADR-0007).
+
+Checked 2026-09-26: items 1 to 11 are all still open; they need a demo or a call. The follow-up questions from ADR-0007 about Monafasat (sealing, fees, hosting, buyers, white-label, approval chain), HRDF Forsah (buyer eligibility, API), and SAP Business Network Discovery (Arabic, Saudi buyers) were researched instead; the answers and any remaining "not found publicly" points are in document 01 section 3.2.
 
 ## 11. Sources
 

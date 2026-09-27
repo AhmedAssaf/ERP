@@ -1,6 +1,6 @@
 # Backlog
 
-Date: 2026-09-21
+Date: 2026-09-21, updated 2026-09-27
 Status: the single source of work. GitHub issues are created from rows here when work starts, never the other way round.
 Related: `02-core-features-and-tech-stack.md` (feature acceptance), `05-mvp-scope.md` (MVP narrowing), `07-ways-of-working.md` (how rows move), `08-design-system.md`
 
@@ -19,14 +19,14 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 
 | Epic | Stories | P0 | P1 | P2 |
 |---|---|---|---|---|
-| E0 Platform foundation | W-01 to W-12, W-19 to W-30 | 14 | 9 | 1 |
+| E0 Platform foundation | W-01 to W-12, W-19 to W-30 | 15 | 8 | 1 |
 | E1 Tenancy and branding | F-01 to F-05, F-01b | 5 | 1 | 0 |
 | E2 Identity, users, roles | F-06 to F-10, F-06b | 3 | 2 | 1 |
 | E3 Vendor registration | F-11 to F-14, F-12b, F-14a, F-63, F-64, F-66 | 4 | 2 | 3 |
 | E4 Tender authoring | F-15 to F-21, F-55, F-19b, F-59, F-62 | 7 | 1 | 3 |
 | E5 Offer submission | F-22 to F-26 | 3 | 2 | 0 |
 | E6 Evaluation chain | F-27 to F-34, F-56, F-56b, F-57, F-58 | 7 | 5 | 0 |
-| E7 Award and PO | F-35 to F-37, F-36b | 1 | 2 | 1 |
+| E7 Award and PO | F-35 to F-37, F-36b, F-37b | 1 | 2 | 2 |
 | E8 Notifications | F-38 to F-40, F-39b | 2 | 1 | 1 |
 | E9 Audit and documents | F-41 to F-44, F-65 | 4 | 0 | 1 |
 | E10 AI assist | F-45 to F-50 | 0 | 2 | 4 |
@@ -46,7 +46,7 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 | W-07 | Localisation: `IStringLocalizer` setup, `ar-SA` and `en-US` resources, culture switch, `dir` on `<html>` | P0 | S | Done | W-02 |
 | W-08 | Hangfire with PostgreSQL storage, dashboard behind admin role, deadline job skeleton; worker client in the Keycloak realm (moved from W-04) | P0 | S | Done 2026-09-26: worker host `Platform.Worker` with Hangfire on PostgreSQL (`A_job_runs_once_with_two_worker_instances`, `A_job_runs_as_the_tenant_that_enqueued_it`); the dashboard is mounted read-only at `/platform/jobs` on the platform host behind the platform-admin policy, not a tenant admin role (spec D-1; `The_jobs_dashboard_is_platform_only`, `The_jobs_dashboard_refuses_to_change_a_job_even_for_a_platform_admin`). Not yet built: the deadline job skeleton (waits for the Tenders module, F-24) and the worker client in the Keycloak realm (waits for the first job that calls Keycloak) | W-02, W-03 |
 | W-09 | CI workflow: build, test with Testcontainers, format, Trivy, lint, Mermaid render check for docs | P0 | M | Backlog | W-02 |
-| W-10 | Observability: OpenTelemetry, Serilog, health endpoints, Sentry | P1 | S | Backlog | W-02 |
+| W-10 | Observability: OpenTelemetry, Serilog, health endpoints, Sentry (moved from P1 to P0 2026-09-27, because F-51, F-53 and F-60 depend on it) | P0 | S | Backlog | W-02 |
 | W-11 | Production Caddyfile with on-demand TLS and the tenant allow endpoint; Kubernetes manifests | P1 | M | Backlog | F-03 |
 | W-12 | Backup and restore drill script for PostgreSQL and object storage | P1 | S | Backlog | W-11 |
 | W-20 | Elsa 3 spike, one-week box: custom activities for the fixed points, per-tender snapshot execution, Arabic and white-label designer feasibility; ends in ADR-0004 choosing the executor | P0 | L | Done | W-01 |
@@ -57,7 +57,7 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 | W-24 | Production edge readiness: trust forwarded headers from Caddy's network outside Development, and persist Data Protection keys so login cookies survive restarts and multiple instances | P0 | S | Backlog | W-04 |
 | W-25 | Tailwind standalone binaries for linux-arm64, osx-arm64 and osx-x64, each with its SHA-256 | P1 | S | Backlog | W-05 |
 | W-26 | Move the waslabid-tests client into a test-only realm import used by Testcontainers | P1 | S | Backlog | W-04 |
-| W-27 | Throttle repeated identity.cross_tenant_denied audit rows per user and host | P2 | S | Done | F-41 |
+| W-27 | Throttle repeated identity.cross_tenant_denied audit rows per user and host | P2 | S | Done, built on the existing Audit module; the full F-41 acceptance (tenant admin list) is still Backlog (noted 2026-09-27) | F-41 |
 | W-28 | Keycloak admin and login events (lockout, login failure) copied into the tenant's audit | P1 | S | Backlog | F-41 |
 | W-29 | Register each tenant's home URL (and custom domain) on the Keycloak web client during tenant setup, so invitations can return there | P0 | S | Backlog | F-01 |
 | W-30 | Invitation and account emails in the tenant's brand (Keycloak email theme per organization) | P1 | M | Backlog | F-02 |
@@ -110,7 +110,7 @@ Acceptance criteria:
 | F-07 | Roles: tenant admin, contracts officer, technical evaluator, finance approver (MVP), auditor (P1) | P0 | S | Done | F-06 |
 | F-08 | Per-tender committee assignment onto snapshot steps | P1 | M | Backlog | F-07, F-56 |
 | F-09 | Delegation of authority thresholds on approval steps | P1 | M | Backlog | F-56, F-33 |
-| F-10 | One vendor account across all tenants, keyed by CR number, with per-tenant approval (ADR-0008; moved to the MVP 2026-09-26) | P0 | L | Backlog | F-11 |
+| F-10 | One vendor account across all tenants, keyed by CR number, with per-tenant approval (ADR-0008; moved to the MVP 2026-09-26) | P0 | L | In progress on branch `vendors`, started before gate 1 by exception (docs/05 section 8) | F-11 |
 
 - **F-06.** Given an invitation, when the invitee sets a password and enrols TOTP, then they can log in; when they enter a wrong TOTP three times, then the account locks for fifteen minutes and the event is audited.
   MVP narrowing (docs/05 row 3, spec D-4, D-5 and 4.2): a tenant admin invites on `/admin/staff` (email, name, roles), changes roles and resends; the app calls the Keycloak Admin API as `waslabid-admin-api`, which creates or finds the user, adds them to the tenant's organization and has Keycloak email the set-password and TOTP link (72 hours, returning to the tenant's host); the member row is `invited` until the first sign-in. TOTP is required at every tenant login (realm browser flow), and brute-force detection locks the account for fifteen minutes after three failures. No SSO (F-06b). An account that needs no setup still gets an email: a short notice in Arabic and English from our own SMTP sender ("{inviter} added you to {portal} on WaslaBid as {roles}. Sign in at {tenant home}..."), and the page shows the same "Invitation sent to {email}" either way, so it cannot be used to learn who has an account (the difference is only in the audit entry, `existing_account`). A disabled account is refused with a neutral message (`identity.account_disabled`, audited as `identity.invitation_refused`). Names are 1 to 100 letters, marks, spaces, apostrophes, hyphens and periods; bidi-override and zero-width characters are refused. When the member row cannot be saved, the organization membership the invitation added is removed again. Evidence: `An_invitee_sets_a_password_and_totp_from_the_email_then_signs_in_and_becomes_active`, `Inviting_creates_the_user_adds_them_to_the_organization_and_emails_them`, `Inviting_an_existing_user_adds_membership_without_a_duplicate_user`, `Inviting_an_existing_set_up_account_emails_them_one_notice_and_answers_as_for_a_new_account`, `Inviting_a_disabled_account_is_refused_audited_and_adds_nothing`, `When_the_member_row_cannot_be_saved_the_new_organization_membership_is_removed`, `Invite_change_roles_and_resend_run_through_the_page`, `An_admin_demoted_while_the_page_is_open_is_refused_every_action`, `Three_wrong_totp_codes_lock_the_account`, `A_non_admin_cannot_open_the_staff_page`. Tenant home URLs on the web client are registered by hand for the seeded tenants until W-29; the emails carry the tenant's brand with W-30. "The event is audited" is not met yet: the lockout happens inside Keycloak and reaches the tenant's audit with W-28; invitations, resends and role changes are audited (`identity.member_invited`, `identity.invitation_resent`, `identity.roles_changed`). Browser pass through Caddy on 2026-09-26 (admin plan Task 11): `acme.admin` enrolled TOTP on first login, invited `new.evaluator@acme.waslabid.test` as technical evaluator, the Keycloak email arrived in Mailpit, the link led through setting a password and enrolling TOTP, the evaluator then signed in with password and code, and the member row turned from invited to active.
@@ -124,8 +124,8 @@ Acceptance criteria:
 
 | ID | Story | Pri | Size | Status | Depends on |
 |---|---|---|---|---|---|
-| F-11 | Vendor self-registration (MVP: names, CR, VAT, contact, email verified) | P0 | M | Backlog | W-04, W-06 |
-| F-12 | Vendor documents with expiry (MVP: CR and VAT certificate; expired blocks submission) | P0 | M | Backlog | F-11, ADR-0001 |
+| F-11 | Vendor self-registration (MVP: names, CR, VAT, contact, email verified) | P0 | M | In progress on branch `vendors`, started before gate 1 by exception (docs/05 section 8) | W-04, W-06 |
+| F-12 | Vendor documents with expiry (MVP: CR and VAT certificate; expired blocks submission) | P0 | M | In progress on branch `vendors`, started before gate 1 by exception (docs/05 section 8) | F-11, ADR-0001 |
 | F-12b | Full document set, 30-day expiry reminders | P1 | S | Backlog | F-12, F-38 |
 | F-13 | Local content and Saudization fields | P2 | S | Backlog | F-11 |
 | F-14a | Tenant vendor address book: name, email, category, registered or not; pick invitees from it | P0 | S | Backlog | W-03 |
@@ -222,11 +222,13 @@ Acceptance criteria:
 | F-36 | Branded PO PDF (QuestPDF, document 06 rules) | P0 | M | Backlog | F-33 |
 | F-37 | PO structured export | P1 | S | Backlog | F-36 |
 | F-36b | Electronic signature on the PO by named signatories, with an optional Saudi e-signature provider | P2 | M | Backlog | F-36, F-06, F-41 |
+| F-37b | ERP export profiles with a per-tenant code mapping: Odoo first, then SAP and Oracle Fusion when the first customer on each ERP confirms the layout, Oracle EBS only on request | P2 | M | Backlog | F-37, F-07 |
 
 - **F-36.** Given an awarded tender, when the PO is generated, then it carries the tenant numbering pattern, the winning lines, VAT, payment terms, Arabic and English text with correct shaping, and matches the golden image within tolerance.
 - **F-36b.** Given an approved award, when the named signatories confirm in the portal with MFA, then the PO PDF carries their names, timestamps, and a document hash in the footer and the event is audited; given a Saudi e-signature provider is configured for the tenant, when the PO is generated, then it is routed to that provider and the returned signed PDF replaces the draft. Source: Reference App pricing checklist "E-Signature" (docs/04 section 12).
 - **F-35.** Given an award, when letters are sent, then the winner receives the award letter and every other compliant vendor receives a regret letter, each in the vendor's language.
 - **F-37.** Given a PO, when exported, then the JSON contains every line with quantity, unit price, and VAT, and the CSV opens in Excel with Arabic intact.
+- **F-37b.** Given a tenant with the Odoo profile and every vendor mapped, when a PO is exported in that profile, then Odoo's Import screen accepts the file without edits and the imported order has the same lines, quantities, unit prices and taxes; given a vendor or code without a mapping, when the officer chooses a profile, then export is refused and the missing mappings are listed; given the SAP or Oracle Fusion profile, then it is enabled for a tenant only after the load file was test-loaded in that customer's ERP and the layout recorded.
 
 ## E8 Notifications (F-38 to F-40)
 
@@ -277,14 +279,14 @@ Design: `docs/superpowers/specs/2026-09-26-ai-offer-review-design.md` and ADR-00
 
 | ID | Story | Pri | Size | Status | Depends on |
 |---|---|---|---|---|---|
-| W-13 | Three interviews with procurement or contracts managers, written up | P0 | M | Backlog | |
+| W-13 | Three interviews with procurement or contracts managers, written up (kit: docs/15 and `docs/15-interview-tracker.xlsx`) | P0 | M | Backlog | |
 | W-14 | Reference App demo or former-customer call answering the seven questions in document 04 section 10 | P0 | S | Backlog | |
 | W-15 | First customer signed for the pilot with a named tender and date | P0 | L | Backlog | W-13 |
 | W-16 | Pricing page draft: monthly per-tenant price, first tender free (the flat per-company model in document 11 section 8 is a hypothesis; the model is decided at W-31) | P0 | S | Backlog | W-13 |
 | W-17 | Pilot dry run script with fake vendors, producing the document 05 section 7 table | P0 | M | Backlog | F-01, F-02, F-06, F-07, F-11, F-12, F-14a, F-15, F-16, F-17, F-19, F-21, F-55, F-22, F-23, F-24, F-56, F-27, F-28, F-29, F-30, F-31, F-33, F-36, F-38, F-39, F-41, F-44, F-10, F-19b, F-42, F-64, F-65 |
 | W-18 | Pilot review and version 1.1 scope | P0 | S | Backlog | W-17 |
 | W-31 | Gate 1 decision: two of three interviewed firms would pay SAR 1,500 or more a month and one names a real tender; build past the foundation only on a pass | P0 | S | Backlog | W-13, W-16 |
-| W-32 | Partner agreement drafted by a Saudi lawyer: equity, vesting, cash contributed, and roles (partners do the pre-customer work, no paid hires before paying customers) | P0 | M | Backlog | |
+| W-32 | Partner agreement drafted by a Saudi lawyer: equity, vesting, cash contributed, and roles (partners do the pre-customer work, no paid hires before paying customers) | P0 | M | Backlog; starts after gate 1 (decided 2026-09-27) | W-31 |
 
 - **W-13.** Given three interviews, when written up, then each records current tools, last tender's cycle time, what Reference App or others quoted, and whether the vendor would see their brand; the document 01 "things to verify" list is updated.
 - **W-14.** Given the Reference App demo or ex-customer call, when it is written up, then each of the seven questions in document 04 section 10 has an answer marked confirmed, denied, or still unknown with its source, and document 04 sections 3 and 6 are updated where an answer changed a verdict.
@@ -306,7 +308,7 @@ Added 2026-09-21 from the request for one admin page covering apps, logs, creden
 | F-53 | Logs and traces view with tenant and correlation filters (MVP: 24-hour error summary from Loki with a Grafana link, document 05 row 21; the full view after three to five paying customers, ADR-0006) | P0 | M | Backlog | W-10 |
 | F-54 | Tenants and jobs overview with suspend, TLS re-issue, job re-run (MVP: list and job re-run only, document 05 row 18) | P0 | M | Done 2026-09-26 as narrowed (docs/05 row 18): tenant list with user count, active tenders (a dash until the Tenders module, spec D-12), storage used and failing jobs; re-run a failed job, confirmed and audited. The re-run was proven by tests, not in the browser pass | F-51, W-08; F-03 for the TLS action |
 | F-61 | Consented support access: tenant-granted, read-only, time-boxed session, bannered, offers and envelopes hidden, every view in the tenant audit log (ADR-0006) | P1 | M | Backlog | F-51, F-41, F-07 |
-| F-60 | Alerts and notifications: email and SMS on health, job, deadline, TLS, scanner, AI provider, and capacity incidents, with recovery notice and alert history (MVP: email only, document 05 row 19) | P0 | M | Done 2026-09-26 as narrowed (docs/05 row 19) except the deadline-closure alert, which waits for the Tenders module (F-24): email once per incident plus a recovery notice for failed health checks, a job failing three times, and disk above 80 percent; incidents of the last 30 days on the F-51 page | F-51, F-38, W-08, W-10 |
+| F-60 | Alerts and notifications: email and SMS on health, job, deadline, TLS, scanner, AI provider, and capacity incidents, with recovery notice and alert history (MVP: email only, document 05 row 19) | P0 | M | Done 2026-09-26 as narrowed (docs/05 row 19) except the deadline-closure alert, which waits for the Tenders module (F-24): email once per incident plus a recovery notice for failed health checks, a job failing three times, and disk above 80 percent; incidents of the last 30 days on the F-51 page. F-38 and W-10 are not Done yet; the narrowed alert email did not wait for them (noted 2026-09-27) | F-51, F-38, W-08, W-10 |
 
 - **F-51.** Given the platform host, when a platform admin with MFA opens the board, then every component in the list shows status, version, latency, and last check within the last 60 seconds; given a tenant admin, when they request the same URL, then they receive 404; given PostgreSQL stopped, then its tile turns to failed within one check interval and the failure text names the component.
   MVP narrowing (docs/05 row 17, spec 3.1 and 3.2): the board reads what the worker's one-minute check job recorded; a result older than 120 seconds shows Unknown; no version column. The tenant-host 404 holds both ways. Evidence: `The_board_lists_every_component_with_status_latency_and_last_check`, `A_stale_result_shows_unknown`, `A_platform_path_on_a_tenant_host_is_404`, `A_tenant_path_on_the_platform_host_is_404`, `An_endpoint_asking_only_for_the_role_still_needs_acr_2`, `Every_console_page_names_the_PlatformAdmin_policy`, `PostgreSql_reports_unhealthy_with_a_message_naming_the_component_when_down` (and the same for every other component), `A_failure_message_never_contains_a_secret`. Browser pass through Caddy on 2026-09-26 (admin plan Task 11): `platform.admin` signed in with password and OTP (enrolled on first login), all seven tiles Healthy; after `docker stop erp-clamav` the ClamAV tile showed Unhealthy with "SocketException: Could not reach ClamAV." about 70 seconds later, and Healthy again about 40 seconds after `docker start`.

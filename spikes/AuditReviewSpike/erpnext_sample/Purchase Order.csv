@@ -1,0 +1,1127 @@
+ID,Supplier,Date,Status,Owner,Item Code (Purchase Order Item),Item Group (Purchase Order Item),Quantity (Purchase Order Item),Rate (Purchase Order Item),Amount (Purchase Order Item)
+PUR-ORD-2026-00001,Bina Taqa Est. (fictional),2026-07-02,Completed,e012@company.sa,Event catering per head,Catering,29.0,148.55,4307.95
+PUR-ORD-2026-00002,Rimal Madar Contracting (fictional),2026-07-06,Completed,e018@company.sa,Guard shift,Security services,55.0,491.62,27039.1
+PUR-ORD-2026-00003,Waha Taqa Services (fictional),2026-08-05,Completed,e035@company.sa,Network switch,IT hardware,8.0,4015.97,32127.76
+PUR-ORD-2026-00004,Noor Najd Trading (fictional),2026-09-02,Completed,e005@company.sa,Rebar ton,Building materials,2.0,2821.85,5643.7
+PUR-ORD-2026-00005,Jazeera Qimma Solutions (fictional),2026-07-02,Completed,e007@company.sa,Laptop,IT hardware,7.0,4963.2,34742.4
+PUR-ORD-2026-00006,Rimal Madar Contracting (fictional),2026-08-17,Completed,e031@company.sa,Access card batch,Security services,4.0,1570.01,6280.04
+PUR-ORD-2026-00007,Jazeera Noor Supplies (fictional),2026-09-14,Completed,e017@company.sa,AC maintenance visit,Facility services,13.0,901.68,11721.84
+,,,,,AC maintenance visit,Facility services,13.0,901.68,11721.84
+PUR-ORD-2026-00008,Noor Najd Trading (fictional),2026-07-02,Completed,e035@company.sa,Rebar ton,Building materials,6.0,2845.56,17073.36
+PUR-ORD-2026-00009,Taqa Shams Trading (fictional),2026-09-28,Completed,e031@company.sa,Water carton,Catering,2045.0,14.4,29448.0
+PUR-ORD-2026-00010,Jazeera Noor Supplies (fictional),2026-08-03,Completed,e037@company.sa,AC maintenance visit,Facility services,18.0,855.06,15391.08
+PUR-ORD-2026-00011,Sarh Noor Services (fictional),2026-07-26,Completed,e005@company.sa,Cleaning visit,Facility services,9.0,1329.95,11969.55
+PUR-ORD-2026-00012,Najd Najd Contracting (fictional),2026-08-13,Completed,e002@company.sa,Office chair,Office supplies,39.0,724.42,28252.38
+PUR-ORD-2026-00013,Rimal Madar Contracting (fictional),2026-09-14,Completed,e003@company.sa,CCTV maintenance,Security services,6.0,2268.26,13609.56
+PUR-ORD-2026-00014,Buruj Dana Services (fictional),2026-08-27,Completed,e003@company.sa,Network switch,IT hardware,5.0,4046.91,20234.55
+PUR-ORD-2026-00015,Qimma Waha Est. (fictional),2026-09-20,Completed,e027@company.sa,A4 paper box,Office supplies,100.0,92.33,9233.0
+PUR-ORD-2026-00016,Rimal Madar Contracting (fictional),2026-08-09,Completed,e025@company.sa,Access card batch,Security services,11.0,1832.56,20158.16
+PUR-ORD-2026-00017,Dana Rimal Trading (fictional),2026-09-09,Completed,e026@company.sa,Monitor 27in,IT hardware,34.0,1083.01,36822.34
+PUR-ORD-2026-00018,Rimal Madar Contracting (fictional),2026-08-23,Completed,e011@company.sa,Guard shift,Security services,69.0,464.32,32038.08
+PUR-ORD-2026-00019,Taqa Sahab Services (fictional),2026-07-27,Completed,e027@company.sa,Cement bag 50kg,Building materials,1247.0,18.08,22545.76
+PUR-ORD-2026-00020,Shams Bina Solutions (fictional),2026-09-07,Completed,e017@company.sa,Cement bag 50kg,Building materials,740.0,19.86,14696.4
+PUR-ORD-2026-00021,Wadi Dana Solutions (fictional),2026-09-20,Completed,e005@company.sa,Staff lunch box,Catering,913.0,29.56,26988.28
+PUR-ORD-2026-00022,Buruj Waha Supplies (fictional),2026-08-13,Completed,e028@company.sa,Water carton,Catering,1189.0,13.75,16348.75
+PUR-ORD-2026-00023,Bina Sarh Est. (fictional),2026-09-08,Completed,e037@company.sa,A4 paper box,Office supplies,162.0,102.54,16611.48
+PUR-ORD-2026-00024,Noor Najd Trading (fictional),2026-07-29,Completed,e002@company.sa,Cement bag 50kg,Building materials,1356.0,20.44,27716.64
+PUR-ORD-2026-00025,Rawabi Masar Trading (fictional),2026-07-23,Completed,e033@company.sa,Rebar ton,Building materials,6.0,3061.21,18367.26
+PUR-ORD-2026-00026,Noor Masar Contracting (fictional),2026-09-30,Completed,e014@company.sa,Laptop,IT hardware,1.0,4920.43,4920.43
+PUR-ORD-2026-00027,Jazeera Noor Supplies (fictional),2026-08-13,Completed,e038@company.sa,AC maintenance visit,Facility services,35.0,858.09,30033.15
+PUR-ORD-2026-00028,Najd Najd Contracting (fictional),2026-07-30,Completed,e014@company.sa,A4 paper box,Office supplies,165.0,99.71,16452.15
+PUR-ORD-2026-00029,Dana Rimal Trading (fictional),2026-08-10,Completed,e038@company.sa,Monitor 27in,IT hardware,3.0,1179.67,3539.01
+PUR-ORD-2026-00030,Sahab Tamayuz Services (fictional),2026-09-30,Completed,e018@company.sa,Toner cartridge,Office supplies,71.0,389.45,27650.95
+PUR-ORD-2026-00031,Bina Taqa Est. (fictional),2026-07-01,Completed,e014@company.sa,Staff lunch box,Catering,219.0,31.73,6948.87
+PUR-ORD-2026-00032,Rimal Madar Contracting (fictional),2026-09-09,Completed,e009@company.sa,Guard shift,Security services,67.0,516.64,34614.88
+PUR-ORD-2026-00033,Madar Jazeera Trading (fictional),2026-08-13,Completed,e026@company.sa,Water carton,Catering,2061.0,14.69,30276.09
+PUR-ORD-2026-00034,Jazeera Noor Supplies (fictional),2026-07-21,Completed,e025@company.sa,Cleaning visit,Facility services,16.0,1364.93,21838.88
+PUR-ORD-2026-00035,Rawabi Masar Trading (fictional),2026-08-23,Completed,e031@company.sa,Cement bag 50kg,Building materials,2050.0,18.98,38909.0
+PUR-ORD-2026-00036,Wadi Dana Solutions (fictional),2026-07-12,Completed,e011@company.sa,Water carton,Catering,537.0,13.11,7040.07
+PUR-ORD-2026-00037,Tamayuz Jazeera Trading (fictional),2026-08-31,Completed,e017@company.sa,Laptop,IT hardware,5.0,4523.54,22617.7
+PUR-ORD-2026-00038,Bina Afaq Contracting (fictional),2026-09-08,Completed,e037@company.sa,Pest control visit,Facility services,7.0,693.26,4852.82
+PUR-ORD-2026-00039,Rimal Madar Contracting (fictional),2026-07-05,Completed,e030@company.sa,Guard shift,Security services,38.0,516.18,19614.84
+PUR-ORD-2026-00040,Taqa Rimal Solutions (fictional),2026-08-31,Completed,e017@company.sa,Cement bag 50kg,Building materials,1285.0,17.84,22924.4
+PUR-ORD-2026-00041,Buruj Dana Trading (fictional),2026-07-16,Completed,e025@company.sa,Monitor 27in,IT hardware,20.0,1137.32,22746.4
+PUR-ORD-2026-00042,Najd Najd Contracting (fictional),2026-08-23,Completed,e033@company.sa,A4 paper box,Office supplies,414.0,93.31,38630.34
+PUR-ORD-2026-00043,Waha Madar Est. (fictional),2026-08-12,Completed,e012@company.sa,Rebar ton,Building materials,4.0,2961.88,11847.52
+PUR-ORD-2026-00044,Rimal Sahab Supplies (fictional),2026-08-24,Completed,e032@company.sa,AC maintenance visit,Facility services,34.0,937.87,31887.58
+PUR-ORD-2026-00045,Bina Afaq Contracting (fictional),2026-07-28,Completed,e004@company.sa,Cleaning visit,Facility services,15.0,1268.03,19020.45
+PUR-ORD-2026-00046,Taqa Shams Trading (fictional),2026-07-15,Completed,e016@company.sa,Water carton,Catering,959.0,14.9,14289.1
+PUR-ORD-2026-00047,Rimal Sahab Supplies (fictional),2026-09-27,Completed,e032@company.sa,Pest control visit,Facility services,19.0,671.58,12760.02
+PUR-ORD-2026-00048,Noor Najd Trading (fictional),2026-09-02,Completed,e032@company.sa,Cement bag 50kg,Building materials,1874.0,19.91,37311.34
+PUR-ORD-2026-00049,Taqa Noor Solutions (fictional),2026-08-23,Completed,e002@company.sa,AC maintenance visit,Facility services,7.0,936.37,6554.59
+PUR-ORD-2026-00050,Bina Rawabi Est. (fictional),2026-08-27,Completed,e032@company.sa,Monitor 27in,IT hardware,8.0,1167.83,9342.64
+PUR-ORD-2026-00051,Madar Jazeera Trading (fictional),2026-08-24,Completed,e011@company.sa,Water carton,Catering,648.0,13.96,9046.08
+PUR-ORD-2026-00052,Sarh Qimma Services (fictional),2026-08-30,Completed,e029@company.sa,Water carton,Catering,2156.0,13.35,28782.6
+PUR-ORD-2026-00053,Noor Najd Trading (fictional),2026-08-02,Completed,e025@company.sa,Ready-mix m3,Building materials,7.0,271.01,1897.07
+PUR-ORD-2026-00054,Bina Afaq Contracting (fictional),2026-07-05,Completed,e012@company.sa,Cleaning visit,Facility services,28.0,1330.84,37263.52
+PUR-ORD-2026-00055,Noor Najd Trading (fictional),2026-08-31,Completed,e018@company.sa,Cement bag 50kg,Building materials,937.0,17.78,16659.86
+PUR-ORD-2026-00056,Qimma Waha Est. (fictional),2026-08-30,Completed,e002@company.sa,Office chair,Office supplies,4.0,791.77,3167.08
+PUR-ORD-2026-00057,Buruj Noor Solutions (fictional),2026-09-01,Completed,e033@company.sa,Toner cartridge,Office supplies,58.0,450.81,26146.98
+PUR-ORD-2026-00058,Wadi Dana Solutions (fictional),2026-09-23,Completed,e025@company.sa,Staff lunch box,Catering,266.0,30.91,8222.06
+PUR-ORD-2026-00059,Taqa Sahab Services (fictional),2026-09-09,Completed,e032@company.sa,Rebar ton,Building materials,8.0,2959.73,23677.84
+PUR-ORD-2026-00060,Bina Taqa Est. (fictional),2026-07-30,Completed,e037@company.sa,Event catering per head,Catering,177.0,155.15,27461.55
+PUR-ORD-2026-00061,Dana Rimal Trading (fictional),2026-08-26,Completed,e005@company.sa,Laptop,IT hardware,4.0,4443.06,17772.24
+PUR-ORD-2026-00062,Rimal Madar Contracting (fictional),2026-07-13,Completed,e037@company.sa,CCTV maintenance,Security services,16.0,2159.61,34553.76
+PUR-ORD-2026-00063,Qimma Waha Est. (fictional),2026-08-06,Completed,e026@company.sa,A4 paper box,Office supplies,147.0,90.98,13374.06
+PUR-ORD-2026-00064,Buruj Noor Solutions (fictional),2026-08-17,Completed,e025@company.sa,A4 paper box,Office supplies,263.0,100.59,26455.17
+PUR-ORD-2026-00065,Wadi Dana Solutions (fictional),2026-07-26,Completed,e005@company.sa,Staff lunch box,Catering,167.0,29.51,4928.17
+PUR-ORD-2026-00066,Nakheel Qimma Supplies (fictional),2026-09-02,Completed,e037@company.sa,AC maintenance visit,Facility services,39.0,839.74,32749.86
+PUR-ORD-2026-00067,Rimal Madar Contracting (fictional),2026-07-26,Completed,e003@company.sa,Guard shift,Security services,24.0,444.4,10665.6
+PUR-ORD-2026-00068,Rimal Madar Contracting (fictional),2026-08-20,Completed,e038@company.sa,CCTV maintenance,Security services,3.0,2330.95,6992.85
+PUR-ORD-2026-00069,Dana Madar Est. (fictional),2026-08-24,Completed,e004@company.sa,Staff lunch box,Catering,508.0,33.0,16764.0
+PUR-ORD-2026-00070,Dana Madar Est. (fictional),2026-08-12,Completed,e001@company.sa,Staff lunch box,Catering,705.0,33.05,23300.25
+PUR-ORD-2026-00071,Shams Noor Trading (fictional),2026-09-28,Completed,e005@company.sa,Cement bag 50kg,Building materials,1886.0,17.87,33702.82
+PUR-ORD-2026-00072,Rimal Madar Contracting (fictional),2026-07-23,Completed,e002@company.sa,Access card batch,Security services,21.0,1668.14,35030.94
+PUR-ORD-2026-00073,Buruj Dana Trading (fictional),2026-07-27,Completed,e029@company.sa,Network switch,IT hardware,1.0,3673.22,3673.22
+PUR-ORD-2026-00074,Jazeera Qimma Solutions (fictional),2026-08-06,Completed,e012@company.sa,Network switch,IT hardware,6.0,3771.58,22629.48
+PUR-ORD-2026-00075,Noor Masar Contracting (fictional),2026-07-20,Completed,e004@company.sa,Monitor 27in,IT hardware,25.0,1231.0,30775.0
+PUR-ORD-2026-00076,Rimal Madar Contracting (fictional),2026-08-20,Completed,e004@company.sa,Access card batch,Security services,14.0,1769.93,24779.02
+PUR-ORD-2026-00077,Qimma Waha Est. (fictional),2026-07-15,Completed,e018@company.sa,Office chair,Office supplies,5.0,730.31,3651.55
+PUR-ORD-2026-00078,Nakheel Sarh Solutions (fictional),2026-07-14,Completed,e018@company.sa,Laptop,IT hardware,3.0,4310.7,12932.1
+PUR-ORD-2026-00079,Rimal Madar Contracting (fictional),2026-09-09,Completed,e011@company.sa,Guard shift,Security services,73.0,510.05,37233.65
+PUR-ORD-2026-00080,Sarh Qimma Services (fictional),2026-08-05,Completed,e001@company.sa,Event catering per head,Catering,148.0,144.73,21420.04
+PUR-ORD-2026-00081,Taqa Sahab Services (fictional),2026-07-14,Completed,e029@company.sa,Ready-mix m3,Building materials,97.0,246.52,23912.44
+PUR-ORD-2026-00082,Nakheel Sarh Solutions (fictional),2026-07-05,Completed,e012@company.sa,Network switch,IT hardware,6.0,4086.49,24518.94
+PUR-ORD-2026-00083,Sarh Rimal Trading (fictional),2026-07-05,Completed,e003@company.sa,Toner cartridge,Office supplies,24.0,431.81,10363.44
+PUR-ORD-2026-00084,Buruj Noor Solutions (fictional),2026-08-05,Completed,e005@company.sa,A4 paper box,Office supplies,177.0,97.16,17197.32
+PUR-ORD-2026-00085,Sahab Sarh Est. (fictional),2026-08-12,Completed,e010@company.sa,Toner cartridge,Office supplies,56.0,394.92,22115.52
+PUR-ORD-2026-00086,Rimal Madar Contracting (fictional),2026-07-13,Completed,e001@company.sa,Access card batch,Security services,3.0,1580.71,4742.13
+PUR-ORD-2026-00087,Rimal Madar Contracting (fictional),2026-09-21,Completed,e004@company.sa,Access card batch,Security services,17.0,1778.0,30226.0
+PUR-ORD-2026-00088,Najd Najd Contracting (fictional),2026-08-10,Completed,e029@company.sa,Toner cartridge,Office supplies,46.0,394.72,18157.12
+PUR-ORD-2026-00089,Rimal Qimma Services (fictional),2026-07-12,Completed,e009@company.sa,Water carton,Catering,349.0,13.43,4687.07
+PUR-ORD-2026-00090,Dana Rimal Trading (fictional),2026-08-24,Completed,e030@company.sa,Laptop,IT hardware,1.0,4696.55,4696.55
+PUR-ORD-2026-00091,Rimal Madar Contracting (fictional),2026-09-16,Completed,e035@company.sa,Guard shift,Security services,69.0,458.02,31603.38
+PUR-ORD-2026-00092,Wadi Dana Solutions (fictional),2026-07-13,Completed,e025@company.sa,Event catering per head,Catering,105.0,146.71,15404.55
+PUR-ORD-2026-00093,Qimma Waha Est. (fictional),2026-09-28,Completed,e014@company.sa,Office chair,Office supplies,42.0,722.63,30350.46
+PUR-ORD-2026-00094,Buruj Noor Solutions (fictional),2026-08-17,Completed,e011@company.sa,Office chair,Office supplies,47.0,748.51,35179.97
+PUR-ORD-2026-00095,Nakheel Qimma Supplies (fictional),2026-08-04,Completed,e011@company.sa,AC maintenance visit,Facility services,42.0,892.1,37468.2
+PUR-ORD-2026-00096,Jazeera Noor Supplies (fictional),2026-09-28,Completed,e035@company.sa,Cleaning visit,Facility services,12.0,1315.41,15784.92
+PUR-ORD-2026-00097,Sahab Sarh Est. (fictional),2026-09-21,Completed,e001@company.sa,A4 paper box,Office supplies,372.0,89.72,33375.84
+PUR-ORD-2026-00098,Buruj Dana Trading (fictional),2026-07-20,Completed,e032@company.sa,Monitor 27in,IT hardware,11.0,1211.12,13322.32
+PUR-ORD-2026-00099,Nakheel Najd Trading (fictional),2026-09-21,Completed,e037@company.sa,Toner cartridge,Office supplies,76.0,393.54,29909.04
+PUR-ORD-2026-00100,Rimal Madar Contracting (fictional),2026-08-26,Completed,e002@company.sa,Guard shift,Security services,76.0,472.93,35942.68
+PUR-ORD-2026-00101,Sarh Noor Services (fictional),2026-08-30,Completed,e018@company.sa,AC maintenance visit,Facility services,7.0,872.83,6109.81
+PUR-ORD-2026-00102,Rimal Madar Contracting (fictional),2026-08-20,Completed,e002@company.sa,CCTV maintenance,Security services,15.0,2142.4,32136.0
+PUR-ORD-2026-00103,Buruj Noor Solutions (fictional),2026-09-28,Completed,e030@company.sa,A4 paper box,Office supplies,372.0,90.62,33710.64
+PUR-ORD-2026-00104,Dana Madar Est. (fictional),2026-08-03,Completed,e007@company.sa,Event catering per head,Catering,22.0,135.18,2973.96
+PUR-ORD-2026-00105,Tamayuz Shams Solutions (fictional),2026-09-06,Completed,e014@company.sa,Rebar ton,Building materials,11.0,2916.21,32078.31
+PUR-ORD-2026-00106,Bina Rawabi Est. (fictional),2026-07-28,Completed,e004@company.sa,Laptop,IT hardware,5.0,4877.33,24386.65
+PUR-ORD-2026-00107,Rimal Madar Contracting (fictional),2026-07-19,Completed,e003@company.sa,Guard shift,Security services,71.0,476.53,33833.63
+PUR-ORD-2026-00108,Sahab Sarh Est. (fictional),2026-09-28,Completed,e038@company.sa,A4 paper box,Office supplies,382.0,91.67,35017.94
+PUR-ORD-2026-00109,Bina Taqa Est. (fictional),2026-08-16,Completed,e014@company.sa,Event catering per head,Catering,267.0,136.92,36557.64
+PUR-ORD-2026-00110,Dana Madar Est. (fictional),2026-09-10,Completed,e017@company.sa,Staff lunch box,Catering,810.0,30.12,24397.2
+PUR-ORD-2026-00111,Taqa Rimal Solutions (fictional),2026-09-14,Completed,e033@company.sa,Ready-mix m3,Building materials,49.0,259.98,12739.02
+PUR-ORD-2026-00112,Buruj Dana Trading (fictional),2026-08-19,Completed,e038@company.sa,Network switch,IT hardware,5.0,4204.3,21021.5
+PUR-ORD-2026-00113,Nakheel Najd Trading (fictional),2026-09-21,Completed,e016@company.sa,A4 paper box,Office supplies,63.0,93.85,5912.55
+PUR-ORD-2026-00114,Rimal Madar Contracting (fictional),2026-09-09,Completed,e035@company.sa,Access card batch,Security services,16.0,1707.64,27322.24
+PUR-ORD-2026-00115,Najd Madar Supplies (fictional),2026-07-02,Completed,e014@company.sa,Cleaning visit,Facility services,4.0,1409.65,5638.6
+PUR-ORD-2026-00116,Rawabi Masar Trading (fictional),2026-09-15,Completed,e010@company.sa,Cement bag 50kg,Building materials,1905.0,18.27,34804.35
+PUR-ORD-2026-00117,Shams Madar Contracting (fictional),2026-08-06,Completed,e012@company.sa,Toner cartridge,Office supplies,48.0,389.68,18704.64
+PUR-ORD-2026-00118,Madar Jazeera Trading (fictional),2026-07-29,Completed,e004@company.sa,Event catering per head,Catering,130.0,139.66,18155.8
+PUR-ORD-2026-00119,Noor Masar Contracting (fictional),2026-07-13,Completed,e026@company.sa,Laptop,IT hardware,2.0,4344.37,8688.74
+PUR-ORD-2026-00120,Sahab Najd Solutions (fictional),2026-07-22,Completed,e032@company.sa,Pest control visit,Facility services,2.0,614.16,1228.32
+PUR-ORD-2026-00121,Dana Madar Est. (fictional),2026-08-10,Completed,e004@company.sa,Staff lunch box,Catering,193.0,29.83,5757.19
+PUR-ORD-2026-00122,Rimal Qimma Services (fictional),2026-08-03,Completed,e002@company.sa,Water carton,Catering,1140.0,13.46,15344.4
+PUR-ORD-2026-00123,Shams Noor Trading (fictional),2026-08-24,Completed,e027@company.sa,Ready-mix m3,Building materials,18.0,254.79,4586.22
+PUR-ORD-2026-00124,Rimal Sahab Supplies (fictional),2026-09-15,Completed,e026@company.sa,AC maintenance visit,Facility services,28.0,902.06,25257.68
+PUR-ORD-2026-00125,Dana Rimal Trading (fictional),2026-08-12,Completed,e028@company.sa,Monitor 27in,IT hardware,30.0,1117.99,33539.7
+PUR-ORD-2026-00126,Nakheel Sarh Solutions (fictional),2026-08-11,Completed,e009@company.sa,Network switch,IT hardware,1.0,3653.95,3653.95
+PUR-ORD-2026-00127,Dana Rimal Trading (fictional),2026-08-19,Completed,e001@company.sa,Monitor 27in,IT hardware,22.0,1132.74,24920.28
+PUR-ORD-2026-00128,Shams Noor Trading (fictional),2026-08-04,Completed,e037@company.sa,Ready-mix m3,Building materials,105.0,247.41,25978.05
+PUR-ORD-2026-00129,Sarh Noor Services (fictional),2026-09-02,Completed,e002@company.sa,Pest control visit,Facility services,4.0,668.19,2672.76
+PUR-ORD-2026-00130,Buruj Dana Trading (fictional),2026-09-13,Completed,e005@company.sa,Network switch,IT hardware,2.0,4136.85,8273.7
+PUR-ORD-2026-00131,Jazeera Qimma Solutions (fictional),2026-08-20,Completed,e031@company.sa,Network switch,IT hardware,7.0,4104.28,28729.96
+PUR-ORD-2026-00132,Rimal Madar Contracting (fictional),2026-07-05,Completed,e016@company.sa,CCTV maintenance,Security services,13.0,2117.08,27522.04
+PUR-ORD-2026-00133,Sarh Qimma Services (fictional),2026-09-02,Completed,e010@company.sa,Water carton,Catering,2653.0,15.06,39954.18
+PUR-ORD-2026-00134,Qimma Waha Est. (fictional),2026-07-06,Completed,e037@company.sa,A4 paper box,Office supplies,218.0,101.06,22031.08
+PUR-ORD-2026-00135,Rimal Madar Contracting (fictional),2026-08-23,Completed,e032@company.sa,Access card batch,Security services,3.0,1695.93,5087.79
+PUR-ORD-2026-00136,Wadi Dana Solutions (fictional),2026-07-27,Completed,e011@company.sa,Water carton,Catering,1786.0,13.65,24378.9
+PUR-ORD-2026-00137,Rawabi Masar Trading (fictional),2026-09-29,Completed,e010@company.sa,Rebar ton,Building materials,6.0,2652.01,15912.06
+PUR-ORD-2026-00138,Jazeera Qimma Solutions (fictional),2026-08-31,Completed,e029@company.sa,Laptop,IT hardware,4.0,4815.77,19263.08
+PUR-ORD-2026-00139,Nakheel Qimma Supplies (fictional),2026-08-05,Completed,e011@company.sa,AC maintenance visit,Facility services,36.0,928.07,33410.52
+PUR-ORD-2026-00140,Tamayuz Shams Solutions (fictional),2026-07-29,Completed,e017@company.sa,Ready-mix m3,Building materials,14.0,264.56,3703.84
+PUR-ORD-2026-00141,Waha Madar Est. (fictional),2026-08-24,Completed,e001@company.sa,Rebar ton,Building materials,9.0,2740.18,24661.62
+PUR-ORD-2026-00142,Bina Taqa Est. (fictional),2026-08-04,Completed,e014@company.sa,Staff lunch box,Catering,1159.0,30.45,35291.55
+PUR-ORD-2026-00143,Nakheel Sarh Solutions (fictional),2026-07-23,Completed,e001@company.sa,Monitor 27in,IT hardware,9.0,1085.35,9768.15
+PUR-ORD-2026-00144,Buruj Dana Services (fictional),2026-08-05,Completed,e014@company.sa,Laptop,IT hardware,6.0,4738.48,28430.88
+PUR-ORD-2026-00145,Sarh Noor Services (fictional),2026-07-21,Completed,e027@company.sa,Cleaning visit,Facility services,22.0,1286.61,28305.42
+PUR-ORD-2026-00146,Rimal Madar Contracting (fictional),2026-07-22,Completed,e027@company.sa,Guard shift,Security services,43.0,455.02,19565.86
+PUR-ORD-2026-00147,Masar Wadi Services (fictional),2026-07-06,Completed,e037@company.sa,Pest control visit,Facility services,15.0,631.63,9474.45
+PUR-ORD-2026-00148,Buruj Waha Supplies (fictional),2026-09-08,Completed,e012@company.sa,Event catering per head,Catering,22.0,143.64,3160.08
+PUR-ORD-2026-00149,Najd Sahab Contracting (fictional),2026-08-09,Completed,e004@company.sa,Water carton,Catering,1503.0,14.64,22003.92
+PUR-ORD-2026-00150,Bina Rawabi Est. (fictional),2026-08-19,Completed,e011@company.sa,Laptop,IT hardware,3.0,4559.12,13677.36
+PUR-ORD-2026-00151,Shams Noor Trading (fictional),2026-07-05,Completed,e038@company.sa,Cement bag 50kg,Building materials,1199.0,18.94,22709.06
+PUR-ORD-2026-00152,Tamayuz Shams Solutions (fictional),2026-09-29,Completed,e026@company.sa,Rebar ton,Building materials,7.0,2685.59,18799.13
+PUR-ORD-2026-00153,Rimal Madar Contracting (fictional),2026-07-16,Completed,e037@company.sa,CCTV maintenance,Security services,10.0,2337.92,23379.2
+PUR-ORD-2026-00154,Noor Masar Contracting (fictional),2026-08-03,Completed,e016@company.sa,Laptop,IT hardware,1.0,4306.15,4306.15
+PUR-ORD-2026-00155,Bina Sarh Est. (fictional),2026-07-29,Completed,e001@company.sa,Toner cartridge,Office supplies,92.0,406.04,37355.68
+PUR-ORD-2026-00156,Wadi Dana Solutions (fictional),2026-08-12,Completed,e031@company.sa,Water carton,Catering,805.0,13.54,10899.7
+PUR-ORD-2026-00157,Taqa Rimal Solutions (fictional),2026-07-13,Completed,e009@company.sa,Cement bag 50kg,Building materials,79.0,20.06,1584.74
+PUR-ORD-2026-00158,Tamayuz Jazeera Trading (fictional),2026-08-30,Completed,e027@company.sa,Network switch,IT hardware,1.0,3803.13,3803.13
+PUR-ORD-2026-00159,Rimal Madar Contracting (fictional),2026-09-20,Completed,e017@company.sa,Access card batch,Security services,19.0,1674.0,31806.0
+PUR-ORD-2026-00160,Tamayuz Bina Trading (fictional),2026-08-09,Completed,e007@company.sa,Ready-mix m3,Building materials,16.0,281.98,4511.68
+PUR-ORD-2026-00161,Taqa Rimal Solutions (fictional),2026-08-05,Completed,e026@company.sa,Rebar ton,Building materials,2.0,2768.16,5536.32
+PUR-ORD-2026-00162,Noor Masar Contracting (fictional),2026-09-10,Completed,e004@company.sa,Monitor 27in,IT hardware,10.0,1231.8,12318.0
+PUR-ORD-2026-00163,Taqa Shams Trading (fictional),2026-08-23,Completed,e010@company.sa,Water carton,Catering,1590.0,13.05,20749.5
+PUR-ORD-2026-00164,Dana Rimal Trading (fictional),2026-07-29,Completed,e035@company.sa,Laptop,IT hardware,1.0,4381.23,4381.23
+PUR-ORD-2026-00165,Rimal Madar Contracting (fictional),2026-09-01,Completed,e031@company.sa,CCTV maintenance,Security services,15.0,2109.37,31640.55
+PUR-ORD-2026-00166,Bina Taqa Est. (fictional),2026-09-01,Completed,e001@company.sa,Staff lunch box,Catering,1144.0,31.43,35955.92
+PUR-ORD-2026-00167,Rimal Madar Contracting (fictional),2026-09-06,Completed,e018@company.sa,Guard shift,Security services,66.0,498.9,32927.4
+PUR-ORD-2026-00168,Rimal Madar Contracting (fictional),2026-07-26,Completed,e014@company.sa,Guard shift,Security services,64.0,498.76,31920.64
+PUR-ORD-2026-00169,Tamayuz Bina Trading (fictional),2026-08-10,Completed,e038@company.sa,Cement bag 50kg,Building materials,1422.0,20.08,28553.76
+PUR-ORD-2026-00170,Buruj Waha Supplies (fictional),2026-07-20,Completed,e005@company.sa,Water carton,Catering,2772.0,13.55,37560.6
+PUR-ORD-2026-00171,Rimal Madar Contracting (fictional),2026-07-12,Completed,e001@company.sa,Access card batch,Security services,12.0,1825.65,21907.8
+PUR-ORD-2026-00172,Rimal Madar Contracting (fictional),2026-09-08,Completed,e030@company.sa,Access card batch,Security services,20.0,1825.84,36516.8
+PUR-ORD-2026-00173,Tamayuz Shams Solutions (fictional),2026-07-23,Completed,e011@company.sa,Cement bag 50kg,Building materials,1100.0,18.49,20339.0
+PUR-ORD-2026-00174,Wadi Dana Solutions (fictional),2026-08-18,Completed,e031@company.sa,Event catering per head,Catering,135.0,150.84,20363.4
+PUR-ORD-2026-00175,Waha Madar Est. (fictional),2026-09-10,Completed,e003@company.sa,Ready-mix m3,Building materials,81.0,278.74,22577.94
+PUR-ORD-2026-00176,Taqa Shams Trading (fictional),2026-09-29,Completed,e032@company.sa,Event catering per head,Catering,133.0,136.11,18102.63
+PUR-ORD-2026-00177,Najd Sahab Contracting (fictional),2026-08-17,Completed,e031@company.sa,Staff lunch box,Catering,1237.0,30.42,37629.54
+PUR-ORD-2026-00178,Waha Taqa Services (fictional),2026-08-24,Completed,e002@company.sa,Monitor 27in,IT hardware,28.0,1105.03,30940.84
+PUR-ORD-2026-00179,Sahab Najd Solutions (fictional),2026-07-28,Completed,e011@company.sa,AC maintenance visit,Facility services,38.0,844.65,32096.7
+PUR-ORD-2026-00180,Taqa Sahab Services (fictional),2026-08-09,Completed,e007@company.sa,Cement bag 50kg,Building materials,1198.0,20.27,24283.46
+PUR-ORD-2026-00181,Bina Afaq Contracting (fictional),2026-09-22,Completed,e001@company.sa,Cleaning visit,Facility services,5.0,1335.54,6677.7
+PUR-ORD-2026-00182,Tamayuz Jazeera Trading (fictional),2026-08-11,Completed,e012@company.sa,Network switch,IT hardware,5.0,3972.94,19864.7
+PUR-ORD-2026-00183,Rimal Madar Contracting (fictional),2026-09-03,Completed,e016@company.sa,Guard shift,Security services,18.0,505.39,9097.02
+PUR-ORD-2026-00184,Rimal Madar Contracting (fictional),2026-07-16,Completed,e038@company.sa,Guard shift,Security services,55.0,492.34,27078.7
+PUR-ORD-2026-00185,Noor Najd Trading (fictional),2026-07-02,Completed,e032@company.sa,Ready-mix m3,Building materials,12.0,281.13,3373.56
+PUR-ORD-2026-00186,Nakheel Sarh Solutions (fictional),2026-07-02,Completed,e010@company.sa,Laptop,IT hardware,4.0,4539.81,18159.24
+PUR-ORD-2026-00187,Bina Afaq Contracting (fictional),2026-08-06,Completed,e003@company.sa,Cleaning visit,Facility services,17.0,1244.7,21159.9
+PUR-ORD-2026-00188,Tamayuz Jazeera Trading (fictional),2026-09-01,Completed,e030@company.sa,Monitor 27in,IT hardware,34.0,1169.6,39766.4
+PUR-ORD-2026-00189,Rimal Madar Contracting (fictional),2026-07-29,Completed,e009@company.sa,CCTV maintenance,Security services,14.0,2179.25,30509.5
+PUR-ORD-2026-00190,Najd Madar Supplies (fictional),2026-09-20,Completed,e005@company.sa,Cleaning visit,Facility services,10.0,1274.07,12740.7
+PUR-ORD-2026-00191,Rimal Madar Contracting (fictional),2026-08-09,Completed,e004@company.sa,CCTV maintenance,Security services,11.0,2358.88,25947.68
+PUR-ORD-2026-00192,Buruj Waha Supplies (fictional),2026-08-17,Completed,e010@company.sa,Staff lunch box,Catering,394.0,31.32,12340.08
+PUR-ORD-2026-00193,Najd Najd Contracting (fictional),2026-08-06,Completed,e002@company.sa,Toner cartridge,Office supplies,58.0,388.62,22539.96
+PUR-ORD-2026-00194,Nakheel Qimma Supplies (fictional),2026-09-20,Completed,e014@company.sa,AC maintenance visit,Facility services,35.0,838.09,29333.15
+PUR-ORD-2026-00195,Rimal Sahab Supplies (fictional),2026-07-05,Completed,e003@company.sa,AC maintenance visit,Facility services,31.0,876.15,27160.65
+PUR-ORD-2026-00196,Tamayuz Jazeera Trading (fictional),2026-09-17,Completed,e038@company.sa,Network switch,IT hardware,8.0,4144.07,33152.56
+PUR-ORD-2026-00197,Nakheel Najd Trading (fictional),2026-08-25,Completed,e012@company.sa,Office chair,Office supplies,30.0,784.39,23531.7
+PUR-ORD-2026-00198,Dana Madar Est. (fictional),2026-09-13,Completed,e016@company.sa,Event catering per head,Catering,176.0,155.98,27452.48
+PUR-ORD-2026-00199,Rimal Madar Contracting (fictional),2026-08-03,Completed,e014@company.sa,CCTV maintenance,Security services,4.0,2140.95,8563.8
+PUR-ORD-2026-00200,Nakheel Najd Trading (fictional),2026-08-02,Completed,e007@company.sa,Toner cartridge,Office supplies,58.0,448.22,25996.76
+PUR-ORD-2026-00201,Rimal Qimma Services (fictional),2026-08-30,Completed,e007@company.sa,Water carton,Catering,2019.0,14.41,29093.79
+PUR-ORD-2026-00202,Rimal Madar Contracting (fictional),2026-07-15,Completed,e032@company.sa,Access card batch,Security services,20.0,1678.2,33564.0
+PUR-ORD-2026-00203,Taqa Sahab Services (fictional),2026-07-29,Completed,e027@company.sa,Rebar ton,Building materials,2.0,2979.58,5959.16
+PUR-ORD-2026-00204,Taqa Sahab Services (fictional),2026-08-12,Completed,e032@company.sa,Cement bag 50kg,Building materials,1518.0,17.86,27111.48
+PUR-ORD-2026-00205,Nakheel Qimma Supplies (fictional),2026-08-18,Completed,e014@company.sa,Pest control visit,Facility services,36.0,691.9,24908.4
+PUR-ORD-2026-00206,Jazeera Qimma Solutions (fictional),2026-09-30,Completed,e025@company.sa,Laptop,IT hardware,3.0,4733.45,14200.35
+PUR-ORD-2026-00207,Sarh Rimal Trading (fictional),2026-07-08,Completed,e005@company.sa,A4 paper box,Office supplies,356.0,101.25,36045.0
+PUR-ORD-2026-00208,Najd Madar Supplies (fictional),2026-09-28,Completed,e017@company.sa,AC maintenance visit,Facility services,13.0,905.28,11768.64
+PUR-ORD-2026-00209,Madar Jazeera Trading (fictional),2026-09-10,Completed,e003@company.sa,Event catering per head,Catering,206.0,142.11,29274.66
+PUR-ORD-2026-00210,Rimal Sahab Supplies (fictional),2026-08-13,Completed,e010@company.sa,Pest control visit,Facility services,7.0,659.25,4614.75
+PUR-ORD-2026-00211,Sahab Sarh Est. (fictional),2026-09-30,Completed,e017@company.sa,Toner cartridge,Office supplies,37.0,422.27,15623.99
+PUR-ORD-2026-00212,Waha Taqa Services (fictional),2026-08-27,Completed,e037@company.sa,Laptop,IT hardware,2.0,4848.57,9697.14
+PUR-ORD-2026-00213,Waha Madar Est. (fictional),2026-08-27,Completed,e012@company.sa,Rebar ton,Building materials,12.0,2643.65,31723.8
+PUR-ORD-2026-00214,Najd Madar Supplies (fictional),2026-08-10,Completed,e025@company.sa,Cleaning visit,Facility services,26.0,1353.29,35185.54
+PUR-ORD-2026-00215,Tamayuz Jazeera Trading (fictional),2026-08-04,Completed,e001@company.sa,Laptop,IT hardware,8.0,4670.04,37360.32
+PUR-ORD-2026-00216,Jazeera Noor Supplies (fictional),2026-09-20,Completed,e017@company.sa,AC maintenance visit,Facility services,22.0,866.65,19066.3
+PUR-ORD-2026-00217,Rimal Madar Contracting (fictional),2026-07-07,Completed,e009@company.sa,CCTV maintenance,Security services,1.0,2063.35,2063.35
+PUR-ORD-2026-00218,Shams Noor Trading (fictional),2026-07-13,Completed,e026@company.sa,Ready-mix m3,Building materials,22.0,269.11,5920.42
+PUR-ORD-2026-00219,Qimma Waha Est. (fictional),2026-07-26,Completed,e035@company.sa,Toner cartridge,Office supplies,85.0,440.98,37483.3
+PUR-ORD-2026-00220,Buruj Noor Solutions (fictional),2026-09-09,Completed,e005@company.sa,Office chair,Office supplies,25.0,786.71,19667.75
+PUR-ORD-2026-00221,Nakheel Qimma Supplies (fictional),2026-09-15,Completed,e032@company.sa,AC maintenance visit,Facility services,10.0,928.84,9288.4
+PUR-ORD-2026-00222,Masar Wadi Services (fictional),2026-09-20,Completed,e037@company.sa,AC maintenance visit,Facility services,31.0,862.14,26726.34
+PUR-ORD-2026-00223,Tamayuz Jazeera Trading (fictional),2026-08-24,Completed,e035@company.sa,Laptop,IT hardware,8.0,4661.42,37291.36
+PUR-ORD-2026-00224,Sahab Tamayuz Services (fictional),2026-08-19,Completed,e027@company.sa,Toner cartridge,Office supplies,31.0,431.43,13374.33
+PUR-ORD-2026-00225,Bina Sarh Est. (fictional),2026-09-23,Completed,e005@company.sa,Office chair,Office supplies,36.0,820.3,29530.8
+PUR-ORD-2026-00226,Buruj Dana Trading (fictional),2026-09-07,Completed,e001@company.sa,Network switch,IT hardware,5.0,3604.94,18024.7
+PUR-ORD-2026-00227,Tamayuz Shams Solutions (fictional),2026-09-28,Completed,e035@company.sa,Cement bag 50kg,Building materials,1996.0,20.39,40698.44
+PUR-ORD-2026-00228,Nakheel Najd Trading (fictional),2026-07-08,Completed,e026@company.sa,Toner cartridge,Office supplies,53.0,425.73,22563.69
+PUR-ORD-2026-00229,Taqa Noor Solutions (fictional),2026-09-27,Completed,e016@company.sa,AC maintenance visit,Facility services,30.0,888.7,26661.0
+PUR-ORD-2026-00230,Dana Rimal Trading (fictional),2026-08-30,Completed,e026@company.sa,Network switch,IT hardware,8.0,3632.59,29060.72
+PUR-ORD-2026-00231,Tamayuz Shams Solutions (fictional),2026-09-30,Completed,e017@company.sa,Rebar ton,Building materials,2.0,2925.1,5850.2
+PUR-ORD-2026-00232,Dana Madar Est. (fictional),2026-07-02,Completed,e026@company.sa,Event catering per head,Catering,266.0,155.94,41480.04
+PUR-ORD-2026-00233,Nakheel Sarh Solutions (fictional),2026-08-13,Completed,e010@company.sa,Laptop,IT hardware,1.0,4274.37,4274.37
+PUR-ORD-2026-00234,Bina Sarh Est. (fictional),2026-08-26,Completed,e010@company.sa,A4 paper box,Office supplies,84.0,97.11,8157.24
+PUR-ORD-2026-00235,Noor Najd Trading (fictional),2026-07-02,Completed,e027@company.sa,Rebar ton,Building materials,1.0,3003.66,3003.66
+PUR-ORD-2026-00236,Noor Masar Contracting (fictional),2026-08-31,Completed,e002@company.sa,Laptop,IT hardware,3.0,4691.62,14074.86
+PUR-ORD-2026-00237,Najd Madar Supplies (fictional),2026-07-22,Completed,e033@company.sa,Pest control visit,Facility services,37.0,698.64,25849.68
+PUR-ORD-2026-00238,Madar Jazeera Trading (fictional),2026-09-09,Completed,e035@company.sa,Staff lunch box,Catering,319.0,33.03,10536.57
+PUR-ORD-2026-00239,Noor Masar Contracting (fictional),2026-07-09,Completed,e017@company.sa,Monitor 27in,IT hardware,2.0,1069.0,2138.0
+PUR-ORD-2026-00240,Sarh Qimma Services (fictional),2026-08-11,Completed,e018@company.sa,Staff lunch box,Catering,776.0,29.69,23039.44
+PUR-ORD-2026-00241,Waha Madar Est. (fictional),2026-09-29,Completed,e033@company.sa,Ready-mix m3,Building materials,111.0,256.64,28487.04
+PUR-ORD-2026-00242,Taqa Shams Trading (fictional),2026-07-05,Completed,e007@company.sa,Staff lunch box,Catering,1200.0,31.87,38244.0
+PUR-ORD-2026-00243,Sahab Sarh Est. (fictional),2026-07-23,Completed,e018@company.sa,Toner cartridge,Office supplies,62.0,412.74,25589.88
+PUR-ORD-2026-00244,Sahab Najd Solutions (fictional),2026-07-30,Completed,e005@company.sa,Cleaning visit,Facility services,19.0,1296.31,24629.89
+PUR-ORD-2026-00245,Sahab Tamayuz Services (fictional),2026-07-30,Completed,e035@company.sa,Toner cartridge,Office supplies,83.0,418.12,34703.96
+PUR-ORD-2026-00246,Taqa Rimal Solutions (fictional),2026-08-13,Completed,e002@company.sa,Ready-mix m3,Building materials,36.0,259.53,9343.08
+PUR-ORD-2026-00247,Taqa Shams Trading (fictional),2026-09-13,Completed,e014@company.sa,Staff lunch box,Catering,917.0,33.18,30426.06
+PUR-ORD-2026-00248,Sarh Noor Services (fictional),2026-07-23,Completed,e005@company.sa,AC maintenance visit,Facility services,3.0,930.96,2792.88
+PUR-ORD-2026-00249,Buruj Noor Solutions (fictional),2026-09-23,Completed,e035@company.sa,A4 paper box,Office supplies,303.0,93.6,28360.8
+PUR-ORD-2026-00250,Qimma Waha Est. (fictional),2026-08-13,Completed,e011@company.sa,Toner cartridge,Office supplies,35.0,433.45,15170.75
+PUR-ORD-2026-00251,Rimal Madar Contracting (fictional),2026-07-21,Completed,e027@company.sa,Access card batch,Security services,19.0,1617.0,30723.0
+PUR-ORD-2026-00252,Rimal Sahab Supplies (fictional),2026-09-15,Completed,e033@company.sa,Pest control visit,Facility services,16.0,649.97,10399.52
+PUR-ORD-2026-00253,Nakheel Qimma Supplies (fictional),2026-08-25,Completed,e016@company.sa,Cleaning visit,Facility services,27.0,1421.62,38383.74
+PUR-ORD-2026-00254,Jazeera Noor Supplies (fictional),2026-09-10,Completed,e030@company.sa,AC maintenance visit,Facility services,15.0,915.61,13734.15
+PUR-ORD-2026-00255,Bina Rawabi Est. (fictional),2026-09-27,Completed,e026@company.sa,Network switch,IT hardware,8.0,4080.18,32641.44
+PUR-ORD-2026-00256,Qimma Waha Est. (fictional),2026-07-16,Completed,e004@company.sa,A4 paper box,Office supplies,333.0,88.28,29397.24
+PUR-ORD-2026-00257,Dana Madar Est. (fictional),2026-08-20,Completed,e033@company.sa,Event catering per head,Catering,252.0,136.3,34347.6
+PUR-ORD-2026-00258,Bina Rawabi Est. (fictional),2026-08-06,Completed,e026@company.sa,Laptop,IT hardware,4.0,4706.72,18826.88
+PUR-ORD-2026-00259,Wadi Dana Solutions (fictional),2026-07-21,Completed,e030@company.sa,Staff lunch box,Catering,353.0,32.74,11557.22
+PUR-ORD-2026-00260,Shams Bina Solutions (fictional),2026-08-17,Completed,e002@company.sa,Cement bag 50kg,Building materials,1854.0,20.46,37932.84
+PUR-ORD-2026-00261,Shams Bina Solutions (fictional),2026-08-16,Completed,e012@company.sa,Ready-mix m3,Building materials,123.0,268.44,33018.12
+PUR-ORD-2026-00262,Bina Taqa Est. (fictional),2026-09-13,Completed,e003@company.sa,Staff lunch box,Catering,943.0,33.61,31694.23
+PUR-ORD-2026-00263,Sahab Tamayuz Services (fictional),2026-09-09,Completed,e027@company.sa,A4 paper box,Office supplies,368.0,92.55,34058.4
+PUR-ORD-2026-00264,Rimal Madar Contracting (fictional),2026-09-23,Completed,e026@company.sa,CCTV maintenance,Security services,11.0,2080.81,22888.91
+PUR-ORD-2026-00265,Nakheel Qimma Supplies (fictional),2026-08-24,Completed,e031@company.sa,Pest control visit,Facility services,18.0,665.2,11973.6
+PUR-ORD-2026-00266,Shams Bina Solutions (fictional),2026-08-12,Completed,e014@company.sa,Rebar ton,Building materials,1.0,2763.42,2763.42
+PUR-ORD-2026-00267,Noor Najd Trading (fictional),2026-09-02,Completed,e014@company.sa,Rebar ton,Building materials,2.0,2727.97,5455.94
+PUR-ORD-2026-00268,Madar Jazeera Trading (fictional),2026-07-20,Completed,e003@company.sa,Water carton,Catering,1511.0,14.22,21486.42
+PUR-ORD-2026-00269,Rimal Qimma Services (fictional),2026-09-27,Completed,e037@company.sa,Event catering per head,Catering,160.0,148.27,23723.2
+PUR-ORD-2026-00270,Dana Rimal Trading (fictional),2026-07-12,Completed,e018@company.sa,Laptop,IT hardware,2.0,4373.88,8747.76
+PUR-ORD-2026-00271,Shams Noor Trading (fictional),2026-08-12,Completed,e011@company.sa,Ready-mix m3,Building materials,124.0,258.49,32052.76
+PUR-ORD-2026-00272,Najd Najd Contracting (fictional),2026-08-10,Completed,e011@company.sa,Toner cartridge,Office supplies,76.0,412.76,31369.76
+PUR-ORD-2026-00273,Rimal Madar Contracting (fictional),2026-09-09,Completed,e038@company.sa,Guard shift,Security services,31.0,459.97,14259.07
+PUR-ORD-2026-00274,Rawabi Masar Trading (fictional),2026-07-29,Completed,e033@company.sa,Rebar ton,Building materials,11.0,2739.0,30129.0
+PUR-ORD-2026-00275,Nakheel Najd Trading (fictional),2026-09-01,Completed,e004@company.sa,Toner cartridge,Office supplies,11.0,432.35,4755.85
+PUR-ORD-2026-00276,Sahab Sarh Est. (fictional),2026-08-31,Completed,e026@company.sa,Office chair,Office supplies,15.0,823.62,12354.3
+PUR-ORD-2026-00277,Rimal Madar Contracting (fictional),2026-07-16,Completed,e018@company.sa,Guard shift,Security services,62.0,496.19,30763.78
+PUR-ORD-2026-00278,Najd Najd Contracting (fictional),2026-07-28,Completed,e026@company.sa,Office chair,Office supplies,8.0,724.2,5793.6
+PUR-ORD-2026-00279,Nakheel Sarh Solutions (fictional),2026-08-02,Completed,e009@company.sa,Network switch,IT hardware,1.0,3793.73,3793.73
+PUR-ORD-2026-00280,Dana Madar Est. (fictional),2026-09-08,Completed,e030@company.sa,Water carton,Catering,499.0,15.0,7485.0
+PUR-ORD-2026-00281,Nakheel Najd Trading (fictional),2026-09-20,Completed,e029@company.sa,Toner cartridge,Office supplies,62.0,440.52,27312.24
+PUR-ORD-2026-00282,Buruj Dana Trading (fictional),2026-07-01,Completed,e009@company.sa,Monitor 27in,IT hardware,13.0,1224.67,15920.71
+PUR-ORD-2026-00283,Buruj Noor Solutions (fictional),2026-07-15,Completed,e037@company.sa,Toner cartridge,Office supplies,80.0,395.2,31616.0
+PUR-ORD-2026-00284,Buruj Dana Trading (fictional),2026-07-14,Completed,e009@company.sa,Laptop,IT hardware,2.0,4687.81,9375.62
+PUR-ORD-2026-00285,Dana Rimal Trading (fictional),2026-09-10,Completed,e018@company.sa,Laptop,IT hardware,1.0,4521.77,4521.77
+PUR-ORD-2026-00286,Nakheel Najd Trading (fictional),2026-08-26,Completed,e012@company.sa,Toner cartridge,Office supplies,77.0,426.41,32833.57
+PUR-ORD-2026-00287,Sahab Tamayuz Services (fictional),2026-09-07,Completed,e031@company.sa,Office chair,Office supplies,46.0,817.69,37613.74
+PUR-ORD-2026-00288,Taqa Sahab Services (fictional),2026-07-09,Completed,e035@company.sa,Cement bag 50kg,Building materials,1373.0,19.51,26787.23
+PUR-ORD-2026-00289,Sarh Qimma Services (fictional),2026-09-07,Completed,e030@company.sa,Event catering per head,Catering,110.0,154.73,17020.3
+PUR-ORD-2026-00290,Buruj Waha Supplies (fictional),2026-08-19,Completed,e009@company.sa,Staff lunch box,Catering,773.0,34.25,26475.25
+PUR-ORD-2026-00291,Rimal Qimma Services (fictional),2026-07-12,Completed,e026@company.sa,Staff lunch box,Catering,755.0,31.72,23948.6
+PUR-ORD-2026-00292,Sarh Noor Services (fictional),2026-08-04,Completed,e012@company.sa,AC maintenance visit,Facility services,20.0,835.71,16714.2
+PUR-ORD-2026-00293,Bina Afaq Contracting (fictional),2026-08-16,Completed,e007@company.sa,Cleaning visit,Facility services,4.0,1315.09,5260.36
+PUR-ORD-2026-00294,Noor Najd Trading (fictional),2026-08-27,Completed,e003@company.sa,Ready-mix m3,Building materials,23.0,254.43,5851.89
+PUR-ORD-2026-00295,Rimal Madar Contracting (fictional),2026-08-12,Completed,e037@company.sa,Access card batch,Security services,4.0,1636.25,6545.0
+PUR-ORD-2026-00296,Nakheel Najd Trading (fictional),2026-08-27,Completed,e011@company.sa,Office chair,Office supplies,12.0,751.35,9016.2
+PUR-ORD-2026-00297,Najd Madar Supplies (fictional),2026-09-21,Completed,e009@company.sa,Cleaning visit,Facility services,29.0,1419.25,41158.25
+PUR-ORD-2026-00298,Bina Taqa Est. (fictional),2026-07-29,Completed,e027@company.sa,Staff lunch box,Catering,574.0,33.45,19200.3
+PUR-ORD-2026-00299,Rimal Madar Contracting (fictional),2026-09-02,Completed,e038@company.sa,CCTV maintenance,Security services,1.0,2083.92,2083.92
+PUR-ORD-2026-00300,Bina Taqa Est. (fictional),2026-07-12,Completed,e028@company.sa,Water carton,Catering,2674.0,14.72,39361.28
+PUR-ORD-2026-00301,Noor Masar Contracting (fictional),2026-08-16,Completed,e004@company.sa,Monitor 27in,IT hardware,32.0,1149.75,36792.0
+PUR-ORD-2026-00302,Rimal Madar Contracting (fictional),2026-07-01,Completed,e011@company.sa,Access card batch,Security services,8.0,1768.3,14146.4
+PUR-ORD-2026-00303,Bina Taqa Est. (fictional),2026-07-21,Completed,e001@company.sa,Water carton,Catering,1650.0,14.37,23710.5
+PUR-ORD-2026-00304,Nakheel Najd Trading (fictional),2026-07-20,Completed,e037@company.sa,A4 paper box,Office supplies,113.0,101.2,11435.6
+PUR-ORD-2026-00305,Sahab Tamayuz Services (fictional),2026-08-13,Completed,e029@company.sa,A4 paper box,Office supplies,152.0,90.22,13713.44
+PUR-ORD-2026-00306,Najd Madar Supplies (fictional),2026-07-09,Completed,e001@company.sa,Cleaning visit,Facility services,13.0,1349.16,17539.08
+PUR-ORD-2026-00307,Sahab Tamayuz Services (fictional),2026-07-06,Completed,e012@company.sa,Office chair,Office supplies,12.0,799.13,9589.56
+PUR-ORD-2026-00308,Rimal Madar Contracting (fictional),2026-07-28,Completed,e032@company.sa,Guard shift,Security services,69.0,508.82,35108.58
+PUR-ORD-2026-00309,Sarh Qimma Services (fictional),2026-08-30,Completed,e025@company.sa,Event catering per head,Catering,171.0,154.22,26371.62
+PUR-ORD-2026-00310,Najd Madar Supplies (fictional),2026-08-17,Completed,e032@company.sa,Pest control visit,Facility services,27.0,682.51,18427.77
+PUR-ORD-2026-00311,Najd Najd Contracting (fictional),2026-09-27,Completed,e001@company.sa,Toner cartridge,Office supplies,85.0,407.75,34658.75
+PUR-ORD-2026-00312,Noor Najd Trading (fictional),2026-09-10,Completed,e005@company.sa,Cement bag 50kg,Building materials,1828.0,20.43,37346.04
+PUR-ORD-2026-00313,Rimal Madar Contracting (fictional),2026-09-16,Completed,e032@company.sa,Access card batch,Security services,2.0,1615.55,3231.1
+PUR-ORD-2026-00314,Noor Masar Contracting (fictional),2026-09-02,Completed,e002@company.sa,Laptop,IT hardware,3.0,4334.7,13004.1
+PUR-ORD-2026-00315,Waha Madar Est. (fictional),2026-09-22,Completed,e029@company.sa,Ready-mix m3,Building materials,106.0,275.44,29196.64
+PUR-ORD-2026-00316,Noor Najd Trading (fictional),2026-07-07,Completed,e035@company.sa,Cement bag 50kg,Building materials,1352.0,17.61,23808.72
+PUR-ORD-2026-00317,Buruj Noor Solutions (fictional),2026-09-06,Completed,e010@company.sa,A4 paper box,Office supplies,379.0,98.3,37255.7
+PUR-ORD-2026-00318,Taqa Rimal Solutions (fictional),2026-08-27,Completed,e011@company.sa,Rebar ton,Building materials,11.0,2787.95,30667.45
+PUR-ORD-2026-00319,Rimal Madar Contracting (fictional),2026-07-29,Completed,e017@company.sa,Guard shift,Security services,51.0,481.85,24574.35
+PUR-ORD-2026-00320,Tamayuz Bina Trading (fictional),2026-07-08,Completed,e007@company.sa,Rebar ton,Building materials,6.0,3073.96,18443.76
+PUR-ORD-2026-00321,Najd Najd Contracting (fictional),2026-07-14,Completed,e030@company.sa,A4 paper box,Office supplies,416.0,100.46,41791.36
+PUR-ORD-2026-00322,Shams Bina Solutions (fictional),2026-09-24,Completed,e001@company.sa,Rebar ton,Building materials,2.0,2654.05,5308.1
+PUR-ORD-2026-00323,Rimal Madar Contracting (fictional),2026-08-05,Completed,e001@company.sa,Access card batch,Security services,13.0,1625.66,21133.58
+PUR-ORD-2026-00324,Rimal Madar Contracting (fictional),2026-07-16,Completed,e033@company.sa,Access card batch,Security services,1.0,1744.57,1744.57
+PUR-ORD-2026-00325,Rawabi Masar Trading (fictional),2026-07-05,Completed,e018@company.sa,Rebar ton,Building materials,4.0,2782.23,11128.92
+PUR-ORD-2026-00326,Rawabi Masar Trading (fictional),2026-07-29,Completed,e029@company.sa,Rebar ton,Building materials,1.0,2734.48,2734.48
+PUR-ORD-2026-00327,Noor Najd Trading (fictional),2026-08-05,Completed,e004@company.sa,Rebar ton,Building materials,8.0,2630.87,21046.96
+PUR-ORD-2026-00328,Noor Masar Contracting (fictional),2026-08-06,Completed,e004@company.sa,Monitor 27in,IT hardware,28.0,1210.25,33887.0
+PUR-ORD-2026-00329,Rimal Madar Contracting (fictional),2026-07-09,Completed,e007@company.sa,Access card batch,Security services,20.0,1732.31,34646.2
+PUR-ORD-2026-00330,Jazeera Qimma Solutions (fictional),2026-08-19,Completed,e026@company.sa,Network switch,IT hardware,4.0,4120.23,16480.92
+PUR-ORD-2026-00331,Rimal Madar Contracting (fictional),2026-07-16,Completed,e010@company.sa,Guard shift,Security services,67.0,513.71,34418.57
+PUR-ORD-2026-00332,Waha Taqa Services (fictional),2026-07-09,Completed,e014@company.sa,Network switch,IT hardware,7.0,3917.78,27424.46
+PUR-ORD-2026-00333,Rimal Sahab Supplies (fictional),2026-09-23,Completed,e030@company.sa,AC maintenance visit,Facility services,17.0,971.23,16510.91
+PUR-ORD-2026-00334,Rimal Madar Contracting (fictional),2026-08-18,Completed,e038@company.sa,Access card batch,Security services,12.0,1573.77,18885.24
+PUR-ORD-2026-00335,Rimal Madar Contracting (fictional),2026-09-13,Completed,e035@company.sa,Access card batch,Security services,18.0,1791.58,32248.44
+PUR-ORD-2026-00336,Shams Bina Solutions (fictional),2026-07-15,Completed,e032@company.sa,Cement bag 50kg,Building materials,530.0,20.01,10605.3
+PUR-ORD-2026-00337,Dana Madar Est. (fictional),2026-08-26,Completed,e012@company.sa,Event catering per head,Catering,243.0,149.48,36323.64
+PUR-ORD-2026-00338,Rimal Madar Contracting (fictional),2026-08-17,Completed,e002@company.sa,Access card batch,Security services,8.0,1702.59,13620.72
+PUR-ORD-2026-00339,Sarh Noor Services (fictional),2026-08-05,Completed,e038@company.sa,AC maintenance visit,Facility services,16.0,848.88,13582.08
+PUR-ORD-2026-00340,Waha Madar Est. (fictional),2026-07-26,Completed,e032@company.sa,Cement bag 50kg,Building materials,2042.0,18.05,36858.1
+PUR-ORD-2026-00341,Bina Rawabi Est. (fictional),2026-07-22,Completed,e001@company.sa,Network switch,IT hardware,8.0,3700.17,29601.36
+PUR-ORD-2026-00342,Waha Taqa Services (fictional),2026-07-19,Completed,e026@company.sa,Laptop,IT hardware,7.0,4900.13,34300.91
+PUR-ORD-2026-00343,Taqa Noor Solutions (fictional),2026-08-13,Completed,e017@company.sa,AC maintenance visit,Facility services,40.0,946.15,37846.0
+PUR-ORD-2026-00344,Rimal Madar Contracting (fictional),2026-07-02,Completed,e007@company.sa,Guard shift,Security services,67.0,506.82,33956.94
+PUR-ORD-2026-00345,Nakheel Najd Trading (fictional),2026-07-13,Completed,e029@company.sa,A4 paper box,Office supplies,394.0,96.8,38139.2
+PUR-ORD-2026-00346,Rimal Madar Contracting (fictional),2026-07-02,Completed,e017@company.sa,CCTV maintenance,Security services,12.0,2170.12,26041.44
+PUR-ORD-2026-00347,Najd Najd Contracting (fictional),2026-07-14,Completed,e038@company.sa,Office chair,Office supplies,21.0,783.55,16454.55
+PUR-ORD-2026-00348,Rimal Madar Contracting (fictional),2026-09-07,Completed,e037@company.sa,CCTV maintenance,Security services,17.0,2098.43,35673.31
+PUR-ORD-2026-00349,Sahab Tamayuz Services (fictional),2026-07-19,Completed,e031@company.sa,Toner cartridge,Office supplies,37.0,415.72,15381.64
+PUR-ORD-2026-00350,Noor Najd Trading (fictional),2026-09-09,Completed,e030@company.sa,Cement bag 50kg,Building materials,1390.0,18.28,25409.2
+PUR-ORD-2026-00351,Bina Rawabi Est. (fictional),2026-09-14,Completed,e032@company.sa,Laptop,IT hardware,1.0,4796.34,4796.34
+PUR-ORD-2026-00352,Wadi Dana Solutions (fictional),2026-09-16,Completed,e012@company.sa,Water carton,Catering,723.0,14.91,10779.93
+PUR-ORD-2026-00353,Taqa Shams Trading (fictional),2026-08-11,Completed,e010@company.sa,Staff lunch box,Catering,90.0,31.65,2848.5
+PUR-ORD-2026-00354,Buruj Waha Supplies (fictional),2026-07-28,Completed,e012@company.sa,Event catering per head,Catering,121.0,149.15,18047.15
+PUR-ORD-2026-00355,Tamayuz Shams Solutions (fictional),2026-07-13,Completed,e038@company.sa,Cement bag 50kg,Building materials,824.0,19.43,16010.32
+PUR-ORD-2026-00356,Tamayuz Shams Solutions (fictional),2026-07-29,Completed,e027@company.sa,Rebar ton,Building materials,13.0,2712.14,35257.82
+PUR-ORD-2026-00357,Buruj Dana Trading (fictional),2026-08-12,Completed,e004@company.sa,Network switch,IT hardware,7.0,3664.22,25649.54
+PUR-ORD-2026-00358,Najd Najd Contracting (fictional),2026-08-12,Completed,e032@company.sa,Office chair,Office supplies,2.0,772.87,1545.74
+PUR-ORD-2026-00359,Rimal Madar Contracting (fictional),2026-07-09,Completed,e025@company.sa,CCTV maintenance,Security services,17.0,2101.7,35728.9
+PUR-ORD-2026-00360,Waha Taqa Services (fictional),2026-09-16,Completed,e029@company.sa,Laptop,IT hardware,6.0,4568.39,27410.34
+PUR-ORD-2026-00361,Qimma Waha Est. (fictional),2026-09-20,Completed,e011@company.sa,A4 paper box,Office supplies,201.0,97.76,19649.76
+PUR-ORD-2026-00362,Buruj Dana Trading (fictional),2026-07-27,Completed,e016@company.sa,Network switch,IT hardware,2.0,3787.33,7574.66
+PUR-ORD-2026-00363,Shams Bina Solutions (fictional),2026-07-22,Completed,e003@company.sa,Cement bag 50kg,Building materials,451.0,18.92,8532.92
+PUR-ORD-2026-00364,Rimal Madar Contracting (fictional),2026-09-14,Completed,e002@company.sa,Guard shift,Security services,16.0,454.68,7274.88
+PUR-ORD-2026-00365,Rimal Madar Contracting (fictional),2026-07-20,Completed,e007@company.sa,Access card batch,Security services,15.0,1833.72,27505.8
+PUR-ORD-2026-00366,Waha Madar Est. (fictional),2026-07-29,Completed,e005@company.sa,Cement bag 50kg,Building materials,513.0,19.29,9895.77
+PUR-ORD-2026-00367,Noor Najd Trading (fictional),2026-08-09,Completed,e002@company.sa,Ready-mix m3,Building materials,125.0,247.4,30925.0
+PUR-ORD-2026-00368,Rimal Madar Contracting (fictional),2026-08-09,Completed,e001@company.sa,Access card batch,Security services,21.0,1571.13,32993.73
+PUR-ORD-2026-00369,Waha Taqa Services (fictional),2026-09-09,Completed,e003@company.sa,Network switch,IT hardware,8.0,4133.49,33067.92
+PUR-ORD-2026-00370,Sarh Qimma Services (fictional),2026-09-13,Completed,e030@company.sa,Staff lunch box,Catering,162.0,33.97,5503.14
+PUR-ORD-2026-00371,Buruj Noor Solutions (fictional),2026-08-27,Completed,e032@company.sa,A4 paper box,Office supplies,125.0,95.88,11985.0
+PUR-ORD-2026-00372,Sarh Qimma Services (fictional),2026-07-16,Completed,e001@company.sa,Event catering per head,Catering,247.0,140.7,34752.9
+PUR-ORD-2026-00373,Taqa Shams Trading (fictional),2026-08-17,Completed,e028@company.sa,Event catering per head,Catering,122.0,138.13,16851.86
+PUR-ORD-2026-00374,Shams Bina Solutions (fictional),2026-09-21,Completed,e005@company.sa,Rebar ton,Building materials,4.0,2978.25,11913.0
+PUR-ORD-2026-00375,Rimal Madar Contracting (fictional),2026-08-31,Completed,e012@company.sa,CCTV maintenance,Security services,15.0,2281.76,34226.4
+PUR-ORD-2026-00376,Taqa Rimal Solutions (fictional),2026-08-02,Completed,e018@company.sa,Cement bag 50kg,Building materials,1610.0,18.36,29559.6
+PUR-ORD-2026-00377,Rimal Madar Contracting (fictional),2026-07-12,Completed,e037@company.sa,Access card batch,Security services,19.0,1657.82,31498.58
+PUR-ORD-2026-00378,Rimal Madar Contracting (fictional),2026-07-05,Completed,e007@company.sa,CCTV maintenance,Security services,12.0,2267.78,27213.36
+PUR-ORD-2026-00379,Waha Madar Est. (fictional),2026-08-24,Completed,e028@company.sa,Rebar ton,Building materials,7.0,2814.89,19704.23
+PUR-ORD-2026-00380,Madar Jazeera Trading (fictional),2026-07-09,Completed,e031@company.sa,Staff lunch box,Catering,701.0,31.22,21885.22
+PUR-ORD-2026-00381,Jazeera Qimma Solutions (fictional),2026-07-30,Completed,e032@company.sa,Network switch,IT hardware,5.0,3845.12,19225.6
+PUR-ORD-2026-00382,Bina Sarh Est. (fictional),2026-08-23,Completed,e037@company.sa,Office chair,Office supplies,10.0,816.02,8160.2
+PUR-ORD-2026-00383,Noor Najd Trading (fictional),2026-09-07,Completed,e002@company.sa,Rebar ton,Building materials,13.0,2821.39,36678.07
+PUR-ORD-2026-00384,Rimal Madar Contracting (fictional),2026-09-09,Completed,e007@company.sa,Access card batch,Security services,7.0,1702.62,11918.34
+PUR-ORD-2026-00385,Qimma Waha Est. (fictional),2026-07-07,Completed,e004@company.sa,Toner cartridge,Office supplies,18.0,418.71,7536.78
+PUR-ORD-2026-00386,Noor Najd Trading (fictional),2026-08-13,Completed,e009@company.sa,Cement bag 50kg,Building materials,398.0,18.6,7402.8
+PUR-ORD-2026-00387,Noor Najd Trading (fictional),2026-07-14,Completed,e004@company.sa,Cement bag 50kg,Building materials,1665.0,18.5,30802.5
+PUR-ORD-2026-00388,Sarh Noor Services (fictional),2026-07-22,Completed,e026@company.sa,Pest control visit,Facility services,14.0,692.92,9700.88
+PUR-ORD-2026-00389,Sahab Sarh Est. (fictional),2026-09-15,Completed,e018@company.sa,Toner cartridge,Office supplies,13.0,421.79,5483.27
+PUR-ORD-2026-00390,Noor Najd Trading (fictional),2026-09-15,Completed,e007@company.sa,Cement bag 50kg,Building materials,1797.0,19.61,35239.17
+PUR-ORD-2026-00391,Rimal Madar Contracting (fictional),2026-09-08,Completed,e012@company.sa,Guard shift,Security services,13.0,506.12,6579.56
+PUR-ORD-2026-00392,Buruj Waha Supplies (fictional),2026-09-02,Completed,e018@company.sa,Event catering per head,Catering,35.0,141.55,4954.25
+PUR-ORD-2026-00393,Shams Madar Contracting (fictional),2026-08-04,Completed,e017@company.sa,A4 paper box,Office supplies,122.0,88.54,10801.88
+PUR-ORD-2026-00394,Rimal Madar Contracting (fictional),2026-08-31,Completed,e030@company.sa,Guard shift,Security services,32.0,451.38,14444.16
+PUR-ORD-2026-00395,Sahab Sarh Est. (fictional),2026-07-16,Completed,e032@company.sa,Office chair,Office supplies,48.0,769.81,36950.88
+PUR-ORD-2026-00396,Sahab Najd Solutions (fictional),2026-09-03,Completed,e017@company.sa,Cleaning visit,Facility services,26.0,1418.87,36890.62
+PUR-ORD-2026-00397,Buruj Dana Services (fictional),2026-09-13,Completed,e009@company.sa,Network switch,IT hardware,6.0,3704.72,22228.32
+PUR-ORD-2026-00398,Bina Sarh Est. (fictional),2026-08-11,Completed,e026@company.sa,A4 paper box,Office supplies,289.0,97.24,28102.36
+PUR-ORD-2026-00399,Buruj Waha Supplies (fictional),2026-07-20,Completed,e032@company.sa,Water carton,Catering,2214.0,14.33,31726.62
+PUR-ORD-2026-00400,Wadi Dana Solutions (fictional),2026-08-13,Completed,e004@company.sa,Event catering per head,Catering,261.0,139.06,36294.66
+PUR-ORD-2026-00401,Bina Rawabi Est. (fictional),2026-08-13,Completed,e010@company.sa,Laptop,IT hardware,5.0,4871.47,24357.35
+PUR-ORD-2026-00402,Waha Taqa Services (fictional),2026-08-11,Completed,e025@company.sa,Laptop,IT hardware,2.0,4635.17,9270.34
+PUR-ORD-2026-00403,Sarh Rimal Trading (fictional),2026-09-09,Completed,e035@company.sa,A4 paper box,Office supplies,377.0,90.38,34073.26
+PUR-ORD-2026-00404,Sarh Rimal Trading (fictional),2026-08-13,Completed,e029@company.sa,Toner cartridge,Office supplies,18.0,389.56,7012.08
+PUR-ORD-2026-00405,Buruj Dana Trading (fictional),2026-08-03,Completed,e035@company.sa,Monitor 27in,IT hardware,26.0,1148.32,29856.32
+PUR-ORD-2026-00406,Nakheel Najd Trading (fictional),2026-08-05,Completed,e030@company.sa,A4 paper box,Office supplies,92.0,95.24,8762.08
+PUR-ORD-2026-00407,Buruj Waha Supplies (fictional),2026-07-12,Completed,e003@company.sa,Water carton,Catering,858.0,14.48,12423.84
+PUR-ORD-2026-00408,Taqa Noor Solutions (fictional),2026-09-23,Completed,e011@company.sa,AC maintenance visit,Facility services,3.0,837.84,2513.52
+PUR-ORD-2026-00409,Sarh Qimma Services (fictional),2026-08-16,Completed,e028@company.sa,Event catering per head,Catering,153.0,148.14,22665.42
+PUR-ORD-2026-00410,Buruj Dana Services (fictional),2026-09-30,Completed,e007@company.sa,Monitor 27in,IT hardware,21.0,1139.56,23930.76
+PUR-ORD-2026-00411,Rimal Madar Contracting (fictional),2026-07-14,Completed,e037@company.sa,Access card batch,Security services,19.0,1572.56,29878.64
+PUR-ORD-2026-00412,Tamayuz Shams Solutions (fictional),2026-09-28,Completed,e001@company.sa,Cement bag 50kg,Building materials,689.0,18.41,12684.49
+PUR-ORD-2026-00413,Rimal Madar Contracting (fictional),2026-09-28,Completed,e026@company.sa,CCTV maintenance,Security services,18.0,2160.11,38881.98
+PUR-ORD-2026-00414,Taqa Rimal Solutions (fictional),2026-08-04,Completed,e002@company.sa,Cement bag 50kg,Building materials,720.0,20.35,14652.0
+PUR-ORD-2026-00415,Qimma Waha Est. (fictional),2026-09-27,Completed,e003@company.sa,Toner cartridge,Office supplies,41.0,434.73,17823.93
+PUR-ORD-2026-00416,Najd Sahab Contracting (fictional),2026-08-16,Completed,e031@company.sa,Event catering per head,Catering,204.0,154.64,31546.56
+PUR-ORD-2026-00417,Buruj Dana Services (fictional),2026-08-03,Completed,e001@company.sa,Monitor 27in,IT hardware,11.0,1105.35,12158.85
+PUR-ORD-2026-00418,Tamayuz Bina Trading (fictional),2026-07-21,Completed,e009@company.sa,Rebar ton,Building materials,11.0,2924.52,32169.72
+PUR-ORD-2026-00419,Sahab Tamayuz Services (fictional),2026-09-07,Completed,e029@company.sa,Office chair,Office supplies,9.0,766.91,6902.19
+PUR-ORD-2026-00420,Rimal Sahab Supplies (fictional),2026-07-01,Completed,e017@company.sa,Cleaning visit,Facility services,24.0,1318.8,31651.2
+PUR-ORD-2026-00421,Taqa Shams Trading (fictional),2026-09-29,Completed,e028@company.sa,Event catering per head,Catering,165.0,143.97,23755.05
+PUR-ORD-2026-00422,Buruj Dana Services (fictional),2026-09-15,Completed,e031@company.sa,Monitor 27in,IT hardware,17.0,1239.51,21071.67
+PUR-ORD-2026-00423,Shams Madar Contracting (fictional),2026-07-13,Completed,e026@company.sa,A4 paper box,Office supplies,70.0,90.43,6330.1
+PUR-ORD-2026-00424,Rimal Madar Contracting (fictional),2026-08-24,Completed,e001@company.sa,Access card batch,Security services,15.0,1773.62,26604.3
+PUR-ORD-2026-00425,Sahab Sarh Est. (fictional),2026-09-21,Completed,e031@company.sa,Toner cartridge,Office supplies,30.0,413.35,12400.5
+PUR-ORD-2026-00426,Rimal Madar Contracting (fictional),2026-08-24,Completed,e027@company.sa,Guard shift,Security services,73.0,515.15,37605.95
+PUR-ORD-2026-00427,Rimal Madar Contracting (fictional),2026-07-22,Completed,e004@company.sa,CCTV maintenance,Security services,6.0,2072.67,12436.02
+PUR-ORD-2026-00428,Rawabi Masar Trading (fictional),2026-07-30,Completed,e005@company.sa,Cement bag 50kg,Building materials,782.0,20.47,16007.54
+PUR-ORD-2026-00429,Shams Bina Solutions (fictional),2026-09-16,Completed,e033@company.sa,Cement bag 50kg,Building materials,1920.0,18.48,35481.6
+PUR-ORD-2026-00430,Taqa Noor Solutions (fictional),2026-07-09,Completed,e018@company.sa,Cleaning visit,Facility services,4.0,1372.64,5490.56
+PUR-ORD-2026-00431,Shams Noor Trading (fictional),2026-09-13,Completed,e025@company.sa,Rebar ton,Building materials,4.0,2663.09,10652.36
+PUR-ORD-2026-00432,Sahab Najd Solutions (fictional),2026-09-28,Completed,e026@company.sa,Pest control visit,Facility services,37.0,643.03,23792.11
+PUR-ORD-2026-00433,Sarh Noor Services (fictional),2026-08-04,Completed,e026@company.sa,AC maintenance visit,Facility services,8.0,912.02,7296.16
+PUR-ORD-2026-00434,Rimal Madar Contracting (fictional),2026-08-04,Completed,e028@company.sa,Access card batch,Security services,6.0,1748.27,10489.62
+PUR-ORD-2026-00435,Rimal Madar Contracting (fictional),2026-07-06,Completed,e018@company.sa,Guard shift,Security services,37.0,461.73,17084.01
+PUR-ORD-2026-00436,Buruj Dana Trading (fictional),2026-09-16,Completed,e029@company.sa,Network switch,IT hardware,5.0,3701.24,18506.2
+PUR-ORD-2026-00437,Bina Rawabi Est. (fictional),2026-09-28,Completed,e032@company.sa,Network switch,IT hardware,6.0,3596.14,21576.84
+PUR-ORD-2026-00438,Madar Jazeera Trading (fictional),2026-09-08,Completed,e011@company.sa,Staff lunch box,Catering,1065.0,32.36,34463.4
+PUR-ORD-2026-00439,Sarh Qimma Services (fictional),2026-09-28,Completed,e017@company.sa,Water carton,Catering,695.0,14.6,10147.0
+PUR-ORD-2026-00440,Sahab Sarh Est. (fictional),2026-09-08,Completed,e033@company.sa,A4 paper box,Office supplies,350.0,90.39,31636.5
+PUR-ORD-2026-00441,Rimal Sahab Supplies (fictional),2026-09-03,Completed,e037@company.sa,Pest control visit,Facility services,26.0,692.8,18012.8
+PUR-ORD-2026-00442,Jazeera Qimma Solutions (fictional),2026-09-28,Completed,e031@company.sa,Monitor 27in,IT hardware,3.0,1090.86,3272.58
+PUR-ORD-2026-00443,Taqa Sahab Services (fictional),2026-07-28,Completed,e037@company.sa,Cement bag 50kg,Building materials,1706.0,18.89,32226.34
+PUR-ORD-2026-00444,Buruj Noor Solutions (fictional),2026-07-06,Completed,e007@company.sa,Toner cartridge,Office supplies,35.0,451.41,15799.35
+PUR-ORD-2026-00445,Wadi Dana Solutions (fictional),2026-07-21,Completed,e014@company.sa,Event catering per head,Catering,119.0,149.34,17771.46
+PUR-ORD-2026-00446,Buruj Dana Trading (fictional),2026-07-13,Completed,e011@company.sa,Laptop,IT hardware,1.0,4928.22,4928.22
+PUR-ORD-2026-00447,Madar Jazeera Trading (fictional),2026-09-23,Completed,e029@company.sa,Water carton,Catering,1310.0,13.06,17108.6
+PUR-ORD-2026-00448,Nakheel Najd Trading (fictional),2026-08-02,Completed,e031@company.sa,Toner cartridge,Office supplies,57.0,443.68,25289.76
+PUR-ORD-2026-00449,Shams Bina Solutions (fictional),2026-09-29,Completed,e014@company.sa,Ready-mix m3,Building materials,121.0,263.17,31843.57
+PUR-ORD-2026-00450,Qimma Waha Est. (fictional),2026-07-16,Completed,e012@company.sa,A4 paper box,Office supplies,102.0,89.44,9122.88
+PUR-ORD-2026-00451,Taqa Shams Trading (fictional),2026-07-06,Completed,e029@company.sa,Water carton,Catering,1333.0,14.76,19675.08
+PUR-ORD-2026-00452,Shams Noor Trading (fictional),2026-07-07,Completed,e009@company.sa,Ready-mix m3,Building materials,14.0,245.73,3440.22
+PUR-ORD-2026-00453,Bina Rawabi Est. (fictional),2026-09-02,Completed,e003@company.sa,Laptop,IT hardware,2.0,4922.16,9844.32
+PUR-ORD-2026-00454,Taqa Noor Solutions (fictional),2026-07-01,Completed,e018@company.sa,Cleaning visit,Facility services,28.0,1247.05,34917.4
+PUR-ORD-2026-00455,Shams Bina Solutions (fictional),2026-07-01,Completed,e026@company.sa,Cement bag 50kg,Building materials,1786.0,18.64,33291.04
+PUR-ORD-2026-00456,Tamayuz Jazeera Trading (fictional),2026-08-25,Completed,e012@company.sa,Monitor 27in,IT hardware,3.0,1190.67,3572.01
+PUR-ORD-2026-00457,Taqa Rimal Solutions (fictional),2026-09-15,Completed,e012@company.sa,Ready-mix m3,Building materials,125.0,274.45,34306.25
+PUR-ORD-2026-00458,Buruj Dana Services (fictional),2026-09-22,Completed,e001@company.sa,Network switch,IT hardware,5.0,3859.49,19297.45
+PUR-ORD-2026-00459,Sarh Rimal Trading (fictional),2026-09-20,Completed,e025@company.sa,A4 paper box,Office supplies,89.0,89.93,8003.77
+PUR-ORD-2026-00460,Noor Najd Trading (fictional),2026-09-01,Completed,e012@company.sa,Ready-mix m3,Building materials,103.0,283.59,29209.77
+PUR-ORD-2026-00461,Rimal Madar Contracting (fictional),2026-09-22,Completed,e002@company.sa,CCTV maintenance,Security services,13.0,2183.15,28380.95
+PUR-ORD-2026-00462,Jazeera Qimma Solutions (fictional),2026-08-31,Completed,e005@company.sa,Network switch,IT hardware,3.0,3610.09,10830.27
+PUR-ORD-2026-00463,Dana Madar Est. (fictional),2026-08-23,Completed,e035@company.sa,Water carton,Catering,655.0,14.3,9366.5
+PUR-ORD-2026-00464,Jazeera Qimma Solutions (fictional),2026-07-22,Completed,e027@company.sa,Monitor 27in,IT hardware,25.0,1180.39,29509.75
+PUR-ORD-2026-00465,Rimal Sahab Supplies (fictional),2026-09-21,Completed,e018@company.sa,Cleaning visit,Facility services,17.0,1323.55,22500.35
+PUR-ORD-2026-00466,Sarh Noor Services (fictional),2026-08-05,Completed,e010@company.sa,Cleaning visit,Facility services,26.0,1247.65,32438.9
+PUR-ORD-2026-00467,Sarh Noor Services (fictional),2026-07-26,Completed,e018@company.sa,AC maintenance visit,Facility services,30.0,914.23,27426.9
+PUR-ORD-2026-00468,Taqa Noor Solutions (fictional),2026-07-07,Completed,e033@company.sa,Cleaning visit,Facility services,8.0,1274.13,10193.04
+PUR-ORD-2026-00469,Bina Afaq Contracting (fictional),2026-09-10,Completed,e002@company.sa,Cleaning visit,Facility services,24.0,1450.42,34810.08
+PUR-ORD-2026-00470,Tamayuz Bina Trading (fictional),2026-07-12,Completed,e011@company.sa,Ready-mix m3,Building materials,85.0,282.52,24014.2
+PUR-ORD-2026-00471,Sarh Rimal Trading (fictional),2026-08-25,Completed,e035@company.sa,Toner cartridge,Office supplies,61.0,405.02,24706.22
+PUR-ORD-2026-00472,Shams Bina Solutions (fictional),2026-07-15,Completed,e028@company.sa,Ready-mix m3,Building materials,111.0,274.47,30466.17
+PUR-ORD-2026-00473,Sahab Tamayuz Services (fictional),2026-09-01,Completed,e027@company.sa,Toner cartridge,Office supplies,35.0,398.88,13960.8
+PUR-ORD-2026-00474,Rimal Madar Contracting (fictional),2026-08-12,Completed,e005@company.sa,Access card batch,Security services,20.0,1816.75,36335.0
+PUR-ORD-2026-00475,Nakheel Qimma Supplies (fictional),2026-08-02,Completed,e037@company.sa,AC maintenance visit,Facility services,27.0,967.12,26112.24
+PUR-ORD-2026-00476,Najd Madar Supplies (fictional),2026-09-14,Completed,e032@company.sa,Cleaning visit,Facility services,6.0,1382.23,8293.38
+PUR-ORD-2026-00477,Qimma Waha Est. (fictional),2026-09-15,Completed,e017@company.sa,Toner cartridge,Office supplies,52.0,388.25,20189.0
+PUR-ORD-2026-00478,Rimal Madar Contracting (fictional),2026-07-06,Completed,e037@company.sa,Guard shift,Security services,8.0,515.55,4124.4
+PUR-ORD-2026-00479,Taqa Shams Trading (fictional),2026-07-16,Completed,e028@company.sa,Staff lunch box,Catering,1147.0,33.9,38883.3
+PUR-ORD-2026-00480,Sarh Noor Services (fictional),2026-08-16,Completed,e033@company.sa,Pest control visit,Facility services,9.0,641.33,5771.97
+PUR-ORD-2026-00481,Taqa Rimal Solutions (fictional),2026-09-17,Completed,e031@company.sa,Cement bag 50kg,Building materials,805.0,17.52,14103.6
+PUR-ORD-2026-00482,Tamayuz Shams Solutions (fictional),2026-09-17,Completed,e001@company.sa,Ready-mix m3,Building materials,64.0,249.88,15992.32
+PUR-ORD-2026-00483,Bina Sarh Est. (fictional),2026-09-16,Completed,e002@company.sa,Toner cartridge,Office supplies,92.0,449.82,41383.44
+PUR-ORD-2026-00484,Bina Rawabi Est. (fictional),2026-08-18,Completed,e018@company.sa,Monitor 27in,IT hardware,24.0,1060.14,25443.36
+PUR-ORD-2026-00485,Buruj Dana Services (fictional),2026-07-28,Completed,e035@company.sa,Network switch,IT hardware,4.0,3936.17,15744.68
+PUR-ORD-2026-00486,Bina Afaq Contracting (fictional),2026-09-13,Completed,e003@company.sa,Cleaning visit,Facility services,20.0,1316.86,26337.2
+PUR-ORD-2026-00487,Waha Madar Est. (fictional),2026-08-06,Completed,e018@company.sa,Cement bag 50kg,Building materials,237.0,18.28,4332.36
+PUR-ORD-2026-00488,Rimal Madar Contracting (fictional),2026-07-27,Completed,e025@company.sa,CCTV maintenance,Security services,9.0,2321.26,20891.34
+PUR-ORD-2026-00489,Rimal Madar Contracting (fictional),2026-09-08,Completed,e011@company.sa,Guard shift,Security services,61.0,481.93,29397.73
+PUR-ORD-2026-00490,Taqa Rimal Solutions (fictional),2026-07-16,Completed,e005@company.sa,Rebar ton,Building materials,1.0,2794.57,2794.57
+PUR-ORD-2026-00491,Sarh Noor Services (fictional),2026-07-29,Completed,e032@company.sa,AC maintenance visit,Facility services,33.0,943.59,31138.47
+PUR-ORD-2026-00492,Rimal Madar Contracting (fictional),2026-07-27,Completed,e032@company.sa,Guard shift,Security services,65.0,507.64,32996.6
+PUR-ORD-2026-00493,Dana Rimal Trading (fictional),2026-08-30,Completed,e032@company.sa,Monitor 27in,IT hardware,23.0,1115.52,25656.96
+PUR-ORD-2026-00494,Najd Najd Contracting (fictional),2026-08-30,Completed,e030@company.sa,Toner cartridge,Office supplies,67.0,410.76,27520.92
+PUR-ORD-2026-00495,Buruj Dana Trading (fictional),2026-07-14,Completed,e004@company.sa,Laptop,IT hardware,7.0,4538.78,31771.46
+PUR-ORD-2026-00496,Sarh Qimma Services (fictional),2026-09-20,Completed,e012@company.sa,Staff lunch box,Catering,650.0,32.56,21164.0
+PUR-ORD-2026-00497,Nakheel Qimma Supplies (fictional),2026-08-06,Completed,e035@company.sa,AC maintenance visit,Facility services,27.0,928.71,25075.17
+PUR-ORD-2026-00498,Sarh Qimma Services (fictional),2026-08-19,Completed,e031@company.sa,Staff lunch box,Catering,455.0,34.05,15492.75
+PUR-ORD-2026-00499,Rimal Madar Contracting (fictional),2026-09-14,Completed,e032@company.sa,Guard shift,Security services,11.0,504.72,5551.92
+PUR-ORD-2026-00500,Tamayuz Jazeera Trading (fictional),2026-08-18,Completed,e033@company.sa,Network switch,IT hardware,3.0,3851.95,11555.85
+PUR-ORD-2026-00501,Najd Madar Supplies (fictional),2026-09-28,Completed,e011@company.sa,AC maintenance visit,Facility services,39.0,857.51,33442.89
+PUR-ORD-2026-00502,Najd Najd Contracting (fictional),2026-09-21,Completed,e004@company.sa,Office chair,Office supplies,43.0,781.36,33598.48
+PUR-ORD-2026-00503,Rawabi Masar Trading (fictional),2026-07-29,Completed,e002@company.sa,Cement bag 50kg,Building materials,512.0,18.38,9410.56
+PUR-ORD-2026-00504,Rawabi Masar Trading (fictional),2026-08-16,Completed,e003@company.sa,Ready-mix m3,Building materials,21.0,270.31,5676.51
+PUR-ORD-2026-00505,Madar Jazeera Trading (fictional),2026-09-08,Completed,e033@company.sa,Event catering per head,Catering,39.0,148.18,5779.02
+PUR-ORD-2026-00506,Masar Wadi Services (fictional),2026-09-27,Completed,e018@company.sa,Cleaning visit,Facility services,21.0,1269.55,26660.55
+PUR-ORD-2026-00507,Rawabi Masar Trading (fictional),2026-07-28,Completed,e003@company.sa,Cement bag 50kg,Building materials,1569.0,18.0,28242.0
+PUR-ORD-2026-00508,Nakheel Najd Trading (fictional),2026-07-27,Completed,e025@company.sa,Toner cartridge,Office supplies,92.0,389.41,35825.72
+PUR-ORD-2026-00509,Tamayuz Jazeera Trading (fictional),2026-07-27,Completed,e011@company.sa,Monitor 27in,IT hardware,5.0,1127.94,5639.7
+PUR-ORD-2026-00510,Waha Taqa Services (fictional),2026-09-14,Completed,e004@company.sa,Network switch,IT hardware,10.0,3993.7,39937.0
+PUR-ORD-2026-00511,Sahab Sarh Est. (fictional),2026-08-31,Completed,e033@company.sa,Office chair,Office supplies,23.0,754.46,17352.58
+PUR-ORD-2026-00512,Rimal Madar Contracting (fictional),2026-08-02,Completed,e011@company.sa,CCTV maintenance,Security services,7.0,2173.58,15215.06
+PUR-ORD-2026-00513,Rimal Madar Contracting (fictional),2026-09-08,Completed,e007@company.sa,CCTV maintenance,Security services,9.0,2056.78,18511.02
+PUR-ORD-2026-00514,Taqa Shams Trading (fictional),2026-07-14,Completed,e009@company.sa,Water carton,Catering,1115.0,14.18,15810.7
+PUR-ORD-2026-00515,Taqa Noor Solutions (fictional),2026-08-19,Completed,e017@company.sa,Cleaning visit,Facility services,3.0,1431.54,4294.62
+PUR-ORD-2026-00516,Buruj Noor Solutions (fictional),2026-08-24,Completed,e025@company.sa,Toner cartridge,Office supplies,35.0,414.33,14501.55
+PUR-ORD-2026-00517,Taqa Rimal Solutions (fictional),2026-08-06,Completed,e035@company.sa,Rebar ton,Building materials,7.0,2929.74,20508.18
+PUR-ORD-2026-00518,Tamayuz Jazeera Trading (fictional),2026-07-02,Completed,e007@company.sa,Network switch,IT hardware,7.0,3885.54,27198.78
+PUR-ORD-2026-00519,Buruj Waha Supplies (fictional),2026-09-13,Completed,e032@company.sa,Event catering per head,Catering,47.0,147.42,6928.74
+PUR-ORD-2026-00520,Noor Masar Contracting (fictional),2026-07-29,Completed,e003@company.sa,Network switch,IT hardware,1.0,3724.86,3724.86
+PUR-ORD-2026-00521,Masar Wadi Services (fictional),2026-07-07,Completed,e035@company.sa,Cleaning visit,Facility services,26.0,1296.34,33704.84
+PUR-ORD-2026-00522,Wadi Dana Solutions (fictional),2026-09-09,Completed,e025@company.sa,Water carton,Catering,306.0,13.09,4005.54
+PUR-ORD-2026-00523,Tamayuz Bina Trading (fictional),2026-09-02,Completed,e011@company.sa,Cement bag 50kg,Building materials,1593.0,18.24,29056.32
+PUR-ORD-2026-00524,Jazeera Qimma Solutions (fictional),2026-09-28,Completed,e017@company.sa,Network switch,IT hardware,7.0,4004.09,28028.63
+PUR-ORD-2026-00525,Taqa Noor Solutions (fictional),2026-07-05,Completed,e003@company.sa,Pest control visit,Facility services,55.0,674.18,37079.9
+PUR-ORD-2026-00526,Noor Masar Contracting (fictional),2026-09-30,Completed,e031@company.sa,Laptop,IT hardware,6.0,4864.72,29188.32
+PUR-ORD-2026-00527,Waha Taqa Services (fictional),2026-09-30,Completed,e037@company.sa,Network switch,IT hardware,5.0,3813.67,19068.35
+PUR-ORD-2026-00528,Rimal Madar Contracting (fictional),2026-08-06,Completed,e007@company.sa,Guard shift,Security services,77.0,489.94,37725.38
+PUR-ORD-2026-00529,Waha Madar Est. (fictional),2026-07-26,Completed,e018@company.sa,Ready-mix m3,Building materials,135.0,279.47,37728.45
+PUR-ORD-2026-00530,Dana Madar Est. (fictional),2026-07-16,Completed,e009@company.sa,Event catering per head,Catering,146.0,142.14,20752.44
+PUR-ORD-2026-00531,Dana Rimal Trading (fictional),2026-08-05,Completed,e009@company.sa,Network switch,IT hardware,9.0,3752.6,33773.4
+PUR-ORD-2026-00532,Dana Rimal Trading (fictional),2026-09-17,Completed,e032@company.sa,Network switch,IT hardware,1.0,3972.49,3972.49
+PUR-ORD-2026-00533,Buruj Noor Solutions (fictional),2026-07-29,Completed,e011@company.sa,A4 paper box,Office supplies,263.0,99.33,26123.79
+PUR-ORD-2026-00534,Taqa Sahab Services (fictional),2026-08-10,Completed,e038@company.sa,Rebar ton,Building materials,5.0,3006.14,15030.7
+PUR-ORD-2026-00535,Shams Noor Trading (fictional),2026-09-09,Completed,e038@company.sa,Ready-mix m3,Building materials,12.0,260.28,3123.36
+PUR-ORD-2026-00536,Sahab Najd Solutions (fictional),2026-08-10,Completed,e037@company.sa,AC maintenance visit,Facility services,31.0,922.3,28591.3
+PUR-ORD-2026-00537,Waha Madar Est. (fictional),2026-09-02,Completed,e038@company.sa,Cement bag 50kg,Building materials,603.0,19.28,11625.84
+PUR-ORD-2026-00538,Shams Noor Trading (fictional),2026-09-29,Completed,e027@company.sa,Cement bag 50kg,Building materials,240.0,20.18,4843.2
+PUR-ORD-2026-00539,Tamayuz Shams Solutions (fictional),2026-08-30,Completed,e012@company.sa,Cement bag 50kg,Building materials,425.0,19.36,8228.0
+PUR-ORD-2026-00540,Rimal Madar Contracting (fictional),2026-07-16,Completed,e001@company.sa,Access card batch,Security services,8.0,1588.41,12707.28
+PUR-ORD-2026-00541,Sarh Qimma Services (fictional),2026-07-22,Completed,e004@company.sa,Water carton,Catering,1069.0,13.83,14784.27
+PUR-ORD-2026-00542,Dana Rimal Trading (fictional),2026-08-24,Completed,e010@company.sa,Monitor 27in,IT hardware,13.0,1082.35,14070.55
+PUR-ORD-2026-00543,Sarh Noor Services (fictional),2026-08-16,Completed,e012@company.sa,AC maintenance visit,Facility services,20.0,890.54,17810.8
+PUR-ORD-2026-00544,Dana Madar Est. (fictional),2026-08-26,Completed,e004@company.sa,Event catering per head,Catering,104.0,150.81,15684.24
+PUR-ORD-2026-00545,Tamayuz Jazeera Trading (fictional),2026-07-09,Completed,e030@company.sa,Monitor 27in,IT hardware,2.0,1176.87,2353.74
+PUR-ORD-2026-00546,Sarh Qimma Services (fictional),2026-08-03,Completed,e026@company.sa,Staff lunch box,Catering,314.0,34.21,10741.94
+PUR-ORD-2026-00547,Najd Najd Contracting (fictional),2026-09-17,Completed,e011@company.sa,Office chair,Office supplies,4.0,770.07,3080.28
+PUR-ORD-2026-00548,Sarh Noor Services (fictional),2026-08-11,Completed,e030@company.sa,AC maintenance visit,Facility services,3.0,955.67,2867.01
+PUR-ORD-2026-00549,Buruj Noor Solutions (fictional),2026-07-29,Completed,e026@company.sa,A4 paper box,Office supplies,307.0,89.11,27356.77
+PUR-ORD-2026-00550,Sahab Tamayuz Services (fictional),2026-09-10,Completed,e017@company.sa,Toner cartridge,Office supplies,32.0,438.72,14039.04
+PUR-ORD-2026-00551,Tamayuz Shams Solutions (fictional),2026-07-21,Completed,e035@company.sa,Rebar ton,Building materials,6.0,3066.47,18398.82
+PUR-ORD-2026-00552,Jazeera Qimma Solutions (fictional),2026-08-17,Completed,e032@company.sa,Monitor 27in,IT hardware,25.0,1133.49,28337.25
+PUR-ORD-2026-00553,Noor Najd Trading (fictional),2026-09-20,Completed,e026@company.sa,Rebar ton,Building materials,8.0,2731.93,21855.44
+PUR-ORD-2026-00554,Bina Afaq Contracting (fictional),2026-09-28,Completed,e031@company.sa,Cleaning visit,Facility services,2.0,1341.92,2683.84
+PUR-ORD-2026-00555,Wadi Dana Solutions (fictional),2026-09-20,Completed,e030@company.sa,Water carton,Catering,2308.0,14.04,32404.32
+PUR-ORD-2026-00556,Waha Madar Est. (fictional),2026-08-02,Completed,e007@company.sa,Rebar ton,Building materials,11.0,2845.15,31296.65
+PUR-ORD-2026-00557,Sarh Rimal Trading (fictional),2026-09-22,Completed,e033@company.sa,Toner cartridge,Office supplies,39.0,427.12,16657.68
+PUR-ORD-2026-00558,Najd Sahab Contracting (fictional),2026-07-27,Completed,e003@company.sa,Event catering per head,Catering,191.0,151.71,28976.61
+PUR-ORD-2026-00559,Nakheel Sarh Solutions (fictional),2026-09-01,Completed,e033@company.sa,Laptop,IT hardware,8.0,4236.81,33894.48
+PUR-ORD-2026-00560,Shams Noor Trading (fictional),2026-07-09,Completed,e026@company.sa,Rebar ton,Building materials,4.0,3075.38,12301.52
+PUR-ORD-2026-00561,Rimal Madar Contracting (fictional),2026-08-06,Completed,e004@company.sa,Access card batch,Security services,19.0,1793.17,34070.23
+PUR-ORD-2026-00562,Noor Masar Contracting (fictional),2026-09-17,Completed,e027@company.sa,Monitor 27in,IT hardware,3.0,1089.15,3267.45
+PUR-ORD-2026-00563,Sarh Qimma Services (fictional),2026-09-16,Completed,e032@company.sa,Water carton,Catering,918.0,13.0,11934.0
+PUR-ORD-2026-00564,Wadi Dana Solutions (fictional),2026-08-12,Completed,e005@company.sa,Event catering per head,Catering,61.0,147.82,9017.02
+PUR-ORD-2026-00565,Buruj Dana Services (fictional),2026-08-19,Completed,e017@company.sa,Laptop,IT hardware,6.0,4878.73,29272.38
+PUR-ORD-2026-00566,Sahab Najd Solutions (fictional),2026-09-06,Completed,e004@company.sa,Pest control visit,Facility services,9.0,633.98,5705.82
+PUR-ORD-2026-00567,Jazeera Qimma Solutions (fictional),2026-09-21,Completed,e005@company.sa,Laptop,IT hardware,8.0,4491.07,35928.56
+PUR-ORD-2026-00568,Waha Taqa Services (fictional),2026-07-20,Completed,e027@company.sa,Monitor 27in,IT hardware,12.0,1240.2,14882.4
+PUR-ORD-2026-00569,Nakheel Qimma Supplies (fictional),2026-07-29,Completed,e005@company.sa,Cleaning visit,Facility services,24.0,1275.82,30619.68
+PUR-ORD-2026-00570,Rimal Madar Contracting (fictional),2026-08-25,Completed,e007@company.sa,Guard shift,Security services,12.0,477.92,5735.04
+PUR-ORD-2026-00571,Rimal Sahab Supplies (fictional),2026-07-22,Completed,e002@company.sa,Pest control visit,Facility services,32.0,643.59,20594.88
+PUR-ORD-2026-00572,Taqa Noor Solutions (fictional),2026-07-06,Completed,e038@company.sa,AC maintenance visit,Facility services,11.0,951.3,10464.3
+PUR-ORD-2026-00573,Buruj Dana Services (fictional),2026-07-21,Completed,e003@company.sa,Laptop,IT hardware,7.0,4268.72,29881.04
+PUR-ORD-2026-00574,Qimma Waha Est. (fictional),2026-07-08,Completed,e002@company.sa,A4 paper box,Office supplies,201.0,91.21,18333.21
+PUR-ORD-2026-00575,Bina Taqa Est. (fictional),2026-09-30,Completed,e025@company.sa,Water carton,Catering,205.0,13.63,2794.15
+PUR-ORD-2026-00576,Rimal Qimma Services (fictional),2026-08-24,Completed,e030@company.sa,Event catering per head,Catering,139.0,138.37,19233.43
+PUR-ORD-2026-00577,Rimal Sahab Supplies (fictional),2026-07-12,Completed,e033@company.sa,Cleaning visit,Facility services,28.0,1258.43,35236.04
+PUR-ORD-2026-00578,Rawabi Masar Trading (fictional),2026-07-16,Completed,e033@company.sa,Rebar ton,Building materials,13.0,3049.21,39639.73
+PUR-ORD-2026-00579,Waha Madar Est. (fictional),2026-08-06,Completed,e014@company.sa,Ready-mix m3,Building materials,46.0,286.15,13162.9
+PUR-ORD-2026-00580,Sarh Qimma Services (fictional),2026-09-20,Completed,e009@company.sa,Event catering per head,Catering,19.0,155.21,2948.99
+PUR-ORD-2026-00581,Rimal Madar Contracting (fictional),2026-09-15,Completed,e011@company.sa,CCTV maintenance,Security services,6.0,2213.0,13278.0
+PUR-ORD-2026-00582,Rimal Madar Contracting (fictional),2026-09-16,Completed,e011@company.sa,CCTV maintenance,Security services,14.0,2103.48,29448.72
+PUR-ORD-2026-00583,Taqa Noor Solutions (fictional),2026-08-19,Completed,e033@company.sa,Cleaning visit,Facility services,20.0,1360.87,27217.4
+PUR-ORD-2026-00584,Rimal Madar Contracting (fictional),2026-08-20,Completed,e014@company.sa,CCTV maintenance,Security services,10.0,2173.61,21736.1
+PUR-ORD-2026-00585,Buruj Noor Solutions (fictional),2026-07-05,Completed,e004@company.sa,Toner cartridge,Office supplies,22.0,423.56,9318.32
+PUR-ORD-2026-00586,Rimal Madar Contracting (fictional),2026-07-22,Completed,e037@company.sa,CCTV maintenance,Security services,11.0,2143.52,23578.72
+PUR-ORD-2026-00587,Nakheel Najd Trading (fictional),2026-07-30,Completed,e038@company.sa,A4 paper box,Office supplies,318.0,93.97,29882.46
+PUR-ORD-2026-00588,Noor Masar Contracting (fictional),2026-09-08,Completed,e037@company.sa,Laptop,IT hardware,1.0,4397.67,4397.67
+PUR-ORD-2026-00589,Nakheel Qimma Supplies (fictional),2026-08-03,Completed,e030@company.sa,Cleaning visit,Facility services,25.0,1367.02,34175.5
+PUR-ORD-2026-00590,Sahab Tamayuz Services (fictional),2026-07-23,Completed,e016@company.sa,Office chair,Office supplies,22.0,839.23,18463.06
+PUR-ORD-2026-00591,Sahab Tamayuz Services (fictional),2026-07-08,Completed,e011@company.sa,Office chair,Office supplies,3.0,746.38,2239.14
+PUR-ORD-2026-00592,Rimal Qimma Services (fictional),2026-09-07,Completed,e003@company.sa,Staff lunch box,Catering,515.0,30.94,15934.1
+PUR-ORD-2026-00593,Bina Taqa Est. (fictional),2026-08-11,Completed,e018@company.sa,Water carton,Catering,639.0,13.44,8588.16
+PUR-ORD-2026-00594,Bina Sarh Est. (fictional),2026-09-30,Completed,e003@company.sa,A4 paper box,Office supplies,223.0,100.26,22357.98
+PUR-ORD-2026-00595,Dana Rimal Trading (fictional),2026-09-28,Completed,e028@company.sa,Monitor 27in,IT hardware,22.0,1103.6,24279.2
+PUR-ORD-2026-00596,Bina Rawabi Est. (fictional),2026-09-07,Completed,e017@company.sa,Network switch,IT hardware,7.0,3962.06,27734.42
+PUR-ORD-2026-00597,Tamayuz Bina Trading (fictional),2026-07-22,Completed,e033@company.sa,Rebar ton,Building materials,4.0,2855.16,11420.64
+PUR-ORD-2026-00598,Najd Madar Supplies (fictional),2026-07-27,Completed,e016@company.sa,AC maintenance visit,Facility services,39.0,837.58,32665.62
+PUR-ORD-2026-00599,Taqa Sahab Services (fictional),2026-09-14,Completed,e002@company.sa,Rebar ton,Building materials,1.0,2708.53,2708.53
+PUR-ORD-2026-00600,Rimal Madar Contracting (fictional),2026-07-14,Completed,e018@company.sa,Access card batch,Security services,5.0,1583.04,7915.2
+PUR-ORD-2026-00601,Rimal Sahab Supplies (fictional),2026-09-08,Completed,e033@company.sa,AC maintenance visit,Facility services,43.0,907.81,39035.83
+PUR-ORD-2026-00602,Rimal Madar Contracting (fictional),2026-07-22,Completed,e032@company.sa,Access card batch,Security services,8.0,1593.78,12750.24
+PUR-ORD-2026-00603,Sarh Qimma Services (fictional),2026-09-17,Completed,e001@company.sa,Staff lunch box,Catering,835.0,32.55,27179.25
+PUR-ORD-2026-00604,Nakheel Qimma Supplies (fictional),2026-07-27,Completed,e038@company.sa,Cleaning visit,Facility services,21.0,1301.65,27334.65
+PUR-ORD-2026-00605,Najd Madar Supplies (fictional),2026-09-09,Completed,e002@company.sa,Cleaning visit,Facility services,8.0,1272.91,10183.28
+PUR-ORD-2026-00606,Sarh Qimma Services (fictional),2026-09-20,Completed,e012@company.sa,Staff lunch box,Catering,848.0,29.68,25168.64
+PUR-ORD-2026-00607,Noor Masar Contracting (fictional),2026-09-23,Completed,e031@company.sa,Monitor 27in,IT hardware,17.0,1191.66,20258.22
+PUR-ORD-2026-00608,Najd Najd Contracting (fictional),2026-08-05,Completed,e005@company.sa,A4 paper box,Office supplies,278.0,94.85,26368.3
+PUR-ORD-2026-00609,Sahab Najd Solutions (fictional),2026-07-14,Completed,e025@company.sa,Pest control visit,Facility services,59.0,665.65,39273.35
+PUR-ORD-2026-00610,Waha Madar Est. (fictional),2026-09-01,Completed,e031@company.sa,Ready-mix m3,Building materials,87.0,276.52,24057.24
+PUR-ORD-2026-00611,Bina Rawabi Est. (fictional),2026-09-15,Completed,e014@company.sa,Laptop,IT hardware,2.0,4817.06,9634.12
+PUR-ORD-2026-00612,Waha Taqa Services (fictional),2026-09-03,Completed,e035@company.sa,Monitor 27in,IT hardware,22.0,1096.73,24128.06
+PUR-ORD-2026-00613,Waha Taqa Services (fictional),2026-08-03,Completed,e010@company.sa,Monitor 27in,IT hardware,31.0,1122.09,34784.79
+PUR-ORD-2026-00614,Bina Rawabi Est. (fictional),2026-08-02,Completed,e025@company.sa,Monitor 27in,IT hardware,23.0,1102.49,25357.27
+PUR-ORD-2026-00615,Buruj Noor Solutions (fictional),2026-09-03,Completed,e029@company.sa,Toner cartridge,Office supplies,44.0,440.0,19360.0
+PUR-ORD-2026-00616,Bina Taqa Est. (fictional),2026-09-10,Completed,e011@company.sa,Event catering per head,Catering,140.0,147.53,20654.2
+PUR-ORD-2026-00617,Najd Najd Contracting (fictional),2026-07-23,Completed,e033@company.sa,Office chair,Office supplies,29.0,765.02,22185.58
+PUR-ORD-2026-00618,Rimal Sahab Supplies (fictional),2026-07-05,Completed,e035@company.sa,Cleaning visit,Facility services,16.0,1306.95,20911.2
+PUR-ORD-2026-00619,Taqa Sahab Services (fictional),2026-07-12,Completed,e003@company.sa,Cement bag 50kg,Building materials,244.0,18.01,4394.44
+PUR-ORD-2026-00620,Sarh Qimma Services (fictional),2026-08-31,Completed,e014@company.sa,Water carton,Catering,567.0,14.5,8221.5
+PUR-ORD-2026-00621,Sahab Tamayuz Services (fictional),2026-07-20,Completed,e010@company.sa,A4 paper box,Office supplies,355.0,102.05,36227.75
+PUR-ORD-2026-00622,Masar Wadi Services (fictional),2026-08-31,Completed,e011@company.sa,Cleaning visit,Facility services,19.0,1284.78,24410.82
+PUR-ORD-2026-00623,Sahab Sarh Est. (fictional),2026-07-06,Completed,e007@company.sa,A4 paper box,Office supplies,233.0,93.32,21743.56
+PUR-ORD-2026-00624,Najd Madar Supplies (fictional),2026-08-12,Completed,e004@company.sa,Cleaning visit,Facility services,23.0,1326.85,30517.55
+PUR-ORD-2026-00625,Masar Wadi Services (fictional),2026-09-24,Completed,e011@company.sa,Cleaning visit,Facility services,16.0,1455.81,23292.96
+PUR-ORD-2026-00626,Nakheel Qimma Supplies (fictional),2026-07-02,Completed,e029@company.sa,Cleaning visit,Facility services,19.0,1413.6,26858.4
+PUR-ORD-2026-00627,Rimal Sahab Supplies (fictional),2026-07-27,Completed,e027@company.sa,AC maintenance visit,Facility services,34.0,966.54,32862.36
+PUR-ORD-2026-00628,Bina Sarh Est. (fictional),2026-07-20,Completed,e009@company.sa,Toner cartridge,Office supplies,23.0,443.5,10200.5
+PUR-ORD-2026-00629,Rimal Madar Contracting (fictional),2026-07-14,Completed,e012@company.sa,CCTV maintenance,Security services,3.0,2172.64,6517.92
+PUR-ORD-2026-00630,Bina Rawabi Est. (fictional),2026-08-23,Completed,e003@company.sa,Monitor 27in,IT hardware,27.0,1063.05,28702.35
+PUR-ORD-2026-00631,Tamayuz Bina Trading (fictional),2026-09-30,Completed,e035@company.sa,Ready-mix m3,Building materials,97.0,259.84,25204.48
+PUR-ORD-2026-00632,Rimal Madar Contracting (fictional),2026-08-10,Completed,e003@company.sa,Guard shift,Security services,19.0,442.11,8400.09
+PUR-ORD-2026-00633,Shams Noor Trading (fictional),2026-08-31,Completed,e033@company.sa,Rebar ton,Building materials,4.0,2843.48,11373.92
+PUR-ORD-2026-00634,Nakheel Qimma Supplies (fictional),2026-07-14,Completed,e016@company.sa,Pest control visit,Facility services,57.0,654.33,37296.81
+PUR-ORD-2026-00635,Taqa Sahab Services (fictional),2026-09-21,Completed,e037@company.sa,Cement bag 50kg,Building materials,2085.0,19.32,40282.2
+PUR-ORD-2026-00636,Tamayuz Bina Trading (fictional),2026-07-29,Completed,e025@company.sa,Ready-mix m3,Building materials,55.0,276.1,15185.5
+PUR-ORD-2026-00637,Rimal Sahab Supplies (fictional),2026-07-02,Completed,e032@company.sa,Pest control visit,Facility services,13.0,601.11,7814.43
+PUR-ORD-2026-00638,Sarh Rimal Trading (fictional),2026-07-06,Completed,e007@company.sa,A4 paper box,Office supplies,41.0,96.23,3945.43
+PUR-ORD-2026-00639,Sarh Noor Services (fictional),2026-08-06,Completed,e010@company.sa,AC maintenance visit,Facility services,43.0,935.66,40233.38
+PUR-ORD-2026-00640,Nakheel Sarh Solutions (fictional),2026-07-09,Completed,e004@company.sa,Laptop,IT hardware,6.0,4430.5,26583.0
+PUR-ORD-2026-00641,Bina Afaq Contracting (fictional),2026-08-05,Completed,e011@company.sa,Pest control visit,Facility services,58.0,695.77,40354.66
+PUR-ORD-2026-00642,Sahab Sarh Est. (fictional),2026-07-16,Completed,e030@company.sa,A4 paper box,Office supplies,58.0,99.32,5760.56
+PUR-ORD-2026-00643,Wadi Dana Solutions (fictional),2026-07-29,Completed,e011@company.sa,Water carton,Catering,185.0,14.54,2689.9
+PUR-ORD-2026-00644,Rimal Madar Contracting (fictional),2026-08-11,Completed,e018@company.sa,Access card batch,Security services,22.0,1772.64,38998.08
+PUR-ORD-2026-00645,Qimma Waha Est. (fictional),2026-09-03,Completed,e003@company.sa,Toner cartridge,Office supplies,94.0,411.96,38724.24
+PUR-ORD-2026-00646,Rimal Madar Contracting (fictional),2026-07-21,Completed,e002@company.sa,CCTV maintenance,Security services,8.0,2316.87,18534.96
+PUR-ORD-2026-00647,Waha Taqa Services (fictional),2026-08-04,Completed,e007@company.sa,Laptop,IT hardware,3.0,4953.27,14859.81
+PUR-ORD-2026-00648,Najd Madar Supplies (fictional),2026-07-19,Completed,e003@company.sa,AC maintenance visit,Facility services,36.0,866.72,31201.92
+PUR-ORD-2026-00649,Buruj Dana Services (fictional),2026-09-28,Completed,e032@company.sa,Laptop,IT hardware,2.0,4825.04,9650.08
+PUR-ORD-2026-00650,Jazeera Qimma Solutions (fictional),2026-09-23,Completed,e025@company.sa,Monitor 27in,IT hardware,33.0,1064.76,35137.08
+PUR-ORD-2026-00651,Bina Rawabi Est. (fictional),2026-08-16,Completed,e010@company.sa,Monitor 27in,IT hardware,2.0,1136.39,2272.78
+PUR-ORD-2026-00652,Rimal Sahab Supplies (fictional),2026-08-02,Completed,e031@company.sa,Cleaning visit,Facility services,2.0,1327.89,2655.78
+PUR-ORD-2026-00653,Sarh Rimal Trading (fictional),2026-08-27,Completed,e031@company.sa,Office chair,Office supplies,12.0,816.6,9799.2
+PUR-ORD-2026-00654,Waha Madar Est. (fictional),2026-08-30,Completed,e002@company.sa,Cement bag 50kg,Building materials,1973.0,18.02,35553.46
+PUR-ORD-2026-00655,Rimal Madar Contracting (fictional),2026-07-05,Completed,e037@company.sa,Access card batch,Security services,20.0,1688.65,33773.0
+PUR-ORD-2026-00656,Najd Najd Contracting (fictional),2026-08-13,Completed,e004@company.sa,A4 paper box,Office supplies,335.0,99.39,33295.65
+PUR-ORD-2026-00657,Tamayuz Shams Solutions (fictional),2026-09-28,Completed,e037@company.sa,Ready-mix m3,Building materials,37.0,259.29,9593.73
+PUR-ORD-2026-00658,Rimal Qimma Services (fictional),2026-09-23,Completed,e004@company.sa,Water carton,Catering,2657.0,14.45,38393.65
+PUR-ORD-2026-00659,Shams Bina Solutions (fictional),2026-09-03,Completed,e025@company.sa,Ready-mix m3,Building materials,135.0,263.82,35615.7
+PUR-ORD-2026-00660,Rimal Madar Contracting (fictional),2026-09-22,Completed,e018@company.sa,CCTV maintenance,Security services,17.0,2080.95,35376.15
+PUR-ORD-2026-00661,Bina Rawabi Est. (fictional),2026-07-06,Completed,e030@company.sa,Laptop,IT hardware,7.0,4267.38,29871.66
+PUR-ORD-2026-00662,Sahab Tamayuz Services (fictional),2026-09-27,Completed,e011@company.sa,Toner cartridge,Office supplies,93.0,410.58,38183.94
+PUR-ORD-2026-00663,Shams Madar Contracting (fictional),2026-07-28,Completed,e030@company.sa,A4 paper box,Office supplies,237.0,101.21,23986.77
+PUR-ORD-2026-00664,Rimal Qimma Services (fictional),2026-07-01,Completed,e027@company.sa,Staff lunch box,Catering,257.0,32.25,8288.25
+PUR-ORD-2026-00665,Noor Najd Trading (fictional),2026-09-20,Completed,e035@company.sa,Rebar ton,Building materials,4.0,2847.58,11390.32
+PUR-ORD-2026-00666,Rimal Madar Contracting (fictional),2026-08-16,Completed,e027@company.sa,Guard shift,Security services,72.0,503.53,36254.16
+PUR-ORD-2026-00667,Wadi Dana Solutions (fictional),2026-08-11,Completed,e033@company.sa,Water carton,Catering,2657.0,14.73,39137.61
+PUR-ORD-2026-00668,Taqa Noor Solutions (fictional),2026-07-02,Completed,e007@company.sa,Pest control visit,Facility services,42.0,606.29,25464.18
+PUR-ORD-2026-00669,Tamayuz Shams Solutions (fictional),2026-08-23,Completed,e009@company.sa,Ready-mix m3,Building materials,94.0,283.91,26687.54
+PUR-ORD-2026-00670,Tamayuz Bina Trading (fictional),2026-08-31,Completed,e032@company.sa,Cement bag 50kg,Building materials,1325.0,19.28,25546.0
+PUR-ORD-2026-00671,Wadi Dana Solutions (fictional),2026-07-26,Completed,e018@company.sa,Water carton,Catering,1498.0,14.22,21301.56
+PUR-ORD-2026-00672,Sahab Najd Solutions (fictional),2026-09-17,Completed,e011@company.sa,Cleaning visit,Facility services,23.0,1298.45,29864.35
+PUR-ORD-2026-00673,Jazeera Qimma Solutions (fictional),2026-09-10,Completed,e005@company.sa,Monitor 27in,IT hardware,15.0,1105.12,16576.8
+PUR-ORD-2026-00674,Sarh Rimal Trading (fictional),2026-08-02,Completed,e001@company.sa,A4 paper box,Office supplies,318.0,90.38,28740.84
+PUR-ORD-2026-00675,Nakheel Najd Trading (fictional),2026-08-26,Completed,e004@company.sa,A4 paper box,Office supplies,405.0,96.52,39090.6
+PUR-ORD-2026-00676,Rimal Qimma Services (fictional),2026-07-23,Completed,e030@company.sa,Staff lunch box,Catering,601.0,32.4,19472.4
+PUR-ORD-2026-00677,Buruj Dana Trading (fictional),2026-07-16,Completed,e027@company.sa,Laptop,IT hardware,5.0,4524.05,22620.25
+PUR-ORD-2026-00678,Dana Rimal Trading (fictional),2026-08-27,Completed,e009@company.sa,Monitor 27in,IT hardware,21.0,1108.51,23278.71
+PUR-ORD-2026-00679,Sarh Rimal Trading (fictional),2026-07-15,Completed,e027@company.sa,Office chair,Office supplies,27.0,730.97,19736.19
+PUR-ORD-2026-00680,Sahab Najd Solutions (fictional),2026-08-24,Completed,e018@company.sa,Pest control visit,Facility services,33.0,701.85,23161.05
+PUR-ORD-2026-00681,Nakheel Sarh Solutions (fictional),2026-09-07,Completed,e002@company.sa,Network switch,IT hardware,2.0,3650.98,7301.96
+PUR-ORD-2026-00682,Rimal Madar Contracting (fictional),2026-08-30,Completed,e011@company.sa,CCTV maintenance,Security services,4.0,2153.62,8614.48
+PUR-ORD-2026-00683,Tamayuz Jazeera Trading (fictional),2026-09-21,Completed,e007@company.sa,Monitor 27in,IT hardware,2.0,1095.65,2191.3
+PUR-ORD-2026-00684,Nakheel Qimma Supplies (fictional),2026-07-15,Completed,e018@company.sa,Pest control visit,Facility services,14.0,693.21,9704.94
+PUR-ORD-2026-00685,Shams Bina Solutions (fictional),2026-09-17,Completed,e002@company.sa,Rebar ton,Building materials,13.0,2783.03,36179.39
+PUR-ORD-2026-00686,Masar Wadi Services (fictional),2026-08-04,Completed,e005@company.sa,Pest control visit,Facility services,14.0,618.94,8665.16
+PUR-ORD-2026-00687,Jazeera Noor Supplies (fictional),2026-07-30,Completed,e010@company.sa,Cleaning visit,Facility services,3.0,1388.06,4164.18
+PUR-ORD-2026-00688,Najd Madar Supplies (fictional),2026-08-31,Completed,e016@company.sa,AC maintenance visit,Facility services,22.0,937.01,20614.22
+PUR-ORD-2026-00689,Wadi Dana Solutions (fictional),2026-09-07,Completed,e037@company.sa,Water carton,Catering,2440.0,13.02,31768.8
+PUR-ORD-2026-00690,Buruj Dana Services (fictional),2026-08-23,Completed,e009@company.sa,Laptop,IT hardware,3.0,4768.05,14304.15
+PUR-ORD-2026-00691,Waha Madar Est. (fictional),2026-07-26,Completed,e016@company.sa,Rebar ton,Building materials,8.0,2782.77,22262.16
+PUR-ORD-2026-00692,Taqa Sahab Services (fictional),2026-08-26,Completed,e005@company.sa,Ready-mix m3,Building materials,16.0,266.82,4269.12
+PUR-ORD-2026-00693,Sahab Sarh Est. (fictional),2026-07-20,Completed,e031@company.sa,Toner cartridge,Office supplies,82.0,397.7,32611.4
+PUR-ORD-2026-00694,Tamayuz Jazeera Trading (fictional),2026-07-30,Completed,e025@company.sa,Laptop,IT hardware,1.0,4461.37,4461.37
+PUR-ORD-2026-00695,Buruj Noor Solutions (fictional),2026-07-01,Completed,e001@company.sa,Toner cartridge,Office supplies,69.0,438.06,30226.14
+PUR-ORD-2026-00696,Sarh Noor Services (fictional),2026-08-18,Completed,e032@company.sa,Pest control visit,Facility services,13.0,676.85,8799.05
+PUR-ORD-2026-00697,Sarh Rimal Trading (fictional),2026-09-10,Completed,e025@company.sa,A4 paper box,Office supplies,366.0,96.21,35212.86
+PUR-ORD-2026-00698,Buruj Dana Services (fictional),2026-08-09,Completed,e030@company.sa,Laptop,IT hardware,1.0,4683.42,4683.42
+PUR-ORD-2026-00699,Rimal Madar Contracting (fictional),2026-09-17,Completed,e037@company.sa,Access card batch,Security services,11.0,1655.64,18212.04
+PUR-ORD-2026-00700,Najd Madar Supplies (fictional),2026-07-16,Completed,e017@company.sa,Pest control visit,Facility services,6.0,698.82,4192.92
+PUR-ORD-2026-00701,Najd Madar Supplies (fictional),2026-08-05,Completed,e009@company.sa,AC maintenance visit,Facility services,4.0,877.08,3508.32
+PUR-ORD-2026-00702,Rimal Madar Contracting (fictional),2026-09-23,Completed,e009@company.sa,CCTV maintenance,Security services,7.0,2294.96,16064.72
+PUR-ORD-2026-00703,Rimal Madar Contracting (fictional),2026-09-07,Completed,e026@company.sa,Guard shift,Security services,39.0,497.58,19405.62
+PUR-ORD-2026-00704,Tamayuz Shams Solutions (fictional),2026-08-25,Completed,e029@company.sa,Rebar ton,Building materials,9.0,2868.87,25819.83
+PUR-ORD-2026-00705,Noor Masar Contracting (fictional),2026-07-23,Completed,e003@company.sa,Monitor 27in,IT hardware,34.0,1216.51,41361.34
+PUR-ORD-2026-00706,Rimal Sahab Supplies (fictional),2026-09-07,Completed,e033@company.sa,Cleaning visit,Facility services,27.0,1333.03,35991.81
+PUR-ORD-2026-00707,Rimal Madar Contracting (fictional),2026-07-27,Completed,e032@company.sa,Guard shift,Security services,36.0,481.6,17337.6
+PUR-ORD-2026-00708,Nakheel Qimma Supplies (fictional),2026-09-15,Completed,e009@company.sa,Cleaning visit,Facility services,16.0,1397.11,22353.76
+PUR-ORD-2026-00709,Sarh Rimal Trading (fictional),2026-08-31,Completed,e030@company.sa,Toner cartridge,Office supplies,26.0,400.25,10406.5
+PUR-ORD-2026-00710,Rimal Madar Contracting (fictional),2026-07-06,Completed,e010@company.sa,Guard shift,Security services,5.0,500.44,2502.2
+PUR-ORD-2026-00711,Rimal Qimma Services (fictional),2026-09-15,Completed,e001@company.sa,Event catering per head,Catering,22.0,139.37,3066.14
+PUR-ORD-2026-00712,Rimal Madar Contracting (fictional),2026-09-10,Completed,e033@company.sa,CCTV maintenance,Security services,17.0,2101.52,35725.84
+PUR-ORD-2026-00713,Dana Rimal Trading (fictional),2026-08-18,Completed,e014@company.sa,Laptop,IT hardware,2.0,4671.31,9342.62
+PUR-ORD-2026-00714,Sarh Noor Services (fictional),2026-08-19,Completed,e002@company.sa,Pest control visit,Facility services,2.0,668.16,1336.32
+PUR-ORD-2026-00715,Rimal Madar Contracting (fictional),2026-07-12,Completed,e032@company.sa,Access card batch,Security services,14.0,1678.37,23497.18
+PUR-ORD-2026-00716,Sarh Rimal Trading (fictional),2026-08-30,Completed,e037@company.sa,A4 paper box,Office supplies,98.0,100.29,9828.42
+PUR-ORD-2026-00717,Taqa Rimal Solutions (fictional),2026-08-30,Completed,e014@company.sa,Cement bag 50kg,Building materials,428.0,18.35,7853.8
+PUR-ORD-2026-00718,Waha Madar Est. (fictional),2026-07-15,Completed,e018@company.sa,Rebar ton,Building materials,12.0,2937.34,35248.08
+PUR-ORD-2026-00719,Rimal Madar Contracting (fictional),2026-07-30,Completed,e010@company.sa,CCTV maintenance,Security services,6.0,2061.19,12367.14
+PUR-ORD-2026-00720,Buruj Dana Services (fictional),2026-07-20,Completed,e016@company.sa,Laptop,IT hardware,4.0,4499.16,17996.64
+PUR-ORD-2026-00721,Noor Najd Trading (fictional),2026-08-02,Completed,e001@company.sa,Rebar ton,Building materials,12.0,2676.75,32121.0
+PUR-ORD-2026-00722,Rimal Madar Contracting (fictional),2026-09-22,Completed,e002@company.sa,Guard shift,Security services,30.0,463.3,13899.0
+PUR-ORD-2026-00723,Bina Taqa Est. (fictional),2026-07-20,Completed,e009@company.sa,Event catering per head,Catering,142.0,150.32,21345.44
+PUR-ORD-2026-00724,Waha Madar Est. (fictional),2026-09-22,Completed,e038@company.sa,Cement bag 50kg,Building materials,1386.0,20.25,28066.5
+PUR-ORD-2026-00725,Waha Madar Est. (fictional),2026-09-10,Completed,e037@company.sa,Rebar ton,Building materials,7.0,2819.13,19733.91
+PUR-ORD-2026-00726,Nakheel Sarh Solutions (fictional),2026-07-22,Completed,e001@company.sa,Monitor 27in,IT hardware,19.0,1081.88,20555.72
+PUR-ORD-2026-00727,Buruj Dana Trading (fictional),2026-07-26,Completed,e031@company.sa,Network switch,IT hardware,9.0,3708.65,33377.85
+PUR-ORD-2026-00728,Buruj Noor Solutions (fictional),2026-07-16,Completed,e030@company.sa,Office chair,Office supplies,46.0,764.82,35181.72
+PUR-ORD-2026-00729,Buruj Waha Supplies (fictional),2026-07-16,Completed,e002@company.sa,Water carton,Catering,659.0,14.49,9548.91
+PUR-ORD-2026-00730,Rimal Sahab Supplies (fictional),2026-08-10,Completed,e038@company.sa,Pest control visit,Facility services,53.0,668.79,35445.87
+PUR-ORD-2026-00731,Najd Sahab Contracting (fictional),2026-09-06,Completed,e010@company.sa,Event catering per head,Catering,121.0,156.03,18879.63
+PUR-ORD-2026-00732,Waha Taqa Services (fictional),2026-09-15,Completed,e017@company.sa,Network switch,IT hardware,3.0,3926.5,11779.5
+PUR-ORD-2026-00733,Jazeera Qimma Solutions (fictional),2026-08-06,Completed,e010@company.sa,Laptop,IT hardware,1.0,4598.83,4598.83
+PUR-ORD-2026-00734,Buruj Dana Trading (fictional),2026-09-15,Completed,e031@company.sa,Monitor 27in,IT hardware,21.0,1233.31,25899.51
+PUR-ORD-2026-00735,Rimal Madar Contracting (fictional),2026-08-30,Completed,e025@company.sa,CCTV maintenance,Security services,17.0,2215.89,37670.13
+PUR-ORD-2026-00736,Rimal Madar Contracting (fictional),2026-08-09,Completed,e004@company.sa,CCTV maintenance,Security services,16.0,2362.61,37801.76
+PUR-ORD-2026-00737,Nakheel Qimma Supplies (fictional),2026-09-03,Completed,e029@company.sa,Cleaning visit,Facility services,1.0,1323.67,1323.67
+PUR-ORD-2026-00738,Nakheel Najd Trading (fictional),2026-07-12,Completed,e031@company.sa,A4 paper box,Office supplies,390.0,98.14,38274.6
+PUR-ORD-2026-00739,Waha Taqa Services (fictional),2026-07-13,Completed,e010@company.sa,Network switch,IT hardware,8.0,3926.29,31410.32
+PUR-ORD-2026-00740,Bina Taqa Est. (fictional),2026-07-26,Completed,e003@company.sa,Water carton,Catering,1232.0,13.0,16016.0
+PUR-ORD-2026-00741,Rimal Madar Contracting (fictional),2026-07-14,Completed,e025@company.sa,CCTV maintenance,Security services,11.0,2352.35,25875.85
+PUR-ORD-2026-00742,Rimal Madar Contracting (fictional),2026-07-27,Completed,e032@company.sa,Access card batch,Security services,9.0,1621.72,14595.48
+PUR-ORD-2026-00743,Waha Taqa Services (fictional),2026-09-21,Completed,e005@company.sa,Monitor 27in,IT hardware,29.0,1086.56,31510.24
+PUR-ORD-2026-00744,Sarh Qimma Services (fictional),2026-07-13,Completed,e003@company.sa,Staff lunch box,Catering,638.0,33.5,21373.0
+PUR-ORD-2026-00745,Rimal Madar Contracting (fictional),2026-09-02,Completed,e014@company.sa,Access card batch,Security services,2.0,1808.44,3616.88
+PUR-ORD-2026-00746,Madar Jazeera Trading (fictional),2026-09-13,Completed,e004@company.sa,Staff lunch box,Catering,317.0,31.45,9969.65
+PUR-ORD-2026-00747,Najd Madar Supplies (fictional),2026-07-05,Completed,e004@company.sa,Cleaning visit,Facility services,11.0,1352.28,14875.08
+PUR-ORD-2026-00748,Dana Madar Est. (fictional),2026-08-19,Completed,e009@company.sa,Event catering per head,Catering,131.0,154.94,20297.14
+PUR-ORD-2026-00749,Rimal Madar Contracting (fictional),2026-08-18,Completed,e012@company.sa,Access card batch,Security services,20.0,1663.61,33272.2
+PUR-ORD-2026-00750,Rawabi Masar Trading (fictional),2026-07-05,Completed,e031@company.sa,Rebar ton,Building materials,10.0,2952.31,29523.1
+PUR-ORD-2026-00751,Taqa Noor Solutions (fictional),2026-08-09,Completed,e009@company.sa,AC maintenance visit,Facility services,32.0,965.7,30902.4
+PUR-ORD-2026-00752,Rimal Madar Contracting (fictional),2026-09-01,Completed,e002@company.sa,Access card batch,Security services,21.0,1815.64,38128.44
+PUR-ORD-2026-00753,Rimal Madar Contracting (fictional),2026-09-28,Completed,e026@company.sa,Guard shift,Security services,38.0,497.57,18907.66
+PUR-ORD-2026-00754,Qimma Waha Est. (fictional),2026-08-11,Completed,e027@company.sa,Office chair,Office supplies,10.0,740.57,7405.7
+PUR-ORD-2026-00755,Taqa Noor Solutions (fictional),2026-07-02,Completed,e011@company.sa,AC maintenance visit,Facility services,18.0,865.45,15578.1
+PUR-ORD-2026-00756,Noor Masar Contracting (fictional),2026-09-07,Completed,e038@company.sa,Monitor 27in,IT hardware,28.0,1178.57,32999.96
+PUR-ORD-2026-00757,Rimal Madar Contracting (fictional),2026-09-29,Completed,e037@company.sa,Access card batch,Security services,5.0,1799.0,8995.0
+PUR-ORD-2026-00758,Rawabi Masar Trading (fictional),2026-09-20,Completed,e018@company.sa,Ready-mix m3,Building materials,126.0,247.41,31173.66
+PUR-ORD-2026-00759,Najd Sahab Contracting (fictional),2026-09-17,Completed,e037@company.sa,Event catering per head,Catering,96.0,144.31,13853.76
+PUR-ORD-2026-00760,Buruj Dana Trading (fictional),2026-07-06,Completed,e003@company.sa,Network switch,IT hardware,4.0,3981.42,15925.68
+PUR-ORD-2026-00761,Madar Jazeera Trading (fictional),2026-08-12,Completed,e026@company.sa,Event catering per head,Catering,182.0,151.12,27503.84
+PUR-ORD-2026-00762,Rimal Madar Contracting (fictional),2026-09-14,Completed,e005@company.sa,CCTV maintenance,Security services,5.0,2084.79,10423.95
+PUR-ORD-2026-00763,Shams Madar Contracting (fictional),2026-09-10,Completed,e012@company.sa,A4 paper box,Office supplies,91.0,92.98,8461.18
+PUR-ORD-2026-00764,Shams Noor Trading (fictional),2026-07-09,Completed,e012@company.sa,Ready-mix m3,Building materials,102.0,280.43,28603.86
+PUR-ORD-2026-00765,Bina Afaq Contracting (fictional),2026-07-21,Completed,e025@company.sa,AC maintenance visit,Facility services,29.0,864.07,25058.03
+PUR-ORD-2026-00766,Madar Jazeera Trading (fictional),2026-08-04,Completed,e017@company.sa,Event catering per head,Catering,61.0,151.43,9237.23
+PUR-ORD-2026-00767,Rimal Madar Contracting (fictional),2026-09-24,Completed,e025@company.sa,Guard shift,Security services,53.0,510.56,27059.68
+PUR-ORD-2026-00768,Bina Afaq Contracting (fictional),2026-07-27,Completed,e012@company.sa,Pest control visit,Facility services,61.0,638.42,38943.62
+PUR-ORD-2026-00769,Shams Noor Trading (fictional),2026-09-15,Completed,e002@company.sa,Cement bag 50kg,Building materials,1033.0,18.72,19337.76
+PUR-ORD-2026-00770,Taqa Noor Solutions (fictional),2026-08-25,Completed,e014@company.sa,Pest control visit,Facility services,18.0,635.49,11438.82
+PUR-ORD-2026-00771,Rimal Madar Contracting (fictional),2026-07-16,Completed,e026@company.sa,Guard shift,Security services,56.0,492.78,27595.68
+PUR-ORD-2026-00772,Rimal Madar Contracting (fictional),2026-08-03,Completed,e018@company.sa,Access card batch,Security services,9.0,1805.81,16252.29
+PUR-ORD-2026-00773,Bina Taqa Est. (fictional),2026-07-16,Completed,e018@company.sa,Water carton,Catering,741.0,14.11,10455.51
+PUR-ORD-2026-00774,Buruj Waha Supplies (fictional),2026-09-03,Completed,e011@company.sa,Water carton,Catering,1207.0,13.06,15763.42
+PUR-ORD-2026-00775,Sahab Najd Solutions (fictional),2026-07-26,Completed,e027@company.sa,Cleaning visit,Facility services,7.0,1419.69,9937.83
+PUR-ORD-2026-00776,Noor Masar Contracting (fictional),2026-09-03,Completed,e010@company.sa,Laptop,IT hardware,2.0,4939.22,9878.44
+PUR-ORD-2026-00777,Rimal Madar Contracting (fictional),2026-08-17,Completed,e010@company.sa,Access card batch,Security services,11.0,1646.46,18111.06
+PUR-ORD-2026-00778,Rimal Madar Contracting (fictional),2026-09-22,Completed,e012@company.sa,Access card batch,Security services,19.0,1692.63,32159.97
+PUR-ORD-2026-00779,Sahab Najd Solutions (fictional),2026-07-06,Completed,e009@company.sa,AC maintenance visit,Facility services,19.0,896.65,17036.35
+PUR-ORD-2026-00780,Rimal Madar Contracting (fictional),2026-08-17,Completed,e035@company.sa,CCTV maintenance,Security services,8.0,2208.42,17667.36
+PUR-ORD-2026-00781,Sahab Sarh Est. (fictional),2026-07-02,Completed,e017@company.sa,Office chair,Office supplies,33.0,759.07,25049.31
+PUR-ORD-2026-00782,Shams Madar Contracting (fictional),2026-08-27,Completed,e029@company.sa,Office chair,Office supplies,12.0,732.76,8793.12
+PUR-ORD-2026-00783,Rimal Madar Contracting (fictional),2026-09-02,Completed,e030@company.sa,Access card batch,Security services,6.0,1800.54,10803.24
+PUR-ORD-2026-00784,Sarh Noor Services (fictional),2026-07-16,Completed,e025@company.sa,Cleaning visit,Facility services,9.0,1332.55,11992.95
+PUR-ORD-2026-00785,Jazeera Noor Supplies (fictional),2026-07-22,Completed,e025@company.sa,AC maintenance visit,Facility services,40.0,949.98,37999.2
+PUR-ORD-2026-00786,Dana Madar Est. (fictional),2026-09-03,Completed,e002@company.sa,Event catering per head,Catering,196.0,140.87,27610.52
+PUR-ORD-2026-00787,Wadi Dana Solutions (fictional),2026-09-21,Completed,e038@company.sa,Water carton,Catering,2342.0,13.34,31242.28
+PUR-ORD-2026-00788,Noor Najd Trading (fictional),2026-07-09,Completed,e014@company.sa,Ready-mix m3,Building materials,37.0,251.96,9322.52
+PUR-ORD-2026-00789,Bina Rawabi Est. (fictional),2026-08-09,Completed,e037@company.sa,Monitor 27in,IT hardware,3.0,1111.42,3334.26
+PUR-ORD-2026-00790,Bina Afaq Contracting (fictional),2026-08-05,Completed,e032@company.sa,AC maintenance visit,Facility services,11.0,959.59,10555.49
+PUR-ORD-2026-00791,Shams Madar Contracting (fictional),2026-09-06,Completed,e007@company.sa,Toner cartridge,Office supplies,50.0,423.43,21171.5
+PUR-ORD-2026-00792,Bina Afaq Contracting (fictional),2026-08-03,Completed,e027@company.sa,Cleaning visit,Facility services,20.0,1426.47,28529.4
+PUR-ORD-2026-00793,Bina Sarh Est. (fictional),2026-08-30,Completed,e002@company.sa,A4 paper box,Office supplies,125.0,96.8,12100.0
+PUR-ORD-2026-00794,Rimal Madar Contracting (fictional),2026-09-23,Completed,e016@company.sa,CCTV maintenance,Security services,10.0,2074.11,20741.1
+PUR-ORD-2026-00795,Sahab Sarh Est. (fictional),2026-08-04,Completed,e007@company.sa,A4 paper box,Office supplies,119.0,96.22,11450.18
+PUR-ORD-2026-00796,Rawabi Masar Trading (fictional),2026-08-17,Completed,e010@company.sa,Cement bag 50kg,Building materials,1114.0,20.32,22636.48
+PUR-ORD-2026-00797,Jazeera Qimma Solutions (fictional),2026-08-23,Completed,e010@company.sa,Network switch,IT hardware,8.0,3869.18,30953.44
+PUR-ORD-2026-00798,Najd Sahab Contracting (fictional),2026-08-02,Completed,e026@company.sa,Water carton,Catering,1832.0,14.27,26142.64
+PUR-ORD-2026-00799,Najd Madar Supplies (fictional),2026-09-21,Completed,e038@company.sa,Pest control visit,Facility services,49.0,605.15,29652.35
+PUR-ORD-2026-00800,Najd Madar Supplies (fictional),2026-08-20,Completed,e004@company.sa,Cleaning visit,Facility services,17.0,1286.25,21866.25
+PUR-ORD-2026-00801,Taqa Sahab Services (fictional),2026-08-18,Completed,e016@company.sa,Rebar ton,Building materials,4.0,3030.35,12121.4
+PUR-ORD-2026-00802,Buruj Dana Trading (fictional),2026-07-26,Completed,e014@company.sa,Monitor 27in,IT hardware,20.0,1103.82,22076.4
+PUR-ORD-2026-00803,Buruj Dana Trading (fictional),2026-08-30,Completed,e018@company.sa,Monitor 27in,IT hardware,12.0,1130.05,13560.6
+PUR-ORD-2026-00804,Taqa Rimal Solutions (fictional),2026-08-25,Completed,e032@company.sa,Ready-mix m3,Building materials,79.0,262.02,20699.58
+PUR-ORD-2026-00805,Waha Madar Est. (fictional),2026-08-19,Completed,e014@company.sa,Rebar ton,Building materials,3.0,2954.56,8863.68
+PUR-ORD-2026-00806,Taqa Sahab Services (fictional),2026-09-27,Completed,e025@company.sa,Rebar ton,Building materials,7.0,2906.59,20346.13
+PUR-ORD-2026-00807,Bina Afaq Contracting (fictional),2026-09-16,Completed,e010@company.sa,AC maintenance visit,Facility services,17.0,837.84,14243.28
+PUR-ORD-2026-00808,Rimal Madar Contracting (fictional),2026-08-06,Completed,e011@company.sa,Guard shift,Security services,71.0,453.85,32223.35
+PUR-ORD-2026-00809,Buruj Waha Supplies (fictional),2026-07-15,Completed,e031@company.sa,Staff lunch box,Catering,228.0,32.94,7510.32
+PUR-ORD-2026-00810,Rawabi Masar Trading (fictional),2026-09-14,Completed,e011@company.sa,Cement bag 50kg,Building materials,1981.0,18.91,37460.71
+PUR-ORD-2026-00811,Waha Madar Est. (fictional),2026-08-09,Completed,e005@company.sa,Ready-mix m3,Building materials,113.0,271.09,30633.17
+PUR-ORD-2026-00812,Tamayuz Shams Solutions (fictional),2026-08-10,Completed,e010@company.sa,Ready-mix m3,Building materials,98.0,284.7,27900.6
+PUR-ORD-2026-00813,Noor Masar Contracting (fictional),2026-07-08,Completed,e027@company.sa,Laptop,IT hardware,1.0,4696.61,4696.61
+PUR-ORD-2026-00814,Najd Sahab Contracting (fictional),2026-07-20,Completed,e010@company.sa,Staff lunch box,Catering,1058.0,32.7,34596.6
+PUR-ORD-2026-00815,Rimal Madar Contracting (fictional),2026-08-18,Completed,e016@company.sa,Access card batch,Security services,16.0,1589.78,25436.48
+PUR-ORD-2026-00816,Taqa Rimal Solutions (fictional),2026-08-02,Completed,e011@company.sa,Cement bag 50kg,Building materials,942.0,18.18,17125.56
+PUR-ORD-2026-00817,Najd Madar Supplies (fictional),2026-07-20,Completed,e005@company.sa,AC maintenance visit,Facility services,15.0,925.15,13877.25
+PUR-ORD-2026-00818,Nakheel Qimma Supplies (fictional),2026-08-13,Completed,e004@company.sa,Pest control visit,Facility services,5.0,668.0,3340.0
+PUR-ORD-2026-00819,Buruj Dana Services (fictional),2026-08-23,Completed,e030@company.sa,Laptop,IT hardware,8.0,4373.94,34991.52
+PUR-ORD-2026-00820,Qimma Waha Est. (fictional),2026-07-28,Completed,e010@company.sa,Toner cartridge,Office supplies,9.0,439.99,3959.91
+PUR-ORD-2026-00821,Nakheel Qimma Supplies (fictional),2026-09-08,Completed,e012@company.sa,AC maintenance visit,Facility services,41.0,890.6,36514.6
+PUR-ORD-2026-00822,Rimal Madar Contracting (fictional),2026-09-02,Completed,e011@company.sa,CCTV maintenance,Security services,2.0,2191.84,4383.68
+PUR-ORD-2026-00823,Nakheel Najd Trading (fictional),2026-08-27,Completed,e031@company.sa,Office chair,Office supplies,11.0,781.96,8601.56
+PUR-ORD-2026-00824,Waha Taqa Services (fictional),2026-07-02,Completed,e007@company.sa,Laptop,IT hardware,3.0,4433.08,13299.24
+PUR-ORD-2026-00825,Taqa Rimal Solutions (fictional),2026-08-16,Completed,e018@company.sa,Cement bag 50kg,Building materials,1327.0,19.59,25995.93
+PUR-ORD-2026-00826,Qimma Waha Est. (fictional),2026-08-09,Completed,e014@company.sa,Toner cartridge,Office supplies,91.0,409.0,37219.0
+PUR-ORD-2026-00827,Bina Afaq Contracting (fictional),2026-07-30,Completed,e037@company.sa,AC maintenance visit,Facility services,9.0,924.17,8317.53
+PUR-ORD-2026-00828,Qimma Waha Est. (fictional),2026-09-20,Completed,e012@company.sa,Toner cartridge,Office supplies,19.0,391.8,7444.2
+PUR-ORD-2026-00829,Madar Jazeera Trading (fictional),2026-09-21,Completed,e018@company.sa,Event catering per head,Catering,56.0,148.71,8327.76
+PUR-ORD-2026-00830,Dana Madar Est. (fictional),2026-09-27,Completed,e010@company.sa,Staff lunch box,Catering,736.0,30.4,22374.4
+PUR-ORD-2026-00831,Rimal Madar Contracting (fictional),2026-07-26,Completed,e037@company.sa,Guard shift,Security services,34.0,489.54,16644.36
+PUR-ORD-2026-00832,Rimal Madar Contracting (fictional),2026-08-09,Completed,e031@company.sa,CCTV maintenance,Security services,2.0,2179.12,4358.24
+PUR-ORD-2026-00833,Qimma Waha Est. (fictional),2026-09-28,Completed,e010@company.sa,Toner cartridge,Office supplies,46.0,423.66,19488.36
+PUR-ORD-2026-00834,Jazeera Noor Supplies (fictional),2026-09-07,Completed,e033@company.sa,Pest control visit,Facility services,41.0,668.69,27416.29
+PUR-ORD-2026-00835,Rimal Sahab Supplies (fictional),2026-07-27,Completed,e003@company.sa,Pest control visit,Facility services,42.0,672.62,28250.04
+PUR-ORD-2026-00836,Nakheel Najd Trading (fictional),2026-07-09,Completed,e001@company.sa,Office chair,Office supplies,30.0,781.38,23441.4
+PUR-ORD-2026-00837,Dana Rimal Trading (fictional),2026-08-26,Completed,e029@company.sa,Monitor 27in,IT hardware,28.0,1103.71,30903.88
+PUR-ORD-2026-00838,Taqa Shams Trading (fictional),2026-09-14,Completed,e016@company.sa,Water carton,Catering,2849.0,14.81,42193.69
+PUR-ORD-2026-00839,Buruj Dana Services (fictional),2026-09-30,Completed,e016@company.sa,Network switch,IT hardware,8.0,3855.38,30843.04
+PUR-ORD-2026-00840,Taqa Sahab Services (fictional),2026-07-08,Completed,e025@company.sa,Cement bag 50kg,Building materials,1560.0,19.5,30420.0
+PUR-ORD-2026-00841,Shams Noor Trading (fictional),2026-07-12,Completed,e004@company.sa,Rebar ton,Building materials,3.0,2805.05,8415.15
+PUR-ORD-2026-00842,Shams Madar Contracting (fictional),2026-09-27,Completed,e005@company.sa,Office chair,Office supplies,8.0,818.71,6549.68
+PUR-ORD-2026-00843,Sahab Tamayuz Services (fictional),2026-09-13,Completed,e017@company.sa,A4 paper box,Office supplies,60.0,98.69,5921.4
+PUR-ORD-2026-00844,Taqa Noor Solutions (fictional),2026-08-17,Completed,e003@company.sa,AC maintenance visit,Facility services,26.0,832.68,21649.68
+PUR-ORD-2026-00845,Madar Jazeera Trading (fictional),2026-07-19,Completed,e004@company.sa,Event catering per head,Catering,58.0,144.58,8385.64
+PUR-ORD-2026-00846,Jazeera Qimma Solutions (fictional),2026-07-13,Completed,e025@company.sa,Monitor 27in,IT hardware,23.0,1067.98,24563.54
+PUR-ORD-2026-00847,Jazeera Qimma Solutions (fictional),2026-07-01,Completed,e026@company.sa,Monitor 27in,IT hardware,17.0,1143.86,19445.62
+PUR-ORD-2026-00848,Rimal Qimma Services (fictional),2026-07-02,Completed,e007@company.sa,Water carton,Catering,1367.0,14.72,20122.24
+PUR-ORD-2026-00849,Rimal Madar Contracting (fictional),2026-08-02,Completed,e028@company.sa,CCTV maintenance,Security services,9.0,2069.73,18627.57
+PUR-ORD-2026-00850,Shams Madar Contracting (fictional),2026-09-17,Completed,e037@company.sa,A4 paper box,Office supplies,91.0,93.08,8470.28
+PUR-ORD-2026-00851,Sahab Najd Solutions (fictional),2026-07-28,Completed,e029@company.sa,Cleaning visit,Facility services,17.0,1370.53,23299.01
+PUR-ORD-2026-00852,Najd Madar Supplies (fictional),2026-08-27,Completed,e028@company.sa,Pest control visit,Facility services,4.0,699.82,2799.28
+PUR-ORD-2026-00853,Najd Madar Supplies (fictional),2026-07-30,Completed,e033@company.sa,Cleaning visit,Facility services,6.0,1274.95,7649.7
+PUR-ORD-2026-00854,Rimal Madar Contracting (fictional),2026-08-06,Completed,e030@company.sa,Access card batch,Security services,8.0,1773.26,14186.08
+PUR-ORD-2026-00855,Najd Madar Supplies (fictional),2026-08-09,Completed,e037@company.sa,Pest control visit,Facility services,9.0,693.4,6240.6
+PUR-ORD-2026-00856,Rawabi Masar Trading (fictional),2026-09-22,Completed,e028@company.sa,Ready-mix m3,Building materials,109.0,254.83,27776.47
+PUR-ORD-2026-00857,Waha Taqa Services (fictional),2026-09-27,Completed,e029@company.sa,Laptop,IT hardware,2.0,4604.65,9209.3
+PUR-ORD-2026-00858,Taqa Shams Trading (fictional),2026-09-02,Completed,e027@company.sa,Event catering per head,Catering,270.0,145.85,39379.5
+PUR-ORD-2026-00859,Shams Madar Contracting (fictional),2026-08-20,Completed,e017@company.sa,A4 paper box,Office supplies,272.0,89.49,24341.28
+PUR-ORD-2026-00860,Buruj Dana Trading (fictional),2026-08-03,Completed,e016@company.sa,Monitor 27in,IT hardware,34.0,1218.91,41442.94
+PUR-ORD-2026-00861,Qimma Waha Est. (fictional),2026-08-12,Completed,e001@company.sa,Office chair,Office supplies,11.0,755.02,8305.22
+PUR-ORD-2026-00862,Waha Taqa Services (fictional),2026-09-24,Completed,e025@company.sa,Monitor 27in,IT hardware,5.0,1110.78,5553.9
+PUR-ORD-2026-00863,Nakheel Qimma Supplies (fictional),2026-07-16,Completed,e004@company.sa,AC maintenance visit,Facility services,14.0,892.98,12501.72
+PUR-ORD-2026-00864,Dana Madar Est. (fictional),2026-09-14,Completed,e038@company.sa,Staff lunch box,Catering,814.0,33.56,27317.84
+PUR-ORD-2026-00865,Buruj Noor Solutions (fictional),2026-07-21,Completed,e016@company.sa,Office chair,Office supplies,33.0,808.21,26670.93
+PUR-ORD-2026-00866,Najd Sahab Contracting (fictional),2026-07-06,Completed,e014@company.sa,Water carton,Catering,1041.0,14.97,15583.77
+PUR-ORD-2026-00867,Taqa Shams Trading (fictional),2026-09-16,Completed,e011@company.sa,Water carton,Catering,2696.0,14.95,40305.2
+PUR-ORD-2026-00868,Rawabi Masar Trading (fictional),2026-08-17,Completed,e012@company.sa,Rebar ton,Building materials,10.0,3028.14,30281.4
+PUR-ORD-2026-00869,Sahab Najd Solutions (fictional),2026-08-13,Completed,e035@company.sa,Pest control visit,Facility services,14.0,634.86,8888.04
+PUR-ORD-2026-00870,Rimal Madar Contracting (fictional),2026-07-14,Completed,e017@company.sa,CCTV maintenance,Security services,14.0,2259.08,31627.12
+PUR-ORD-2026-00871,Taqa Sahab Services (fictional),2026-09-13,Completed,e030@company.sa,Cement bag 50kg,Building materials,262.0,18.19,4765.78
+PUR-ORD-2026-00872,Wadi Dana Solutions (fictional),2026-07-30,Completed,e028@company.sa,Staff lunch box,Catering,212.0,30.22,6406.64
+PUR-ORD-2026-00873,Sahab Tamayuz Services (fictional),2026-08-24,Completed,e002@company.sa,Toner cartridge,Office supplies,11.0,402.8,4430.8
+PUR-ORD-2026-00874,Waha Madar Est. (fictional),2026-09-16,Completed,e031@company.sa,Cement bag 50kg,Building materials,1078.0,18.11,19522.58
+PUR-ORD-2026-00875,Noor Najd Trading (fictional),2026-09-14,Completed,e016@company.sa,Cement bag 50kg,Building materials,936.0,19.47,18223.92
+PUR-ORD-2026-00876,Najd Najd Contracting (fictional),2026-09-14,Completed,e003@company.sa,Office chair,Office supplies,26.0,817.01,21242.26
+PUR-ORD-2026-00877,Wadi Dana Solutions (fictional),2026-09-15,Completed,e018@company.sa,Event catering per head,Catering,239.0,141.82,33894.98
+PUR-ORD-2026-00878,Shams Madar Contracting (fictional),2026-08-19,Completed,e005@company.sa,Toner cartridge,Office supplies,64.0,449.74,28783.36
+PUR-ORD-2026-00879,Rimal Madar Contracting (fictional),2026-09-29,Completed,e017@company.sa,CCTV maintenance,Security services,1.0,2304.57,2304.57
+PUR-ORD-2026-00880,Sahab Tamayuz Services (fictional),2026-09-08,Completed,e003@company.sa,Toner cartridge,Office supplies,84.0,425.24,35720.16
+PUR-ORD-2026-00881,Jazeera Noor Supplies (fictional),2026-09-08,Completed,e025@company.sa,Pest control visit,Facility services,12.0,618.08,7416.96
+PUR-ORD-2026-00882,Sarh Noor Services (fictional),2026-09-09,Completed,e009@company.sa,Cleaning visit,Facility services,3.0,1455.98,4367.94
+PUR-ORD-2026-00883,Rimal Qimma Services (fictional),2026-08-04,Completed,e033@company.sa,Event catering per head,Catering,36.0,147.05,5293.8
+PUR-ORD-2026-00884,Waha Taqa Services (fictional),2026-09-24,Completed,e012@company.sa,Network switch,IT hardware,4.0,4181.83,16727.32
+PUR-ORD-2026-00885,Noor Masar Contracting (fictional),2026-09-03,Completed,e001@company.sa,Monitor 27in,IT hardware,1.0,1165.68,1165.68
+PUR-ORD-2026-00886,Qimma Waha Est. (fictional),2026-09-13,Completed,e001@company.sa,Toner cartridge,Office supplies,27.0,403.29,10888.83
+PUR-ORD-2026-00887,Masar Wadi Services (fictional),2026-07-29,Completed,e029@company.sa,Pest control visit,Facility services,12.0,656.01,7872.12
+PUR-ORD-2026-00888,Buruj Dana Trading (fictional),2026-07-30,Completed,e028@company.sa,Monitor 27in,IT hardware,19.0,1095.66,20817.54
+PUR-ORD-2026-00889,Bina Rawabi Est. (fictional),2026-09-06,Completed,e030@company.sa,Laptop,IT hardware,6.0,4835.62,29013.72
+PUR-ORD-2026-00890,Shams Madar Contracting (fictional),2026-08-24,Completed,e011@company.sa,Office chair,Office supplies,2.0,819.43,1638.86
+PUR-ORD-2026-00891,Taqa Rimal Solutions (fictional),2026-09-16,Completed,e009@company.sa,Cement bag 50kg,Building materials,1047.0,17.72,18552.84
+PUR-ORD-2026-00892,Buruj Waha Supplies (fictional),2026-07-30,Completed,e009@company.sa,Event catering per head,Catering,257.0,134.35,34527.95
+PUR-ORD-2026-00893,Taqa Noor Solutions (fictional),2026-07-19,Completed,e005@company.sa,AC maintenance visit,Facility services,36.0,884.06,31826.16
+PUR-ORD-2026-00894,Sahab Sarh Est. (fictional),2026-07-27,Completed,e011@company.sa,Office chair,Office supplies,43.0,767.3,32993.9
+PUR-ORD-2026-00895,Shams Noor Trading (fictional),2026-08-27,Completed,e001@company.sa,Ready-mix m3,Building materials,67.0,266.56,17859.52
+PUR-ORD-2026-00896,Jazeera Noor Supplies (fictional),2026-08-04,Completed,e018@company.sa,Pest control visit,Facility services,37.0,676.22,25020.14
+PUR-ORD-2026-00897,Nakheel Qimma Supplies (fictional),2026-09-15,Completed,e033@company.sa,Pest control visit,Facility services,23.0,616.39,14176.97
+PUR-ORD-2026-00898,Rimal Qimma Services (fictional),2026-07-26,Completed,e028@company.sa,Staff lunch box,Catering,1153.0,29.99,34578.47
+PUR-ORD-2026-00899,Waha Taqa Services (fictional),2026-09-30,Completed,e025@company.sa,Network switch,IT hardware,5.0,3775.44,18877.2
+PUR-ORD-2026-00900,Wadi Dana Solutions (fictional),2026-07-20,Completed,e002@company.sa,Staff lunch box,Catering,87.0,31.94,2778.78
+PUR-ORD-2026-00901,Sarh Rimal Trading (fictional),2026-08-20,Completed,e018@company.sa,Toner cartridge,Office supplies,17.0,451.91,7682.47
+PUR-ORD-2026-00902,Rimal Madar Contracting (fictional),2026-07-02,Completed,e031@company.sa,Access card batch,Security services,1.0,1761.51,1761.51
+PUR-ORD-2026-00903,Rimal Madar Contracting (fictional),2026-07-08,Completed,e033@company.sa,CCTV maintenance,Security services,11.0,2074.12,22815.32
+PUR-ORD-2026-00904,Najd Najd Contracting (fictional),2026-07-16,Completed,e018@company.sa,Toner cartridge,Office supplies,49.0,397.23,19464.27
+PUR-ORD-2026-00905,Sarh Rimal Trading (fictional),2026-09-23,Completed,e004@company.sa,Office chair,Office supplies,28.0,793.59,22220.52
+PUR-ORD-2026-00906,Dana Rimal Trading (fictional),2026-08-05,Completed,e030@company.sa,Monitor 27in,IT hardware,11.0,1100.86,12109.46
+PUR-ORD-2026-00907,Buruj Waha Supplies (fictional),2026-07-20,Completed,e018@company.sa,Event catering per head,Catering,73.0,135.14,9865.22
+PUR-ORD-2026-00908,Masar Wadi Services (fictional),2026-08-23,Completed,e001@company.sa,AC maintenance visit,Facility services,23.0,899.71,20693.33
+PUR-ORD-2026-00909,Sarh Rimal Trading (fictional),2026-07-14,Completed,e017@company.sa,Toner cartridge,Office supplies,28.0,447.15,12520.2
+PUR-ORD-2026-00910,Qimma Waha Est. (fictional),2026-08-30,Completed,e009@company.sa,Toner cartridge,Office supplies,25.0,432.75,10818.75
+PUR-ORD-2026-00911,Rimal Madar Contracting (fictional),2026-07-07,Completed,e031@company.sa,Access card batch,Security services,19.0,1708.06,32453.14
+PUR-ORD-2026-00912,Taqa Noor Solutions (fictional),2026-09-15,Completed,e033@company.sa,AC maintenance visit,Facility services,44.0,889.93,39156.92
+PUR-ORD-2026-00913,Rimal Madar Contracting (fictional),2026-08-20,Completed,e012@company.sa,Guard shift,Security services,69.0,463.44,31977.36
+PUR-ORD-2026-00914,Madar Jazeera Trading (fictional),2026-09-30,Completed,e025@company.sa,Event catering per head,Catering,75.0,136.19,10214.25
+PUR-ORD-2026-00915,Qimma Waha Est. (fictional),2026-08-19,Completed,e033@company.sa,Office chair,Office supplies,10.0,827.89,8278.9
+PUR-ORD-2026-00916,Buruj Dana Trading (fictional),2026-09-20,Completed,e014@company.sa,Laptop,IT hardware,1.0,4861.64,4861.64
+PUR-ORD-2026-00917,Madar Jazeera Trading (fictional),2026-07-05,Completed,e009@company.sa,Staff lunch box,Catering,148.0,32.14,4756.72
+PUR-ORD-2026-00918,Dana Rimal Trading (fictional),2026-08-04,Completed,e010@company.sa,Network switch,IT hardware,2.0,3647.15,7294.3
+PUR-ORD-2026-00919,Taqa Rimal Solutions (fictional),2026-07-16,Completed,e007@company.sa,Ready-mix m3,Building materials,17.0,271.2,4610.4
+PUR-ORD-2026-00920,Tamayuz Jazeera Trading (fictional),2026-09-08,Completed,e012@company.sa,Network switch,IT hardware,5.0,3729.46,18647.3
+PUR-ORD-2026-00921,Buruj Noor Solutions (fictional),2026-08-03,Completed,e007@company.sa,Toner cartridge,Office supplies,65.0,436.32,28360.8
+PUR-ORD-2026-00922,Madar Jazeera Trading (fictional),2026-09-06,Completed,e030@company.sa,Event catering per head,Catering,187.0,149.02,27866.74
+PUR-ORD-2026-00923,Buruj Noor Solutions (fictional),2026-07-09,Completed,e028@company.sa,Toner cartridge,Office supplies,6.0,448.36,2690.16
+PUR-ORD-2026-00924,Rimal Madar Contracting (fictional),2026-07-27,Completed,e009@company.sa,Guard shift,Security services,63.0,496.9,31304.7
+PUR-ORD-2026-00925,Qimma Waha Est. (fictional),2026-07-16,Completed,e016@company.sa,A4 paper box,Office supplies,144.0,94.56,13616.64
+PUR-ORD-2026-00926,Tamayuz Bina Trading (fictional),2026-09-27,Completed,e014@company.sa,Cement bag 50kg,Building materials,1718.0,18.98,32607.64
+PUR-ORD-2026-00927,Noor Najd Trading (fictional),2026-08-20,Completed,e007@company.sa,Ready-mix m3,Building materials,39.0,263.81,10288.59
+PUR-ORD-2026-00928,Nakheel Qimma Supplies (fictional),2026-07-05,Completed,e011@company.sa,AC maintenance visit,Facility services,3.0,830.39,2491.17
+PUR-ORD-2026-00929,Wadi Dana Solutions (fictional),2026-09-14,Completed,e005@company.sa,Staff lunch box,Catering,672.0,30.06,20200.32
+PUR-ORD-2026-00930,Jazeera Qimma Solutions (fictional),2026-09-10,Completed,e027@company.sa,Laptop,IT hardware,2.0,4268.87,8537.74
+PUR-ORD-2026-00931,Shams Noor Trading (fictional),2026-08-03,Completed,e025@company.sa,Ready-mix m3,Building materials,102.0,279.92,28551.84
+PUR-ORD-2026-00932,Waha Madar Est. (fictional),2026-07-12,Completed,e026@company.sa,Rebar ton,Building materials,13.0,2844.74,36981.62
+PUR-ORD-2026-00933,Taqa Sahab Services (fictional),2026-07-06,Completed,e028@company.sa,Rebar ton,Building materials,13.0,2916.63,37916.19
+PUR-ORD-2026-00934,Waha Taqa Services (fictional),2026-08-10,Completed,e037@company.sa,Network switch,IT hardware,9.0,3638.01,32742.09
+PUR-ORD-2026-00935,Tamayuz Bina Trading (fictional),2026-09-06,Completed,e031@company.sa,Cement bag 50kg,Building materials,1637.0,17.89,29285.93
+PUR-ORD-2026-00936,Rimal Sahab Supplies (fictional),2026-07-13,Completed,e037@company.sa,Cleaning visit,Facility services,2.0,1417.71,2835.42
+PUR-ORD-2026-00937,Najd Madar Supplies (fictional),2026-09-21,Completed,e014@company.sa,Pest control visit,Facility services,18.0,687.5,12375.0
+PUR-ORD-2026-00938,Bina Sarh Est. (fictional),2026-08-27,Completed,e012@company.sa,A4 paper box,Office supplies,166.0,99.16,16460.56
+PUR-ORD-2026-00939,Tamayuz Shams Solutions (fictional),2026-09-24,Completed,e016@company.sa,Ready-mix m3,Building materials,49.0,248.93,12197.57
+PUR-ORD-2026-00940,Najd Sahab Contracting (fictional),2026-07-07,Completed,e004@company.sa,Event catering per head,Catering,133.0,155.49,20680.17
+PUR-ORD-2026-00941,Buruj Dana Trading (fictional),2026-07-19,Completed,e007@company.sa,Monitor 27in,IT hardware,2.0,1115.07,2230.14
+PUR-ORD-2026-00942,Rimal Madar Contracting (fictional),2026-07-30,Completed,e010@company.sa,CCTV maintenance,Security services,4.0,2092.86,8371.44
+PUR-ORD-2026-00943,Bina Rawabi Est. (fictional),2026-09-22,Completed,e004@company.sa,Laptop,IT hardware,2.0,4421.31,8842.62
+PUR-ORD-2026-00944,Noor Najd Trading (fictional),2026-08-05,Completed,e007@company.sa,Cement bag 50kg,Building materials,260.0,19.34,5028.4
+PUR-ORD-2026-00945,Jazeera Qimma Solutions (fictional),2026-07-23,Completed,e014@company.sa,Laptop,IT hardware,2.0,4836.64,9673.28
+PUR-ORD-2026-00946,Nakheel Najd Trading (fictional),2026-09-20,Completed,e033@company.sa,Toner cartridge,Office supplies,84.0,401.66,33739.44
+PUR-ORD-2026-00947,Buruj Waha Supplies (fictional),2026-07-20,Completed,e029@company.sa,Water carton,Catering,342.0,14.03,4798.26
+PUR-ORD-2026-00948,Qimma Waha Est. (fictional),2026-07-15,Completed,e029@company.sa,A4 paper box,Office supplies,338.0,92.08,31123.04
+PUR-ORD-2026-00949,Rimal Madar Contracting (fictional),2026-07-01,Completed,e009@company.sa,Access card batch,Security services,22.0,1737.72,38229.84
+PUR-ORD-2026-00950,Shams Bina Solutions (fictional),2026-07-28,Completed,e003@company.sa,Ready-mix m3,Building materials,57.0,246.93,14075.01
+PUR-ORD-2026-00951,Sarh Noor Services (fictional),2026-07-22,Completed,e007@company.sa,Pest control visit,Facility services,29.0,685.97,19893.13
+PUR-ORD-2026-00952,Sahab Tamayuz Services (fictional),2026-09-14,Completed,e033@company.sa,A4 paper box,Office supplies,354.0,101.17,35814.18
+PUR-ORD-2026-00953,Rimal Madar Contracting (fictional),2026-08-19,Completed,e025@company.sa,CCTV maintenance,Security services,13.0,2024.87,26323.31
+PUR-ORD-2026-00954,Rimal Madar Contracting (fictional),2026-07-09,Completed,e001@company.sa,CCTV maintenance,Security services,13.0,2087.4,27136.2
+PUR-ORD-2026-00955,Sarh Noor Services (fictional),2026-08-17,Completed,e018@company.sa,AC maintenance visit,Facility services,28.0,926.14,25931.92
+PUR-ORD-2026-00956,Qimma Waha Est. (fictional),2026-09-30,Completed,e002@company.sa,Toner cartridge,Office supplies,24.0,393.94,9454.56
+PUR-ORD-2026-00957,Rimal Madar Contracting (fictional),2026-07-21,Completed,e035@company.sa,Guard shift,Security services,29.0,465.88,13510.52
+PUR-ORD-2026-00958,Shams Bina Solutions (fictional),2026-07-06,Completed,e027@company.sa,Rebar ton,Building materials,9.0,2839.35,25554.15
+PUR-ORD-2026-00959,Shams Bina Solutions (fictional),2026-07-13,Completed,e035@company.sa,Rebar ton,Building materials,5.0,3004.08,15020.4
+PUR-ORD-2026-00960,Rimal Madar Contracting (fictional),2026-07-30,Completed,e004@company.sa,Access card batch,Security services,15.0,1720.11,25801.65
+PUR-ORD-2026-00961,Qimma Waha Est. (fictional),2026-08-10,Completed,e005@company.sa,A4 paper box,Office supplies,101.0,92.4,9332.4
+PUR-ORD-2026-00962,Rimal Madar Contracting (fictional),2026-09-30,Completed,e027@company.sa,Guard shift,Security services,9.0,476.98,4292.82
+PUR-ORD-2026-00963,Bina Sarh Est. (fictional),2026-09-16,Completed,e002@company.sa,Office chair,Office supplies,32.0,757.45,24238.4
+PUR-ORD-2026-00964,Taqa Sahab Services (fictional),2026-09-22,Completed,e009@company.sa,Rebar ton,Building materials,1.0,3021.91,3021.91
+PUR-ORD-2026-00965,Jazeera Qimma Solutions (fictional),2026-08-10,Completed,e025@company.sa,Network switch,IT hardware,9.0,3670.83,33037.47
+PUR-ORD-2026-00966,Rawabi Masar Trading (fictional),2026-07-30,Completed,e004@company.sa,Ready-mix m3,Building materials,59.0,248.79,14678.61
+PUR-ORD-2026-00967,Dana Rimal Trading (fictional),2026-09-01,Completed,e002@company.sa,Network switch,IT hardware,9.0,3897.71,35079.39
+PUR-ORD-2026-00968,Jazeera Noor Supplies (fictional),2026-09-13,Completed,e030@company.sa,Pest control visit,Facility services,10.0,600.03,6000.3
+PUR-ORD-2026-00969,Rimal Madar Contracting (fictional),2026-09-07,Completed,e003@company.sa,Guard shift,Security services,62.0,468.5,29047.0
+PUR-ORD-2026-00970,Dana Madar Est. (fictional),2026-07-08,Completed,e009@company.sa,Event catering per head,Catering,78.0,149.87,11689.86
+PUR-ORD-2026-00971,Shams Madar Contracting (fictional),2026-09-21,Completed,e001@company.sa,Office chair,Office supplies,18.0,833.2,14997.6
+PUR-ORD-2026-00972,Qimma Waha Est. (fictional),2026-09-14,Completed,e005@company.sa,A4 paper box,Office supplies,101.0,92.41,9333.41
+PUR-ORD-2026-00973,Rimal Madar Contracting (fictional),2026-07-20,Completed,e033@company.sa,Guard shift,Security services,32.0,470.78,15064.96
+PUR-ORD-2026-00974,Tamayuz Jazeera Trading (fictional),2026-07-23,Completed,e001@company.sa,Network switch,IT hardware,5.0,3705.56,18527.8
+PUR-ORD-2026-00975,Madar Jazeera Trading (fictional),2026-09-01,Completed,e035@company.sa,Water carton,Catering,1647.0,13.02,21443.94
+PUR-ORD-2026-00976,Nakheel Sarh Solutions (fictional),2026-08-04,Completed,e017@company.sa,Network switch,IT hardware,1.0,4090.65,4090.65
+PUR-ORD-2026-00977,Rawabi Masar Trading (fictional),2026-08-31,Completed,e029@company.sa,Rebar ton,Building materials,7.0,2695.19,18866.33
+PUR-ORD-2026-00978,Nakheel Qimma Supplies (fictional),2026-08-11,Completed,e032@company.sa,Cleaning visit,Facility services,18.0,1398.59,25174.62
+PUR-ORD-2026-00979,Wadi Dana Solutions (fictional),2026-09-08,Completed,e011@company.sa,Staff lunch box,Catering,594.0,29.65,17612.1
+PUR-ORD-2026-00980,Waha Taqa Services (fictional),2026-08-06,Completed,e032@company.sa,Monitor 27in,IT hardware,13.0,1108.7,14413.1
+PUR-ORD-2026-00981,Dana Rimal Trading (fictional),2026-08-25,Completed,e035@company.sa,Network switch,IT hardware,3.0,3808.12,11424.36
+PUR-ORD-2026-00982,Dana Rimal Trading (fictional),2026-07-19,Completed,e032@company.sa,Monitor 27in,IT hardware,25.0,1210.36,30259.0
+PUR-ORD-2026-00983,Bina Taqa Est. (fictional),2026-09-14,Completed,e033@company.sa,Water carton,Catering,2066.0,15.02,31031.32
+PUR-ORD-2026-00984,Sarh Noor Services (fictional),2026-07-27,Completed,e028@company.sa,Cleaning visit,Facility services,8.0,1339.35,10714.8
+PUR-ORD-2026-00985,Shams Madar Contracting (fictional),2026-09-02,Completed,e004@company.sa,Toner cartridge,Office supplies,71.0,438.11,31105.81
+PUR-ORD-2026-00986,Nakheel Sarh Solutions (fictional),2026-07-20,Completed,e002@company.sa,Network switch,IT hardware,1.0,4201.25,4201.25
+PUR-ORD-2026-00987,Rimal Madar Contracting (fictional),2026-09-30,Completed,e025@company.sa,Access card batch,Security services,4.0,1657.73,6630.92
+PUR-ORD-2026-00988,Nakheel Sarh Solutions (fictional),2026-08-23,Completed,e029@company.sa,Monitor 27in,IT hardware,11.0,1149.7,12646.7
+PUR-ORD-2026-00989,Rimal Madar Contracting (fictional),2026-07-27,Completed,e004@company.sa,Guard shift,Security services,8.0,467.09,3736.72
+PUR-ORD-2026-00990,Dana Rimal Trading (fictional),2026-07-02,Completed,e028@company.sa,Laptop,IT hardware,7.0,4264.92,29854.44
+PUR-ORD-2026-00991,Rawabi Masar Trading (fictional),2026-07-15,Completed,e032@company.sa,Ready-mix m3,Building materials,68.0,284.88,19371.84
+PUR-ORD-2026-00992,Sahab Sarh Est. (fictional),2026-07-15,Completed,e026@company.sa,Toner cartridge,Office supplies,93.0,445.24,41407.32
+PUR-ORD-2026-00993,Dana Madar Est. (fictional),2026-09-02,Completed,e011@company.sa,Event catering per head,Catering,154.0,136.06,20953.24
+PUR-ORD-2026-00994,Sarh Rimal Trading (fictional),2026-09-07,Completed,e028@company.sa,Office chair,Office supplies,44.0,824.66,36285.04
+PUR-ORD-2026-00995,Dana Rimal Trading (fictional),2026-08-27,Completed,e032@company.sa,Network switch,IT hardware,2.0,3941.8,7883.6
+PUR-ORD-2026-00996,Dana Rimal Trading (fictional),2026-08-31,Completed,e002@company.sa,Monitor 27in,IT hardware,17.0,1136.12,19314.04
+PUR-ORD-2026-00997,Rimal Madar Contracting (fictional),2026-07-13,Completed,e026@company.sa,CCTV maintenance,Security services,12.0,2315.75,27789.0
+PUR-ORD-2026-00998,Jazeera Noor Supplies (fictional),2026-09-02,Completed,e025@company.sa,Cleaning visit,Facility services,22.0,1245.56,27402.32
+PUR-ORD-2026-00999,Madar Jazeera Trading (fictional),2026-09-23,Completed,e014@company.sa,Water carton,Catering,579.0,14.63,8470.77
+PUR-ORD-2026-01000,Rawabi Masar Trading (fictional),2026-09-16,Completed,e026@company.sa,Ready-mix m3,Building materials,47.0,247.89,11650.83
+PUR-ORD-2026-01001,Wadi Dana Solutions (fictional),2026-09-06,Completed,e018@company.sa,Event catering per head,Catering,146.0,152.79,22307.34
+PUR-ORD-2026-01002,Wadi Dana Solutions (fictional),2026-07-07,Completed,e038@company.sa,Event catering per head,Catering,229.0,138.59,31737.11
+PUR-ORD-2026-01003,Nakheel Najd Trading (fictional),2026-08-17,Completed,e038@company.sa,Office chair,Office supplies,12.0,727.14,8725.68
+PUR-ORD-2026-01004,Rimal Madar Contracting (fictional),2026-09-14,Completed,e012@company.sa,Access card batch,Security services,10.0,1763.84,17638.4
+PUR-ORD-2026-01005,Waha Taqa Services (fictional),2026-09-27,Completed,e014@company.sa,Network switch,IT hardware,4.0,4063.62,16254.48
+PUR-ORD-2026-01006,Bina Rawabi Est. (fictional),2026-09-09,Completed,e033@company.sa,Monitor 27in,IT hardware,22.0,1224.37,26936.14
+PUR-ORD-2026-01007,Sarh Rimal Trading (fictional),2026-09-06,Completed,e033@company.sa,A4 paper box,Office supplies,295.0,92.52,27293.4
+PUR-ORD-2026-01008,Nakheel Najd Trading (fictional),2026-07-26,Completed,e014@company.sa,A4 paper box,Office supplies,206.0,94.85,19539.1
+PUR-ORD-2026-01009,Rimal Madar Contracting (fictional),2026-08-18,Completed,e009@company.sa,Guard shift,Security services,75.0,514.31,38573.25
+PUR-ORD-2026-01010,Rimal Madar Contracting (fictional),2026-08-23,Completed,e004@company.sa,Guard shift,Security services,41.0,466.87,19141.67
+PUR-ORD-2026-01011,Rawabi Masar Trading (fictional),2026-08-11,Completed,e027@company.sa,Rebar ton,Building materials,6.0,2927.64,17565.84
+PUR-ORD-2026-01012,Waha Madar Est. (fictional),2026-09-03,Completed,e004@company.sa,Ready-mix m3,Building materials,100.0,275.09,27509.0
+PUR-ORD-2026-01013,Buruj Dana Services (fictional),2026-08-06,Completed,e028@company.sa,Monitor 27in,IT hardware,1.0,1065.73,1065.73
+PUR-ORD-2026-01014,Rimal Sahab Supplies (fictional),2026-07-13,Completed,e007@company.sa,AC maintenance visit,Facility services,19.0,882.45,16766.55
+PUR-ORD-2026-01015,Sahab Tamayuz Services (fictional),2026-08-05,Completed,e026@company.sa,Toner cartridge,Office supplies,13.0,443.58,5766.54
+PUR-ORD-2026-01016,Rawabi Masar Trading (fictional),2026-07-22,Completed,e001@company.sa,Cement bag 50kg,Building materials,279.0,18.02,5027.58
+PUR-ORD-2026-01017,Taqa Shams Trading (fictional),2026-08-24,Completed,e005@company.sa,Staff lunch box,Catering,418.0,32.73,13681.14
+PUR-ORD-2026-01018,Waha Madar Est. (fictional),2026-08-11,Completed,e025@company.sa,Ready-mix m3,Building materials,62.0,264.8,16417.6
+PUR-ORD-2026-01019,Rimal Madar Contracting (fictional),2026-08-17,Completed,e033@company.sa,Guard shift,Security services,53.0,456.35,24186.55
+PUR-ORD-2026-01020,Tamayuz Shams Solutions (fictional),2026-07-21,Completed,e011@company.sa,Ready-mix m3,Building materials,112.0,249.52,27946.24
+PUR-ORD-2026-01021,Rimal Madar Contracting (fictional),2026-08-23,Completed,e025@company.sa,Guard shift,Security services,52.0,478.27,24870.04
+PUR-ORD-2026-01022,Dana Madar Est. (fictional),2026-08-11,Completed,e037@company.sa,Staff lunch box,Catering,129.0,34.12,4401.48
+PUR-ORD-2026-01023,Nakheel Qimma Supplies (fictional),2026-07-16,Completed,e027@company.sa,AC maintenance visit,Facility services,23.0,903.15,20772.45
+PUR-ORD-2026-01024,Rimal Madar Contracting (fictional),2026-07-22,Completed,e011@company.sa,Access card batch,Security services,7.0,1705.77,11940.39
+PUR-ORD-2026-01025,Dana Rimal Trading (fictional),2026-08-04,Completed,e017@company.sa,Laptop,IT hardware,1.0,4372.32,4372.32
+PUR-ORD-2026-01026,Madar Jazeera Trading (fictional),2026-08-25,Completed,e007@company.sa,Water carton,Catering,730.0,13.2,9636.0
+PUR-ORD-2026-01027,Rimal Madar Contracting (fictional),2026-08-18,Completed,e037@company.sa,Guard shift,Security services,74.0,457.71,33870.54
+PUR-ORD-2026-01028,Waha Taqa Services (fictional),2026-09-29,Completed,e027@company.sa,Monitor 27in,IT hardware,19.0,1114.28,21171.32
+PUR-ORD-2026-01029,Taqa Rimal Solutions (fictional),2026-09-02,Completed,e003@company.sa,Rebar ton,Building materials,10.0,2627.35,26273.5
+PUR-ORD-2026-01030,Sahab Tamayuz Services (fictional),2026-07-22,Completed,e002@company.sa,Toner cartridge,Office supplies,88.0,452.66,39834.08
+PUR-ORD-2026-01031,Sarh Qimma Services (fictional),2026-09-06,Completed,e025@company.sa,Event catering per head,Catering,86.0,145.95,12551.7
+PUR-ORD-2026-01032,Shams Madar Contracting (fictional),2026-07-21,Completed,e003@company.sa,Toner cartridge,Office supplies,12.0,386.76,4641.12
+PUR-ORD-2026-01033,Masar Wadi Services (fictional),2026-09-29,Completed,e009@company.sa,Pest control visit,Facility services,32.0,695.99,22271.68
+PUR-ORD-2026-01034,Buruj Waha Supplies (fictional),2026-08-12,Completed,e007@company.sa,Staff lunch box,Catering,592.0,33.02,19547.84
+PUR-ORD-2026-01035,Taqa Rimal Solutions (fictional),2026-09-28,Completed,e025@company.sa,Rebar ton,Building materials,2.0,2945.55,5891.1
+PUR-ORD-2026-01036,Nakheel Sarh Solutions (fictional),2026-08-24,Completed,e002@company.sa,Monitor 27in,IT hardware,6.0,1103.74,6622.44
+PUR-ORD-2026-01037,Qimma Waha Est. (fictional),2026-07-13,Completed,e005@company.sa,A4 paper box,Office supplies,136.0,94.17,12807.12
+PUR-ORD-2026-01038,Nakheel Najd Trading (fictional),2026-07-06,Completed,e028@company.sa,A4 paper box,Office supplies,42.0,100.34,4214.28
+PUR-ORD-2026-01039,Sarh Qimma Services (fictional),2026-07-05,Completed,e009@company.sa,Event catering per head,Catering,246.0,140.06,34454.76
+PUR-ORD-2026-01040,Taqa Rimal Solutions (fictional),2026-08-13,Completed,e033@company.sa,Ready-mix m3,Building materials,43.0,266.19,11446.17
+PUR-ORD-2026-01041,Sahab Tamayuz Services (fictional),2026-07-30,Completed,e035@company.sa,Office chair,Office supplies,37.0,745.07,27567.59
+PUR-ORD-2026-01042,Bina Taqa Est. (fictional),2026-07-09,Completed,e016@company.sa,Event catering per head,Catering,195.0,142.16,27721.2
+PUR-ORD-2026-01043,Taqa Rimal Solutions (fictional),2026-08-18,Completed,e028@company.sa,Cement bag 50kg,Building materials,477.0,18.57,8857.89
+PUR-ORD-2026-01044,Jazeera Qimma Solutions (fictional),2026-08-18,Completed,e005@company.sa,Laptop,IT hardware,1.0,4639.59,4639.59
+PUR-ORD-2026-01045,Waha Madar Est. (fictional),2026-08-10,Completed,e012@company.sa,Rebar ton,Building materials,6.0,2854.39,17126.34
+PUR-ORD-2026-01046,Noor Masar Contracting (fictional),2026-07-16,Completed,e007@company.sa,Laptop,IT hardware,5.0,4346.34,21731.7
+PUR-ORD-2026-01047,Rimal Madar Contracting (fictional),2026-09-21,Completed,e004@company.sa,Guard shift,Security services,32.0,480.1,15363.2
+PUR-ORD-2026-01048,Buruj Dana Services (fictional),2026-09-16,Completed,e029@company.sa,Laptop,IT hardware,1.0,4409.89,4409.89
+PUR-ORD-2026-01049,Taqa Shams Trading (fictional),2026-07-12,Completed,e004@company.sa,Water carton,Catering,160.0,13.73,2196.8
+PUR-ORD-2026-01050,Najd Sahab Contracting (fictional),2026-08-13,Completed,e025@company.sa,Water carton,Catering,1942.0,13.19,25614.98
+PUR-ORD-2026-01051,Rimal Madar Contracting (fictional),2026-07-15,Completed,e001@company.sa,CCTV maintenance,Security services,14.0,2193.79,30713.06
+PUR-ORD-2026-01052,Rimal Madar Contracting (fictional),2026-08-23,Completed,e038@company.sa,Guard shift,Security services,58.0,504.28,29248.24
+PUR-ORD-2026-01053,Rimal Sahab Supplies (fictional),2026-09-07,Completed,e012@company.sa,AC maintenance visit,Facility services,40.0,870.36,34814.4
+PUR-ORD-2026-01054,Taqa Sahab Services (fictional),2026-07-29,Completed,e001@company.sa,Rebar ton,Building materials,10.0,2921.66,29216.6
+PUR-ORD-2026-01055,Dana Rimal Trading (fictional),2026-09-24,Completed,e012@company.sa,Network switch,IT hardware,1.0,3857.63,3857.63
+PUR-ORD-2026-01056,Rimal Madar Contracting (fictional),2026-07-28,Completed,e010@company.sa,Guard shift,Security services,48.0,482.82,23175.36
+PUR-ORD-2026-01057,Sarh Qimma Services (fictional),2026-08-18,Completed,e003@company.sa,Event catering per head,Catering,141.0,137.06,19325.46
+PUR-ORD-2026-01058,Jazeera Noor Supplies (fictional),2026-08-25,Completed,e038@company.sa,Cleaning visit,Facility services,13.0,1375.24,17878.12
+PUR-ORD-2026-01059,Rawabi Masar Trading (fictional),2026-08-24,Completed,e038@company.sa,Ready-mix m3,Building materials,62.0,256.03,15873.86
+PUR-ORD-2026-01060,Tamayuz Jazeera Trading (fictional),2026-09-24,Completed,e004@company.sa,Network switch,IT hardware,4.0,3784.96,15139.84
+PUR-ORD-2026-01061,Sahab Tamayuz Services (fictional),2026-08-13,Completed,e012@company.sa,Office chair,Office supplies,37.0,798.9,29559.3
+PUR-ORD-2026-01062,Nakheel Qimma Supplies (fictional),2026-08-31,Completed,e027@company.sa,AC maintenance visit,Facility services,4.0,923.2,3692.8
+PUR-ORD-2026-01063,Rimal Madar Contracting (fictional),2026-09-09,Completed,e010@company.sa,CCTV maintenance,Security services,9.0,2160.03,19440.27
+PUR-ORD-2026-01064,Shams Bina Solutions (fictional),2026-07-22,Completed,e032@company.sa,Ready-mix m3,Building materials,112.0,251.64,28183.68
+PUR-ORD-2026-01065,Noor Najd Trading (fictional),2026-08-20,Completed,e025@company.sa,Cement bag 50kg,Building materials,728.0,17.72,12900.16
+PUR-ORD-2026-01066,Waha Madar Est. (fictional),2026-08-05,Completed,e007@company.sa,Cement bag 50kg,Building materials,1066.0,18.98,20232.68
+PUR-ORD-2026-01067,Nakheel Najd Trading (fictional),2026-07-22,Completed,e038@company.sa,Office chair,Office supplies,21.0,789.63,16582.23
+PUR-ORD-2026-01068,Shams Noor Trading (fictional),2026-09-15,Completed,e001@company.sa,Ready-mix m3,Building materials,109.0,286.18,31193.62
+PUR-ORD-2026-01069,Rawabi Masar Trading (fictional),2026-07-09,Completed,e004@company.sa,Cement bag 50kg,Building materials,161.0,19.81,3189.41
+PUR-ORD-2026-01070,Qimma Waha Est. (fictional),2026-09-15,Completed,e011@company.sa,Office chair,Office supplies,9.0,795.82,7162.38
+PUR-ORD-2026-01071,Taqa Shams Trading (fictional),2026-09-13,Completed,e002@company.sa,Staff lunch box,Catering,397.0,33.35,13239.95
+PUR-ORD-2026-01072,Sarh Qimma Services (fictional),2026-09-08,Completed,e002@company.sa,Staff lunch box,Catering,409.0,32.19,13165.71
+PUR-ORD-2026-01073,Rimal Madar Contracting (fictional),2026-09-15,Completed,e003@company.sa,CCTV maintenance,Security services,5.0,2170.76,10853.8
+PUR-ORD-2026-01074,Sahab Tamayuz Services (fictional),2026-08-27,Completed,e032@company.sa,A4 paper box,Office supplies,376.0,88.71,33354.96
+PUR-ORD-2026-01075,Madar Jazeera Trading (fictional),2026-07-05,Completed,e025@company.sa,Staff lunch box,Catering,349.0,34.19,11932.31
+PUR-ORD-2026-01076,Bina Sarh Est. (fictional),2026-09-24,Completed,e010@company.sa,Toner cartridge,Office supplies,11.0,448.53,4933.83
+PUR-ORD-2026-01077,Tamayuz Shams Solutions (fictional),2026-07-15,Completed,e002@company.sa,Rebar ton,Building materials,13.0,2805.8,36475.4
+PUR-ORD-2026-01078,Sahab Tamayuz Services (fictional),2026-07-21,Completed,e001@company.sa,Toner cartridge,Office supplies,66.0,411.86,27182.76
+PUR-ORD-2026-01079,Jazeera Noor Supplies (fictional),2026-09-01,Completed,e010@company.sa,AC maintenance visit,Facility services,20.0,872.6,17452.0
+PUR-ORD-2026-01080,Taqa Shams Trading (fictional),2026-07-02,Completed,e005@company.sa,Event catering per head,Catering,224.0,147.85,33118.4
+PUR-ORD-2026-01081,Rimal Madar Contracting (fictional),2026-08-23,Completed,e038@company.sa,Guard shift,Security services,3.0,442.17,1326.51
+PUR-ORD-2026-01082,Tamayuz Bina Trading (fictional),2026-07-22,Completed,e029@company.sa,Cement bag 50kg,Building materials,1718.0,17.93,30803.74
+PUR-ORD-2026-01083,Rimal Madar Contracting (fictional),2026-09-21,Completed,e002@company.sa,Guard shift,Security services,48.0,480.84,23080.32
+PUR-ORD-2026-01084,Bina Taqa Est. (fictional),2026-08-03,Completed,e009@company.sa,Staff lunch box,Catering,495.0,34.03,16844.85
+PUR-ORD-2026-01085,Najd Sahab Contracting (fictional),2026-08-13,Completed,e003@company.sa,Staff lunch box,Catering,1225.0,32.82,40204.5
+PUR-ORD-2026-01086,Jazeera Noor Supplies (fictional),2026-09-16,Completed,e012@company.sa,Pest control visit,Facility services,18.0,644.3,11597.4
+PUR-ORD-2026-01087,Madar Jazeera Trading (fictional),2026-08-10,Completed,e005@company.sa,Staff lunch box,Catering,1084.0,33.54,36357.36
+PUR-ORD-2026-01088,Noor Masar Contracting (fictional),2026-07-26,Completed,e032@company.sa,Network switch,IT hardware,4.0,3972.69,15890.76
+PUR-ORD-2026-01089,Rimal Madar Contracting (fictional),2026-09-27,Completed,e016@company.sa,Guard shift,Security services,60.0,442.21,26532.6
+PUR-ORD-2026-01090,Tamayuz Shams Solutions (fictional),2026-08-20,Completed,e004@company.sa,Ready-mix m3,Building materials,24.0,285.65,6855.6
+PUR-ORD-2026-01091,Dana Rimal Trading (fictional),2026-08-05,Completed,e033@company.sa,Network switch,IT hardware,6.0,3610.67,21664.02
+PUR-ORD-2026-01092,Taqa Rimal Solutions (fictional),2026-07-14,Completed,e011@company.sa,Cement bag 50kg,Building materials,735.0,17.5,12862.5
+PUR-ORD-2026-01093,Taqa Sahab Services (fictional),2026-08-12,Completed,e038@company.sa,Rebar ton,Building materials,4.0,3055.64,12222.56
+PUR-ORD-2026-01094,Rimal Madar Contracting (fictional),2026-08-23,Completed,e038@company.sa,Access card batch,Security services,10.0,1673.56,16735.6
+PUR-ORD-2026-01095,Sarh Noor Services (fictional),2026-07-16,Completed,e033@company.sa,AC maintenance visit,Facility services,25.0,846.98,21174.5
+PUR-ORD-2026-01096,Bina Afaq Contracting (fictional),2026-09-07,Completed,e029@company.sa,Cleaning visit,Facility services,4.0,1327.31,5309.24
+PUR-ORD-2026-01097,Bina Afaq Contracting (fictional),2026-08-31,Completed,e010@company.sa,Pest control visit,Facility services,45.0,631.76,28429.2
+PUR-ORD-2026-01098,Buruj Dana Trading (fictional),2026-09-20,Completed,e026@company.sa,Laptop,IT hardware,5.0,4403.0,22015.0
+PUR-ORD-2026-01099,Najd Sahab Contracting (fictional),2026-09-24,Completed,e037@company.sa,Event catering per head,Catering,32.0,142.35,4555.2
+PUR-ORD-2026-01100,Masar Wadi Services (fictional),2026-08-11,Completed,e010@company.sa,Cleaning visit,Facility services,22.0,1400.09,30801.98
+PUR-ORD-2026-01101,Nakheel Najd Trading (fictional),2026-07-22,Completed,e017@company.sa,A4 paper box,Office supplies,463.0,100.62,46587.06
+PUR-ORD-2026-01102,Nakheel Najd Trading (fictional),2026-07-26,Completed,e017@company.sa,A4 paper box,Office supplies,491.0,97.91,48073.81
+PUR-ORD-2026-01103,Nakheel Najd Trading (fictional),2026-07-26,Completed,e017@company.sa,A4 paper box,Office supplies,513.0,88.9,45605.7
+PUR-ORD-2026-01104,Waha Madar Est. (fictional),2026-09-16,Completed,e025@company.sa,Cement bag 50kg,Building materials,482.0,18.35,8844.7
+PUR-ORD-2026-01105,Waha Madar Est. (fictional),2026-09-20,Completed,e025@company.sa,Cement bag 50kg,Building materials,444.0,20.43,9070.92
+PUR-ORD-2026-01106,Waha Madar Est. (fictional),2026-09-20,Completed,e025@company.sa,Cement bag 50kg,Building materials,458.0,19.87,9100.46
+PUR-ORD-2026-01107,Taqa Quick Est. (fictional),2026-08-03,Completed,e017@company.sa,Laptop,IT hardware,1.0,4925.78,4925.78
+PUR-ORD-2026-01108,Dana Quick Contracting (fictional),2026-08-17,Completed,e018@company.sa,Cleaning visit,Facility services,23.0,1442.28,33172.44
+PUR-ORD-2026-01109,Bina Taqa Est. (fictional),2026-07-30,Completed,e035@company.sa,Event catering per head,Catering,233.0,342.19,79730.27
+PUR-ORD-2026-01110,Bina Taqa Est. (fictional),2026-09-13,Completed,e035@company.sa,Event catering per head,Catering,22.0,265.19,5834.18
+PUR-ORD-2026-01111,Rimal Qimma Services (fictional),2026-09-08,Completed,e032@company.sa,Water carton,Catering,2676.0,24.95,66766.2
+PUR-ORD-2026-01112,Najd Sahab Contracting (fictional),2026-08-17,Completed,e029@company.sa,Event catering per head,Catering,216.0,288.67,62352.72
+PUR-ORD-2026-01113,Shams Noor Trading (fictional),2026-08-04,Completed,e010@company.sa,Cement bag 50kg,Building materials,84.0,32.31,2714.04
+PUR-ORD-2026-01114,Dana Madar Est. (fictional),2026-07-14,Completed,e007@company.sa,Water carton,Catering,1500.0,30.93,46395.0
+PUR-ORD-2026-01115,Dana Rawabi Est. (fictional),2026-07-21,Completed,e015@company.sa,Guard shift,Security services,78.0,515.19,40184.82
+PUR-ORD-2026-01116,Jazeera Noor Supplies (fictional),2026-09-10,Completed,e023@company.sa,Cleaning visit,Facility services,5.0,1245.75,6228.75
+PUR-ORD-2026-01117,Rimal Madar Contracting (fictional),2026-08-30,Completed,e038@company.sa,Guard shift,Security services,81.0,479.25,38819.25
+PUR-ORD-2026-01118,Bina Afaq Contracting (fictional),2026-08-05,Completed,e038@company.sa,Cleaning visit,Facility services,29.0,1287.85,37347.65
+PUR-ORD-2026-01119,Rimal Sahab Supplies (fictional),2026-07-20,Completed,e004@company.sa,Cleaning visit,Facility services,4.0,1255.22,5020.88
+PUR-ORD-2026-01120,Najd Madar Supplies (fictional),2026-07-08,Completed,e004@company.sa,Monthly maintenance contract,Facility services,1.0,25000.0,25000.0
+PUR-ORD-2026-01121,Najd Madar Supplies (fictional),2026-07-05,Completed,e004@company.sa,Monthly maintenance contract,Facility services,1.0,20000.0,20000.0
+PUR-ORD-2026-01122,Najd Madar Supplies (fictional),2026-09-06,Completed,e007@company.sa,Monthly maintenance contract,Facility services,1.0,15000.0,15000.0
+PUR-ORD-2026-01123,Najd Madar Supplies (fictional),2026-09-28,Completed,e007@company.sa,Monthly maintenance contract,Facility services,1.0,30000.0,30000.0
+PUR-ORD-2026-01124,Najd Madar Supplies (fictional),2026-08-27,Completed,e012@company.sa,Monthly maintenance contract,Facility services,1.0,30000.0,30000.0
+PUR-ORD-2026-99999,Bina Taqa Est. (fictional),2026-07-02,Draft,e012@company.sa,Event catering per head,Catering,29.0,148.55,55555.0
