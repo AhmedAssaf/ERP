@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Npgsql;
 using Platform.Modules.Vendors.Access;
 using Platform.Modules.Vendors.Contracts;
@@ -87,6 +88,13 @@ public static class VendorsModule
         AddVendorDocuments(services);
         return services;
     }
+
+    /// <summary>
+    /// Upload API requests allowed per vendor company per minute (<c>Vendors:UploadRequestsPerMinute</c>, V-9), for the web
+    /// host's rate limiter; the options class itself stays internal to the module.
+    /// </summary>
+    public static int UploadRequestsPerMinute(IServiceProvider services) =>
+        services.GetRequiredService<IOptions<VendorsOptions>>().Value.UploadRequestsPerMinute;
 
     /// <summary>
     /// The worker's vendor document jobs (vendor plan task 3): the retry scan of pending documents and the cleanup of

@@ -2,7 +2,6 @@ using System.Text.Json;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Http.Features;
-using Microsoft.Extensions.Options;
 using Platform.Modules.Vendors;
 using Platform.Modules.Vendors.Contracts;
 using Platform.Shared.Results;
@@ -56,7 +55,7 @@ internal static class UploadEndpoints
                     return RateLimitPartition.GetNoLimiter(Guid.Empty);
                 }
 
-                var permits = context.RequestServices.GetRequiredService<IOptions<VendorsOptions>>().Value.UploadRequestsPerMinute;
+                var permits = VendorsModule.UploadRequestsPerMinute(context.RequestServices);
                 return RateLimitPartition.GetFixedWindowLimiter(companyId, _ => new FixedWindowRateLimiterOptions
                 {
                     PermitLimit = permits,

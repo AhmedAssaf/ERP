@@ -12,7 +12,7 @@ namespace Platform.Modules.Vendors;
 /// (V-9), 30 by default.</item>
 /// </list>
 /// </summary>
-public sealed class VendorsOptions
+internal sealed class VendorsOptions
 {
     public const string Section = "Vendors";
 
