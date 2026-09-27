@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
@@ -10,6 +11,8 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Platform.IntegrationTests.Infrastructure;
 using Platform.Modules.Identity.Contracts;
+using Platform.Modules.Operations;
+using Platform.Modules.Operations.Contracts;
 using Platform.Modules.Vendors;
 using Platform.Modules.Vendors.Contracts;
 using Platform.Modules.Vendors.Documents;
@@ -97,8 +100,10 @@ public sealed class VendorDocumentUploadTests(DatabaseFixture db, MinioFixture m
         audit.SubjectType.ShouldBe("vendor_company");
         audit.SubjectId.ShouldBe(companyId.ToString());
         var data = JsonDocument.Parse(audit.Data).RootElement;
-        data.EnumerateObject().Select(p => p.Name).ShouldBe(["signature"]);
+        // The upload id lets a reader recognise a duplicate: the audit is written before the outcome commits.
+        data.EnumerateObject().Select(p => p.Name).ShouldBe(["signature", "upload_id"], ignoreOrder: true);
         data.GetProperty("signature").GetString().ShouldBe("Eicar-Signature");
+        data.GetProperty("upload_id").GetString().ShouldBe(uploadId.ToString("D"));
 
         // Completing again gives the same answer; nothing is stored the second time either.
         using var again = await uploads.CompleteAsync(uploadId, NextYear);
@@ -165,8 +170,9 @@ public sealed class VendorDocumentUploadTests(DatabaseFixture db, MinioFixture m
         row.IsCurrent.ShouldBeFalse();
         (await minio.ReadAsync(quarantined, Ct)).ShouldBeNull();
         (await ListAsync(factory, companyId)).ShouldBeEmpty();
-        var audit = (await PlatformAuditsForCompanyAsync(companyId)).ShouldHaveSingleItem();
-        JsonDocument.Parse(audit).RootElement.GetProperty("signature").GetString().ShouldBe("Eicar-Signature");
+        var audit = JsonDocument.Parse((await PlatformAuditsForCompanyAsync(companyId)).ShouldHaveSingleItem()).RootElement;
+        audit.GetProperty("signature").GetString().ShouldBe("Eicar-Signature");
+        audit.GetProperty("document_id").GetString().ShouldBe(row.Id.ToString("D"));
     }
 
     [Fact]
@@ -389,35 +395,31 @@ public sealed class VendorDocumentUploadTests(DatabaseFixture db, MinioFixture m
     public async Task Two_parallel_completions_store_one_document()
     {
         var (vendor, companyId) = await VendorAsync();
-        await using var factory = Factory();
+        var gate = new GatedScanner();
+        await using var factory = Factory(services: services => services.Replace(ServiceDescriptor.Singleton<IVirusScanner>(gate)));
         var uploads = new Uploads(factory, vendor);
         var file = VendorDocumentRows.Pdf((3 * Megabyte) + 777);
         var uploadId = await uploads.StartAsync(VendorDocumentTypes.CrCertificate, "cr.pdf", file.Length, "application/pdf", expectedChunks: 4);
         await uploads.SendAllAsync(uploadId, file);
 
-        var responses = await Task.WhenAll(uploads.CompleteAsync(uploadId, NextYear), uploads.CompleteAsync(uploadId, NextYear));
-
-        var documentIds = new List<Guid>();
-        foreach (var response in responses)
+        var first = uploads.CompleteAsync(uploadId, NextYear);
+        try
         {
-            using (response)
-            {
-                response.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.Conflict);
-                var body = await Json(response);
-                if (response.StatusCode == HttpStatusCode.Conflict)
-                {
-                    body.GetProperty("code").GetString().ShouldBe(VendorDocumentErrors.UploadInProgress);
-                }
-                else
-                {
-                    documentIds.Add(body.GetProperty("documentId").GetGuid());
-                }
-            }
+            // The first completion holds the upload's row lock while the scanner works: the second one overlaps it for sure.
+            await gate.Entered.WaitAsync(TimeSpan.FromSeconds(60), Ct);
+            using var second = await uploads.CompleteAsync(uploadId, NextYear);
+            second.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+            (await Json(second)).GetProperty("code").GetString().ShouldBe(VendorDocumentErrors.UploadInProgress);
+        }
+        finally
+        {
+            gate.Release();
         }
 
-        documentIds.ShouldNotBeEmpty();
-        documentIds.Distinct().ShouldHaveSingleItem();
-        (await VendorDocumentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct)).ShouldHaveSingleItem().Id.ShouldBe(documentIds[0]);
+        using var completed = await first;
+        completed.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var documentId = (await Json(completed)).GetProperty("documentId").GetGuid();
+        (await VendorDocumentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct)).ShouldHaveSingleItem().Id.ShouldBe(documentId);
     }
 
     [Fact]
@@ -514,7 +516,10 @@ public sealed class VendorDocumentUploadTests(DatabaseFixture db, MinioFixture m
         {
             again.Error.ShouldNotBeNull().Code.ShouldBe(VendorDocumentErrors.Infected);
             rows.ShouldBeEmpty();
-            audits.ShouldHaveSingleItem();
+            // At least once: the audit precedes the commit. At most once per successful commit: one commit here.
+            var forUpload = audits.Select(a => JsonDocument.Parse(a).RootElement.GetProperty("upload_id").GetString()).ToList();
+            forUpload.ShouldAllBe(id => id == uploadId.ToString("D"));
+            forUpload.Count.ShouldBeInRange(1, 1);
         }
         else
         {
@@ -591,6 +596,13 @@ public sealed class VendorDocumentUploadTests(DatabaseFixture db, MinioFixture m
         (await VendorDocumentRows.ScanAttemptsAsync(db.OwnerConnectionString, badId, Ct)).Attempts.ShouldBe(12);
         (await VendorDocumentRows.PendingScanListAsync(db.OwnerConnectionString, Ct)).ShouldNotContain(badId);
         (await VendorDocumentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct)).ShouldHaveSingleItem().ScanStatus.ShouldBe("pending_scan");
+
+        // A platform operator looked at it and unparks it (docs/07 section 4): the retry job tries it again from zero.
+        (await VendorDocumentRows.UnparkAsync(db.OwnerConnectionString, badId, Ct)).ShouldBeTrue();
+        var (attempts, lastScanAt) = await VendorDocumentRows.ScanAttemptsAsync(db.OwnerConnectionString, badId, Ct);
+        attempts.ShouldBe(0);
+        lastScanAt.ShouldBeNull();
+        (await VendorDocumentRows.PendingScanListAsync(db.OwnerConnectionString, Ct)).ShouldContain(badId);
     }
 
     [Fact]
@@ -610,6 +622,193 @@ public sealed class VendorDocumentUploadTests(DatabaseFixture db, MinioFixture m
         attempts.ShouldBe(1);
         lastScanAt.ShouldNotBeNull();
         (await VendorDocumentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct)).ShouldHaveSingleItem().ScanStatus.ShouldBe("pending_scan");
+    }
+
+    [Fact]
+    public async Task An_audit_failure_on_an_infected_upload_is_retried_and_audited()
+    {
+        var (vendor, companyId) = await VendorAsync();
+        var failures = new AuditFailures(1);
+        await using var host = ServiceHost(clamAv.Settings, services => FailAudits(services, failures));
+        var uploadId = await StartAndSendAsync(host, companyId, vendor.Subject, VendorDocumentRows.InfectedPdf());
+
+        // The audit is written before the outcome commits: when it fails, nothing is recorded and the upload stays open.
+        await Should.ThrowAsync<InvalidOperationException>(() => CompleteThroughServiceAsync(host, companyId, vendor.Subject, uploadId, Ct));
+        (await VendorDocumentRows.UploadOutcomeAsync(db.OwnerConnectionString, uploadId, Ct)).ShouldBeNull();
+        (await PlatformAuditsForCompanyAsync(companyId)).ShouldBeEmpty();
+
+        var again = await CompleteThroughServiceAsync(host, companyId, vendor.Subject, uploadId, Ct);
+
+        again.Error.ShouldNotBeNull().Code.ShouldBe(VendorDocumentErrors.Infected);
+        (await VendorDocumentRows.UploadOutcomeAsync(db.OwnerConnectionString, uploadId, Ct)).ShouldBe("infected");
+        var audit = JsonDocument.Parse((await PlatformAuditsForCompanyAsync(companyId)).ShouldHaveSingleItem()).RootElement;
+        audit.GetProperty("upload_id").GetString().ShouldBe(uploadId.ToString("D"));
+    }
+
+    [Fact]
+    public async Task A_failed_audit_in_the_retry_scan_leaves_the_document_pending_and_the_next_run_audits_and_marks_it()
+    {
+        var (vendor, companyId) = await VendorAsync();
+        await using var factory = Factory(scannerUp: false);
+        var file = VendorDocumentRows.Pdf(35_000);
+        var documentId = await PendingAsync(new Uploads(factory, vendor), VendorDocumentTypes.CrCertificate, file);
+        var quarantined = $"vendors/{companyId}/quarantine/{documentId}";
+        var scanner = new ScriptedScanner(content => content.AsSpan().SequenceEqual(file) ? ScanResult.Infected("Eicar-Signature") : ScanResult.Clean);
+        var failures = new AuditFailures(1);
+
+        await RunRescanJobAsync(scanner, configure: services => FailAudits(services, failures));
+
+        var row = (await VendorDocumentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct)).ShouldHaveSingleItem();
+        row.ScanStatus.ShouldBe("pending_scan");
+        (await minio.ReadAsync(quarantined, Ct)).ShouldBe(file);
+        (await PlatformAuditsForCompanyAsync(companyId)).ShouldBeEmpty();
+        // The run's failure on this document counts an attempt, as a scanner error does.
+        var (attempts, lastScanAt) = await VendorDocumentRows.ScanAttemptsAsync(db.OwnerConnectionString, documentId, Ct);
+        attempts.ShouldBe(1);
+        lastScanAt.ShouldNotBeNull();
+
+        await RunRescanJobAsync(scanner);
+
+        (await VendorDocumentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct)).ShouldHaveSingleItem().ScanStatus.ShouldBe("infected");
+        (await minio.ReadAsync(quarantined, Ct)).ShouldBeNull();
+        var audit = JsonDocument.Parse((await PlatformAuditsForCompanyAsync(companyId)).ShouldHaveSingleItem()).RootElement;
+        audit.GetProperty("document_id").GetString().ShouldBe(documentId.ToString("D"));
+    }
+
+    [Fact]
+    public async Task Three_scanner_errors_in_a_row_stop_the_run_without_counting_the_rest()
+    {
+        var (vendor, _) = await VendorAsync();
+        await using var factory = Factory(scannerUp: false);
+        var uploads = new Uploads(factory, vendor);
+        var bad = Enumerable.Range(0, 4).Select(i => VendorDocumentRows.Pdf(36_000 + i)).ToList();
+        var ids = new List<Guid>();
+        foreach (var file in bad)
+        {
+            ids.Add(await PendingAsync(uploads, VendorDocumentTypes.CrCertificate, file));
+        }
+
+        await RunRescanJobAsync(new ScriptedScanner(content => bad.Exists(b => content.AsSpan().SequenceEqual(b)) ? ScanResult.Failed : ScanResult.Clean));
+
+        var attempts = new List<int>();
+        foreach (var id in ids)
+        {
+            attempts.Add((await VendorDocumentRows.ScanAttemptsAsync(db.OwnerConnectionString, id, Ct)).Attempts);
+        }
+
+        attempts.ShouldBe([1, 1, 1, 0]);
+    }
+
+    [Fact]
+    public async Task Ten_wrong_type_completions_do_not_block_an_eleventh_start()
+    {
+        var (vendor, _) = await VendorAsync();
+        await using var factory = Factory();
+        var uploads = new Uploads(factory, vendor);
+        var html = "<html><body>not a pdf</body></html>"u8.ToArray();
+        var refused = new List<Guid>();
+        for (var i = 0; i < 10; i++)
+        {
+            var uploadId = await uploads.StartAsync(VendorDocumentTypes.CrCertificate, "cr.pdf", html.Length, "application/pdf", expectedChunks: 1);
+            await uploads.SendAllAsync(uploadId, html);
+            using var complete = await uploads.CompleteAsync(uploadId, NextYear);
+            complete.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+            (await Json(complete)).GetProperty("code").GetString().ShouldBe(VendorDocumentErrors.WrongType);
+            refused.Add(uploadId);
+        }
+
+        foreach (var uploadId in refused)
+        {
+            (await VendorDocumentRows.UploadOutcomeAsync(db.OwnerConnectionString, uploadId, Ct)).ShouldBe("refused");
+            (await minio.ReadAsync($"staging/{uploadId}/0", Ct)).ShouldBeNull();
+        }
+
+        // Completing a refused upload again answers the same refusal.
+        using (var again = await uploads.CompleteAsync(refused[0], NextYear))
+        {
+            again.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+            (await Json(again)).GetProperty("code").GetString().ShouldBe(VendorDocumentErrors.WrongType);
+        }
+
+        await uploads.StartAsync(VendorDocumentTypes.CrCertificate, "cr.pdf", 1000, "application/pdf", expectedChunks: 1);
+    }
+
+    [Fact]
+    public async Task An_expiry_refusal_leaves_the_upload_open_for_a_corrected_date()
+    {
+        var (vendor, _) = await VendorAsync();
+        await using var factory = Factory();
+        var uploads = new Uploads(factory, vendor);
+        var file = VendorDocumentRows.Pdf(20_000);
+        var uploadId = await uploads.StartAsync(VendorDocumentTypes.CrCertificate, "cr.pdf", file.Length, "application/pdf", expectedChunks: 1);
+        await uploads.SendAllAsync(uploadId, file);
+
+        using (var wrongDate = await uploads.CompleteAsync(uploadId, new DateOnly(1999, 12, 31)))
+        {
+            wrongDate.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+            (await Json(wrongDate)).GetProperty("code").GetString().ShouldBe(VendorDocumentErrors.InvalidExpiry);
+        }
+
+        (await VendorDocumentRows.UploadOutcomeAsync(db.OwnerConnectionString, uploadId, Ct)).ShouldBeNull();
+        using var corrected = await uploads.CompleteAsync(uploadId, NextYear);
+        corrected.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task An_upload_idle_for_more_than_an_hour_is_not_counted_as_open()
+    {
+        var (vendor, _) = await VendorAsync();
+        await using var factory = Factory();
+        var uploads = new Uploads(factory, vendor);
+        var open = new List<Guid>();
+        for (var i = 0; i < 10; i++)
+        {
+            open.Add(await uploads.StartAsync(VendorDocumentTypes.CrCertificate, "cr.pdf", 1000, "application/pdf", expectedChunks: 1));
+        }
+
+        // Both started two hours ago; the first had a chunk just now, so only the second is abandoned.
+        using (var chunk = await uploads.PutChunkAsync(open[0], 0, System.Security.Cryptography.RandomNumberGenerator.GetBytes(1000)))
+        {
+            chunk.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        }
+
+        await VendorDocumentRows.AgeUploadAsync(db.OwnerConnectionString, open[0], TimeSpan.FromHours(2), Ct);
+        await VendorDocumentRows.AgeUploadAsync(db.OwnerConnectionString, open[1], TimeSpan.FromHours(2), Ct);
+
+        await uploads.StartAsync(VendorDocumentTypes.CrCertificate, "cr.pdf", 1000, "application/pdf", expectedChunks: 1);
+        using var twelfth = await uploads.StartRawAsync(VendorDocumentTypes.CrCertificate, "cr.pdf", 1000, "application/pdf");
+        twelfth.StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
+        (await Json(twelfth)).GetProperty("code").GetString().ShouldBe(VendorDocumentErrors.TooManyUploads);
+    }
+
+    [Fact]
+    public async Task The_daily_upload_bound_counts_every_start_whatever_its_outcome()
+    {
+        var (vendor, _) = await VendorAsync();
+        await using var factory = Factory(settings: new Dictionary<string, string?> { ["Vendors:MaxUploadsPerDay"] = "4" });
+        var uploads = new Uploads(factory, vendor);
+        var html = "<html><body>not a pdf</body></html>"u8.ToArray();
+
+        await uploads.UploadAsync(VendorDocumentTypes.CrCertificate, VendorDocumentRows.Pdf(20_000), NextYear);
+        for (var i = 0; i < 2; i++)
+        {
+            var refusedId = await uploads.StartAsync(VendorDocumentTypes.CrCertificate, "cr.pdf", html.Length, "application/pdf", expectedChunks: 1);
+            await uploads.SendAllAsync(refusedId, html);
+            using var complete = await uploads.CompleteAsync(refusedId, NextYear);
+            complete.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        }
+
+        var openId = await uploads.StartAsync(VendorDocumentTypes.CrCertificate, "cr.pdf", 1000, "application/pdf", expectedChunks: 1);
+
+        using (var fifth = await uploads.StartRawAsync(VendorDocumentTypes.CrCertificate, "cr.pdf", 1000, "application/pdf"))
+        {
+            fifth.StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
+            (await Json(fifth)).GetProperty("code").GetString().ShouldBe(VendorDocumentErrors.TooManyUploads);
+        }
+
+        // Rolling 24 hours: once a start is older than that, it no longer counts.
+        await VendorDocumentRows.AgeUploadAsync(db.OwnerConnectionString, openId, TimeSpan.FromHours(25), Ct);
+        await uploads.StartAsync(VendorDocumentTypes.CrCertificate, "cr.pdf", 1000, "application/pdf", expectedChunks: 1);
     }
 
     /// <summary>Uploads the file while the scanner is down and returns the pending document's id.</summary>
@@ -714,6 +913,47 @@ public sealed class VendorDocumentUploadTests(DatabaseFixture db, MinioFixture m
         }
     }
 
+    /// <summary>Holds every scan until the test releases it, so a second request overlaps the first for sure.</summary>
+    private sealed class GatedScanner : IVirusScanner
+    {
+        private readonly TaskCompletionSource _entered = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _release = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public Task Entered => _entered.Task;
+
+        public void Release() => _release.TrySetResult();
+
+        public async Task<ScanResult> ScanAsync(Stream content, CancellationToken cancellationToken = default)
+        {
+            _entered.TrySetResult();
+            await _release.Task.WaitAsync(cancellationToken);
+            return ScanResult.Clean;
+        }
+    }
+
+    /// <summary>How many platform audit writes still fail, shared by every scope of a host.</summary>
+    private sealed class AuditFailures(int count)
+    {
+        private int _left = count;
+
+        public bool TryFail() => Interlocked.Decrement(ref _left) >= 0;
+    }
+
+    /// <summary>The real platform audit, except that the first writes fail as a database outage would.</summary>
+    private sealed class FailingAudit(IPlatformAudit inner, AuditFailures failures) : IPlatformAudit
+    {
+        public Task WriteAsync(PlatformAuditEntry entry, CancellationToken cancellationToken = default) =>
+            failures.TryFail()
+                ? Task.FromException(new InvalidOperationException("Simulated platform audit failure."))
+                : inner.WriteAsync(entry, cancellationToken);
+    }
+
+    private static void FailAudits(IServiceCollection services, AuditFailures failures)
+    {
+        services.AddScoped<PlatformAuditWriter>();
+        services.Replace(ServiceDescriptor.Scoped<IPlatformAudit>(sp => new FailingAudit(sp.GetRequiredService<PlatformAuditWriter>(), failures)));
+    }
+
     private static IReadOnlyDictionary<string, string?> ScannerDown => new Dictionary<string, string?>
     {
         ["ClamAv:Host"] = "127.0.0.1",
@@ -721,12 +961,18 @@ public sealed class VendorDocumentUploadTests(DatabaseFixture db, MinioFixture m
         ["ClamAv:TimeoutSeconds"] = "5",
     };
 
-    private WebApplicationFactory<Program> Factory(bool scannerUp = true, IReadOnlyDictionary<string, string?>? settings = null) =>
+    private WebApplicationFactory<Program> Factory(
+        bool scannerUp = true, IReadOnlyDictionary<string, string?>? settings = null, Action<IServiceCollection>? services = null) =>
         new PlatformWebFactory(db.AppConnectionString).WithWebHostBuilder(builder =>
         {
             foreach (var (key, value) in minio.Settings.Concat(scannerUp ? clamAv.Settings : ScannerDown).Concat(settings ?? new Dictionary<string, string?>()))
             {
                 builder.UseSetting(key, value);
+            }
+
+            if (services is not null)
+            {
+                builder.ConfigureTestServices(services);
             }
         });
 
@@ -744,9 +990,13 @@ public sealed class VendorDocumentUploadTests(DatabaseFixture db, MinioFixture m
     }
 
     /// <summary>The worker's retry job with a scanner the test scripts, run <paramref name="runs"/> times in one worker host.</summary>
-    private async Task RunRescanJobAsync(IVirusScanner scanner, int runs = 1)
+    private async Task RunRescanJobAsync(IVirusScanner scanner, int runs = 1, Action<IServiceCollection>? configure = null)
     {
-        await using var host = ServiceHost(clamAv.Settings, services => services.Replace(ServiceDescriptor.Singleton(scanner)));
+        await using var host = ServiceHost(clamAv.Settings, services =>
+        {
+            services.Replace(ServiceDescriptor.Singleton(scanner));
+            configure?.Invoke(services);
+        });
         for (var run = 0; run < runs; run++)
         {
             await using var scope = host.Services.CreateAsyncScope();

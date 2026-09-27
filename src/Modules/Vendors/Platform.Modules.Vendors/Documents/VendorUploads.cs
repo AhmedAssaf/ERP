@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Npgsql;
 using Platform.Modules.Vendors.Contracts;
 using Platform.Modules.Vendors.Persistence;
@@ -17,26 +18,33 @@ namespace Platform.Modules.Vendors.Documents;
 /// another company is simply not found; the chunks are staged in object storage under <c>staging/{upload id}/{index}</c>.
 /// Every chunk but the last is exactly <see cref="VendorDocumentLimits.ChunkBytes"/> long and carries its SHA-256, so a
 /// chunk cut short by a dropped connection is refused and sent again; a chunk sent again replaces the one before.
-/// A company has at most <see cref="MaxOpenUploads"/> open uploads (not completed, under a day old), counted under its
-/// row lock. Completion holds a row lock on the upload (<c>FOR UPDATE NOWAIT</c>), so a completion retried while the
-/// first is still scanning is told to wait; it streams the chunks into a temporary file, scans and stores it, and writes
-/// the document row and the upload's outcome in that one transaction, so completing again always answers the first
-/// outcome and never adds a second document. The document takes the upload's id, so a completion that failed after
-/// storing the file and is asked again stores it under the same key. An upload is usable for a day, by the database's
-/// clock; the worker's cleanup job then removes it with its chunks.
+/// Two bounds per company, counted under its row lock when an upload starts: at most <see cref="MaxOpenUploads"/> open
+/// uploads (no outcome yet, with a start or a chunk in the last hour), and at most <c>Vendors:MaxUploadsPerDay</c> starts
+/// in any 24 hours whatever became of them. Completion holds a row lock on the upload (<c>FOR UPDATE NOWAIT</c>), so a
+/// completion retried while the first is still scanning is told to wait; it streams the chunks into a temporary file,
+/// scans and stores it, and writes the document row and the upload's outcome in that one transaction, so completing
+/// again always answers the first outcome and never adds a second document. A file refused for its type records the
+/// outcome <c>refused</c> and its chunks go; an expiry refusal leaves the upload open for a corrected date. An infected
+/// finding is audited before the outcome commits (at least once; the entry carries the upload id, so a duplicate is
+/// recognisable). The document takes the upload's id, so a completion that failed after storing the file and is asked
+/// again stores it under the same key, and the cleanup job can find the file of one that never recorded an outcome. An
+/// upload is usable for a day, by the database's clock; the worker's cleanup job then removes it with its chunks.
 /// </summary>
 internal sealed partial class VendorUploads(
     IDbContextFactory<VendorsDbContext> contexts,
     IVendorAccessor vendors,
     VendorDocuments documents,
     IObjectStorage storage,
+    IOptions<VendorsOptions> options,
     ILogger<VendorUploads> logger) : IVendorUploads
 {
     /// <summary>How long an upload may take from start to completion; the cleanup job removes it after that.</summary>
     public static readonly TimeSpan Lifetime = TimeSpan.FromHours(24);
 
-    /// <summary>Open uploads (not completed, under a day old) a company may have at once.</summary>
+    /// <summary>Open uploads (no outcome yet, with a start or a chunk in the last hour) a company may have at once.</summary>
     public const int MaxOpenUploads = 10;
+
+    internal const string Refused = "refused";
 
     private const int MaxFileNameLength = 255;
     private const string ChunkContentType = "application/octet-stream";
@@ -67,11 +75,14 @@ internal sealed partial class VendorUploads(
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         // Under the company's row lock, so two starts in parallel cannot both take the last place.
         await db.Database.ExecuteSqlAsync($"select 1 from vendor.companies where id = {companyId} for update", cancellationToken);
-        var open = await db.Database.SqlQuery<int>($"""
-            select count(*)::int as "Value" from vendor.uploads
-            where company_id = {companyId} and outcome is null and created_at > now() - interval '24 hours'
+        var counts = await db.Database.SqlQuery<UploadCounts>($"""
+            select count(*) filter (where outcome is null
+                                    and greatest(created_at, coalesce(last_chunk_at, created_at)) > now() - interval '1 hour')::int as open_uploads,
+                   count(*)::int as started
+            from vendor.uploads
+            where company_id = {companyId} and created_at > now() - interval '24 hours'
             """).SingleAsync(cancellationToken);
-        if (open >= MaxOpenUploads)
+        if (counts.OpenUploads >= MaxOpenUploads || counts.Started >= options.Value.MaxUploadsPerDay)
         {
             return Result.Failure<VendorUploadStarted>(Error.Refused(
                 VendorDocumentErrors.TooManyUploads, "Too many uploads are in progress; finish one or try again later."));
@@ -123,7 +134,8 @@ internal sealed partial class VendorUploads(
         // the database's clock, since the upload may have expired while the chunk was stored.
         var received = await db.Database.SqlQuery<int>($"""
             update vendor.uploads
-            set received_chunks = array(select distinct c from unnest(received_chunks || {index}) as c order by c)
+            set received_chunks = array(select distinct c from unnest(received_chunks || {index}) as c order by c),
+                last_chunk_at = now()
             where id = {uploadId} and outcome is null and created_at > now() - interval '24 hours'
             returning cardinality(received_chunks) as "Value"
             """).ToListAsync(cancellationToken);
@@ -171,7 +183,17 @@ internal sealed partial class VendorUploads(
         var scanned = await documents.ScanAndStoreAsync(upload.Id, upload.DocumentType, expiresOn, file, sha256, cancellationToken);
         if (!scanned.IsSuccess)
         {
-            // The file itself is refused (type, expiry); the chunks stay until the cleanup job, and asking again answers the same.
+            if (scanned.Error.Code == VendorDocumentErrors.InvalidExpiry)
+            {
+                // Not the file's fault: the upload stays open with its chunks, for a completion with a corrected date.
+                return Result.Failure<VendorDocumentAdded>(scanned.Error);
+            }
+
+            // The file itself is refused: recorded, so asking again answers the same and the upload no longer counts as open.
+            upload.Outcome = Refused;
+            await db.SaveChangesAsync(CancellationToken.None);
+            await transaction.CommitAsync(CancellationToken.None);
+            await DeleteChunksAsync(upload);
             return Result.Failure<VendorDocumentAdded>(scanned.Error);
         }
 
@@ -192,13 +214,15 @@ internal sealed partial class VendorUploads(
         }
 
         await db.SaveChangesAsync(CancellationToken.None);
-        await transaction.CommitAsync(CancellationToken.None);
         if (scanned.Value.Signature is { } signature)
         {
-            // After the commit, so a completion asked again (which answers the recorded outcome) never audits twice.
-            await documents.AuditUploadInfectedAsync(companyId, signature);
+            // Before the commit, so a finding is never recorded without its audit: when the audit fails the outcome rolls
+            // back and completing again scans and audits again. A commit that fails after it leaves a second entry with the
+            // same upload id, which a reader recognises as a duplicate (at least once, never lost).
+            await documents.AuditUploadInfectedAsync(companyId, upload.Id, signature);
         }
 
+        await transaction.CommitAsync(CancellationToken.None);
         await DeleteChunksAsync(upload);
         return outcome;
     }
@@ -307,6 +331,8 @@ internal sealed partial class VendorUploads(
     {
         "clean" => Result.Success(new VendorDocumentAdded(upload.DocumentId!.Value, upload.Sha256!, VendorDocumentStatus.Clean)),
         "pending_scan" => Result.Success(new VendorDocumentAdded(upload.DocumentId!.Value, upload.Sha256!, VendorDocumentStatus.PendingScan)),
+        // Only the type check can refuse an assembled file: its size was checked at the start and chunk by chunk.
+        Refused => Result.Failure<VendorDocumentAdded>(Error.Validation(VendorDocumentErrors.WrongType, "The file is not a PDF, PNG or JPEG.")),
         _ => VendorDocuments.InfectedResult(),
     };
 
@@ -321,4 +347,12 @@ internal sealed partial class VendorUploads(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Staged chunk {Index} of upload {UploadId} could not be deleted ({ErrorType}); the cleanup job removes it.")]
     private static partial void LogChunkNotDeleted(ILogger logger, Guid uploadId, int index, string errorType);
+
+    // Unmapped query types follow the context's snake_case naming convention: columns open_uploads and started.
+    private sealed class UploadCounts
+    {
+        public int OpenUploads { get; set; }
+
+        public int Started { get; set; }
+    }
 }

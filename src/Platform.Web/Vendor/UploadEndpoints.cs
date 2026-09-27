@@ -24,7 +24,8 @@ namespace Platform.Web.Vendor;
 /// cookie); a refused one gets 400 (antiforgery), 401 or 403. Size limits are checked from <c>Content-Length</c> and set
 /// on the request before any body is read. Expected failures answer <c>{code}</c> (see <see cref="VendorDocumentErrors"/>):
 /// 400 input, 404 an upload that is not the caller's company's (or older than a day), 409 state, 422 infected, 429
-/// <c>vendor.too_many_uploads</c> while the company has 10 open uploads. Requests are limited per vendor company to
+/// <c>vendor.too_many_uploads</c> while the company has 10 open uploads or has started <c>Vendors:MaxUploadsPerDay</c>
+/// (30) in the last 24 hours. Requests are limited per vendor company to
 /// <c>Vendors:UploadRequestsPerMinute</c> (120) in a fixed one-minute window; over it, 429 without a body.
 /// </summary>
 internal static class UploadEndpoints

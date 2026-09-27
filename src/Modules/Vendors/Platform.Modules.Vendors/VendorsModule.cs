@@ -73,6 +73,7 @@ public static class VendorsModule
             .Bind(configuration.GetSection(VendorsOptions.Section))
             .Validate(o => VendorsOptions.DecodeCrAuditKey(o.CrAuditKey) is not null, VendorsOptions.CrAuditKeyProblem)
             .Validate(o => o.UploadRequestsPerMinute > 0, "Setting 'Vendors:UploadRequestsPerMinute' must be a positive number.")
+            .Validate(o => o.MaxUploadsPerDay > 0, "Setting 'Vendors:MaxUploadsPerDay' must be a positive number.")
             .ValidateOnStart();
         services.TryAddSingleton<CrNumberAudit>();
         services.AddHttpContextAccessor();
@@ -128,6 +129,8 @@ public static class VendorsModule
                 limit => limit.MaxStreamBytes >= VendorDocumentLimits.MaxBytes,
                 $"Setting 'ClamAv:MaxStreamBytes' must be at least {VendorDocumentLimits.MaxBytes} bytes, the largest vendor document (and no more than clamd's StreamMaxLength).")
             .ValidateOnStart();
+        // VendorUploads reads VendorsOptions; a host without AddVendorPortal gets its defaults.
+        services.AddOptions();
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddScoped<VendorDocuments>();
         services.TryAddScoped<IVendorDocuments>(sp => sp.GetRequiredService<VendorDocuments>());

@@ -407,6 +407,64 @@ public sealed partial class VendorRowLevelSecurityTests(DatabaseFixture db) : IA
     }
 
     [Fact]
+    public async Task An_uploads_document_reference_is_checked_at_commit()
+    {
+        await using var owner = new NpgsqlConnection(db.OwnerConnectionString);
+        await owner.OpenAsync(Ct);
+        await using var command = new NpgsqlCommand("""
+            select c.condeferrable, c.condeferred from pg_constraint c
+            where c.conrelid = 'vendor.uploads'::regclass and c.conname = 'fk_uploads_document'
+            """, owner);
+        await using var reader = await command.ExecuteReaderAsync(Ct);
+        (await reader.ReadAsync(Ct)).ShouldBeTrue("fk_uploads_document exists");
+        reader.GetBoolean(0).ShouldBeTrue("deferrable");
+        reader.GetBoolean(1).ShouldBeTrue("initially deferred");
+    }
+
+    [Fact]
+    public async Task A_refused_upload_names_no_document()
+    {
+        var companyId = await RegisterAsync(TestTenants.Acme);
+        var document = Guid.NewGuid();
+        await InsertDocumentAsOwnerAsync(companyId, document, $"vendors/{companyId}/quarantine/{document}");
+
+        await InsertUploadWithOutcomeAsOwnerAsync(companyId, "refused", null);
+        (await Should.ThrowAsync<PostgresException>(() => InsertUploadWithOutcomeAsOwnerAsync(companyId, "refused", document)))
+            .SqlState.ShouldBe(PostgresErrorCodes.CheckViolation);
+        (await Should.ThrowAsync<PostgresException>(() => InsertUploadWithOutcomeAsOwnerAsync(companyId, "withdrawn", null)))
+            .SqlState.ShouldBe(PostgresErrorCodes.CheckViolation);
+    }
+
+    [Fact]
+    public async Task Unparking_a_document_runs_as_its_owner_with_a_pinned_search_path_and_neither_the_app_role_nor_public_may_call_it()
+    {
+        await using var owner = new NpgsqlConnection(db.OwnerConnectionString);
+        await owner.OpenAsync(Ct);
+        await using (var command = new NpgsqlCommand("""
+            select p.prosecdef, p.proconfig::text, pg_get_function_identity_arguments(p.oid),
+                   has_function_privilege('erp_app', p.oid, 'execute'),
+                   has_function_privilege('public', p.oid, 'execute')
+            from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+            where n.nspname = 'vendor' and p.proname = 'unpark_document'
+            """, owner))
+        await using (var reader = await command.ExecuteReaderAsync(Ct))
+        {
+            (await reader.ReadAsync(Ct)).ShouldBeTrue("vendor.unpark_document exists");
+            reader.GetBoolean(0).ShouldBeTrue("security definer");
+            reader.GetString(1).ShouldContain("search_path=vendor, pg_temp");
+            ArgumentNames().Replace(reader.GetString(2), string.Empty).ShouldBe("uuid");
+            reader.GetBoolean(3).ShouldBeFalse("erp_app may not execute it: platform operators only");
+            reader.GetBoolean(4).ShouldBeFalse("public may not execute it");
+        }
+
+        await using var app = new NpgsqlConnection(db.AppConnectionString);
+        await app.OpenAsync(Ct);
+        await using var call = new NpgsqlCommand("select vendor.unpark_document(@id)", app);
+        call.Parameters.AddWithValue("id", Guid.NewGuid());
+        (await Should.ThrowAsync<PostgresException>(() => call.ExecuteScalarAsync(Ct))).SqlState.ShouldBe(PostgresErrorCodes.InsufficientPrivilege);
+    }
+
+    [Fact]
     public async Task Registering_without_an_acting_user_is_refused()
     {
         var cr = NewCrNumber();
@@ -620,6 +678,23 @@ public sealed partial class VendorRowLevelSecurityTests(DatabaseFixture db) : IA
         command.Parameters.AddWithValue("company", companyId);
         command.Parameters.AddWithValue("document", documentId);
         command.Parameters.AddWithValue("sha", Convert.ToHexStringLower(SHA256.HashData(documentId.ToByteArray())));
+        await command.ExecuteNonQueryAsync(Ct);
+    }
+
+    /// <summary>An upload row written as the owner with the given outcome and document.</summary>
+    private async Task InsertUploadWithOutcomeAsOwnerAsync(Guid companyId, string outcome, Guid? documentId)
+    {
+        await using var owner = new NpgsqlConnection(db.OwnerConnectionString);
+        await owner.OpenAsync(Ct);
+        await using var command = new NpgsqlCommand("""
+            insert into vendor.uploads (id, company_id, document_type, file_name, content_type, declared_size, chunk_size,
+                                        chunk_count, outcome, document_id)
+            values (@id, @company, 'cr_certificate', 'cr.pdf', 'application/pdf', 1000, 1048576, 1, @outcome, @document)
+            """, owner);
+        command.Parameters.AddWithValue("id", Guid.NewGuid());
+        command.Parameters.AddWithValue("company", companyId);
+        command.Parameters.AddWithValue("outcome", outcome);
+        command.Parameters.AddWithValue("document", documentId is { } id ? id : DBNull.Value);
         await command.ExecuteNonQueryAsync(Ct);
     }
 

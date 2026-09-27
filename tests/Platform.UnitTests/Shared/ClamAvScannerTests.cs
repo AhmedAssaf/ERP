@@ -63,18 +63,30 @@ public sealed class ClamAvScannerTests
         result.Signature.ShouldBe("Eicar-Signature");
     }
 
+    [Fact]
+    public async Task The_size_limit_error_is_failed_since_it_is_about_this_content()
+    {
+        await using var server = FakeClamd.Start("INSTREAM size limit exceeded. ERROR\0");
+
+        var result = await Scanner(server.Port).ScanAsync(new MemoryStream([1, 2, 3]), Ct);
+
+        // clamd was reached and refused this content's size: other content may still get a verdict.
+        result.ShouldBe(ScanResult.Failed);
+    }
+
     [Theory]
-    [InlineData("INSTREAM size limit exceeded. ERROR\0")]
     [InlineData("stream: Can't allocate memory ERROR\0")]
     [InlineData("stream: Heuristics.Limits.Exceeded ERROR\0")]
-    public async Task An_error_answer_about_the_content_is_failed_not_unavailable(string reply)
+    [InlineData("UNKNOWN COMMAND\0")]
+    [InlineData("stream: lstat() failed: No such file or directory. ERROR\0")]
+    public async Task Every_other_error_answer_is_unavailable_since_clamd_itself_is_in_trouble(string reply)
     {
         await using var server = FakeClamd.Start(reply);
 
         var result = await Scanner(server.Port).ScanAsync(new MemoryStream([1, 2, 3]), Ct);
 
-        // clamd was reached and answered for this content: other content may still get a verdict.
-        result.ShouldBe(ScanResult.Failed);
+        // Memory, engine or protocol errors are clamd's state, not the file's: no attempt is counted against the document.
+        result.ShouldBe(ScanResult.Unavailable);
     }
 
     [Fact]

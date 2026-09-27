@@ -64,8 +64,8 @@ public interface IVendorDocuments
     /// <summary>
     /// Checks the content (a PDF, PNG or JPEG of at most 10 MB, by its first bytes), hashes it, scans it and stores it.
     /// Clean: stored and listed, and the current file of <paramref name="type"/> (the previous current one is kept as
-    /// history). Infected: nothing is stored, the finding is audited (<c>vendor.upload_infected</c>, the signature name
-    /// only) and <see cref="VendorDocumentErrors.Infected"/> returned. Scanner unavailable: kept in quarantine as
+    /// history). Infected: nothing is stored, the finding is audited (<c>vendor.upload_infected</c>, the signature name,
+    /// and the upload's id for an upload) and <see cref="VendorDocumentErrors.Infected"/> returned. Scanner unavailable: kept in quarantine as
     /// <see cref="VendorDocumentStatus.PendingScan"/>, not listed, until the worker's retry scan decides.
     /// </summary>
     Task<Result<VendorDocumentAdded>> AddAsync(string type, DateOnly expiresOn, ReadOnlyMemory<byte> content, CancellationToken cancellationToken = default);
@@ -86,7 +86,8 @@ public interface IVendorUploads
 {
     /// <summary>
     /// Starts an upload of a declared file. Refused with <see cref="VendorDocumentErrors.TooManyUploads"/> while the
-    /// company already has 10 open uploads (not completed, under a day old).
+    /// company already has 10 open uploads (no outcome yet, with a start or a chunk in the last hour), or has started
+    /// <c>Vendors:MaxUploadsPerDay</c> (30) uploads in the last 24 hours, whatever became of them.
     /// </summary>
     Task<Result<VendorUploadStarted>> StartAsync(VendorUploadStart start, CancellationToken cancellationToken = default);
 
@@ -98,8 +99,10 @@ public interface IVendorUploads
 
     /// <summary>
     /// Assembles every chunk in order and checks, scans and stores the file as <see cref="IVendorDocuments.AddAsync"/>
-    /// does, recording the document and the upload's outcome together. Completing an upload again returns its first
-    /// outcome; while another completion of it is running, <see cref="VendorDocumentErrors.UploadInProgress"/>.
+    /// does, recording the document and the upload's outcome together. A file refused for its type is recorded as such
+    /// and its chunks dropped; an invalid expiry date leaves the upload open for a completion with a corrected date.
+    /// Completing an upload again returns its first outcome; while another completion of it is running,
+    /// <see cref="VendorDocumentErrors.UploadInProgress"/>.
     /// </summary>
     Task<Result<VendorDocumentAdded>> CompleteAsync(Guid uploadId, DateOnly expiresOn, CancellationToken cancellationToken = default);
 }

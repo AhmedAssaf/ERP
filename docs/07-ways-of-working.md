@@ -162,6 +162,10 @@ configured. Mailpit (already in the Compose stack) catches every alert in Develo
 system drive is above 80 percent full, the first run sends one "[WaslaBid] Disk is down" email and keeps that
 incident open; that is the disk alert working, not a fault (raise `Platform:DiskAlertPercent` locally if it is noise).
 
+#### Operations
+
+- Parked vendor document (12 retry scans without a verdict, V-10; the worker logs its id): once the cause is fixed, a platform operator runs `select vendor.unpark_document('<document id>');` as the owner role `erp` (neither `erp_app` nor public may execute it), and the next five-minute retry scan tries it again.
+
 Open `https://acme.localhost:8443` (or the port in `CADDY_HTTPS_PORT`). Login only works through Caddy: it terminates TLS, which the OIDC correlation cookies need, and forwards the host with its port so the redirect URI is right. Plain `http://localhost:5273` cannot complete an OIDC login. Keycloak answers on `http://localhost:8080`; sign in as `acme.admin` or `beta.admin` with `WASLABID_DEV_USER_PASSWORD` from `.env`.
 
 #### Staff invitations and TOTP (F-06)

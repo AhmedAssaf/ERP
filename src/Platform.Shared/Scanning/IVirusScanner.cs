@@ -16,8 +16,8 @@ public enum ScanVerdict
     Unavailable,
 
     /// <summary>
-    /// No verdict for this content: the scanner was reached and answered, but with an error about the content (a size or
-    /// scan limit, a file it cannot read). Unlike <see cref="Unavailable"/>, other content may still be scanned now.
+    /// No verdict for this content: the scanner was reached and refused the content itself (for clamd, only its stream
+    /// size limit). Unlike <see cref="Unavailable"/>, other content may still be scanned now.
     /// </summary>
     Failed,
 }

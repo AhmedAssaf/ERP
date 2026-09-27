@@ -8,6 +8,8 @@ namespace Platform.Modules.Vendors;
 /// secrets locally, the cloud KMS in production, never the repository, never logged (N-10). Changing it makes earlier
 /// audit entries unmatchable with later ones.</item>
 /// <item><c>Vendors:UploadRequestsPerMinute</c>: upload API requests per vendor company per minute (V-9), 120 by default.</item>
+/// <item><c>Vendors:MaxUploadsPerDay</c>: uploads a vendor company may start in any 24 hours, whatever became of them
+/// (V-9), 30 by default.</item>
 /// </list>
 /// </summary>
 public sealed class VendorsOptions
@@ -22,6 +24,8 @@ public sealed class VendorsOptions
     public string? CrAuditKey { get; set; }
 
     public int UploadRequestsPerMinute { get; set; } = 120;
+
+    public int MaxUploadsPerDay { get; set; } = 30;
 
     internal static string CrAuditKeyProblem =>
         $"Setting '{CrAuditKeySetting}' is missing or is not a base64 key of at least {MinCrAuditKeyBytes} bytes. " +

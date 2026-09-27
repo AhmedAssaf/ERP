@@ -9,6 +9,7 @@ using Platform.Modules.Vendors.Contracts;
 using Platform.Modules.Vendors.Documents;
 using Platform.Shared;
 using Platform.Shared.Jobs;
+using Platform.Shared.Storage;
 
 namespace Platform.IntegrationTests.Vendors;
 
@@ -41,6 +42,35 @@ public sealed class VendorUploadCleanupTests(DatabaseFixture db, MinioFixture mi
         (await minio.ReadAsync($"staging/{abandoned}/0", Ct)).ShouldBeNull();
         (await VendorDocumentRows.UploadExistsAsync(db.OwnerConnectionString, recent, Ct)).ShouldBeTrue();
         (await minio.ReadAsync($"staging/{recent}/0", Ct)).ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task A_stale_open_upload_takes_the_files_a_failed_completion_left_under_its_id()
+    {
+        var companyId = await VendorRows.RegisterAsync(
+            db.AppConnectionString, TestTenants.Acme, Guid.NewGuid().ToString(), VendorRows.NewCrNumber(), "Orphan Company", Ct);
+        await using var host = Host();
+        var orphaned = await StartWithChunkAsync(host, companyId);
+        var completed = await CompletePendingAsync(host, companyId);
+        var storage = host.Services.GetRequiredService<IObjectStorage>();
+        // A completion stored the file under the upload's id (clean or in quarantine), then failed before its commit.
+        var file = VendorDocumentRows.Pdf(3000);
+        await storage.PutAsync($"vendors/{companyId}/documents/{orphaned}", file, "application/pdf", Ct);
+        await storage.PutAsync($"vendors/{companyId}/quarantine/{orphaned}", file, "application/pdf", Ct);
+        await VendorDocumentRows.AgeUploadAsync(db.OwnerConnectionString, orphaned, TimeSpan.FromHours(25), Ct);
+        await VendorDocumentRows.AgeUploadAsync(db.OwnerConnectionString, completed, TimeSpan.FromHours(25), Ct);
+
+        await using (var scope = host.Services.CreateAsyncScope())
+        {
+            await scope.ServiceProvider.GetRequiredService<VendorUploadCleanupJob>().RunAsync(Ct);
+        }
+
+        (await minio.ReadAsync($"vendors/{companyId}/documents/{orphaned}", Ct)).ShouldBeNull();
+        (await minio.ReadAsync($"vendors/{companyId}/quarantine/{orphaned}", Ct)).ShouldBeNull();
+        (await VendorDocumentRows.UploadExistsAsync(db.OwnerConnectionString, orphaned, Ct)).ShouldBeFalse();
+        // A completed upload's document is the vendor's: only the upload row goes.
+        (await minio.ReadAsync($"vendors/{companyId}/quarantine/{completed}", Ct)).ShouldNotBeNull();
+        (await VendorDocumentRows.UploadExistsAsync(db.OwnerConnectionString, completed, Ct)).ShouldBeFalse();
     }
 
     [Fact]
@@ -119,6 +149,22 @@ public sealed class VendorUploadCleanupTests(DatabaseFixture db, MinioFixture mi
         var first = new byte[1024 * 1024];
         chunk.CopyTo(first, 0);
         (await uploads.PutChunkAsync(started.Value.UploadId, 0, first, VendorDocumentRows.Sha256(first), Ct)).IsSuccess.ShouldBeTrue();
+        return started.Value.UploadId;
+    }
+
+    /// <summary>A whole upload completed while no scanner is configured: its document waits in quarantine under the upload's id.</summary>
+    private static async Task<Guid> CompletePendingAsync(ModuleHost host, Guid companyId)
+    {
+        await using var scope = host.ScopeFor(TestTenants.Acme, companyId);
+        var uploads = scope.ServiceProvider.GetRequiredService<IVendorUploads>();
+        var file = VendorDocumentRows.Pdf(4000);
+        var started = await uploads.StartAsync(
+            new VendorUploadStart(VendorDocumentTypes.CrCertificate, "cr.pdf", file.Length, "application/pdf"), Ct);
+        started.IsSuccess.ShouldBeTrue();
+        (await uploads.PutChunkAsync(started.Value.UploadId, 0, file, VendorDocumentRows.Sha256(file), Ct)).IsSuccess.ShouldBeTrue();
+        var completed = await uploads.CompleteAsync(started.Value.UploadId, DateOnly.FromDateTime(DateTime.UtcNow).AddYears(1), Ct);
+        completed.IsSuccess.ShouldBeTrue();
+        completed.Value.DocumentId.ShouldBe(started.Value.UploadId);
         return started.Value.UploadId;
     }
 }

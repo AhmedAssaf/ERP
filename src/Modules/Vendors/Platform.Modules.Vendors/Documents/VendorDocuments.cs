@@ -15,8 +15,9 @@ namespace Platform.Modules.Vendors.Documents;
 /// The documents of the current vendor context's company (F-12, V-8, V-10), and the retry scan of one pending document
 /// for the worker. Every database call runs under the company's row-level security; the company is always the vendor
 /// context's. A finding of the scanner is audited in the platform audit (<c>vendor.upload_infected</c>, subject the
-/// company, data the signature name only): the file belongs to the platform-level company, not to the tenant whose host
-/// it came through, and the retry scan has no tenant at all.
+/// company, data the signature name and the upload or document id): the file belongs to the platform-level company, not
+/// to the tenant whose host it came through, and the retry scan has no tenant at all. The audit is written before the
+/// finding is recorded, so it is never lost; the id makes a repeated entry recognisable.
 /// <para>
 /// Adding a document has two halves: <see cref="ScanAndStoreAsync"/> checks, scans and stores the file, and
 /// <see cref="RecordAsync"/> adds its row inside the caller's transaction, so a completed upload writes the document and the
@@ -76,7 +77,8 @@ internal sealed partial class VendorDocuments(
 
         if (scanned.Value.Signature is { } signature)
         {
-            await AuditUploadInfectedAsync(companyId, signature);
+            // Nothing was stored and nothing is recorded: the signature is all there is to audit.
+            await AuditInfectedAsync(companyId, actingUser.UserId, signature, null, CancellationToken.None);
             return InfectedResult();
         }
 
@@ -93,7 +95,7 @@ internal sealed partial class VendorDocuments(
     /// Checks the file (type from its first bytes, size, expiry), scans it and, unless infected, stores it under
     /// <paramref name="documentId"/>: clean at its document key, otherwise (no verdict) in quarantine. Nothing is recorded;
     /// the caller adds <see cref="ScannedDocument.Document"/> with <see cref="RecordAsync"/>, or audits
-    /// <see cref="ScannedDocument.Signature"/> with <see cref="AuditUploadInfectedAsync"/> after it recorded the outcome.
+    /// <see cref="ScannedDocument.Signature"/> with <see cref="AuditUploadInfectedAsync"/> before it commits the outcome.
     /// An infected file is never stored, not even in quarantine. <paramref name="content"/> must be seekable; storing it
     /// is not cancelled once the scanner has answered.
     /// </summary>
@@ -155,9 +157,9 @@ internal sealed partial class VendorDocuments(
         db.Documents.Add(row);
     }
 
-    /// <summary>Audits a finding on a vendor's upload, with the signed-in user as the actor.</summary>
-    internal Task AuditUploadInfectedAsync(Guid companyId, string signature) =>
-        AuditInfectedAsync(companyId, actingUser.UserId, signature);
+    /// <summary>Audits a finding on a vendor's upload, with the signed-in user as the actor and the upload's id.</summary>
+    internal Task AuditUploadInfectedAsync(Guid companyId, Guid uploadId, string signature) =>
+        AuditInfectedAsync(companyId, actingUser.UserId, signature, ("upload_id", uploadId), CancellationToken.None);
 
     internal static VendorDocumentAdded Added(DocumentRow row) =>
         new(row.Id, row.Sha256, row.ScanStatus == Clean ? VendorDocumentStatus.Clean : VendorDocumentStatus.PendingScan);
@@ -167,21 +169,21 @@ internal sealed partial class VendorDocuments(
 
     /// <summary>
     /// The worker's retry scan of one pending document of the vendor context's company. Clean: moved out of quarantine
-    /// and made current unless a newer file of its type already is. Infected: the row is marked <c>infected</c> (never
-    /// listed) and the finding audited, then the file is deleted. <see cref="ScanVerdict.Failed"/> (clamd answered with an
-    /// error for this file) and a quarantined file that is gone count as an attempt (logged; after
-    /// <see cref="MaxScanAttempts"/> the document is parked for a person) and return <see cref="ScanVerdict.Failed"/>, so
-    /// the job goes on with the next document. <see cref="ScanVerdict.Unavailable"/> is not the file's fault and is not
-    /// counted. Returns null when the document is no longer pending.
+    /// and made current unless a newer file of its type already is. Infected: the finding is audited first, then the row
+    /// is marked <c>infected</c> (never listed), then the file is deleted; a failure between the audit and the mark only
+    /// means the next run audits again. <see cref="ScanVerdict.Failed"/> (clamd refused this file's size) and a
+    /// quarantined file that is gone count as an attempt (logged; after <see cref="MaxScanAttempts"/> the document is
+    /// parked for a person), so the job goes on with the next document. <see cref="ScanVerdict.Unavailable"/> is not the
+    /// file's fault and is not counted.
     /// </summary>
-    public async Task<ScanVerdict?> RescanAsync(Guid documentId, CancellationToken cancellationToken)
+    public async Task<RescanOutcome> RescanAsync(Guid documentId, CancellationToken cancellationToken)
     {
         var companyId = RequireCompany();
         await using var db = await contexts.CreateDbContextAsync(cancellationToken);
         var row = await db.Documents.SingleOrDefaultAsync(d => d.Id == documentId && d.ScanStatus == PendingScan, cancellationToken);
         if (row is null)
         {
-            return null;
+            return RescanOutcome.NotPending;
         }
 
         await using var file = VendorDocumentFiles.CreateTempFile();
@@ -192,7 +194,7 @@ internal sealed partial class VendorDocuments(
             {
                 LogQuarantineMissing(logger, companyId, documentId);
                 await CountAttemptAsync(db, companyId, documentId);
-                return ScanVerdict.Failed;
+                return RescanOutcome.FileMissing;
             }
 
             await stored.Content.CopyToAsync(file, cancellationToken);
@@ -228,14 +230,15 @@ internal sealed partial class VendorDocuments(
                     }
 
                     await storage.DeleteAsync(quarantineKey, CancellationToken.None);
-                    return ScanVerdict.Clean;
+                    return RescanOutcome.Clean;
                 }
 
             case ScanVerdict.Infected:
-                // Recorded and audited first, so a failed delete never leaves an infected file that looks pending.
+                // Audit, mark, delete, in that order: the finding is never recorded without its audit, and a failed delete
+                // never leaves an infected file that looks pending.
+                await AuditInfectedAsync(companyId, actorId: null, scan.Signature!, ("document_id", documentId), CancellationToken.None);
                 row.ScanStatus = Infected;
                 await db.SaveChangesAsync(CancellationToken.None);
-                await AuditInfectedAsync(companyId, actorId: null, scan.Signature!, CancellationToken.None);
                 try
                 {
                     await storage.DeleteAsync(row.ObjectKey, CancellationToken.None);
@@ -245,15 +248,26 @@ internal sealed partial class VendorDocuments(
                     LogInfectedNotDeleted(logger, companyId, documentId, ex.GetType().Name);
                 }
 
-                return ScanVerdict.Infected;
+                return RescanOutcome.Infected;
 
             case ScanVerdict.Failed:
                 await CountAttemptAsync(db, companyId, documentId);
-                return ScanVerdict.Failed;
+                return RescanOutcome.ScannerFailed;
 
             default:
-                return ScanVerdict.Unavailable;
+                return RescanOutcome.ScannerUnavailable;
         }
+    }
+
+    /// <summary>
+    /// Counts one more retry attempt for a document of the vendor context's company whose retry scan failed for another
+    /// reason (storage or database), so a document that always fails that way is parked too.
+    /// </summary>
+    internal async Task CountAttemptAsync(Guid documentId)
+    {
+        var companyId = RequireCompany();
+        await using var db = await contexts.CreateDbContextAsync(CancellationToken.None);
+        await CountAttemptAsync(db, companyId, documentId);
     }
 
     /// <summary>The refusal for a file that is not a document of the given type, or null when it may be scanned.</summary>
@@ -306,11 +320,17 @@ internal sealed partial class VendorDocuments(
             $"update vendor.documents set is_current = false where company_id = {companyId} and type = {type} and is_current",
             cancellationToken);
 
-    private Task AuditInfectedAsync(Guid companyId, string? actorId, string signature, CancellationToken cancellationToken = default) =>
-        platformAudit.WriteAsync(
-            new PlatformAuditEntry(actorId, InfectedAction, "vendor_company", companyId.ToString("D"),
-                new Dictionary<string, string?> { ["signature"] = signature }),
-            cancellationToken);
+    private Task AuditInfectedAsync(
+        Guid companyId, string? actorId, string signature, (string Name, Guid Value)? id, CancellationToken cancellationToken = default)
+    {
+        var data = new Dictionary<string, string?> { ["signature"] = signature };
+        if (id is { } entry)
+        {
+            data[entry.Name] = entry.Value.ToString("D");
+        }
+
+        return platformAudit.WriteAsync(new PlatformAuditEntry(actorId, InfectedAction, "vendor_company", companyId.ToString("D"), data), cancellationToken);
+    }
 
     private Guid RequireCompany() =>
         vendors.Current?.CompanyId ?? throw new InvalidOperationException("Vendor documents need the vendor context of a signed-in vendor.");
@@ -341,3 +361,23 @@ internal sealed partial class VendorDocuments(
 /// <see cref="Signature"/> the scanner found (nothing stored).
 /// </summary>
 internal sealed record ScannedDocument(DocumentRow? Document, string? Signature);
+
+/// <summary>What one retry scan did (<see cref="VendorDocuments.RescanAsync"/>).</summary>
+internal enum RescanOutcome
+{
+    /// <summary>The document is no longer pending; nothing was done.</summary>
+    NotPending,
+
+    Clean,
+
+    Infected,
+
+    /// <summary>clamd answered with an error for this file; an attempt was counted.</summary>
+    ScannerFailed,
+
+    /// <summary>The quarantined file is gone; an attempt was counted.</summary>
+    FileMissing,
+
+    /// <summary>clamd could not be reached or gave no verdict; nothing was counted.</summary>
+    ScannerUnavailable,
+}

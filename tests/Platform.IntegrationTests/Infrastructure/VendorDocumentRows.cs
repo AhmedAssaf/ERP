@@ -96,6 +96,28 @@ internal static class VendorDocumentRows
         return (int)(await command.ExecuteScalarAsync(cancellationToken))! == 1;
     }
 
+    /// <summary>The upload's recorded outcome, or null while it is open.</summary>
+    public static async Task<string?> UploadOutcomeAsync(string ownerConnectionString, Guid uploadId, CancellationToken cancellationToken)
+    {
+        await using var connection = new NpgsqlConnection(ownerConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = new NpgsqlCommand("select outcome from vendor.uploads where id = @id", connection);
+        command.Parameters.AddWithValue("id", uploadId);
+        var outcome = await command.ExecuteScalarAsync(cancellationToken);
+        outcome.ShouldNotBeNull("the upload exists");
+        return outcome as string;
+    }
+
+    /// <summary>What a platform operator runs as the owner role for a parked document (docs/07 section 4).</summary>
+    public static async Task<bool> UnparkAsync(string ownerConnectionString, Guid documentId, CancellationToken cancellationToken)
+    {
+        await using var connection = new NpgsqlConnection(ownerConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = new NpgsqlCommand("select vendor.unpark_document(@id)", connection);
+        command.Parameters.AddWithValue("id", documentId);
+        return (bool)(await command.ExecuteScalarAsync(cancellationToken))!;
+    }
+
     /// <summary>Moves the upload's start into the past, as if it had been abandoned that long ago.</summary>
     public static async Task AgeUploadAsync(string ownerConnectionString, Guid uploadId, TimeSpan age, CancellationToken cancellationToken)
     {

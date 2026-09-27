@@ -10,9 +10,10 @@ namespace Platform.Shared.Scanning;
 /// <see cref="IVirusScanner"/> over clamd's TCP <c>INSTREAM</c> command: <c>zINSTREAM\0</c>, then the content in chunks
 /// of at most 64 KB, each after its length as 4 bytes big-endian, then a zero length; clamd answers
 /// <c>stream: OK</c>, <c>stream: {signature} FOUND</c> or an error, ending with a NUL. A connection failure, a timeout
-/// (<see cref="ClamAvSettings.Timeout"/> for the whole exchange) or a connection closed without an answer is
-/// <see cref="ScanResult.Unavailable"/> (clamd itself is not usable now); an error answer is
-/// <see cref="ScanResult.Failed"/> (clamd works, but not on this content). Both are logged with a reason code only,
+/// (<see cref="ClamAvSettings.Timeout"/> for the whole exchange), a connection closed without an answer, or an error
+/// answer other than the stream size limit is <see cref="ScanResult.Unavailable"/> (clamd itself is not usable now); the
+/// answer <c>INSTREAM size limit exceeded</c> is <see cref="ScanResult.Failed"/> (clamd works, but not on this content,
+/// the one error that is about the file). Both are logged with a reason code only,
 /// never clamd's text or the exception message (N-10). Content longer than
 /// <see cref="ClamAvSettings.MaxStreamBytes"/> is a caller's defect: clamd would cut it off and answer with an error, so
 /// it is refused before anything is sent.
@@ -20,6 +21,9 @@ namespace Platform.Shared.Scanning;
 public sealed partial class ClamAvScanner(ClamAvSettings settings, ILogger<ClamAvScanner> logger) : IVirusScanner
 {
     internal const int ChunkBytes = 64 * 1024;
+
+    /// <summary>clamd's answer when the stream is longer than its StreamMaxLength: the one error about the content.</summary>
+    private const string SizeLimitExceeded = "INSTREAM size limit exceeded";
 
     private static readonly byte[] Command = "zINSTREAM\0"u8.ToArray();
 
@@ -132,10 +136,17 @@ public sealed partial class ClamAvScanner(ClamAvSettings settings, ILogger<ClamA
             return ScanResult.Unavailable;
         }
 
-        // An error answer about this content (a size or scan limit, memory, a file it cannot read): clamd is up, so other
-        // content may still scan. The reply text is clamd's own and is not logged.
-        LogFailed(logger);
-        return ScanResult.Failed;
+        // Only the stream size limit is about this content: other content may still scan. Every other error (memory, the
+        // engine, a protocol reply) is clamd's own state, so it is an outage and counts nothing against the file. The reply
+        // text is clamd's own and is not logged.
+        if (reply.Contains(SizeLimitExceeded, StringComparison.Ordinal))
+        {
+            LogFailed(logger);
+            return ScanResult.Failed;
+        }
+
+        LogUnavailable(logger, "ErrorReply");
+        return ScanResult.Unavailable;
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "ClamAV is not configured (ClamAv:Host); the content stays unscanned.")]
