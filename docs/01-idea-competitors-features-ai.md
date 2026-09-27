@@ -30,6 +30,44 @@ Rejected on the way: Hasm (حسم), because it is also the name of a designated 
 
 Still to do before public use: SAIP trademark search for WaslaBid and وصلة بد (classes 9 and 42), and register `waslabid.com` and `waslabid.sa` (no DNS records found for either on 2026-09-26, which suggests but does not prove they are free).
 
+#### 1.1.1 Rename under consideration (2026-09-27, undecided)
+
+The user is considering replacing WaslaBid with an invented English name that is catchy and carries no dictionary meaning, possibly with "AI" in it. Nothing is renamed until the user picks one; WaslaBid stays in force until then. Domain columns record whether a DNS lookup on 2026-09-27 found records ("taken") or none ("free?", which suggests but does not prove the domain is unregistered).
+
+Invented words:
+
+| Name | Say it | Feel | .com | .sa |
+|---|---|---|---|---|
+| Amarqo | a-MAR-ko | Faintly echoes أمر (order) for Arabic speakers | free? | free? |
+| Luqara | lu-KAA-ra | Soft, easy in Arabic | free? | free? |
+| Oryxa | OR-ix-a | Quiet nod to the oryx | free? | free? |
+| Kemoru | ke-MO-ru | Short, neutral | free? | free? |
+| Qivio | KEE-vee-o | Light, friendly | free? | free? |
+| Zaqtu | ZAK-too | Punchy | free? | free? |
+| Vexio | VEX-ee-o | Sharp, techy | free? | free? |
+| Xenqo | ZEN-ko | Short, edgy | free? | free? |
+| Sylqa | SIL-ka | Smooth, premium | free? | free? |
+| Moxiqa | mox-EE-ka | Playful | free? | free? |
+| Xavra | ZAV-ra | Strong, enterprise | free? | free? |
+| Brizqo | BRIZ-ko | Energetic | free? | free? |
+| Ozunta | o-ZOON-ta | Warm, global | free? | free? |
+| Dunaxo | doo-NAX-o | Solid, industrial | free? | free? |
+
+With AI built into the word:
+
+| Name | Say it | .com | .ai | .sa |
+|---|---|---|---|---|
+| Zaqtai | zak-TIE | free? | free? | free? |
+| Sylqai | sil-KAI | free? | free? | free? |
+| Xavrai | zav-RYE | free? | free? | free? |
+| Ozuntai | o-zoon-TIE | free? | free? | free? |
+
+Name plus "AI" (the suffix can be dropped later without a rename): Qivio AI (`qivio.ai`, `qivioai.com` free?), Zaqtu AI (`zaqtu.ai` free?), Sylqa AI (`sylqa.ai` free?), Xavra AI (`xavra.ai` free?), Moxiqa AI (`moxiqa.ai` free?).
+
+Leaning: Qivio AI, or Sylqai as one word. Names avoid the P sound, which Arabic lacks. Caution on "AI" in the name: the MVP's AI is assist-only, off by default and gated by tenant consent (ADR-0005), so the name would promise more than the pilot delivers, and some procurement buyers distrust AI near sealed offers.
+
+When a name is chosen: SAIP trademark search (classes 9 and 42), register the domains, then rename in one commit across docs, `docs/brand/`, the Keycloak realms (`waslabid`, `waslabid-platform`), `WaslaBid.slnx`, UI resources and tests (236 mentions in 61 files on 2026-09-27), plus CLAUDE.md and README.md.
+
 ## 2. Tender lifecycle (the product's core flow)
 
 ```mermaid
