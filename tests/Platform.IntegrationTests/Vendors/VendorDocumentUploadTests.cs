@@ -580,13 +580,16 @@ public sealed class VendorDocumentUploadTests(DatabaseFixture db, MinioFixture m
     }
 
     [Fact]
-    public async Task A_poison_file_between_files_with_verdicts_is_charged_each_run_and_parked_after_twelve()
+    public async Task A_poison_file_among_clean_files_is_charged_each_run_and_parked_after_twelve()
     {
         var (vendor, companyId) = await VendorAsync();
         await using var factory = Factory(scannerUp: false);
         var uploads = new Uploads(factory, vendor);
         var poison = VendorDocumentRows.Pdf(32_000);
+        await PendingAsync(uploads, VendorDocumentTypes.VatCertificate, VendorDocumentRows.Pdf(32_100));
         var poisonId = await PendingAsync(uploads, VendorDocumentTypes.CrCertificate, poison);
+        await PendingAsync(uploads, VendorDocumentTypes.VatCertificate, VendorDocumentRows.Pdf(32_200));
+        // clamd errors on the poison file only; the canary and every other file scan clean.
         var scanner = new ScriptedScanner(content => content.AsSpan().SequenceEqual(poison) ? ScanResult.Failed : ScanResult.Clean);
 
         for (var run = 1; run <= 12; run++)
@@ -597,19 +600,13 @@ public sealed class VendorDocumentUploadTests(DatabaseFixture db, MinioFixture m
                 (await PlatformAuditsAsync("vendor.document_parked", poisonId)).ShouldBeEmpty();
             }
 
-            // Each run the poison file sits right before a new file that scans clean. A clean file leaves the queue, so
-            // the poison file is put back among the untried ones, ahead of the new file, as it was on its first run.
-            await VendorDocumentRows.ResetQueuePositionAsync(db.OwnerConnectionString, poisonId, Ct);
-            await PendingAsync(uploads, VendorDocumentTypes.VatCertificate, VendorDocumentRows.Pdf(32_100 + run));
             await RunRescanJobAsync(scanner);
             (await VendorDocumentRows.ScanAttemptsAsync(db.OwnerConnectionString, poisonId, Ct)).Attempts.ShouldBe(run);
         }
 
-        (await VendorDocumentRows.ScanAttemptsAsync(db.OwnerConnectionString, poisonId, Ct)).Attempts.ShouldBe(12);
         (await VendorDocumentRows.PendingScanListAsync(db.OwnerConnectionString, Ct)).ShouldNotContain(poisonId);
         (await VendorDocumentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct)).Single(r => r.Id == poisonId).ScanStatus.ShouldBe("pending_scan");
         // Parked: a further run no longer tries or counts it.
-        await VendorDocumentRows.ResetQueuePositionAsync(db.OwnerConnectionString, poisonId, Ct);
         await RunRescanJobAsync(scanner);
         (await VendorDocumentRows.ScanAttemptsAsync(db.OwnerConnectionString, poisonId, Ct)).Attempts.ShouldBe(12);
         var parked = (await PlatformAuditsAsync("vendor.document_parked", poisonId)).ShouldHaveSingleItem();
@@ -686,9 +683,9 @@ public sealed class VendorDocumentUploadTests(DatabaseFixture db, MinioFixture m
         row.ScanStatus.ShouldBe("pending_scan");
         (await minio.ReadAsync(quarantined, Ct)).ShouldBe(file);
         (await PlatformAuditsForCompanyAsync(companyId)).ShouldBeEmpty();
-        // The failure moves the document back in the queue; an attempt is charged only if a later document got a verdict.
+        // A failure after the scan (the audit) is not the file's: the document moves back in the queue, nothing is charged.
         var (attempts, lastScanAt) = await VendorDocumentRows.ScanAttemptsAsync(db.OwnerConnectionString, documentId, Ct);
-        attempts.ShouldBeInRange(0, 1);
+        attempts.ShouldBe(0);
         lastScanAt.ShouldNotBeNull();
         (await VendorDocumentRows.PendingScanListAsync(db.OwnerConnectionString, Ct)).ShouldContain(documentId);
 
@@ -701,7 +698,7 @@ public sealed class VendorDocumentUploadTests(DatabaseFixture db, MinioFixture m
     }
 
     [Fact]
-    public async Task Failures_are_charged_only_when_a_later_document_gets_a_verdict_and_three_in_a_row_stop_the_run()
+    public async Task A_file_the_scanner_errors_on_is_charged_at_once_when_the_canary_scans_clean()
     {
         var (vendor, companyId) = await VendorAsync();
         await using var factory = Factory(scannerUp: false);
@@ -713,24 +710,46 @@ public sealed class VendorDocumentUploadTests(DatabaseFixture db, MinioFixture m
             ids.Add(await PendingAsync(uploads, VendorDocumentTypes.CrCertificate, file));
         }
 
-        // Failed, Clean, Failed, Failed, Failed, (never reached).
+        // Failed, Clean, Failed, Failed, Failed, Failed; the canary scans clean, so each error is the file's own.
         var clean = files[1];
-        await RunRescanJobAsync(new ScriptedScanner(content => content.AsSpan().SequenceEqual(clean) ? ScanResult.Clean : ScanResult.Failed));
+        await RunRescanJobAsync(new ScriptedScanner(content =>
+            files.Exists(f => content.AsSpan().SequenceEqual(f)) && !content.AsSpan().SequenceEqual(clean) ? ScanResult.Failed : ScanResult.Clean));
 
-        var rows = await VendorDocumentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct);
-        rows.Single(r => r.Id == ids[1]).ScanStatus.ShouldBe("clean");
+        (await VendorDocumentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct)).Single(r => r.Id == ids[1]).ScanStatus.ShouldBe("clean");
         var attempts = new List<int>();
-        var tried = new List<bool>();
         foreach (var id in ids)
         {
-            var (count, lastScanAt) = await VendorDocumentRows.ScanAttemptsAsync(db.OwnerConnectionString, id, Ct);
-            attempts.Add(count);
-            tried.Add(lastScanAt is not null);
+            attempts.Add((await VendorDocumentRows.ScanAttemptsAsync(db.OwnerConnectionString, id, Ct)).Attempts);
         }
 
-        // The first failure is charged by the clean file after it; the three trailing ones stop the run uncharged.
-        attempts.ShouldBe([1, 0, 0, 0, 0, 0]);
-        tried.ShouldBe([true, false, true, true, true, false]);
+        // No outage: the breaker never trips, so the run reaches and charges every failing file.
+        attempts.ShouldBe([1, 0, 1, 1, 1, 1]);
+    }
+
+    [Fact]
+    public async Task A_clamd_outage_where_the_canary_gets_no_verdict_either_charges_nothing_and_stops_the_run()
+    {
+        var (vendor, _) = await VendorAsync();
+        await using var factory = Factory(scannerUp: false);
+        var uploads = new Uploads(factory, vendor);
+        var ids = new List<Guid>();
+        for (var i = 0; i < 4; i++)
+        {
+            ids.Add(await PendingAsync(uploads, VendorDocumentTypes.CrCertificate, VendorDocumentRows.Pdf(39_000 + i)));
+        }
+
+        var scanner = new CountingScanner(ScanResult.Unavailable);
+
+        await RunRescanJobAsync(scanner, runs: 12);
+
+        // Each run: three documents, each followed by the canary, then the breaker stops it. (Documents of other tests
+        // whose quarantined files are gone still count against themselves: a missing file is not an outage.)
+        scanner.Scans.ShouldBe(12 * 3 * 2);
+        foreach (var id in ids)
+        {
+            (await VendorDocumentRows.ScanAttemptsAsync(db.OwnerConnectionString, id, Ct)).Attempts.ShouldBe(0);
+            (await VendorDocumentRows.PendingScanListAsync(db.OwnerConnectionString, Ct)).ShouldContain(id);
+        }
     }
 
     [Fact]
@@ -1024,6 +1043,20 @@ public sealed class VendorDocumentUploadTests(DatabaseFixture db, MinioFixture m
             _entered.TrySetResult();
             await _release.Task.WaitAsync(cancellationToken);
             return ScanResult.Clean;
+        }
+    }
+
+    /// <summary>Gives every scan the same result and counts the scans.</summary>
+    private sealed class CountingScanner(ScanResult result) : IVirusScanner
+    {
+        private int _scans;
+
+        public int Scans => Volatile.Read(ref _scans);
+
+        public Task<ScanResult> ScanAsync(Stream content, CancellationToken cancellationToken = default)
+        {
+            Interlocked.Increment(ref _scans);
+            return Task.FromResult(result);
         }
     }
 

@@ -466,6 +466,19 @@ public sealed partial class VendorRowLevelSecurityTests(DatabaseFixture db) : IA
     }
 
     [Fact]
+    public async Task The_platform_audit_table_records_that_unparking_a_vendor_document_writes_to_it_directly()
+    {
+        await using var owner = new NpgsqlConnection(db.OwnerConnectionString);
+        await owner.OpenAsync(Ct);
+        await using var command = new NpgsqlCommand("select obj_description('ops.platform_audit'::regclass, 'pg_class')", owner);
+
+        var comment = await command.ExecuteScalarAsync(Ct) as string;
+
+        comment.ShouldNotBeNull();
+        comment.ShouldContain("vendor.unpark_document");
+    }
+
+    [Fact]
     public async Task Registering_without_an_acting_user_is_refused()
     {
         var cr = NewCrNumber();

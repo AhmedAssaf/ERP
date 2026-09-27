@@ -14,22 +14,36 @@ namespace Platform.Modules.Vendors.Documents;
 /// scanner could not decide on. It lists pending documents across companies through the security-definer function
 /// <c>vendor.pending_scan_documents</c> (ids only; the least recently tried first, and none tried 12 times already),
 /// then handles each one in its own scope under that company's vendor context, so the application role never reads past
-/// row-level security. A document without a verdict (clamd's size-limit error, a timeout or error reply, or an
-/// exception from storage or the database) goes to the back of the queue and its attempt is deferred: it is charged
-/// only once a later document in the same run is scanned to a verdict (clean or infected), which shows that storage,
-/// the scanner and the database all work and the fault was the file's. A missing quarantine file (counted against that
-/// document itself) or a document no longer pending proves nothing about the scanner: it neither charges nor clears the
-/// deferred ones. After <see cref="MaxConsecutiveWithoutVerdict"/> documents without a verdict since the last one the
-/// run stops, and the deferred ones are not charged: an outage of clamd, MinIO or the database counts nothing, however
-/// long it lasts.
+/// row-level security. A document without a verdict (clamd's size-limit error, a timeout or error reply, or a scanner
+/// exception) goes to the back of the queue, and the scanner is probed at once with <see cref="Canary"/>, a small
+/// known-clean buffer: when the canary scans clean the fault is the file's and it is charged one attempt now (parked
+/// and audited at 12); when the canary gets no verdict either, clamd is down and nothing is charged. A storage failure
+/// while reading the quarantined file, or any other exception, is never the file's fault and is not charged. Such
+/// outages in a row (<see cref="MaxConsecutiveOutages"/>) stop the run; a scan verdict or a charged file resets the
+/// count, while a missing file or a document no longer pending leaves it as it is.
 /// </summary>
 internal sealed partial class VendorDocumentRescanJob(
     IDbContextFactory<VendorsDbContext> contexts, IServiceScopeFactory scopes, ILogger<VendorDocumentRescanJob> logger)
 {
     private const int BatchSize = 200;
 
-    /// <summary>Documents in a row without a verdict after which a run stops, charging none of them (the outage breaker).</summary>
-    internal const int MaxConsecutiveWithoutVerdict = 3;
+    /// <summary>Outages in a row (canary without a verdict, storage or other failure) after which a run stops.</summary>
+    internal const int MaxConsecutiveOutages = 3;
+
+    /// <summary>What the scanner is probed with when a document gets no verdict: plain text, clean by construction.</summary>
+    internal static ReadOnlyMemory<byte> Canary { get; } = "WaslaBid virus scanner canary: plain text, known clean."u8.ToArray();
+
+    private enum Step
+    {
+        /// <summary>Scanned to a verdict, or a failure charged to the file after a clean canary.</summary>
+        Healthy,
+
+        /// <summary>A missing file or a document no longer pending: says nothing about the scanner.</summary>
+        Neutral,
+
+        /// <summary>Scanner, storage or database not usable: nothing charged.</summary>
+        Outage,
+    }
 
     // As the health-check job: no overlapping runs, and a failed run is not retried; the next one replaces it.
     [DisableConcurrentExecution(timeoutInSeconds: 240)]
@@ -44,96 +58,105 @@ internal sealed partial class VendorDocumentRescanJob(
                 .ToListAsync(cancellationToken);
         }
 
-        // Documents without a verdict since the last verdict, in order: charged when the next verdict comes.
-        var deferred = new List<PendingDocument>();
+        var outages = 0;
         foreach (var document in pending)
         {
-            var result = await RescanAsync(document, cancellationToken);
-            if (result == Result.Neutral)
+            switch (await RescanAsync(document, cancellationToken))
             {
-                continue;
-            }
-
-            if (result == Result.Verdict)
-            {
-                foreach (var failed in deferred)
-                {
-                    await ChargeAsync(failed);
-                }
-
-                deferred.Clear();
-                continue;
-            }
-
-            deferred.Add(document);
-            if (deferred.Count >= MaxConsecutiveWithoutVerdict)
-            {
-                LogNoVerdictInARow(logger, deferred.Count);
-                return;
+                case Step.Healthy:
+                    outages = 0;
+                    break;
+                case Step.Outage when ++outages >= MaxConsecutiveOutages:
+                    LogOutagesInARow(logger, outages);
+                    return;
             }
         }
     }
 
-    private enum Result
-    {
-        /// <summary>Scanned to clean or infected: storage, scanner and database work.</summary>
-        Verdict,
-
-        /// <summary>A missing file or a document no longer pending: says nothing about the scanner.</summary>
-        Neutral,
-
-        /// <summary>No verdict: the file's fault or an outage, decided later in the run.</summary>
-        None,
-    }
-
     /// <summary>One document in its own scope under its company's vendor context.</summary>
-    private async Task<Result> RescanAsync(PendingDocument document, CancellationToken cancellationToken)
+    private async Task<Step> RescanAsync(PendingDocument document, CancellationToken cancellationToken)
     {
         await using var scope = scopes.CreateAsyncScope();
         scope.ServiceProvider.GetRequiredService<VendorAccessor>().Set(new VendorContext(document.CompanyId));
         var documents = scope.ServiceProvider.GetRequiredService<VendorDocuments>();
+        RescanOutcome outcome;
         try
         {
-            return await documents.RescanAsync(document.Id, cancellationToken) switch
-            {
-                RescanOutcome.Clean or RescanOutcome.Infected => Result.Verdict,
-                RescanOutcome.FileMissing or RescanOutcome.NotPending => Result.Neutral,
-                _ => Result.None,
-            };
+            outcome = await documents.RescanAsync(document.Id, cancellationToken);
         }
         catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
+            // After the scan (storing, the database, the audit): not the file's fault.
             LogRescanFailed(logger, document.Id, ex.GetType().Name);
-            try
-            {
-                await documents.TouchAsync(document.Id);
-            }
-            catch (Exception touchFailure) when (touchFailure is not OperationCanceledException)
-            {
-                LogNotRotated(logger, document.Id, touchFailure.GetType().Name);
-            }
+            await TouchAsync(documents, document.Id);
+            return Step.Outage;
+        }
 
-            return Result.None;
+        switch (outcome)
+        {
+            case RescanOutcome.Clean or RescanOutcome.Infected:
+                return Step.Healthy;
+            case RescanOutcome.FileMissing or RescanOutcome.NotPending:
+                return Step.Neutral;
+            case RescanOutcome.ScannerFailed or RescanOutcome.ScannerUnavailable:
+                if (!await CanaryIsCleanAsync(scope.ServiceProvider.GetRequiredService<IVirusScanner>(), cancellationToken))
+                {
+                    return Step.Outage;
+                }
+
+                await ChargeAsync(documents, document.Id);
+                return Step.Healthy;
+            default:
+                return Step.Outage;
         }
     }
 
-    /// <summary>Charges a deferred attempt; when that fails (the database went away), it is logged and not retried.</summary>
-    private async Task ChargeAsync(PendingDocument document)
+    /// <summary>True when the scanner gives the known-clean canary a clean verdict, so it works right now.</summary>
+    private async Task<bool> CanaryIsCleanAsync(IVirusScanner scanner, CancellationToken cancellationToken)
     {
-        await using var scope = scopes.CreateAsyncScope();
-        scope.ServiceProvider.GetRequiredService<VendorAccessor>().Set(new VendorContext(document.CompanyId));
         try
         {
-            await scope.ServiceProvider.GetRequiredService<VendorDocuments>().ChargeAttemptAsync(document.Id);
+            using var canary = new MemoryStream(Canary.ToArray(), writable: false);
+            return (await scanner.ScanAsync(canary, cancellationToken)).Verdict == ScanVerdict.Clean;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+        {
+            LogCanaryFailed(logger, ex.GetType().Name);
+            return false;
+        }
+    }
+
+    /// <summary>Charges the file one attempt; when that fails (the database went away), it is logged and not retried.</summary>
+    private async Task ChargeAsync(VendorDocuments documents, Guid documentId)
+    {
+        try
+        {
+            await documents.ChargeAttemptAsync(documentId);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            LogAttemptNotCounted(logger, document.Id, ex.GetType().Name);
+            LogAttemptNotCounted(logger, documentId, ex.GetType().Name);
         }
     }
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "{Count} vendor documents in a row got no scan verdict; the virus scanner or object storage is likely down, so the run stops and counts none of them.")]
-    private static partial void LogNoVerdictInARow(ILogger logger, int count);
+    /// <summary>Moves the document to the back of the queue; when that fails too, it is logged.</summary>
+    private async Task TouchAsync(VendorDocuments documents, Guid documentId)
+    {
+        try
+        {
+            await documents.TouchAsync(documentId);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            LogNotRotated(logger, documentId, ex.GetType().Name);
+        }
+    }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "{Count} vendor documents in a row met an outage of the virus scanner, object storage or the database; the run stops and charges none of them.")]
+    private static partial void LogOutagesInARow(ILogger logger, int count);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The virus scanner canary could not be scanned ({ErrorType}); treated as an outage.")]
+    private static partial void LogCanaryFailed(ILogger logger, string errorType);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Vendor document {DocumentId} could not be moved to the back of the retry queue ({ErrorType}).")]
     private static partial void LogNotRotated(ILogger logger, Guid documentId, string errorType);
@@ -141,7 +164,7 @@ internal sealed partial class VendorDocumentRescanJob(
     [LoggerMessage(Level = LogLevel.Error, Message = "The retry scan of vendor document {DocumentId} failed ({ErrorType}); it stays pending.")]
     private static partial void LogRescanFailed(ILogger logger, Guid documentId, string errorType);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "The deferred retry attempt of vendor document {DocumentId} could not be counted ({ErrorType}).")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "The retry attempt of vendor document {DocumentId} could not be counted ({ErrorType}).")]
     private static partial void LogAttemptNotCounted(ILogger logger, Guid documentId, string errorType);
 
     // Unmapped query types follow the context's snake_case naming convention: columns id and company_id.

@@ -176,9 +176,10 @@ internal sealed partial class VendorDocuments(
     /// is marked <c>infected</c> (never listed), then the file is deleted; a failure between the audit and the mark only
     /// means the next run audits again. A quarantined file that is gone is a verdict about the file and counts an attempt
     /// at once (after <see cref="MaxScanAttempts"/> the document is parked for a person, audited). No verdict
-    /// (<see cref="ScanVerdict.Failed"/> or <see cref="ScanVerdict.Unavailable"/>) moves the document to the back of the
-    /// queue (<c>last_scan_at</c>) without counting: the job decides later in the run whether it was this file or an
-    /// outage (<see cref="VendorDocumentRescanJob"/>) and charges it with <see cref="ChargeAttemptAsync"/>.
+    /// (<see cref="ScanVerdict.Failed"/>, <see cref="ScanVerdict.Unavailable"/> or a scanner exception) and a storage
+    /// failure while reading the quarantined file move the document to the back of the queue (<c>last_scan_at</c>)
+    /// without counting: the job probes the scanner with a known-clean canary to tell the file's fault from an outage
+    /// (<see cref="VendorDocumentRescanJob"/>) and charges the file with <see cref="ChargeAttemptAsync"/>.
     /// </summary>
     public async Task<RescanOutcome> RescanAsync(Guid documentId, CancellationToken cancellationToken)
     {
@@ -192,8 +193,9 @@ internal sealed partial class VendorDocuments(
 
         await using var file = VendorDocumentFiles.CreateTempFile();
         string contentType;
-        await using (var stored = await storage.OpenAsync(row.ObjectKey, cancellationToken))
+        try
         {
+            await using var stored = await storage.OpenAsync(row.ObjectKey, cancellationToken);
             if (stored is null)
             {
                 LogQuarantineMissing(logger, companyId, documentId);
@@ -204,9 +206,26 @@ internal sealed partial class VendorDocuments(
             await stored.Content.CopyToAsync(file, cancellationToken);
             contentType = stored.ContentType;
         }
+        catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+        {
+            // Storage could not be read: not the file's fault. Rotated, never charged.
+            LogStorageUnavailable(logger, companyId, documentId, ex.GetType().Name);
+            await TouchAsync(db, documentId);
+            return RescanOutcome.StorageUnavailable;
+        }
 
         file.Position = 0;
-        var scan = await scanner.ScanAsync(file, cancellationToken);
+        ScanResult scan;
+        try
+        {
+            scan = await scanner.ScanAsync(file, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+        {
+            // The scanner threw on this file (it logs no content): no verdict, left to the job's canary probe.
+            LogScannerThrew(logger, companyId, documentId, ex.GetType().Name);
+            scan = ScanResult.Failed;
+        }
         switch (scan.Verdict)
         {
             case ScanVerdict.Clean:
@@ -265,8 +284,8 @@ internal sealed partial class VendorDocuments(
     }
 
     /// <summary>
-    /// Charges one retry attempt to a document of the vendor context's company that got no verdict earlier in the run,
-    /// once a later document got one (so it was the file, not an outage). <c>last_scan_at</c> was set when it was tried.
+    /// Charges one retry attempt to a document of the vendor context's company that got no verdict while the scanner
+    /// answered a known-clean canary (so it was the file, not an outage). <c>last_scan_at</c> was set when it was tried.
     /// </summary>
     internal async Task ChargeAttemptAsync(Guid documentId)
     {
@@ -376,6 +395,12 @@ internal sealed partial class VendorDocuments(
     [LoggerMessage(Level = LogLevel.Warning, Message = "A vendor upload of company {CompanyId} was infected ({Signature}); it was not kept.")]
     private static partial void LogInfected(ILogger logger, Guid companyId, string signature);
 
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The quarantined file of vendor document {DocumentId} of company {CompanyId} could not be read ({ErrorType}); it stays pending and is not charged.")]
+    private static partial void LogStorageUnavailable(ILogger logger, Guid companyId, Guid documentId, string errorType);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The virus scanner threw on vendor document {DocumentId} of company {CompanyId} ({ErrorType}); treated as no verdict.")]
+    private static partial void LogScannerThrew(ILogger logger, Guid companyId, Guid documentId, string errorType);
+
     [LoggerMessage(Level = LogLevel.Error, Message = "The quarantined file of vendor document {DocumentId} of company {CompanyId} is missing; it stays pending.")]
     private static partial void LogQuarantineMissing(ILogger logger, Guid companyId, Guid documentId);
 
@@ -402,12 +427,15 @@ internal enum RescanOutcome
 
     Infected,
 
-    /// <summary>clamd answered with an error for this file; an attempt was counted.</summary>
+    /// <summary>clamd answered with an error for this file, or the scanner threw; nothing counted yet.</summary>
     ScannerFailed,
 
     /// <summary>The quarantined file is gone; an attempt was counted.</summary>
     FileMissing,
 
-    /// <summary>clamd could not be reached or gave no verdict; nothing was counted.</summary>
+    /// <summary>clamd could not be reached or gave no verdict; nothing counted yet.</summary>
     ScannerUnavailable,
+
+    /// <summary>The quarantined file could not be read (storage outage); never charged.</summary>
+    StorageUnavailable,
 }

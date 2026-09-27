@@ -231,7 +231,7 @@ then a browser pass through Caddy for the tenant admin, an invited evaluator and
 
 #### Operations
 
-- Parked vendor document (12 retry scans without a verdict, V-10; the worker logs its id): once the cause is fixed, a platform operator runs `select vendor.unpark_document('<document id>');` as the owner role `erp` (neither `erp_app` nor public may execute it), and the next five-minute retry scan tries it again. Parking and unparking are both in the platform audit (`vendor.document_parked`, `vendor.document_unparked`).
+- Parked vendor document (12 retry scans without a verdict, V-10; the worker logs its id): once the cause is fixed, a platform operator connects with their own personal database login, which is a member of `erp`, runs `SET ROLE erp;` and then `select vendor.unpark_document('<document id>');` (neither `erp_app` nor public may execute it); the next five-minute retry scan tries it again. The audit records `session_user`, so it names the person, never the shared `erp` role; do not connect as `erp` itself for this. Parking and unparking are both in the platform audit (`vendor.document_parked`, `vendor.document_unparked`).
 
 ## 5. Branches, commits, pull requests
 
