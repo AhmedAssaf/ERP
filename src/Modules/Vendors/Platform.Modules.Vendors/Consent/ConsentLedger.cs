@@ -16,7 +16,7 @@ namespace Platform.Modules.Vendors.Consent;
 /// is the actor of each row. Each change is audited in the platform audit before its transaction commits, on the audit
 /// writer's own connection: when the audit fails the row rolls back; a commit that fails after it leaves an entry for a
 /// change that did not happen. Each entry names the host tenant the vendor or the export acted on (null without one).
-/// The database holds the actor and no-backdating rules too (migration 0015). Checks go through <c>vendor.consent_grant_in_force</c> (migration 0012), which works
+/// The database holds the actor and no-backdating rules too (migrations 0015 to 0017). Checks go through <c>vendor.consent_grant_in_force</c> (migration 0012), which works
 /// without a vendor context, as an export needs.
 /// </summary>
 internal sealed class ConsentLedger(
@@ -29,6 +29,7 @@ internal sealed class ConsentLedger(
 {
     private const string VendorAdminRole = "vendor-admin";
     private const string OneRevocationIndex = "ux_consent_events_revokes";
+    private const string NotBackdatedRule = "ck_consent_events_not_backdated";
 
     public async Task<IReadOnlyList<ConsentRecipient>> ListRecipientsAsync(CancellationToken cancellationToken = default)
     {
@@ -77,9 +78,10 @@ internal sealed class ConsentLedger(
         {
             await db.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.CheckViolation })
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.CheckViolation, ConstraintName: NotBackdatedRule })
         {
-            // The database's today is later than this host's clock thinks (migration 0015 refuses a backdated start).
+            // The database's today is later than this host's clock thinks (the no-backdating rule, named since migration
+            // 0017). Any other check violation, such as the recording-time rule, is a defect and propagates.
             return InvalidPeriod();
         }
 

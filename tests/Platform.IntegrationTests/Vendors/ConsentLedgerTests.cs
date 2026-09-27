@@ -13,20 +13,34 @@ namespace Platform.IntegrationTests.Vendors;
 /// scope and period and revokes it with a new row; nothing is updated or deleted; every grant, revocation and check is
 /// audited in the platform audit, a check with the grant it relied on. A tenant never grants for a vendor.
 /// <para>
-/// Two clocks, on purpose. The application's clock is pinned to 1 January 2030 in Riyadh, always later than the database's
-/// real date, so every grant the service accepts also passes the database's no-backdating rule, whatever day the suite runs.
-/// A check always asks about the database's today (ADR-0010 point 2), so the check tests use grants written relative to
-/// the database's own date (<see cref="ConsentRows.InsertGrantAsOwnerAsync"/>).
+/// Two clocks, on purpose. The application's clock is pinned to the day after the database's today in Riyadh, read when
+/// the class starts, so every grant the service accepts also passes the database's no-backdating rule whatever day the
+/// suite runs, and no date in this class ever falls into the past. A check always asks about the database's today
+/// (ADR-0010 point 2), so the check tests use grants written relative to the database's own date
+/// (<see cref="ConsentRows.InsertGrantAsOwnerAsync"/>), or a grant through the service with the clock on that same day.
 /// </para>
 /// </summary>
 [Collection(DatabaseCollection.Name)]
-public sealed class ConsentLedgerTests(DatabaseFixture db)
+public sealed class ConsentLedgerTests(DatabaseFixture db) : IAsyncLifetime
 {
-    private static readonly DateTimeOffset AppNow = new(2030, 1, 1, 9, 0, 0, TimeSpan.FromHours(3));
+    private DateOnly _databaseToday;
 
-    private static readonly DateOnly Today = DateOnly.FromDateTime(AppNow.DateTime);
+    /// <summary>The application's today: the day after the database's today in Riyadh.</summary>
+    private DateOnly Today => _databaseToday.AddDays(1);
+
+    private DateTimeOffset AppNow => AtNineInRiyadh(Today);
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    public async ValueTask InitializeAsync()
+    {
+        await using var connection = new NpgsqlConnection(db.AppConnectionString);
+        await connection.OpenAsync(Ct);
+        await using var command = new NpgsqlCommand("select ((now() + interval '3 hours') at time zone 'UTC')::date", connection);
+        _databaseToday = (DateOnly)(await command.ExecuteScalarAsync(Ct))!;
+    }
+
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     [Fact]
     public async Task A_grant_is_recorded_and_audited()
@@ -169,7 +183,7 @@ public sealed class ConsentLedgerTests(DatabaseFixture db)
             (Today, ConsentStatus.NotYetValid), (from, ConsentStatus.Active), (to, ConsentStatus.Active), (to.AddDays(1), ConsentStatus.Expired),
         })
         {
-            await using var host = Host(new DateTimeOffset(day.ToDateTime(new TimeOnly(9, 0)), TimeSpan.FromHours(3)));
+            await using var host = Host(AtNineInRiyadh(day));
             (await LedgerFor(host, companyId, userId, ledger => ledger.ListAsync(Ct))).ShouldHaveSingleItem().Status.ShouldBe(expected, day.ToString("O", System.Globalization.CultureInfo.InvariantCulture));
         }
     }
@@ -319,6 +333,40 @@ public sealed class ConsentLedgerTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task A_grant_made_through_the_service_from_the_databases_today_is_allowed_by_a_check_that_day()
+    {
+        var (companyId, userId, recipientId) = await VendorWithRecipientAsync("End To End Company");
+        await using var host = Host(AtNineInRiyadh(_databaseToday));
+        var operatorId = $"export-operator-{Guid.NewGuid():N}";
+
+        var granted = await LedgerFor(host, companyId, userId, ledger =>
+            ledger.GrantAsync(recipientId, ConsentScope.AwardRecords, _databaseToday, _databaseToday.AddDays(30), userId, Ct));
+        var grantId = granted.IsSuccess ? granted.Value : throw new ShouldAssertException(granted.Error.Message);
+
+        (await Check(host, companyId, recipientId, ConsentScope.AwardRecords, operatorId)).ShouldBe(new ConsentCheckResult(Allowed: true, GrantId: grantId));
+        (await VendorRows.PlatformAuditsAsync(db.OwnerConnectionString, operatorId, "vendor.consent_check", Ct))
+            .ShouldHaveSingleItem().Data.ShouldContain(grantId.ToString());
+    }
+
+    [Fact]
+    public async Task The_recording_time_rule_and_the_no_backdating_rule_are_refused_under_their_own_names()
+    {
+        // GrantAsync reads only the no-backdating refusal as an invalid period; a row naming another recording time is
+        // a defect and must not look like the vendor's choice of dates (vendors migration 0017).
+        var (companyId, userId, recipientId) = await VendorWithRecipientAsync("Named Rules Company");
+        const string riyadhToday = "((now() + interval '3 hours') at time zone 'UTC')::date";
+
+        var wrongTime = await InsertGrantAsVendorAsync(
+            companyId, userId, recipientId, actorId: userId, validFrom: riyadhToday, occurredAt: "now() - interval '1 day'");
+        wrongTime.ShouldNotBeNull().SqlState.ShouldBe(PostgresErrorCodes.CheckViolation);
+        wrongTime.ConstraintName.ShouldBe("ck_consent_events_recorded_now");
+
+        var backdated = await InsertGrantAsVendorAsync(companyId, userId, recipientId, actorId: userId, validFrom: riyadhToday + " - 1");
+        backdated.ShouldNotBeNull().SqlState.ShouldBe(PostgresErrorCodes.CheckViolation);
+        backdated.ConstraintName.ShouldBe("ck_consent_events_not_backdated");
+    }
+
+    [Fact]
     public async Task The_database_refuses_a_grant_by_another_actor_or_starting_before_today()
     {
         var (companyId, userId, recipientId) = await VendorWithRecipientAsync("Database Checked Company");
@@ -326,10 +374,10 @@ public sealed class ConsentLedgerTests(DatabaseFixture db)
 
         // The session's own user, but another actor on the row.
         (await InsertGrantAsVendorAsync(companyId, userId, recipientId, actorId: "someone-else", validFrom: riyadhToday + " + 1"))
-            .ShouldBe(PostgresErrorCodes.InsufficientPrivilege);
+            .ShouldNotBeNull().SqlState.ShouldBe(PostgresErrorCodes.InsufficientPrivilege);
         // Backdated: starts yesterday in Riyadh.
         (await InsertGrantAsVendorAsync(companyId, userId, recipientId, actorId: userId, validFrom: riyadhToday + " - 1"))
-            .ShouldBe(PostgresErrorCodes.CheckViolation);
+            .ShouldNotBeNull().SqlState.ShouldBe(PostgresErrorCodes.CheckViolation);
         // Control: today in Riyadh, by the session's user.
         (await InsertGrantAsVendorAsync(companyId, userId, recipientId, actorId: userId, validFrom: riyadhToday)).ShouldBeNull();
         (await ConsentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct)).ShouldBeEmpty("every probe rolled back");
@@ -401,8 +449,12 @@ public sealed class ConsentLedgerTests(DatabaseFixture db)
             .Data.ShouldContain("\"tenant_id\": null");
     }
 
-    /// <summary>A grant inserted directly in the company's vendor session, rolled back; the SQL state it was refused with, or null.</summary>
-    private async Task<string?> InsertGrantAsVendorAsync(Guid companyId, string sessionUser, Guid recipientId, string actorId, string validFrom)
+    /// <summary>
+    /// A grant inserted directly in the company's vendor session, rolled back; the refusal, or null. With
+    /// <paramref name="occurredAt"/> the row names its own recording time.
+    /// </summary>
+    private async Task<PostgresException?> InsertGrantAsVendorAsync(
+        Guid companyId, string sessionUser, Guid recipientId, string actorId, string validFrom, string? occurredAt = null)
     {
         await using var connection = new NpgsqlConnection(db.AppConnectionString);
         await connection.OpenAsync(Ct);
@@ -413,8 +465,8 @@ public sealed class ConsentLedgerTests(DatabaseFixture db)
             await using var command = new NpgsqlCommand($"""
                 select set_config('app.tenant_id', @tenant, true), set_config('app.vendor_company_id', @vendor, true),
                        set_config('app.user_id', @user, true);
-                insert into vendor.consent_events (id, company_id, recipient_id, scope, kind, valid_from, valid_to, actor_id)
-                values (gen_random_uuid(), @vendor::uuid, @recipient, 'award_records', 'grant', {validFrom}, current_date + 60, @actor);
+                insert into vendor.consent_events (id, company_id, recipient_id, scope, kind, valid_from, valid_to, actor_id, occurred_at)
+                values (gen_random_uuid(), @vendor::uuid, @recipient, 'award_records', 'grant', {validFrom}, current_date + 60, @actor, {occurredAt ?? "now()"});
                 """, connection, transaction);
 #pragma warning restore CA2100
             command.Parameters.AddWithValue("tenant", TestTenants.Acme.TenantId.ToString());
@@ -427,13 +479,15 @@ public sealed class ConsentLedgerTests(DatabaseFixture db)
         }
         catch (PostgresException ex)
         {
-            return ex.SqlState;
+            return ex;
         }
         finally
         {
             await transaction.RollbackAsync(Ct);
         }
     }
+
+    private static DateTimeOffset AtNineInRiyadh(DateOnly day) => new(day.ToDateTime(new TimeOnly(9, 0)), TimeSpan.FromHours(3));
 
     private ModuleHost Host(DateTimeOffset? now = null) =>
         new(db.AppConnectionString, clock: new FixedClock(now ?? AppNow));
