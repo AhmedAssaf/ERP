@@ -78,6 +78,52 @@ public sealed class VendorFunctionCallerTests(DatabaseFixture db)
         (await VendorRows.RelationshipsAsync(db.OwnerConnectionString, companyId, Ct))[TestTenants.Acme.TenantId].ShouldBe("pending");
     }
 
+    [Theory]
+    [InlineData(TenantRoles.ContractsOfficer, "invited")]
+    [InlineData(TenantRoles.TechnicalEvaluator, "active")]
+    [InlineData(TenantRoles.FinanceApprover, "active")]
+    public async Task Approving_needs_an_active_officer_or_admin_of_the_tenant(string role, string status)
+    {
+        var (companyId, _) = await VendorAsync("Approval Role Probe");
+        var member = $"member-{Guid.NewGuid():N}";
+        await MemberRows.InsertAsync(db.AppConnectionString, TestTenants.Acme.TenantId, member, $"{member}@acme.test", [role], status, Ct);
+        // An active officer of another tenant is no officer of acme either.
+        var betaOfficer = $"beta-officer-{Guid.NewGuid():N}";
+        await MemberRows.InsertAsync(db.AppConnectionString, TestTenants.Beta.TenantId, betaOfficer, $"{betaOfficer}@beta.test", [TenantRoles.ContractsOfficer], "active", Ct);
+
+        foreach (var user in new[] { member, betaOfficer })
+        {
+            await using var connection = await AppConnectionAsync(TestTenants.Acme.TenantId, null, user);
+            (await RefusedAsync(connection, "select vendor.approve_relationship(@value)", companyId)).ShouldBeTrue(user);
+        }
+
+        (await VendorRows.RelationshipsAsync(db.OwnerConnectionString, companyId, Ct))[TestTenants.Acme.TenantId].ShouldBe("pending");
+    }
+
+    /// <summary>
+    /// A known gap, pinned so it is not forgotten (ADR-0012 point 4): until a separate worker role exists, "no tenant and
+    /// no vendor context" is also what a platform-host session looks like, so such a session may call the worker's
+    /// functions. The platform host serves only platform admins behind the PlatformAdmin policy with OTP.
+    /// </summary>
+    [Fact]
+    public async Task Known_gap_a_platform_host_session_counts_as_the_worker_until_the_worker_role_exists()
+    {
+        var (companyId, _) = await VendorAsync("Worker Role Gap");
+        var uploadId = await InsertStaleUploadAsOwnerAsync(companyId);
+        var documentId = await InsertPendingDocumentAsOwnerAsync(companyId);
+        try
+        {
+            // A platform admin's session: an acting user, but neither a tenant nor a vendor context.
+            await using var platformSession = await AppConnectionAsync(null, null, "platform-admin-sub");
+            (await CountAsync(platformSession, "select count(*)::int from vendor.stale_uploads() where id = @value", uploadId)).ShouldBe(1);
+            (await CountAsync(platformSession, "select count(*)::int from vendor.pending_scan_documents(1000) where id = @value", documentId)).ShouldBe(1);
+        }
+        finally
+        {
+            await DeleteAsOwnerAsync(uploadId, documentId);
+        }
+    }
+
     [Fact]
     public async Task Approving_still_works_for_a_staff_session()
     {

@@ -86,15 +86,16 @@ public interface IConsentLedger
     Task<IReadOnlyList<ConsentGrant>> ListAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Whether the company has a grant to the recipient for the scope in force on <paramref name="onDate"/> (inside its
-    /// period, never revoked), and which one (the newest when several are). Audited as <c>vendor.consent_check</c> with the
-    /// result, the grant relied on and the host tenant, under the acting user when there is one. Asked by an export in any
-    /// context except another company's vendor context (<see cref="InvalidOperationException"/>). An export checks at the
-    /// moment it runs: <paramref name="onDate"/> is the export date, today in Riyadh (ADR-0010 point 2), never a date the
-    /// export is about.
+    /// Whether the company has a grant to the recipient for the scope in force today in Riyadh, at the moment the export
+    /// runs (ADR-0010 point 2): inside its period, first and last day included, and never revoked; and which one (the newest
+    /// when several are). The date is the database's, never the caller's, so an export cannot rely on a grant that starts
+    /// later or has ended. Audited as <c>vendor.consent_check</c> with the result, the grant relied on and the host tenant,
+    /// under the acting user when there is one. Asked by an export without a context, by tenant staff only about a company
+    /// their tenant works with, or by the company itself; another company's vendor context, or a tenant with no relationship
+    /// with the company, is refused (<see cref="InvalidOperationException"/>).
     /// </summary>
     Task<ConsentCheckResult> CheckAsync(
-        Guid companyId, Guid recipientId, ConsentScope scope, DateOnly onDate, CancellationToken cancellationToken = default);
+        Guid companyId, Guid recipientId, ConsentScope scope, CancellationToken cancellationToken = default);
 }
 
 /// <summary>Stable error codes of the consent ledger; pages map them to localized text.</summary>

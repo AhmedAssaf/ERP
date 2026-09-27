@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Platform.Modules.Audit.Contracts;
 using Platform.Modules.Identity.Contracts;
 using Platform.Modules.Vendors.Contracts;
@@ -102,8 +103,7 @@ internal sealed class VendorDirectory(
         var roles = await members.GetRolesAsync(actorId, cancellationToken);
         if (!roles.Contains(TenantRoles.ContractsOfficer, StringComparer.Ordinal) && !roles.Contains(TenantRoles.TenantAdmin, StringComparer.Ordinal))
         {
-            return Result.Failure<VendorRelationshipStatus>(Error.Refused(
-                VendorDirectoryErrors.NotAllowed, "Only a contracts officer or a tenant administrator can approve a vendor."));
+            return NotAllowed();
         }
 
         await using var db = await contexts.CreateDbContextAsync(cancellationToken);
@@ -117,8 +117,20 @@ internal sealed class VendorDirectory(
             return NotFound();
         }
 
-        // Holds the relationship row until the commit, so a second approval waits and then finds it approved.
-        if (!await db.Database.SqlQuery<bool>($"select vendor.approve_relationship({companyId}) as \"Value\"").SingleAsync(cancellationToken))
+        // Holds the relationship row until the commit, so a second approval waits and then finds it approved. The database
+        // checks the approver again (migration 0016: an active officer or admin of the tenant who is no vendor user); a
+        // refusal there, such as a staff member whose account also belongs to a vendor company, is NotAllowed.
+        bool approved;
+        try
+        {
+            approved = await db.Database.SqlQuery<bool>($"select vendor.approve_relationship({companyId}) as \"Value\"").SingleAsync(cancellationToken);
+        }
+        catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.InsufficientPrivilege)
+        {
+            return NotAllowed();
+        }
+
+        if (!approved)
         {
             return Result.Failure<VendorRelationshipStatus>(Error.Conflict(
                 VendorDirectoryErrors.AlreadyApproved, "This vendor is already approved."));
@@ -152,6 +164,10 @@ internal sealed class VendorDirectory(
             throw new InvalidOperationException("The vendor directory is tenant staff's; a scope with a vendor context may not use it.");
         }
     }
+
+    private static Result<VendorRelationshipStatus> NotAllowed() =>
+        Result.Failure<VendorRelationshipStatus>(Error.Refused(
+            VendorDirectoryErrors.NotAllowed, "Only a contracts officer or a tenant administrator can approve a vendor."));
 
     private static Result<VendorRelationshipStatus> NotFound() =>
         Result.Failure<VendorRelationshipStatus>(Error.NotFound(VendorDirectoryErrors.NotFound, "This vendor does not work with this organization."));

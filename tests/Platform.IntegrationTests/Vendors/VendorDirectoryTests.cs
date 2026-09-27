@@ -88,6 +88,22 @@ public sealed class VendorDirectoryTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task A_staff_member_who_is_also_a_vendor_user_is_not_allowed_to_approve()
+    {
+        var (companyId, _) = await VendorAsync("Dual Role Target");
+        // An officer of acme whose account also belongs to a vendor company.
+        var (_, dualUser) = await VendorAsync("Dual Role Own Company");
+        await MemberRows.InsertAsync(db.AppConnectionString, TestTenants.Acme.TenantId, dualUser, $"{dualUser}@acme.test", [TenantRoles.ContractsOfficer], "active", Ct);
+        await using var host = new ModuleHost(db.AppConnectionString);
+        await using var scope = host.ScopeFor(TestTenants.Acme, actingUserId: dualUser);
+
+        var result = await scope.ServiceProvider.GetRequiredService<IVendorDirectory>().ApproveAsync(companyId, dualUser, Ct);
+
+        result.Error.ShouldNotBeNull().Code.ShouldBe(VendorDirectoryErrors.NotAllowed);
+        (await VendorRows.RelationshipsAsync(db.OwnerConnectionString, companyId, Ct))[TestTenants.Acme.TenantId].ShouldBe("pending");
+    }
+
+    [Fact]
     public async Task Approving_as_someone_other_than_the_acting_user_is_a_defect()
     {
         var (companyId, _) = await VendorAsync("Actor Mismatch Company");

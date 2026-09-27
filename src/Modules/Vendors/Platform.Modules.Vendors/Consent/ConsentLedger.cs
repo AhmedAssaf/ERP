@@ -52,8 +52,7 @@ internal sealed class ConsentLedger(
 
         if (validTo < validFrom || validFrom < VendorCompliance.RiyadhToday(clock))
         {
-            return Result.Failure<Guid>(Error.Validation(
-                ConsentErrors.InvalidPeriod, "A consent period starts today or later and ends on or after its first day."));
+            return InvalidPeriod();
         }
 
         if (!await db.Recipients.AnyAsync(r => r.Id == recipientId, cancellationToken))
@@ -74,7 +73,16 @@ internal sealed class ConsentLedger(
             ValidTo = validTo,
             ActorId = actorId,
         });
-        await db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.CheckViolation })
+        {
+            // The database's today is later than this host's clock thinks (migration 0015 refuses a backdated start).
+            return InvalidPeriod();
+        }
+
         await platformAudit.WriteAsync(
             new PlatformAuditEntry(actorId, "vendor.consent_granted", "vendor_company", companyId.ToString(), new Dictionary<string, string?>
             {
@@ -185,7 +193,7 @@ internal sealed class ConsentLedger(
     }
 
     public async Task<ConsentCheckResult> CheckAsync(
-        Guid companyId, Guid recipientId, ConsentScope scope, DateOnly onDate, CancellationToken cancellationToken = default)
+        Guid companyId, Guid recipientId, ConsentScope scope, CancellationToken cancellationToken = default)
     {
         if (vendors.Current is { } vendor && vendor.CompanyId != companyId)
         {
@@ -194,8 +202,19 @@ internal sealed class ConsentLedger(
 
         var scopeCode = ScopeCode(scope);
         await using var db = await contexts.CreateDbContextAsync(cancellationToken);
-        var grantId = await db.Database.SqlQuery<Guid?>(
-            $"select vendor.consent_grant_in_force({companyId}, {recipientId}, {scopeCode}, {onDate}) as \"Value\"").SingleAsync(cancellationToken);
+        Guid? grantId;
+        try
+        {
+            // The date is the database's today in Riyadh (migration 0016), never the caller's.
+            grantId = await db.Database.SqlQuery<Guid?>(
+                $"select vendor.consent_grant_in_force({companyId}, {recipientId}, {scopeCode}) as \"Value\"").SingleAsync(cancellationToken);
+        }
+        catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.InsufficientPrivilege)
+        {
+            throw new InvalidOperationException(
+                "Consent is checked by an export, by the company itself, or by tenant staff about a company their tenant works with.", ex);
+        }
+
         var result = new ConsentCheckResult(grantId is not null, grantId);
         await platformAudit.WriteAsync(
             new PlatformAuditEntry(actingUser.UserId, "vendor.consent_check", "vendor_company", companyId.ToString(), new Dictionary<string, string?>
@@ -205,7 +224,6 @@ internal sealed class ConsentLedger(
                 ["grant_id"] = grantId?.ToString(),
                 ["recipient_id"] = recipientId.ToString(),
                 ["scope"] = scopeCode,
-                ["on_date"] = onDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
             }),
             cancellationToken);
         return result;
@@ -230,6 +248,10 @@ internal sealed class ConsentLedger(
 
     private static Result<Guid> NotVendorAdmin() =>
         Result.Failure<Guid>(Error.Refused(ConsentErrors.NotVendorAdmin, "Only the company's vendor administrator can change its consent."));
+
+    private static Result<Guid> InvalidPeriod() =>
+        Result.Failure<Guid>(Error.Validation(
+            ConsentErrors.InvalidPeriod, "A consent period starts today or later and ends on or after its first day."));
 
     private static Result<Guid> AlreadyRevoked() =>
         Result.Failure<Guid>(Error.Conflict(ConsentErrors.AlreadyRevoked, "This consent is already revoked."));

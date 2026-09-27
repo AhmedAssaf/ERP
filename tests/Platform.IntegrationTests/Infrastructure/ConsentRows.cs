@@ -23,6 +23,39 @@ internal static class ConsentRows
         return id;
     }
 
+    /// <summary>
+    /// A grant whose period is given in days from today in Riyadh as the database sees it (so a check, which always asks
+    /// about the database's today, can find a grant already running or already over). Written as the owner with the
+    /// ledger's user triggers disabled for this transaction only, since a real grant can never start in the past.
+    /// </summary>
+    public static async Task<Guid> InsertGrantAsOwnerAsync(
+        string ownerConnectionString, Guid companyId, Guid recipientId, string scope, int fromDays, int toDays, string actorId,
+        CancellationToken cancellationToken)
+    {
+        var id = Guid.NewGuid();
+        await using var connection = new NpgsqlConnection(ownerConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+        await using var command = new NpgsqlCommand("""
+            alter table vendor.consent_events disable trigger user;
+            insert into vendor.consent_events (id, company_id, recipient_id, scope, kind, valid_from, valid_to, actor_id)
+            values (@id, @company, @recipient, @scope, 'grant',
+                    ((now() + interval '3 hours') at time zone 'UTC')::date + @from,
+                    ((now() + interval '3 hours') at time zone 'UTC')::date + @to, @actor);
+            alter table vendor.consent_events enable trigger user;
+            """, connection, transaction);
+        command.Parameters.AddWithValue("id", id);
+        command.Parameters.AddWithValue("company", companyId);
+        command.Parameters.AddWithValue("recipient", recipientId);
+        command.Parameters.AddWithValue("scope", scope);
+        command.Parameters.AddWithValue("from", fromDays);
+        command.Parameters.AddWithValue("to", toDays);
+        command.Parameters.AddWithValue("actor", actorId);
+        await command.ExecuteNonQueryAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return id;
+    }
+
     /// <summary>Every ledger row of the company, oldest first.</summary>
     public static async Task<IReadOnlyList<ConsentEventRow>> ForCompanyAsync(string ownerConnectionString, Guid companyId, CancellationToken cancellationToken)
     {

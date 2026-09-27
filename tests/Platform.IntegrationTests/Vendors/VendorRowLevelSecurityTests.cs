@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using Platform.IntegrationTests.Infrastructure;
+using Platform.Modules.Identity.Contracts;
 using Platform.Modules.Vendors.Persistence;
 using Platform.Shared.Tenancy;
 
@@ -305,33 +306,38 @@ public sealed partial class VendorRowLevelSecurityTests(DatabaseFixture db) : IA
     {
         var userId = NewUserId();
         var companyId = await RegisterAsync(TestTenants.Acme, userId: userId);
-        (await ApproveAsync(TestTenants.Acme, companyId, "acme-officer")).ShouldBeTrue();
+        var officer = await StaffAsync(TestTenants.Acme, TenantRoles.ContractsOfficer);
+        (await ApproveAsync(TestTenants.Acme, companyId, officer)).ShouldBeTrue();
 
         await JoinAsync(TestTenants.Acme, companyId, userId);
 
-        (await RelationshipAsync(TestTenants.Acme.TenantId, companyId)).ShouldBe(("approved", "acme-officer"));
+        (await RelationshipAsync(TestTenants.Acme.TenantId, companyId)).ShouldBe(("approved", officer));
     }
 
     [Fact]
     public async Task Approving_records_the_acting_user()
     {
         var companyId = await RegisterAsync(TestTenants.Acme);
+        // Real staff since the database checks the approver's role (migration 0016, pentest P-14).
+        var officer = await StaffAsync(TestTenants.Acme, TenantRoles.ContractsOfficer);
+        var admin = await StaffAsync(TestTenants.Acme, TenantRoles.TenantAdmin);
+        var betaOfficer = await StaffAsync(TestTenants.Beta, TenantRoles.ContractsOfficer);
 
         (await Should.ThrowAsync<PostgresException>(() => ApproveAsync(TestTenants.Acme, companyId, null)))
             .SqlState.ShouldBe(PostgresErrorCodes.InsufficientPrivilege);
-        (await Should.ThrowAsync<PostgresException>(() => ApproveAsync(null, companyId, "acme-officer")))
+        (await Should.ThrowAsync<PostgresException>(() => ApproveAsync(null, companyId, officer)))
             .SqlState.ShouldBe(PostgresErrorCodes.InsufficientPrivilege);
         // Beta has no relationship with the company: nothing to approve, and none is created.
-        (await ApproveAsync(TestTenants.Beta, companyId, "beta-officer")).ShouldBeFalse();
+        (await ApproveAsync(TestTenants.Beta, companyId, betaOfficer)).ShouldBeFalse();
         (await RelationshipAsync(TestTenants.Beta.TenantId, companyId)).ShouldBeNull();
         (await RelationshipAsync(TestTenants.Acme.TenantId, companyId)).ShouldBe(("pending", null));
 
-        (await ApproveAsync(TestTenants.Acme, companyId, "acme-officer")).ShouldBeTrue();
+        (await ApproveAsync(TestTenants.Acme, companyId, officer)).ShouldBeTrue();
 
-        (await RelationshipAsync(TestTenants.Acme.TenantId, companyId)).ShouldBe(("approved", "acme-officer"));
+        (await RelationshipAsync(TestTenants.Acme.TenantId, companyId)).ShouldBe(("approved", officer));
         // Approving again changes nothing: the first approver stays on record.
-        (await ApproveAsync(TestTenants.Acme, companyId, "acme-admin")).ShouldBeFalse();
-        (await RelationshipAsync(TestTenants.Acme.TenantId, companyId)).ShouldBe(("approved", "acme-officer"));
+        (await ApproveAsync(TestTenants.Acme, companyId, admin)).ShouldBeFalse();
+        (await RelationshipAsync(TestTenants.Acme.TenantId, companyId)).ShouldBe(("approved", officer));
     }
 
     [Theory]
@@ -346,7 +352,7 @@ public sealed partial class VendorRowLevelSecurityTests(DatabaseFixture db) : IA
     [InlineData("related_current_documents", "")]
     [InlineData("related_company", "uuid")]
     [InlineData("related_documents", "uuid")]
-    [InlineData("consent_grant_in_force", "uuid, uuid, text, date")]
+    [InlineData("consent_grant_in_force", "uuid, uuid, text")]
     public async Task Relationship_functions_run_as_their_owner_with_a_pinned_search_path_and_only_the_app_role_may_call_them(
         string name, string arguments)
     {
@@ -776,14 +782,15 @@ public sealed partial class VendorRowLevelSecurityTests(DatabaseFixture db) : IA
     private async Task<Guid> AddConsentGrantAsync(Guid companyId)
     {
         var id = Guid.NewGuid();
-        // The company's vendor session with its acting user as the actor, starting today in Riyadh (migration 0015).
-        await using var scope = _host.ScopeFor(null, companyId, "vendor-admin-user");
+        // The company's vendor session with one of its users acting as the actor, starting today in Riyadh (0015, 0016).
+        var actor = await CompanyUserAsync(companyId);
+        await using var scope = _host.ScopeFor(null, companyId, actor);
         await using var context = await CreateContextAsync(scope);
         await context.Database.ExecuteSqlAsync($"""
             insert into vendor.consent_events (id, company_id, recipient_id, scope, kind, valid_from, valid_to, actor_id)
             values ({id}, {companyId}, {_recipientId}, 'award_records', 'grant',
                     ((now() + interval '3 hours') at time zone 'UTC')::date, ((now() + interval '3 hours') at time zone 'UTC')::date + 365,
-                    'vendor-admin-user')
+                    {actor})
             """, Ct);
         return id;
     }
@@ -791,13 +798,32 @@ public sealed partial class VendorRowLevelSecurityTests(DatabaseFixture db) : IA
     private async Task<Guid> AddConsentRevocationAsync(Guid companyId, Guid revokes)
     {
         var id = Guid.NewGuid();
-        await using var scope = _host.ScopeFor(null, companyId, "vendor-admin-user");
+        var actor = await CompanyUserAsync(companyId);
+        await using var scope = _host.ScopeFor(null, companyId, actor);
         await using var context = await CreateContextAsync(scope);
         await context.Database.ExecuteSqlAsync($"""
             insert into vendor.consent_events (id, company_id, recipient_id, scope, kind, revokes_grant_id, actor_id)
-            values ({id}, {companyId}, {_recipientId}, 'award_records', 'revoke', {revokes}, 'vendor-admin-user')
+            values ({id}, {companyId}, {_recipientId}, 'award_records', 'revoke', {revokes}, {actor})
             """, Ct);
         return id;
+    }
+
+    /// <summary>A user of the company, read as the owner.</summary>
+    private async Task<string> CompanyUserAsync(Guid companyId)
+    {
+        await using var owner = new NpgsqlConnection(db.OwnerConnectionString);
+        await owner.OpenAsync(Ct);
+        await using var command = new NpgsqlCommand("select user_id from vendor.vendor_users where company_id = @company limit 1", owner);
+        command.Parameters.AddWithValue("company", companyId);
+        return (string)(await command.ExecuteScalarAsync(Ct))!;
+    }
+
+    /// <summary>An active staff member of the tenant with the role.</summary>
+    private async Task<string> StaffAsync(TenantContext tenant, string role)
+    {
+        var subject = $"{role}-{Guid.NewGuid():N}";
+        await MemberRows.InsertAsync(db.AppConnectionString, tenant.TenantId, subject, $"{subject}@{tenant.Slug}.test", [role], "active", Ct);
+        return subject;
     }
 
     private async Task<bool> CrExistsAsync(string cr)

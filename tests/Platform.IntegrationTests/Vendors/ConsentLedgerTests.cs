@@ -11,15 +11,20 @@ namespace Platform.IntegrationTests.Vendors;
 /// <summary>
 /// The vendor consent ledger (vendor plan task 6, F-64, V-12, V-13, ADR-0010): a vendor admin grants consent per recipient,
 /// scope and period and revokes it with a new row; nothing is updated or deleted; every grant, revocation and check is
-/// audited in the platform audit, a check with the grant it relied on. A tenant never grants for a vendor. Today is the real
-/// date in Riyadh, since the database refuses a grant that starts before it (migration 0015).
+/// audited in the platform audit, a check with the grant it relied on. A tenant never grants for a vendor.
+/// <para>
+/// Two clocks, on purpose. The application's clock is pinned to 1 January 2030 in Riyadh, always later than the database's
+/// real date, so every grant the service accepts also passes the database's no-backdating rule, whatever day the suite runs.
+/// A check always asks about the database's today (ADR-0010 point 2), so the check tests use grants written relative to
+/// the database's own date (<see cref="ConsentRows.InsertGrantAsOwnerAsync"/>).
+/// </para>
 /// </summary>
 [Collection(DatabaseCollection.Name)]
 public sealed class ConsentLedgerTests(DatabaseFixture db)
 {
-    private static readonly DateTimeOffset Now = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(3));
+    private static readonly DateTimeOffset AppNow = new(2030, 1, 1, 9, 0, 0, TimeSpan.FromHours(3));
 
-    private static readonly DateOnly Today = DateOnly.FromDateTime(Now.DateTime);
+    private static readonly DateOnly Today = DateOnly.FromDateTime(AppNow.DateTime);
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -74,23 +79,34 @@ public sealed class ConsentLedgerTests(DatabaseFixture db)
         var again = await LedgerFor(host, companyId, userId, ledger => ledger.RevokeAsync(grantId, userId, Ct));
         again.Error.ShouldNotBeNull().Code.ShouldBe(ConsentErrors.AlreadyRevoked);
         (await ConsentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct)).Count.ShouldBe(2);
-        (await Check(host, companyId, recipientId, ConsentScope.PoRecords, Today)).Allowed.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task A_revoked_grant_is_no_longer_in_force()
+    {
+        var (companyId, userId, recipientId) = await VendorWithRecipientAsync("Revoked In Force Company");
+        var grantId = await ConsentRows.InsertGrantAsOwnerAsync(db.OwnerConnectionString, companyId, recipientId, "po_records", -5, 30, userId, Ct);
+        await using var host = Host();
+        (await Check(host, companyId, recipientId, ConsentScope.PoRecords)).GrantId.ShouldBe(grantId);
+
+        (await LedgerFor(host, companyId, userId, ledger => ledger.RevokeAsync(grantId, userId, Ct))).IsSuccess.ShouldBeTrue();
+
+        (await Check(host, companyId, recipientId, ConsentScope.PoRecords)).ShouldBe(new ConsentCheckResult(Allowed: false, GrantId: null));
     }
 
     [Fact]
     public async Task A_check_without_an_active_grant_is_refused_and_audited()
     {
         var (companyId, userId, recipientId) = await VendorWithRecipientAsync("Unconsented Company");
+        // A grant in force today, but for another scope, does not count.
+        await ConsentRows.InsertGrantAsOwnerAsync(db.OwnerConnectionString, companyId, recipientId, "profile_documents", 0, 365, userId, Ct);
         await using var host = Host();
-        // A grant for another scope does not count.
-        (await LedgerFor(host, companyId, userId, ledger =>
-            ledger.GrantAsync(recipientId, ConsentScope.ProfileDocuments, Today, Today.AddYears(1), userId, Ct))).IsSuccess.ShouldBeTrue();
+        var operatorId = $"export-operator-{Guid.NewGuid():N}";
 
-        var check = await Check(host, companyId, recipientId, ConsentScope.AwardRecords, Today, actingUserId: "export-operator");
+        var check = await Check(host, companyId, recipientId, ConsentScope.AwardRecords, operatorId);
 
         check.ShouldBe(new ConsentCheckResult(Allowed: false, GrantId: null));
-        var audit = (await VendorRows.PlatformAuditsAsync(db.OwnerConnectionString, "export-operator", "vendor.consent_check", Ct))
-            .ShouldHaveSingleItem();
+        var audit = (await VendorRows.PlatformAuditsAsync(db.OwnerConnectionString, operatorId, "vendor.consent_check", Ct)).ShouldHaveSingleItem();
         audit.SubjectId.ShouldBe(companyId.ToString());
         audit.Data.ShouldContain("\"result\": \"refused\"");
         audit.Data.ShouldContain("award_records");
@@ -100,39 +116,62 @@ public sealed class ConsentLedgerTests(DatabaseFixture db)
     public async Task A_check_with_an_active_grant_passes_and_records_the_grant_id()
     {
         var (companyId, userId, recipientId) = await VendorWithRecipientAsync("Consented Company");
+        var grantId = await ConsentRows.InsertGrantAsOwnerAsync(db.OwnerConnectionString, companyId, recipientId, "award_records", 0, 365, userId, Ct);
         await using var host = Host();
-        var grantId = (await LedgerFor(host, companyId, userId, ledger =>
-            ledger.GrantAsync(recipientId, ConsentScope.AwardRecords, Today, Today.AddYears(1), userId, Ct))).Value;
+        var operatorId = $"export-operator-{Guid.NewGuid():N}";
 
-        var check = await Check(host, companyId, recipientId, ConsentScope.AwardRecords, Today, actingUserId: "export-operator-2");
+        var check = await Check(host, companyId, recipientId, ConsentScope.AwardRecords, operatorId);
 
         check.ShouldBe(new ConsentCheckResult(Allowed: true, GrantId: grantId));
-        var audit = (await VendorRows.PlatformAuditsAsync(db.OwnerConnectionString, "export-operator-2", "vendor.consent_check", Ct))
-            .ShouldHaveSingleItem();
+        var audit = (await VendorRows.PlatformAuditsAsync(db.OwnerConnectionString, operatorId, "vendor.consent_check", Ct)).ShouldHaveSingleItem();
         audit.Data.ShouldContain("\"result\": \"allowed\"");
         audit.Data.ShouldContain(grantId.ToString());
     }
 
     [Fact]
-    public async Task A_grant_counts_from_its_first_through_its_last_day_and_not_before_or_after()
+    public async Task A_check_today_counts_a_grant_from_its_first_through_its_last_day_and_not_before_or_after()
     {
-        var (companyId, userId, recipientId) = await VendorWithRecipientAsync("Period Edges Company");
+        var (companyId, userId, _) = await VendorWithRecipientAsync("Period Edges Company");
         await using var host = Host();
+        var cases = new (string Name, int From, int To, bool InForce)[]
+        {
+            ("starts tomorrow", 1, 30, false),
+            ("starts today", 0, 30, true),
+            ("ends today", -30, 0, true),
+            ("ended yesterday", -30, -1, false),
+        };
+
+        foreach (var (name, from, to, inForce) in cases)
+        {
+            var recipientId = await ConsentRows.AddRecipientAsync(db.OwnerConnectionString, $"Edge {name}", Ct);
+            var grantId = await ConsentRows.InsertGrantAsOwnerAsync(db.OwnerConnectionString, companyId, recipientId, "award_records", from, to, userId, Ct);
+
+            var check = await Check(host, companyId, recipientId, ConsentScope.AwardRecords);
+
+            check.ShouldBe(inForce ? new ConsentCheckResult(true, grantId) : new ConsentCheckResult(false, null), name);
+        }
+    }
+
+    [Fact]
+    public async Task The_listed_status_follows_the_period_on_the_applications_clock()
+    {
+        var (companyId, userId, recipientId) = await VendorWithRecipientAsync("Listed Status Company");
         var from = Today.AddDays(10);
         var to = Today.AddDays(40);
-        var grantId = (await LedgerFor(host, companyId, userId, ledger =>
-            ledger.GrantAsync(recipientId, ConsentScope.AwardRecords, from, to, userId, Ct))).Value;
+        await using (var host = Host())
+        {
+            (await LedgerFor(host, companyId, userId, ledger =>
+                ledger.GrantAsync(recipientId, ConsentScope.AwardRecords, from, to, userId, Ct))).IsSuccess.ShouldBeTrue();
+        }
 
-        // Not yet valid.
-        (await Check(host, companyId, recipientId, ConsentScope.AwardRecords, from.AddDays(-1))).Allowed.ShouldBeFalse();
-        (await Check(host, companyId, recipientId, ConsentScope.AwardRecords, from)).GrantId.ShouldBe(grantId);
-        (await Check(host, companyId, recipientId, ConsentScope.AwardRecords, to)).GrantId.ShouldBe(grantId);
-        // Expired.
-        (await Check(host, companyId, recipientId, ConsentScope.AwardRecords, to.AddDays(1))).Allowed.ShouldBeFalse();
-
-        (await LedgerFor(host, companyId, userId, ledger => ledger.ListAsync(Ct))).ShouldHaveSingleItem().Status.ShouldBe(ConsentStatus.NotYetValid);
-        await using var later = Host(new DateTimeOffset(to.AddDays(1).ToDateTime(new TimeOnly(9, 0)), TimeSpan.FromHours(3)));
-        (await LedgerFor(later, companyId, userId, ledger => ledger.ListAsync(Ct))).ShouldHaveSingleItem().Status.ShouldBe(ConsentStatus.Expired);
+        foreach (var (day, expected) in new[]
+        {
+            (Today, ConsentStatus.NotYetValid), (from, ConsentStatus.Active), (to, ConsentStatus.Active), (to.AddDays(1), ConsentStatus.Expired),
+        })
+        {
+            await using var host = Host(new DateTimeOffset(day.ToDateTime(new TimeOnly(9, 0)), TimeSpan.FromHours(3)));
+            (await LedgerFor(host, companyId, userId, ledger => ledger.ListAsync(Ct))).ShouldHaveSingleItem().Status.ShouldBe(expected, day.ToString("O", System.Globalization.CultureInfo.InvariantCulture));
+        }
     }
 
     [Fact]
@@ -155,6 +194,23 @@ public sealed class ConsentLedgerTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task A_start_the_database_finds_in_the_past_is_an_invalid_period_even_when_the_applications_clock_disagrees()
+    {
+        var (companyId, userId, recipientId) = await VendorWithRecipientAsync("Slow Clock Company");
+        // An application clock years behind the database's: the service's own check passes, the database's trigger refuses.
+        var slow = new DateTimeOffset(2020, 1, 1, 9, 0, 0, TimeSpan.FromHours(3));
+        var slowToday = DateOnly.FromDateTime(slow.DateTime);
+        await using var host = Host(slow);
+
+        var refused = await LedgerFor(host, companyId, userId, ledger =>
+            ledger.GrantAsync(recipientId, ConsentScope.AwardRecords, slowToday, slowToday.AddYears(1), userId, Ct));
+
+        refused.Error.ShouldNotBeNull().Code.ShouldBe(ConsentErrors.InvalidPeriod);
+        (await ConsentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct)).ShouldBeEmpty();
+        (await VendorRows.PlatformAuditsAsync(db.OwnerConnectionString, userId, "vendor.consent_granted", Ct)).ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task Another_company_cannot_revoke_or_see_a_grant_and_its_vendor_cannot_check_it()
     {
         var (companyId, userId, recipientId) = await VendorWithRecipientAsync("Owner Of The Grant");
@@ -169,10 +225,29 @@ public sealed class ConsentLedgerTests(DatabaseFixture db)
         await using (var scope = host.ScopeFor(TestTenants.Acme, otherId, otherUser))
         {
             await Should.ThrowAsync<InvalidOperationException>(() =>
-                scope.ServiceProvider.GetRequiredService<IConsentLedger>().CheckAsync(companyId, recipientId, ConsentScope.AwardRecords, Today, Ct));
+                scope.ServiceProvider.GetRequiredService<IConsentLedger>().CheckAsync(companyId, recipientId, ConsentScope.AwardRecords, Ct));
         }
 
         (await ConsentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct)).ShouldHaveSingleItem();
+    }
+
+    [Fact]
+    public async Task A_tenant_session_checks_only_a_company_its_tenant_works_with()
+    {
+        var (companyId, userId, recipientId) = await VendorWithRecipientAsync("Related Check Company");
+        var grantId = await ConsentRows.InsertGrantAsOwnerAsync(db.OwnerConnectionString, companyId, recipientId, "award_records", 0, 30, userId, Ct);
+        await using var host = Host();
+
+        await using (var acme = host.ScopeFor(TestTenants.Acme, actingUserId: $"acme-export-{Guid.NewGuid():N}"))
+        {
+            (await acme.ServiceProvider.GetRequiredService<IConsentLedger>().CheckAsync(companyId, recipientId, ConsentScope.AwardRecords, Ct))
+                .GrantId.ShouldBe(grantId);
+        }
+
+        // Beta has no relationship with the company, so it learns nothing about its consents.
+        await using var beta = host.ScopeFor(TestTenants.Beta, actingUserId: $"beta-export-{Guid.NewGuid():N}");
+        await Should.ThrowAsync<InvalidOperationException>(() =>
+            beta.ServiceProvider.GetRequiredService<IConsentLedger>().CheckAsync(companyId, recipientId, ConsentScope.AwardRecords, Ct));
     }
 
     [Fact]
@@ -271,7 +346,7 @@ public sealed class ConsentLedgerTests(DatabaseFixture db)
         await using var command = new NpgsqlCommand("""
             select set_config('app.tenant_id', @tenant, false), set_config('app.vendor_company_id', @vendor, false),
                    set_config('app.user_id', @user, false);
-            select vendor.consent_grant_in_force(@company, @recipient, 'award_records', current_date);
+            select vendor.consent_grant_in_force(@company, @recipient, 'award_records');
             """, connection);
         command.Parameters.AddWithValue("tenant", TestTenants.Acme.TenantId.ToString());
         command.Parameters.AddWithValue("vendor", otherId.ToString());
@@ -308,20 +383,20 @@ public sealed class ConsentLedgerTests(DatabaseFixture db)
         var grantId = (await LedgerFor(host, companyId, userId, ledger =>
             ledger.GrantAsync(recipientId, ConsentScope.AwardRecords, Today, Today.AddYears(1), userId, Ct))).Value;
         (await LedgerFor(host, companyId, userId, ledger => ledger.RevokeAsync(grantId, userId, Ct))).IsSuccess.ShouldBeTrue();
-        await using (var scope = host.ScopeFor(TestTenants.Beta, actingUserId: "beta-export"))
+        var acmeExport = $"acme-export-{Guid.NewGuid():N}";
+        await using (var scope = host.ScopeFor(TestTenants.Acme, actingUserId: acmeExport))
         {
-            await scope.ServiceProvider.GetRequiredService<IConsentLedger>().CheckAsync(companyId, recipientId, ConsentScope.AwardRecords, Today, Ct);
+            await scope.ServiceProvider.GetRequiredService<IConsentLedger>().CheckAsync(companyId, recipientId, ConsentScope.AwardRecords, Ct);
         }
 
         var acme = $"\"tenant_id\": \"{TestTenants.Acme.TenantId}\"";
         (await VendorRows.PlatformAuditsAsync(db.OwnerConnectionString, userId, "vendor.consent_granted", Ct)).ShouldHaveSingleItem().Data.ShouldContain(acme);
         (await VendorRows.PlatformAuditsAsync(db.OwnerConnectionString, userId, "vendor.consent_revoked", Ct)).ShouldHaveSingleItem().Data.ShouldContain(acme);
-        (await VendorRows.PlatformAuditsAsync(db.OwnerConnectionString, "beta-export", "vendor.consent_check", Ct)).ShouldHaveSingleItem()
-            .Data.ShouldContain($"\"tenant_id\": \"{TestTenants.Beta.TenantId}\"");
+        (await VendorRows.PlatformAuditsAsync(db.OwnerConnectionString, acmeExport, "vendor.consent_check", Ct)).ShouldHaveSingleItem().Data.ShouldContain(acme);
 
         // Without a host tenant (an export job) the entry carries a null tenant.
         var tenantless = $"tenantless-export-{Guid.NewGuid():N}";
-        await Check(host, companyId, recipientId, ConsentScope.AwardRecords, Today, actingUserId: tenantless);
+        await Check(host, companyId, recipientId, ConsentScope.AwardRecords, tenantless);
         (await VendorRows.PlatformAuditsAsync(db.OwnerConnectionString, tenantless, "vendor.consent_check", Ct)).ShouldHaveSingleItem()
             .Data.ShouldContain("\"tenant_id\": null");
     }
@@ -361,7 +436,7 @@ public sealed class ConsentLedgerTests(DatabaseFixture db)
     }
 
     private ModuleHost Host(DateTimeOffset? now = null) =>
-        new(db.AppConnectionString, clock: new FixedClock(now ?? Now));
+        new(db.AppConnectionString, clock: new FixedClock(now ?? AppNow));
 
     private static async Task<T> LedgerFor<T>(ModuleHost host, Guid companyId, string userId, Func<IConsentLedger, Task<T>> action)
     {
@@ -371,10 +446,10 @@ public sealed class ConsentLedgerTests(DatabaseFixture db)
 
     /// <summary>A check as an export would run it: no tenant, no vendor context, an operator or job as the acting user.</summary>
     private static async Task<ConsentCheckResult> Check(
-        ModuleHost host, Guid companyId, Guid recipientId, ConsentScope scope, DateOnly onDate, string? actingUserId = null)
+        ModuleHost host, Guid companyId, Guid recipientId, ConsentScope scope, string? actingUserId = null)
     {
-        await using var request = host.ScopeFor(tenant: null, actingUserId: actingUserId);
-        return await request.ServiceProvider.GetRequiredService<IConsentLedger>().CheckAsync(companyId, recipientId, scope, onDate, Ct);
+        await using var request = host.ScopeFor(tenant: (TenantContext?)null, actingUserId: actingUserId);
+        return await request.ServiceProvider.GetRequiredService<IConsentLedger>().CheckAsync(companyId, recipientId, scope, Ct);
     }
 
     private async Task<(Guid CompanyId, string UserId, Guid RecipientId)> VendorWithRecipientAsync(string nameEn)
