@@ -1,7 +1,8 @@
 @*
     The page frame (docs/08 section 6): skip link, header with the brand, primary navigation, culture switch and the user
     menu, then the main content. Tenant variant: the tenant's logo and portal name on its primary colour (F-02).
-    Platform variant: the WaslaBid mark for the platform console. Sign-out is a POST with an antiforgery token.
+    Vendor variant: the same tenant brand, named as the tenant's supplier portal, never WaslaBid's (F-02); the vendor
+    pages pass vendor navigation only. Platform variant: the WaslaBid mark for the platform console. Sign-out is a POST with an antiforgery token.
 *@
 @using System.Globalization
 @inject IStringLocalizer<SharedResource> T
@@ -25,6 +26,10 @@
                     <img src="@LogoUrl" alt="" class="h-9 w-auto max-w-32 shrink-0 object-contain" />
                 }
                 <span class="truncate text-subheading">@PortalName</span>
+                @if (Variant == AppShellVariant.Vendor)
+                {
+                    <span class="text-small opacity-80">@T["AppShell.SupplierPortal"]</span>
+                }
             }
         </div>
         <div class="ms-auto flex items-center gap-4">

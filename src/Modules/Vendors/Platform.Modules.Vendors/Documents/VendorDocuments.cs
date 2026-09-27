@@ -66,6 +66,19 @@ internal sealed partial class VendorDocuments(
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<VendorDocumentNotClean>> ListNotCleanAsync(CancellationToken cancellationToken = default)
+    {
+        var companyId = RequireCompany();
+        await using var db = await contexts.CreateDbContextAsync(cancellationToken);
+        var rows = await db.Documents.AsNoTracking()
+            .Where(d => d.CompanyId == companyId && d.ScanStatus != Clean)
+            .OrderByDescending(d => d.CreatedAt).ThenByDescending(d => d.Id)
+            .Select(d => new { d.Id, d.Type, d.ExpiresOn, d.ScanStatus, d.CreatedAt })
+            .ToListAsync(cancellationToken);
+        return [.. rows.Select(d => new VendorDocumentNotClean(
+            d.Id, d.Type, d.ExpiresOn, d.ScanStatus == Infected ? VendorDocumentScanState.Infected : VendorDocumentScanState.PendingScan, d.CreatedAt))];
+    }
+
     public async Task<Result<VendorDocumentAdded>> AddAsync(
         string type, DateOnly expiresOn, ReadOnlyMemory<byte> content, CancellationToken cancellationToken = default)
     {

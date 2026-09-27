@@ -84,10 +84,10 @@ Built once in `src/UI/Platform.UI`, each as a Razor component with a documented 
 
 | Component | Purpose | Notes |
 |---|---|---|
-| `AppShell` | Header with tenant logo, primary navigation, culture switch, user menu | Two variants: tenant workspace, vendor portal |
+| `AppShell` | Header with tenant logo, primary navigation, culture switch, user menu | Three variants: tenant workspace; vendor portal (the tenant's brand named as its supplier portal, vendor navigation only, F-02); platform console (WaslaBid mark) |
 | `Button` | Primary (blue, `--color-action`), secondary (white), danger (red, filled), quiet (link) | Loading state built in; label is the verb and its object. Primary for continue, submit, approve; danger for close, cancel, reject, discard |
 | `TextField`, `NumberField`, `DateField`, `Select`, `Textarea` | Form inputs with label, help, error | Validation messages in both languages; error text is specific, never "invalid" |
-| `FileUpload` | Chunked upload with progress and retry state | Wraps the chunked HTTP path from ADR-0001; never `InputFile` |
+| `FileUpload` | Chunked upload with progress and retry state | Wraps the chunked HTTP path from ADR-0001; never `InputFile`. A small script (`wwwroot/js/fileUpload.js`) sends 1 MB `File.slice` chunks with their SHA-256 and the antiforgery header; only name, size, type, progress and outcome cross the circuit. Type and size checked before sending. States idle, uploading, scanning, pending (scan pending), done, rejected (localized reason), failed (Retry resumes from the failed chunk after three automatic retries); `FileUploadStatus` renders the state line. Generic: the page maps server error codes to reasons |
 | `Stepper` | Vendor submission wizard | Shows saved state per step; works on a 360px screen |
 | `DataTable` | QuickGrid wrapper with sticky header, tabular numbers, row density toggle | Comparison sheet, vendor list, audit log |
 | `StageTimeline` | The tender's stage state machine as a horizontal timeline | Fixed stage colours from 3.1; current stage carries the tenant primary |

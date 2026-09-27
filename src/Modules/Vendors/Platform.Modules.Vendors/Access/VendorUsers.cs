@@ -45,9 +45,28 @@ internal sealed class VendorCompanies(IDbContextFactory<VendorsDbContext> contex
         }
 
         await using var db = await contexts.CreateDbContextAsync(cancellationToken);
-        return await db.Companies.AsNoTracking()
+        var company = await db.Companies.AsNoTracking()
             .Where(c => c.Id == vendor.CompanyId)
-            .Select(c => new VendorCompany(c.Id, c.CrNumber, c.NameAr, c.NameEn, c.VatNumber))
+            .Select(c => new { c.Id, c.CrNumber, c.NameAr, c.NameEn, c.VatNumber })
             .SingleOrDefaultAsync(cancellationToken);
+        if (company is null)
+        {
+            return null;
+        }
+
+        // Under the tenant policy: only the current host tenant's row, none without a tenant.
+        var status = await db.Relationships.AsNoTracking()
+            .Where(r => r.CompanyId == vendor.CompanyId)
+            .Select(r => r.Status)
+            .SingleOrDefaultAsync(cancellationToken);
+        return new VendorCompany(company.Id, company.CrNumber, company.NameAr, company.NameEn, company.VatNumber, Relationship(status));
     }
+
+    private static VendorRelationshipStatus? Relationship(string? status) => status switch
+    {
+        null => null,
+        "pending" => VendorRelationshipStatus.Pending,
+        "approved" => VendorRelationshipStatus.Approved,
+        _ => throw new InvalidOperationException($"Unknown relationship status '{status}'."),
+    };
 }

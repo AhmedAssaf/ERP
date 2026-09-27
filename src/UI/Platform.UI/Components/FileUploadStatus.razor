@@ -1,0 +1,65 @@
+@*
+    The state line of a FileUpload (docs/08 section 6): progress while chunks are sent, the virus scan, the outcome. Progress
+    and the scan are announced politely (role status); a refusal or a failed connection is an alert, and a failed
+    connection offers Retry, which resumes from the chunk that failed. Presentational only, so the gallery can show every
+    state; FileUpload owns the upload itself.
+*@
+@inject IStringLocalizer<SharedResource> T
+
+<div data-file-upload-state="@State.ToString().ToLowerInvariant()" class="grid gap-2 text-small">
+    <div role="status" class="grid gap-2">
+        @switch (State)
+        {
+            case FileUploadState.Uploading:
+                <div class="flex flex-wrap items-center gap-3">
+                    <progress max="100" value="@Percent" aria-label="@T["FileUpload.Progress"]" class="h-2 w-full max-w-xs accent-action"></progress>
+                    <span class="tabular-nums">@T["FileUpload.Uploading", Percent]</span>
+                </div>
+                break;
+            case FileUploadState.Scanning:
+                <p class="flex items-center gap-2">
+                    <span aria-hidden="true" class="size-4 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
+                    @T["FileUpload.Scanning"]
+                </p>
+                break;
+            case FileUploadState.Pending:
+                <div class="grid justify-items-start gap-1">
+                    <StatusBadge Tone="StatusTone.Info">@T["FileUpload.Pending"]</StatusBadge>
+                    <p class="text-ink-muted">@T["FileUpload.PendingBody"]</p>
+                </div>
+                break;
+            case FileUploadState.Done:
+                <div class="grid justify-items-start">
+                    <StatusBadge Tone="StatusTone.Success">@T["FileUpload.Done"]</StatusBadge>
+                </div>
+                break;
+        }
+    </div>
+    @if (State == FileUploadState.Rejected)
+    {
+        <div role="alert" class="grid gap-1 rounded-control border border-danger bg-danger/10 px-3 py-2 text-ink">
+            <p class="font-semibold text-danger">@T["FileUpload.Rejected"]</p>
+            <p>@Reason</p>
+        </div>
+    }
+    else if (State == FileUploadState.Failed)
+    {
+        <div role="alert" class="grid justify-items-start gap-2 rounded-control border border-warning bg-warning/10 px-3 py-2 text-ink">
+            <p>@T["FileUpload.Failed"]</p>
+            <Button Variant="ButtonVariant.Secondary" OnClick="OnRetry" data-file-upload-retry>@T["FileUpload.Retry"]</Button>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public FileUploadState State { get; set; }
+
+    /// <summary>0 to 100, shown while <see cref="FileUploadState.Uploading"/>.</summary>
+    [Parameter] public int Percent { get; set; }
+
+    /// <summary>Why the file was refused, in the reader's language (<see cref="FileUploadState.Rejected"/>).</summary>
+    [Parameter] public string? Reason { get; set; }
+
+    /// <summary>Resumes the upload from the chunk that failed (<see cref="FileUploadState.Failed"/>).</summary>
+    [Parameter] public EventCallback OnRetry { get; set; }
+}

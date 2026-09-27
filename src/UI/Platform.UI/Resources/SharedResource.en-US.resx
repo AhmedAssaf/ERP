@@ -255,4 +255,61 @@
   <data name="Vendor.Privacy.V1" xml:space="preserve"><value>WaslaBid, the platform that runs this portal, keeps your company's registration details, the documents you upload and a record of what you do here, so that the organizations you work with can assess your company and every decision can be audited. Your data is stored in Saudi Arabia. An organization sees your company only after you register or work with it through its portal. Your company decides, through its consent ledger, whether any other party may receive its records. You can ask for a copy of your data or for its correction at any time.</value></data>
   <data name="Vendor.Privacy.Accept" xml:space="preserve"><value>I have read the privacy notice and accept it.</value></data>
   <data name="Vendor.Home.Title" xml:space="preserve"><value>Vendor page</value></data>
+  <data name="AppShell.SupplierPortal" xml:space="preserve"><value>Supplier portal</value></data>
+  <data name="FileUpload.Help" xml:space="preserve"><value>{0}, up to {1} MB.</value></data>
+  <data name="FileUpload.Expiry" xml:space="preserve"><value>Expiry date</value></data>
+  <data name="FileUpload.ExpiryRequired" xml:space="preserve"><value>Enter the date the document expires.</value></data>
+  <data name="FileUpload.Start" xml:space="preserve"><value>Upload file</value></data>
+  <data name="FileUpload.Cancel" xml:space="preserve"><value>Stop upload</value></data>
+  <data name="FileUpload.Progress" xml:space="preserve"><value>Upload progress</value></data>
+  <data name="FileUpload.Uploading" xml:space="preserve"><value>Uploading… {0}%</value></data>
+  <data name="FileUpload.Scanning" xml:space="preserve"><value>Checking the file for viruses…</value></data>
+  <data name="FileUpload.Pending" xml:space="preserve"><value>Waiting for the virus check</value></data>
+  <data name="FileUpload.PendingBody" xml:space="preserve"><value>The file is saved. It is listed once the virus check has finished; you can leave this page.</value></data>
+  <data name="FileUpload.Done" xml:space="preserve"><value>Uploaded and checked</value></data>
+  <data name="FileUpload.Rejected" xml:space="preserve"><value>The file was not uploaded</value></data>
+  <data name="FileUpload.Failed" xml:space="preserve"><value>The upload stopped because the connection failed. Retry to continue from where it stopped.</value></data>
+  <data name="FileUpload.Retry" xml:space="preserve"><value>Retry upload</value></data>
+  <data name="FileUpload.WrongType" xml:space="preserve"><value>Choose a file of type {0}.</value></data>
+  <data name="FileUpload.TooLarge" xml:space="preserve"><value>The file is larger than {0} MB. Choose a smaller file.</value></data>
+  <data name="FileUpload.Empty" xml:space="preserve"><value>The file is empty. Choose another file.</value></data>
+  <data name="FileUpload.NotAccepted" xml:space="preserve"><value>The file was not accepted. Check it and try again.</value></data>
+  <data name="FileUpload.SignedOut" xml:space="preserve"><value>Your session has ended. Sign in again and upload the file once more.</value></data>
+  <data name="FileUpload.ListSeparator" xml:space="preserve"><value>, </value></data>
+  <data name="FileUpload.Or" xml:space="preserve"><value>or</value></data>
+  <data name="Gallery.Section.FileUpload" xml:space="preserve"><value>File upload</value></data>
+  <data name="Gallery.Sample.UploadLabel" xml:space="preserve"><value>Commercial registration certificate</value></data>
+  <data name="Gallery.Sample.UploadRejected" xml:space="preserve"><value>The file contains a virus and was deleted.</value></data>
+  <data name="Gallery.Sample.NavCompany" xml:space="preserve"><value>Company and documents</value></data>
+  <data name="Vendor.Nav.Home" xml:space="preserve"><value>Company and documents</value></data>
+  <data name="Vendor.Home.Company" xml:space="preserve"><value>Company</value></data>
+  <data name="Vendor.Home.Relationship" xml:space="preserve"><value>Status with {0}</value></data>
+  <data name="Vendor.Relationship.Pending" xml:space="preserve"><value>Waiting for approval</value></data>
+  <data name="Vendor.Relationship.Approved" xml:space="preserve"><value>Approved</value></data>
+  <data name="Vendor.Documents.Heading" xml:space="preserve"><value>Documents</value></data>
+  <data name="Vendor.Documents.Intro" xml:space="preserve"><value>Keep these documents current: an organization cannot accept your offers while one is missing or expired.</value></data>
+  <data name="Vendor.Documents.Table" xml:space="preserve"><value>Company documents</value></data>
+  <data name="Vendor.Documents.ColumnType" xml:space="preserve"><value>Document</value></data>
+  <data name="Vendor.Documents.ColumnExpiry" xml:space="preserve"><value>Expiry date</value></data>
+  <data name="Vendor.Documents.ColumnStatus" xml:space="preserve"><value>Status</value></data>
+  <data name="Vendor.Documents.NoFile" xml:space="preserve"><value>No file</value></data>
+  <data name="Vendor.Documents.DateFormat" xml:space="preserve"><value>d MMMM yyyy</value></data>
+  <data name="Vendor.Documents.Status.Current" xml:space="preserve"><value>Current</value></data>
+  <data name="Vendor.Documents.Status.Expired" xml:space="preserve"><value>Expired</value></data>
+  <data name="Vendor.Documents.Status.Missing" xml:space="preserve"><value>Missing</value></data>
+  <data name="Vendor.Documents.Attempt.PendingScan" xml:space="preserve"><value>Waiting for the virus check</value></data>
+  <data name="Vendor.Documents.Attempt.Infected" xml:space="preserve"><value>Latest file rejected: a virus was found</value></data>
+  <data name="Vendor.Blocking.Heading" xml:space="preserve"><value>Before you can submit offers</value></data>
+  <data name="Vendor.Blocking.Missing" xml:space="preserve"><value>{0}: not uploaded</value></data>
+  <data name="Vendor.Blocking.Expired" xml:space="preserve"><value>{0}: expired on {1}</value></data>
+  <data name="Vendor.Upload.Heading" xml:space="preserve"><value>Upload a document</value></data>
+  <data name="Vendor.Upload.Intro" xml:space="preserve"><value>Upload the latest certificate. A new file replaces the current one once it has passed the virus check.</value></data>
+  <data name="Vendor.Upload.Error.TooMany" xml:space="preserve"><value>You have too many uploads in progress, or have uploaded many files today. Wait an hour and try again.</value></data>
+  <data name="Vendor.Upload.Error.WrongType" xml:space="preserve"><value>The file is not a PDF, PNG or JPEG file. Choose another file.</value></data>
+  <data name="Vendor.Upload.Error.TooLarge" xml:space="preserve"><value>The file is larger than 10 MB. Choose a smaller file.</value></data>
+  <data name="Vendor.Upload.Error.Empty" xml:space="preserve"><value>The file is empty. Choose another file.</value></data>
+  <data name="Vendor.Upload.Error.FileName" xml:space="preserve"><value>The file name is not accepted. Rename the file with letters, digits, spaces, hyphens or dots and try again.</value></data>
+  <data name="Vendor.Upload.Error.Expiry" xml:space="preserve"><value>Enter a valid expiry date between the years 2000 and 2100.</value></data>
+  <data name="Vendor.Upload.Error.Infected" xml:space="preserve"><value>The file contains a virus and was deleted. Check your computer and upload a clean copy.</value></data>
+  <data name="Vendor.Upload.Error.Expired" xml:space="preserve"><value>This upload is more than a day old. Upload the file again.</value></data>
 </root>

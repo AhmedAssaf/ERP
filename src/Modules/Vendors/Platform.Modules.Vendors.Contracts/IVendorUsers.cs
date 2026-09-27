@@ -11,8 +11,22 @@ public interface IVendorUsers
     Task<Guid?> FindCompanyAsync(string userId, CancellationToken cancellationToken = default);
 }
 
-/// <summary>The signed-in vendor's own company, as the vendor sees it.</summary>
-public sealed record VendorCompany(Guid Id, string CrNumber, string NameAr, string NameEn, string VatNumber);
+/// <summary>
+/// The signed-in vendor's own company, as the vendor sees it, with its relationship to the tenant of the current host
+/// (V-7), or null when it has none there.
+/// </summary>
+public sealed record VendorCompany(
+    Guid Id, string CrNumber, string NameAr, string NameEn, string VatNumber, VendorRelationshipStatus? Relationship);
+
+/// <summary>Where a company stands with one tenant (V-7); <c>blocked</c> arrives with F-14.</summary>
+public enum VendorRelationshipStatus
+{
+    /// <summary>First contact; a contracts officer or tenant admin has not approved the company yet.</summary>
+    Pending,
+
+    /// <summary>Approved by a contracts officer or tenant admin.</summary>
+    Approved,
+}
 
 /// <summary>The company of the current vendor context (request or circuit), read under its row-level security.</summary>
 public interface IVendorCompanies

@@ -49,6 +49,19 @@ public enum VendorDocumentStatus
 public sealed record VendorDocument(
     Guid Id, string Type, DateOnly ExpiresOn, string Sha256, bool IsCurrent, DateTimeOffset UploadedAt);
 
+/// <summary>Why a document of the company is not listed.</summary>
+public enum VendorDocumentScanState
+{
+    /// <summary>The scanner gave no verdict yet; the worker's retry scan decides (V-10).</summary>
+    PendingScan,
+
+    /// <summary>The retry scan found a virus: the file was deleted and is never listed.</summary>
+    Infected,
+}
+
+/// <summary>A file of the company that is not listed (see <see cref="IVendorDocuments.ListNotCleanAsync"/>).</summary>
+public sealed record VendorDocumentNotClean(Guid Id, string Type, DateOnly ExpiresOn, VendorDocumentScanState ScanState, DateTimeOffset UploadedAt);
+
 /// <summary>The outcome of a stored upload: the new document, the SHA-256 of its content, and whether it is listed yet.</summary>
 public sealed record VendorDocumentAdded(Guid DocumentId, string Sha256, VendorDocumentStatus Status);
 
@@ -60,6 +73,13 @@ public interface IVendorDocuments
 {
     /// <summary>Every clean document of the company, current and older (history), newest first.</summary>
     Task<IReadOnlyList<VendorDocument>> ListAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The company's files that are not listed, newest first: waiting for a virus scan verdict, or found infected by the
+    /// retry scan. The vendor's page shows the newest of each type beside the current file, so a new upload never looks
+    /// missing. An upload refused at completion (infected, wrong type) leaves no document and is not here.
+    /// </summary>
+    Task<IReadOnlyList<VendorDocumentNotClean>> ListNotCleanAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Checks the content (a PDF, PNG or JPEG of at most 10 MB, by its first bytes), hashes it, scans it and stores it.

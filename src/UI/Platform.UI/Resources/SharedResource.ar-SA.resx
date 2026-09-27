@@ -255,4 +255,61 @@
   <data name="Vendor.Privacy.V1" xml:space="preserve"><value>تحتفظ وصلة بد، المنصة التي تشغّل هذه البوابة، ببيانات تسجيل شركتك والمستندات التي ترفعها وسجلٍّ لما تقوم به هنا، لكي تتمكن الجهات التي تتعامل معها من تقييم شركتك ولكي يمكن تدقيق كل قرار. تُحفظ بياناتك داخل المملكة العربية السعودية. لا ترى أي جهة شركتك إلا بعد أن تسجّل لديها أو تتعامل معها عبر بوابتها. تقرّر شركتك، عبر سجل الموافقات الخاص بها، ما إذا كان يجوز لأي طرف آخر أن يتلقى سجلاتها. يمكنك طلب نسخة من بياناتك أو تصحيحها في أي وقت.</value></data>
   <data name="Vendor.Privacy.Accept" xml:space="preserve"><value>قرأت إشعار الخصوصية وأوافق عليه.</value></data>
   <data name="Vendor.Home.Title" xml:space="preserve"><value>صفحة المورّد</value></data>
+  <data name="AppShell.SupplierPortal" xml:space="preserve"><value>بوابة الموردين</value></data>
+  <data name="FileUpload.Help" xml:space="preserve"><value>{0}، بحد أقصى {1} ميجابايت.</value></data>
+  <data name="FileUpload.Expiry" xml:space="preserve"><value>تاريخ الانتهاء</value></data>
+  <data name="FileUpload.ExpiryRequired" xml:space="preserve"><value>أدخل تاريخ انتهاء المستند.</value></data>
+  <data name="FileUpload.Start" xml:space="preserve"><value>رفع الملف</value></data>
+  <data name="FileUpload.Cancel" xml:space="preserve"><value>إيقاف الرفع</value></data>
+  <data name="FileUpload.Progress" xml:space="preserve"><value>تقدّم الرفع</value></data>
+  <data name="FileUpload.Uploading" xml:space="preserve"><value>جارٍ الرفع… {0}%</value></data>
+  <data name="FileUpload.Scanning" xml:space="preserve"><value>جارٍ فحص الملف من الفيروسات…</value></data>
+  <data name="FileUpload.Pending" xml:space="preserve"><value>بانتظار فحص الفيروسات</value></data>
+  <data name="FileUpload.PendingBody" xml:space="preserve"><value>حُفظ الملف، ويظهر في القائمة بعد اكتمال فحص الفيروسات، ويمكنك مغادرة هذه الصفحة.</value></data>
+  <data name="FileUpload.Done" xml:space="preserve"><value>رُفع الملف وفُحص</value></data>
+  <data name="FileUpload.Rejected" xml:space="preserve"><value>لم يُرفع الملف</value></data>
+  <data name="FileUpload.Failed" xml:space="preserve"><value>توقف الرفع بسبب انقطاع الاتصال. أعد المحاولة للمتابعة من حيث توقف.</value></data>
+  <data name="FileUpload.Retry" xml:space="preserve"><value>إعادة محاولة الرفع</value></data>
+  <data name="FileUpload.WrongType" xml:space="preserve"><value>اختر ملفًا من نوع {0}.</value></data>
+  <data name="FileUpload.TooLarge" xml:space="preserve"><value>حجم الملف أكبر من {0} ميجابايت. اختر ملفًا أصغر.</value></data>
+  <data name="FileUpload.Empty" xml:space="preserve"><value>الملف فارغ. اختر ملفًا آخر.</value></data>
+  <data name="FileUpload.NotAccepted" xml:space="preserve"><value>لم يُقبل الملف. تحقق منه وحاول مرة أخرى.</value></data>
+  <data name="FileUpload.SignedOut" xml:space="preserve"><value>انتهت جلستك. سجّل الدخول مرة أخرى وارفع الملف من جديد.</value></data>
+  <data name="FileUpload.ListSeparator" xml:space="preserve"><value>، </value></data>
+  <data name="FileUpload.Or" xml:space="preserve"><value>أو</value></data>
+  <data name="Gallery.Section.FileUpload" xml:space="preserve"><value>رفع الملفات</value></data>
+  <data name="Gallery.Sample.UploadLabel" xml:space="preserve"><value>شهادة السجل التجاري</value></data>
+  <data name="Gallery.Sample.UploadRejected" xml:space="preserve"><value>يحتوي الملف على فيروس وقد حُذف.</value></data>
+  <data name="Gallery.Sample.NavCompany" xml:space="preserve"><value>الشركة والمستندات</value></data>
+  <data name="Vendor.Nav.Home" xml:space="preserve"><value>الشركة والمستندات</value></data>
+  <data name="Vendor.Home.Company" xml:space="preserve"><value>الشركة</value></data>
+  <data name="Vendor.Home.Relationship" xml:space="preserve"><value>الحالة لدى {0}</value></data>
+  <data name="Vendor.Relationship.Pending" xml:space="preserve"><value>بانتظار الاعتماد</value></data>
+  <data name="Vendor.Relationship.Approved" xml:space="preserve"><value>معتمد</value></data>
+  <data name="Vendor.Documents.Heading" xml:space="preserve"><value>المستندات</value></data>
+  <data name="Vendor.Documents.Intro" xml:space="preserve"><value>حافظ على سريان هذه المستندات، إذ لا يمكن لأي جهة قبول عروضك ما دام أحدها غير مرفوع أو منتهيًا.</value></data>
+  <data name="Vendor.Documents.Table" xml:space="preserve"><value>مستندات الشركة</value></data>
+  <data name="Vendor.Documents.ColumnType" xml:space="preserve"><value>المستند</value></data>
+  <data name="Vendor.Documents.ColumnExpiry" xml:space="preserve"><value>تاريخ الانتهاء</value></data>
+  <data name="Vendor.Documents.ColumnStatus" xml:space="preserve"><value>الحالة</value></data>
+  <data name="Vendor.Documents.NoFile" xml:space="preserve"><value>لا يوجد ملف</value></data>
+  <data name="Vendor.Documents.DateFormat" xml:space="preserve"><value>d MMMM yyyy</value></data>
+  <data name="Vendor.Documents.Status.Current" xml:space="preserve"><value>ساري</value></data>
+  <data name="Vendor.Documents.Status.Expired" xml:space="preserve"><value>منتهي</value></data>
+  <data name="Vendor.Documents.Status.Missing" xml:space="preserve"><value>غير مرفوع</value></data>
+  <data name="Vendor.Documents.Attempt.PendingScan" xml:space="preserve"><value>بانتظار فحص الفيروسات</value></data>
+  <data name="Vendor.Documents.Attempt.Infected" xml:space="preserve"><value>رُفض آخر ملف: وُجد فيه فيروس</value></data>
+  <data name="Vendor.Blocking.Heading" xml:space="preserve"><value>قبل أن تتمكن من تقديم العروض</value></data>
+  <data name="Vendor.Blocking.Missing" xml:space="preserve"><value>{0}: لم يُرفع</value></data>
+  <data name="Vendor.Blocking.Expired" xml:space="preserve"><value>{0}: انتهى في {1}</value></data>
+  <data name="Vendor.Upload.Heading" xml:space="preserve"><value>رفع مستند</value></data>
+  <data name="Vendor.Upload.Intro" xml:space="preserve"><value>ارفع أحدث شهادة. يحل الملف الجديد محل الملف الحالي بعد اجتيازه فحص الفيروسات.</value></data>
+  <data name="Vendor.Upload.Error.TooMany" xml:space="preserve"><value>لديك عمليات رفع كثيرة جارية، أو رفعت ملفات كثيرة اليوم. انتظر ساعة ثم حاول مرة أخرى.</value></data>
+  <data name="Vendor.Upload.Error.WrongType" xml:space="preserve"><value>الملف ليس بصيغة PDF أو PNG أو JPEG. اختر ملفًا آخر.</value></data>
+  <data name="Vendor.Upload.Error.TooLarge" xml:space="preserve"><value>حجم الملف أكبر من 10 ميجابايت. اختر ملفًا أصغر.</value></data>
+  <data name="Vendor.Upload.Error.Empty" xml:space="preserve"><value>الملف فارغ. اختر ملفًا آخر.</value></data>
+  <data name="Vendor.Upload.Error.FileName" xml:space="preserve"><value>اسم الملف غير مقبول. أعد تسمية الملف بحروف أو أرقام أو مسافات أو شرطات أو نقاط ثم حاول مرة أخرى.</value></data>
+  <data name="Vendor.Upload.Error.Expiry" xml:space="preserve"><value>أدخل تاريخ انتهاء صحيحًا بين عامي 2000 و2100.</value></data>
+  <data name="Vendor.Upload.Error.Infected" xml:space="preserve"><value>يحتوي الملف على فيروس وقد حُذف. افحص جهازك وارفع نسخة سليمة.</value></data>
+  <data name="Vendor.Upload.Error.Expired" xml:space="preserve"><value>مضى على عملية الرفع هذه أكثر من يوم. ارفع الملف مرة أخرى.</value></data>
 </root>
