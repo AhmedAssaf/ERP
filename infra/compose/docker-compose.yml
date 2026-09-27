@@ -74,7 +74,11 @@ services:
       retries: 10
 
   minio:
-    image: quay.io/minio/minio:latest
+    # MinIO stopped publishing free images on quay.io and Docker Hub; Chainguard rebuilds it from source (MinIO
+    # RELEASE.2026-09-22T19-25-18Z). Only its latest tag is free, so it is pinned by digest. It runs as root because
+    # the image's non-root user cannot initialise the data directory ("file access denied"), as the old image did.
+    image: cgr.dev/chainguard/minio@sha256:6a1d0b45c8669726bba580ced0bfa4cb9fdeed1ed636dfabd81d1577beb6937b
+    user: "0:0"
     container_name: erp-minio
     command: ["server", "/data", "--console-address", ":9001"]
     environment:
@@ -94,7 +98,8 @@ services:
   minio-init:
     # One-shot: creates the dev bucket, a least-privilege health-probe user (list-only, spec section 6) and the
     # lifecycle rule that expires upload staging after 2 days (vendor spec V-9), then exits.
-    image: quay.io/minio/mc:latest
+    # The -dev variant carries the shell the entrypoint below needs.
+    image: cgr.dev/chainguard/minio-client@sha256:fdb40d819ca51969c86fa76f45a67bb841759daf85d4c6ce9aa86d27f6e47ae9
     container_name: erp-minio-init
     depends_on:
       minio:
@@ -126,7 +131,7 @@ services:
 
   mailpit:
     # Catches all outgoing email; web UI shows Arabic and English messages as vendors would see them.
-    image: axllent/mailpit:latest
+    image: axllent/mailpit:v1.31.3@sha256:ed9b00c609e77e99c79b93f1178255ebc271868920f2c69a8d166bd5634ed10d
     container_name: erp-mailpit
     ports:
       - "${MAILPIT_SMTP_PORT:-1025}:1025"

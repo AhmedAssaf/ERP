@@ -71,7 +71,7 @@ public sealed class KeycloakFixture : IAsyncLifetime
         await File.WriteAllTextAsync(variant, BuildTestVariant(await File.ReadAllTextAsync(RepoPaths.KeycloakRealm)));
 
         await _network.CreateAsync();
-        _mailpit = new ContainerBuilder("axllent/mailpit:latest")
+        _mailpit = new ContainerBuilder("axllent/mailpit:v1.31.3@sha256:ed9b00c609e77e99c79b93f1178255ebc271868920f2c69a8d166bd5634ed10d")
             .WithNetwork(_network)
             .WithNetworkAliases("mailpit")
             .WithPortBinding(8025, assignRandomHostPort: true)

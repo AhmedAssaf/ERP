@@ -1,0 +1,23 @@
+# W-09: Trivy settings for the repository scan in .github/workflows/ci.yml.
+# Local run from the repository root: trivy fs --config .github/trivy.yaml .
+# Blocking: fixable HIGH and CRITICAL vulnerabilities in NuGet packages (Directory.Packages.props),
+# committed secrets (N-10), and misconfigurations in the Compose stack and workflows.
+scan:
+  scanners:
+    - vuln
+    - secret
+    - misconfig
+  skip-dirs:
+    # Throwaway spikes are not in WaslaBid.slnx and never ship (CLAUDE.md).
+    - spikes
+    - .tools
+    - .claude
+    - "**/bin"
+    - "**/obj"
+    - "**/node_modules"
+severity:
+  - HIGH
+  - CRITICAL
+vulnerability:
+  ignore-unfixed: true
+exit-code: 1

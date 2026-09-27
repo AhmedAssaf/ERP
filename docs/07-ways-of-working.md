@@ -253,18 +253,19 @@ then a browser pass through Caddy for the tenant admin, an invited evaluator and
 
 ## 6. The agent roster
 
-Six agents live in `.claude/agents/`: four build-time roles and two that answer questions. They are specialists, not a replacement for judgment; the orchestrating Claude Code session (or you) decides what to hand to whom.
+Seven agents live in `.claude/agents/`: five build-time roles and two that answer questions (`pentester` added 2026-09-28 at the user's request). They are specialists, not a replacement for judgment; the orchestrating Claude Code session (or you) decides what to hand to whom.
 
 | Agent | Does | Never does | Tools |
 |---|---|---|---|
 | `developer` | Implements one plan task or one feature ID, test first, inside module boundaries | Reviews itself, changes infrastructure, expands scope | All |
 | `reviewer` | Reads the full changed code and its callers, reports ranked findings against the invariants (isolation, sealed envelopes, locking, audit, deadlines, Arabic parity), runs tests | Edits anything | Read-only plus Bash for tests |
 | `qa-engineer` | Designs and writes tests, runs end-to-end scenarios on the Compose stack, produces pilot evidence | Writes production code, weakens assertions, adds retries | Read, Bash, Write under `tests/` |
+| `pentester` | Attacks a finished slice or a sensitive change as a legitimate but hostile user: tenant and vendor isolation, sealed envelopes, authorization, identity, uploads, injection, abuse controls, secrets; proves each finding with a test under `tests/` | Touches anything but the local stack and Testcontainers, prints secret values, fixes production code, weakens a red proof test | Read, Bash, Write under `tests/` |
 | `devops` | Compose stack, CI, Caddy, Keycloak export, Kubernetes, backups, Saudi-region hosting | Application code | All |
 | `project-manager` | Answers status questions from the backlog, git history, and the plan: done, in progress, blocked, next, open decisions, risks; checks backlog health | Marks anything done without evidence, estimates without a plan | Read-only plus git |
 | `market-analyst` | Competitor and market questions: feature comparison mapped to F-xx, landscape refresh of docs/01 and docs/04 with sources, gap watch on our differentiators, proposed backlog rows | Adds backlog rows itself, states a competitor lacks a feature without a search | Read, web search and fetch, edits docs/01 and docs/04 only |
 
-**The loop for every task:** developer implements, reviewer reviews, developer fixes, qa-engineer covers and runs, human merges. The superpowers subagent-driven-development skill runs exactly this loop when given a plan.
+**The loop for every task:** developer implements, reviewer reviews, developer fixes, qa-engineer covers and runs, human merges. At the end of every slice, and after any change to row-level security, a security-definer function, an authorization policy, an upload path or the Keycloak realm, pentester attacks it before the human merge, and its findings go back to the developer. The superpowers subagent-driven-development skill runs exactly this loop when given a plan.
 
 **Rules of use:**
 1. One task per developer run. Give it the plan file and the task number, nothing else.
