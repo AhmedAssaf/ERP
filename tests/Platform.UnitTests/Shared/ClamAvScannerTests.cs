@@ -180,7 +180,10 @@ public sealed class ClamAvScannerTests
         private FakeClamd(TcpListener listener, string? reply)
         {
             _listener = listener;
-            _received = Task.Run(() => ServeAsync(reply));
+            // The accept starts here, while the listener is certainly listening. Started later on a pool thread, a test
+            // that never connects could stop the listener first, and accepting on a stopped listener throws "Not
+            // listening" instead of ending the pending accept the way DisposeAsync expects.
+            _received = ServeAsync(_listener.AcceptTcpClientAsync(_stop.Token).AsTask(), reply);
         }
 
         public int Port => ((IPEndPoint)_listener.LocalEndpoint).Port;
@@ -221,9 +224,9 @@ public sealed class ClamAvScannerTests
             _stop.Dispose();
         }
 
-        private async Task<byte[]> ServeAsync(string? reply)
+        private async Task<byte[]> ServeAsync(Task<TcpClient> accept, string? reply)
         {
-            using var client = await _listener.AcceptTcpClientAsync(_stop.Token);
+            using var client = await accept;
             Connections++;
             var stream = client.GetStream();
             var received = new MemoryStream();
