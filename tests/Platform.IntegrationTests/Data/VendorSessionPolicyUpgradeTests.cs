@@ -14,9 +14,10 @@ using Platform.Shared.Data;
 namespace Platform.IntegrationTests.Data;
 
 /// <summary>
-/// ADR-0012 on an existing database: every tenant table created under the old tenant policy (platform migrations up to
-/// 0005, vendors up to 0012) is re-applied by platform migration 0006 with the staff-only rule, and the module migrations
-/// that follow set the explicit exceptions (audit.events, vendor.relationships). A fresh database in the same container,
+/// ADR-0012 on an existing database, in the real order: from the state before that work (platform up to 0005, audit
+/// 0001, tenancy up to 0006, operations up to 0003, vendors up to 0012), MigrationRunner re-applies every tenant table with
+/// the staff-only rule (platform 0006) and the module migrations that follow set the explicit exceptions (audit.events
+/// with exactly a SELECT and an INSERT policy, vendor.relationships with the vendor helper). A fresh database in the same container,
 /// so the shared one is not touched.
 /// </summary>
 [Collection(DatabaseCollection.Name)]
@@ -36,20 +37,33 @@ public sealed class VendorSessionPolicyUpgradeTests(DatabaseFixture db)
             {
                 await connection.OpenAsync(Ct);
                 await ExecuteAsync(connection, "create extension if not exists vector; create extension if not exists pgcrypto; create extension if not exists unaccent;");
-                await SqlMigrator.ApplyAsync(connection, "platform", await ScriptsAsync(typeof(SharedModule).Assembly, s => string.CompareOrdinal(s, "0006") < 0), Ct);
-                await AuditModule.MigrateAsync(connection, Ct);
-                await TenancyModule.MigrateAsync(connection, Ct);
+                // The state before ADR-0012 and the second pentest, in MigrationRunner's order: each module at its last
+                // migration before that work.
+                await SqlMigrator.ApplyAsync(connection, "platform", await ScriptsAsync(typeof(SharedModule).Assembly, s => Before(s, "0006")), Ct);
+                await SqlMigrator.ApplyAsync(connection, "audit", await ScriptsAsync(typeof(AuditModule).Assembly, s => Before(s, "0002")), Ct);
+                await SqlMigrator.ApplyAsync(connection, "tenancy", await ScriptsAsync(typeof(TenancyModule).Assembly, s => Before(s, "0007")), Ct);
                 await IdentityModule.MigrateAsync(connection, Ct);
                 await WorkflowModule.MigrateAsync(connection, Ct);
-                await OperationsModule.MigrateAsync(connection, Ct);
-                await SqlMigrator.ApplyAsync(connection, "vendors", await ScriptsAsync(typeof(VendorsModule).Assembly, s => string.CompareOrdinal(s, "0013") < 0), Ct);
+                await SqlMigrator.ApplyAsync(connection, "operations", await ScriptsAsync(typeof(OperationsModule).Assembly, s => Before(s, "0004")), Ct);
+                await SqlMigrator.ApplyAsync(connection, "vendors", await ScriptsAsync(typeof(VendorsModule).Assembly, s => Before(s, "0013")), Ct);
                 // Before: identity.members under the old rule, which a vendor session passes.
                 (await QualAsync(connection, "identity", "members", "tenant_isolation")).ShouldNotBeNull().ShouldNotContain("current_vendor_company");
             }
 
             var applied = await MigrationRunner.RunAsync(connectionString, Ct);
 
-            applied.ShouldBe(["platform/0006_platform_vendor_sessions.sql", "vendors/0013_vendors_relationships_vendor_policy.sql", "vendors/0014_vendors_function_callers.sql", "vendors/0015_vendors_consent_actor_and_start.sql"]);
+            applied.ShouldBe(
+            [
+                "platform/0006_platform_vendor_sessions.sql",
+                "audit/0002_audit_vendor_insert.sql",
+                "audit/0003_audit_actor_and_time.sql",
+                "tenancy/0007_tenancy_function_callers.sql",
+                "operations/0004_operations_platform_audit_access.sql",
+                "vendors/0013_vendors_relationships_vendor_policy.sql",
+                "vendors/0014_vendors_function_callers.sql",
+                "vendors/0015_vendors_consent_actor_and_start.sql",
+                "vendors/0016_vendors_approver_and_consent_rules.sql",
+            ]);
             await using (var connection = new NpgsqlConnection(connectionString))
             {
                 await connection.OpenAsync(Ct);
@@ -63,6 +77,7 @@ public sealed class VendorSessionPolicyUpgradeTests(DatabaseFixture db)
                 (await QualAsync(connection, "audit", "events", "tenant_isolation")).ShouldNotBeNull().ShouldContain(staffOnly);
                 (await QualAsync(connection, "vendor", "relationships", "tenant_vendor_isolation")).ShouldNotBeNull().ShouldContain("company_id = platform.current_vendor_company()");
                 (await QualAsync(connection, "vendor", "relationships", "tenant_isolation")).ShouldBeNull();
+                (await PoliciesAsync(connection, "audit", "events")).ShouldBe(["tenant_audit_insert INSERT", "tenant_isolation SELECT"]);
             }
         }
         finally
@@ -80,6 +95,24 @@ public sealed class VendorSessionPolicyUpgradeTests(DatabaseFixture db)
         command.Parameters.AddWithValue("table", table);
         command.Parameters.AddWithValue("policy", policy);
         return await command.ExecuteScalarAsync(Ct) as string;
+    }
+
+    private static bool Before(string script, string number) => string.CompareOrdinal(script, number) < 0;
+
+    private static async Task<IReadOnlyList<string>> PoliciesAsync(NpgsqlConnection connection, string schema, string table)
+    {
+        await using var command = new NpgsqlCommand(
+            "select policyname || ' ' || cmd from pg_policies where schemaname = @schema and tablename = @table order by 1", connection);
+        command.Parameters.AddWithValue("schema", schema);
+        command.Parameters.AddWithValue("table", table);
+        var policies = new List<string>();
+        await using var reader = await command.ExecuteReaderAsync(Ct);
+        while (await reader.ReadAsync(Ct))
+        {
+            policies.Add(reader.GetString(0));
+        }
+
+        return policies;
     }
 
     private static async Task<List<(string Script, string Sql)>> ScriptsAsync(Assembly assembly, Func<string, bool> include)

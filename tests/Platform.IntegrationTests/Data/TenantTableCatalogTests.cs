@@ -22,7 +22,7 @@ public sealed class TenantTableCatalogTests(DatabaseFixture db)
             from pg_class c
             join pg_namespace n on n.oid = c.relnamespace
             where c.relkind in ('r', 'p')
-              and n.nspname not in ('platform', 'pg_catalog', 'information_schema')
+              and n.nspname not in ('pg_catalog', 'information_schema')
               -- The tenant registry itself is read before any tenant is known (host resolution), so it cannot be tenant-filtered.
               and (n.nspname, c.relname) not in (('tenancy', 'tenants'), ('tenancy', 'tenant_hosts'))
               and exists (select 1 from pg_attribute a
@@ -64,7 +64,7 @@ public sealed class TenantTableCatalogTests(DatabaseFixture db)
             from pg_policies p
             join pg_namespace n on n.nspname = p.schemaname
             join pg_class c on c.relnamespace = n.oid and c.relname = p.tablename
-            where p.schemaname not in ('platform', 'pg_catalog', 'information_schema')
+            where p.schemaname not in ('pg_catalog', 'information_schema')
               and exists (select 1 from pg_attribute a
                           where a.attrelid = c.oid and a.attname = 'tenant_id' and a.attnum > 0 and not a.attisdropped)
             order by 1, 2
@@ -89,7 +89,8 @@ public sealed class TenantTableCatalogTests(DatabaseFixture db)
                 "vendor.relationships" => rows is [{ Name: "tenant_vendor_isolation", Command: "ALL" } only] && only.Using == vendor && only.Check == vendor,
                 "audit.events" => rows.Count == 2
                     && rows.Any(r => r is { Name: "tenant_isolation", Command: "SELECT" } && r.Using == staff)
-                    && rows.Any(r => r is { Name: "tenant_audit_insert", Command: "INSERT" } && r.Check == "(tenant_id = platform.current_tenant())"),
+                    && rows.Any(r => r is { Name: "tenant_audit_insert", Command: "INSERT" }
+                        && r.Check == "((tenant_id = platform.current_tenant()) AND ((platform.current_vendor_company() IS NULL) OR (actor_id = platform.current_user_id())))"),
                 _ => rows is [{ Name: "tenant_isolation", Command: "ALL" } one] && one.Using == staff && one.Check == staff,
             };
             if (!ok)
@@ -99,6 +100,39 @@ public sealed class TenantTableCatalogTests(DatabaseFixture db)
         }
 
         wrong.ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// A view runs with its owner's rights and, unless it is a security-invoker view, ignores the row-level security of the
+    /// tables under it, so no view may read a tenant table (ADR-0012). Covers every schema, the platform schema included.
+    /// </summary>
+    [Fact]
+    public async Task No_view_reads_a_tenant_table()
+    {
+        await using var connection = new NpgsqlConnection(db.OwnerConnectionString);
+        await connection.OpenAsync(Ct);
+        await using var command = new NpgsqlCommand("""
+            select distinct vn.nspname || '.' || v.relname || ' reads ' || tn.nspname || '.' || t.relname
+            from pg_class v
+            join pg_namespace vn on vn.oid = v.relnamespace
+            join pg_rewrite r on r.ev_class = v.oid
+            join pg_depend d on d.classid = 'pg_rewrite'::regclass and d.objid = r.oid and d.refclassid = 'pg_class'::regclass
+            join pg_class t on t.oid = d.refobjid and t.oid <> v.oid
+            join pg_namespace tn on tn.oid = t.relnamespace
+            where v.relkind in ('v', 'm')
+              and vn.nspname not in ('pg_catalog', 'information_schema')
+              and exists (select 1 from pg_attribute a
+                          where a.attrelid = t.oid and a.attname = 'tenant_id' and a.attnum > 0 and not a.attisdropped)
+            order by 1
+            """, connection);
+        var views = new List<string>();
+        await using var reader = await command.ExecuteReaderAsync(Ct);
+        while (await reader.ReadAsync(Ct))
+        {
+            views.Add(reader.GetString(0));
+        }
+
+        views.ShouldBeEmpty();
     }
 
     /// <summary>The expressions the two helpers write, read back from a scratch table in a rolled-back transaction.</summary>
