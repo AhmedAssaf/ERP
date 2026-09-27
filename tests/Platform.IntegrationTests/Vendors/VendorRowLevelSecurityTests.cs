@@ -466,6 +466,62 @@ public sealed partial class VendorRowLevelSecurityTests(DatabaseFixture db) : IA
     }
 
     [Fact]
+    public async Task A_personal_login_that_sets_role_erp_unparks_a_document_and_the_audit_names_that_login()
+    {
+        var companyId = await RegisterAsync(TestTenants.Acme);
+        var documentId = Guid.NewGuid();
+        await InsertDocumentAsOwnerAsync(companyId, documentId, $"vendors/{companyId}/quarantine/{documentId}");
+        var login = $"ops_{Guid.NewGuid():N}"[..20];
+        var password = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(16));
+        await using (var owner = new NpgsqlConnection(db.OwnerConnectionString))
+        {
+            await owner.OpenAsync(Ct);
+            await using var park = new NpgsqlCommand("update vendor.documents set scan_attempts = 12 where id = @id", owner);
+            park.Parameters.AddWithValue("id", documentId);
+            (await park.ExecuteNonQueryAsync(Ct)).ShouldBe(1);
+            // The docs/07 section 4 command: a personal login, a member of erp, that must SET ROLE to use it.
+            await using var create = new NpgsqlCommand($"create role {login} login noinherit password '{password}' in role erp", owner);
+            await create.ExecuteNonQueryAsync(Ct);
+        }
+
+        try
+        {
+            var personal = new NpgsqlConnectionStringBuilder(db.OwnerConnectionString) { Username = login, Password = password, Pooling = false };
+            await using var connection = new NpgsqlConnection(personal.ConnectionString);
+            await connection.OpenAsync(Ct);
+            await using (var withoutRole = new NpgsqlCommand("select vendor.unpark_document(@id)", connection))
+            {
+                withoutRole.Parameters.AddWithValue("id", documentId);
+                (await Should.ThrowAsync<PostgresException>(() => withoutRole.ExecuteScalarAsync(Ct)))
+                    .SqlState.ShouldBe(PostgresErrorCodes.InsufficientPrivilege, "the login alone may not unpark");
+            }
+
+            await using (var setRole = new NpgsqlCommand("set role erp", connection))
+            {
+                await setRole.ExecuteNonQueryAsync(Ct);
+            }
+
+            await using var unpark = new NpgsqlCommand("select vendor.unpark_document(@id)", connection);
+            unpark.Parameters.AddWithValue("id", documentId);
+            ((bool)(await unpark.ExecuteScalarAsync(Ct))!).ShouldBeTrue();
+
+            await using var owner = new NpgsqlConnection(db.OwnerConnectionString);
+            await owner.OpenAsync(Ct);
+            await using var audit = new NpgsqlCommand(
+                "select actor_id from ops.platform_audit where action = 'vendor.document_unparked' and data ->> 'document_id' = @document", owner);
+            audit.Parameters.AddWithValue("document", documentId.ToString("D"));
+            (await audit.ExecuteScalarAsync(Ct)).ShouldBe(login, "the audit names the person, never the shared erp role");
+        }
+        finally
+        {
+            await using var owner = new NpgsqlConnection(db.OwnerConnectionString);
+            await owner.OpenAsync(Ct);
+            await using var drop = new NpgsqlCommand($"drop role {login}", owner);
+            await drop.ExecuteNonQueryAsync(Ct);
+        }
+    }
+
+    [Fact]
     public async Task The_platform_audit_table_records_that_unparking_a_vendor_document_writes_to_it_directly()
     {
         await using var owner = new NpgsqlConnection(db.OwnerConnectionString);

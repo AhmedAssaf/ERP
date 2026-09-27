@@ -232,6 +232,16 @@ then a browser pass through Caddy for the tenant admin, an invited evaluator and
 #### Operations
 
 - Parked vendor document (12 retry scans without a verdict, V-10; the worker logs its id): once the cause is fixed, a platform operator connects with their own personal database login, which is a member of `erp`, runs `SET ROLE erp;` and then `select vendor.unpark_document('<document id>');` (neither `erp_app` nor public may execute it); the next five-minute retry scan tries it again. The audit records `session_user`, so it names the person, never the shared `erp` role; do not connect as `erp` itself for this. Parking and unparking are both in the platform audit (`vendor.document_parked`, `vendor.document_unparked`).
+- Personal database login for that step, created once per operator on the local Compose stack. Set the password in your own shell first (`export ERP_OPERATOR_DB_PASSWORD=...`, typed or read from your password manager, never saved in a file in the repository); `docker exec -e ERP_OPERATOR_DB_PASSWORD` passes it by name, so the value appears in no command line:
+
+  ```bash
+  docker exec -i -e ERP_OPERATOR_DB_PASSWORD erp-postgres psql -U erp -d platform -v login=ahmed_ops <<'SQL'
+  \getenv pw ERP_OPERATOR_DB_PASSWORD
+  create role :"login" login noinherit password :'pw' in role erp;
+  SQL
+  ```
+
+  `noinherit` means the login has no rights of its own until it runs `SET ROLE erp;`. Connect as it with `psql -h localhost -U ahmed_ops -d platform` (the password prompt reads it; or `PGPASSWORD` from the same variable). The integration test `A_personal_login_that_sets_role_erp_unparks_a_document_and_the_audit_names_that_login` checks this path.
 
 ## 5. Branches, commits, pull requests
 
