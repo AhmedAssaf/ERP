@@ -1,0 +1,142 @@
+# W-09: continuous integration. Three jobs run in parallel so a pull request reports within ten minutes:
+#   build-test  restore, build with warnings as errors, format check, utility lint, tests (unit, bUnit, and
+#               integration against real PostgreSQL, Keycloak, Mailpit and MinIO through Testcontainers)
+#   docs        every Mermaid block in the Markdown documents renders
+#   security    Trivy: repository scan (blocking) and the Compose images (report only)
+# spikes/ is not in WaslaBid.slnx, so no step builds or tests it.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: "true"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
+
+jobs:
+  build-test:
+    name: Build, format, lint, test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      # SDK version and roll-forward come from global.json (10.0.401, latestFeature).
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      # Platform.UI downloads the pinned Tailwind standalone CLI into .tools/ during the build (no Node.js) and
+      # checks its SHA-256 on every build, so a cached copy is still verified.
+      - name: Cache Tailwind CLI
+        uses: actions/cache@v6
+        with:
+          path: .tools
+          key: tailwind-${{ runner.os }}-${{ hashFiles('src/UI/Platform.UI/Platform.UI.csproj') }}
+
+      - name: Restore
+        run: dotnet restore WaslaBid.slnx
+
+      - name: Build (warnings as errors, includes the Tailwind build)
+        run: dotnet build WaslaBid.slnx -warnaserror --no-restore
+
+      - name: Format check
+        run: dotnet format WaslaBid.slnx --verify-no-changes --no-restore
+
+      # docs/08 section 4: physical direction utilities (ml-, pr-, text-left, ...) are banned. The lint is a unit
+      # test class; it runs here on its own so a violation is named in the job log, and again in the full run below.
+      - name: Logical-direction utility lint
+        run: >
+          dotnet test --project tests/Platform.UnitTests/Platform.UnitTests.csproj --no-build --no-progress
+          --filter-class Platform.UnitTests.Styling.PhysicalUtilityLintTests
+
+      # Microsoft.Testing.Platform runner (global.json). Integration tests start containers with Testcontainers;
+      # the Ubuntu runner has Docker.
+      - name: Test
+        run: >
+          dotnet test --solution WaslaBid.slnx --no-build --no-progress
+          --results-directory "${{ github.workspace }}/TestResults"
+          --report-xunit-trx
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results
+          path: TestResults/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  docs:
+    name: Mermaid render check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      - name: Cache npx packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.npm
+          key: npm-mermaid-${{ runner.os }}-${{ hashFiles('.github/scripts/check-mermaid.sh') }}
+
+      - name: Render every Mermaid block
+        run: bash .github/scripts/check-mermaid.sh
+
+  security:
+    name: Trivy scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: aquasecurity/setup-trivy@v0.3.1
+        with:
+          version: v0.74.0
+          cache: true
+
+      - name: Cache Trivy database
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/trivy
+          key: trivy-db-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: trivy-db-${{ runner.os }}-
+
+      # Blocking: fixable HIGH and CRITICAL vulnerabilities in NuGet packages, committed secrets (N-10), and
+      # misconfigurations. Settings are in .github/trivy.yaml, so the same scan runs locally.
+      - name: Repository scan (dependencies, secrets, config)
+        run: trivy fs --config .github/trivy.yaml .
+
+      # Report only: these are third-party development images from infra/compose, not images we build. When the
+      # app image exists (W-19), scan it here with --exit-code 1.
+      - name: Compose images scan (report only)
+        run: |
+          images=$(grep -E '^\s+image:' infra/compose/docker-compose.yml | awk '{print $2}' | sort -u)
+          for image in $images; do
+            echo "::group::$image"
+            trivy image --scanners vuln --severity CRITICAL --ignore-unfixed --exit-code 0 --no-progress "$image"
+            echo "::endgroup::"
+          done
