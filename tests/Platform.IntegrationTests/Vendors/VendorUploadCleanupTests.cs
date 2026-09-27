@@ -137,9 +137,19 @@ public sealed class VendorUploadCleanupTests(DatabaseFixture db, MinioFixture mi
             (await Should.ThrowAsync<PostgresException>(() => delete.ExecuteNonQueryAsync(Ct))).SqlState.ShouldBe("42501");
         }
 
-        await using var remove = new NpgsqlCommand("select vendor.remove_stale_upload(@id)", connection);
-        remove.Parameters.AddWithValue("id", uploadId);
-        ((bool)(await remove.ExecuteScalarAsync(Ct))!).ShouldBeFalse();
+        // A web session (here a vendor's) may not call the worker's removal at all (ADR-0012, pentest P-3).
+        await using (var remove = new NpgsqlCommand("select vendor.remove_stale_upload(@id)", connection))
+        {
+            remove.Parameters.AddWithValue("id", uploadId);
+            (await Should.ThrowAsync<PostgresException>(() => remove.ExecuteScalarAsync(Ct))).SqlState.ShouldBe("42501");
+        }
+
+        // The worker's own session (no context) still cannot remove an upload younger than the margin.
+        await using var worker = new NpgsqlConnection(db.AppConnectionString);
+        await worker.OpenAsync(Ct);
+        await using var young = new NpgsqlCommand("select vendor.remove_stale_upload(@id)", worker);
+        young.Parameters.AddWithValue("id", uploadId);
+        ((bool)(await young.ExecuteScalarAsync(Ct))!).ShouldBeFalse();
         (await VendorDocumentRows.UploadExistsAsync(db.OwnerConnectionString, uploadId, Ct)).ShouldBeTrue();
     }
 

@@ -49,7 +49,7 @@ public sealed class VendorSessionPolicyUpgradeTests(DatabaseFixture db)
 
             var applied = await MigrationRunner.RunAsync(connectionString, Ct);
 
-            applied.ShouldBe(["platform/0006_platform_vendor_sessions.sql", "vendors/0013_vendors_relationships_vendor_policy.sql"]);
+            applied.ShouldBe(["platform/0006_platform_vendor_sessions.sql", "vendors/0013_vendors_relationships_vendor_policy.sql", "vendors/0014_vendors_function_callers.sql"]);
             await using (var connection = new NpgsqlConnection(connectionString))
             {
                 await connection.OpenAsync(Ct);
