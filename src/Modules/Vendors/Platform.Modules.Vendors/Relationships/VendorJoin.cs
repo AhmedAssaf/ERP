@@ -1,0 +1,128 @@
+using System.Data.Common;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Platform.Modules.Audit.Contracts;
+using Platform.Modules.Identity.Contracts;
+using Platform.Modules.Vendors.Access;
+using Platform.Modules.Vendors.Contracts;
+using Platform.Modules.Vendors.Persistence;
+using Platform.Shared.Results;
+using Platform.Shared.Tenancy;
+
+namespace Platform.Modules.Vendors.Relationships;
+
+/// <summary>
+/// A vendor of another tenant joins the host tenant (spec section 3, ADR-0008). Keycloak first: membership of the tenant's
+/// organization, which the Vendor policy needs there; then, in one transaction, <c>vendor.join_tenant()</c> (a pending
+/// relationship for the session's tenant and vendor company, only for a user of that company) and the audit entry
+/// <c>vendor.joined</c> in the tenant's log, before the commit. When the database step fails, the membership this call
+/// added is taken back unless a relationship with the tenant exists by then (a parallel join of the same vendor won).
+/// </summary>
+internal sealed partial class VendorJoin(
+    IDbContextFactory<VendorsDbContext> contexts,
+    ITenantAccessor tenants,
+    IVendorAccessor vendors,
+    IActingUserAccessor actingUser,
+    IVendorAccounts accounts,
+    IAuditWriter audit,
+    ILogger<VendorJoin> logger) : IVendorJoin
+{
+    public async Task<Result<VendorJoined>> JoinAsync(CancellationToken cancellationToken = default)
+    {
+        var tenant = tenants.Current ?? throw new InvalidOperationException("A vendor joins a tenant on that tenant's host; this scope has none.");
+        var vendor = vendors.Current ?? throw new InvalidOperationException("A vendor joins a tenant in its company's vendor context; this scope has none.");
+        var userId = actingUser.UserId ?? throw new InvalidOperationException("A vendor joins a tenant as a signed-in user; this scope has none.");
+
+        await using (var db = await contexts.CreateDbContextAsync(cancellationToken))
+        {
+            if (await VendorUsers.CompanyOfAsync(db, userId, cancellationToken) != vendor.CompanyId)
+            {
+                throw new InvalidOperationException("A vendor joins a tenant as a user of the company of its vendor context.");
+            }
+        }
+
+        bool organizationAdded;
+        try
+        {
+            organizationAdded = await accounts.AddToOrganizationAsync(userId, tenant.KeycloakOrgAlias, cancellationToken);
+        }
+        catch (IdentityProviderException ex)
+        {
+            KeycloakFailed(logger, tenant.Slug, userId, ex.InnerException?.GetType().Name ?? ex.GetType().Name);
+            return Failed();
+        }
+
+        try
+        {
+            await using var db = await contexts.CreateDbContextAsync(cancellationToken);
+            await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+            var created = await db.Database.SqlQuery<bool>($"select vendor.join_tenant() as \"Value\"").SingleAsync(cancellationToken);
+            if (created || organizationAdded)
+            {
+                await audit.WriteAsync(
+                    new AuditEntry(userId, "vendor.joined", "vendor_company", vendor.CompanyId.ToString(), new Dictionary<string, string?>
+                    {
+                        ["relationship_created"] = created ? "true" : "false",
+                        ["organization_added"] = organizationAdded ? "true" : "false",
+                    }),
+                    cancellationToken);
+            }
+
+            await transaction.CommitAsync(cancellationToken);
+            return Result.Success(new VendorJoined(created, organizationAdded));
+        }
+        catch (Exception ex) when (ex is DbException or TimeoutException or OperationCanceledException or InvalidOperationException)
+        {
+            SaveFailed(logger, tenant.Slug, userId, ex.GetType().Name);
+            if (organizationAdded)
+            {
+                await UndoAsync(tenant, vendor.CompanyId, userId);
+            }
+
+            if (ex is OperationCanceledException)
+            {
+                throw;
+            }
+
+            return Failed();
+        }
+    }
+
+    /// <summary>
+    /// Takes back the organization membership this call added, unless the company has a relationship with the tenant by
+    /// now. When that re-check fails nothing is taken back: a member without a relationship opens nothing, since the Vendor
+    /// policy's pages read the relationship, and joining again completes it.
+    /// </summary>
+    private async Task UndoAsync(TenantContext tenant, Guid companyId, string userId)
+    {
+        bool related;
+        try
+        {
+            await using var db = await contexts.CreateDbContextAsync(CancellationToken.None);
+            related = await db.Relationships.AsNoTracking().AnyAsync(r => r.CompanyId == companyId, CancellationToken.None);
+        }
+        catch (Exception ex) when (ex is DbException or TimeoutException or InvalidOperationException)
+        {
+            RecheckFailed(logger, tenant.Slug, userId, ex.GetType().Name);
+            return;
+        }
+
+        if (!related)
+        {
+            await accounts.RevokeAsync(
+                new VendorAccessGrant(userId, tenant.KeycloakOrgAlias, RoleAdded: false, OrganizationAdded: true), CancellationToken.None);
+        }
+    }
+
+    private static Result<VendorJoined> Failed() =>
+        Result.Failure<VendorJoined>(Error.Refused(VendorErrors.JoinFailed, "Joining this organization could not be completed. Try again in a moment."));
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Keycloak did not add the vendor to tenant {Tenant}'s organization, user {UserId} ({ErrorType}).")]
+    private static partial void KeycloakFailed(ILogger logger, string tenant, string userId, string errorType);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "The vendor's relationship with tenant {Tenant} was not saved, user {UserId} ({ErrorType}).")]
+    private static partial void SaveFailed(ILogger logger, string tenant, string userId, string errorType);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "After a failed join of tenant {Tenant} by user {UserId} the relationship was not re-checked, so the organization membership was left in place ({ErrorType}).")]
+    private static partial void RecheckFailed(ILogger logger, string tenant, string userId, string errorType);
+}

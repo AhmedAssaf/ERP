@@ -44,22 +44,35 @@ internal sealed class VendorCompliance(
             throw new InvalidOperationException("Document compliance is asked by the company's vendor or by tenant staff.");
         }
 
+        return Blocking(current.Select(d => (d.Type, d.ExpiresOn)), onDate);
+    }
+
+    /// <summary>
+    /// Every required type without a current clean file among <paramref name="current"/>, or whose file expired before
+    /// <paramref name="onDate"/> (a file is valid through its expiry date), in the order of <see cref="VendorDocumentTypes.All"/>.
+    /// </summary>
+    internal static IReadOnlyList<BlockingDocument> Blocking(IEnumerable<(string Type, DateOnly ExpiresOn)> current, DateOnly onDate)
+    {
+        var byType = current.ToDictionary(d => d.Type, d => d.ExpiresOn, StringComparer.Ordinal);
         var blocking = new List<BlockingDocument>();
         foreach (var type in VendorDocumentTypes.All)
         {
-            var document = current.FirstOrDefault(d => d.Type == type.Code);
-            if (document is null)
+            if (!byType.TryGetValue(type.Code, out var expiresOn))
             {
                 blocking.Add(new BlockingDocument(type.Code, type.NameAr, type.NameEn, BlockingReason.Missing, ExpiredOn: null));
             }
-            else if (document.ExpiresOn < onDate)
+            else if (expiresOn < onDate)
             {
-                blocking.Add(new BlockingDocument(type.Code, type.NameAr, type.NameEn, BlockingReason.Expired, document.ExpiresOn));
+                blocking.Add(new BlockingDocument(type.Code, type.NameAr, type.NameEn, BlockingReason.Expired, expiresOn));
             }
         }
 
         return blocking;
     }
+
+    /// <summary>Today in Riyadh (UTC+3 all year, no daylight saving): the date documents are checked against.</summary>
+    internal static DateOnly RiyadhToday(TimeProvider clock) =>
+        DateOnly.FromDateTime(clock.GetUtcNow().ToOffset(TimeSpan.FromHours(3)).DateTime);
 
     /// <summary>The current clean file of a type and its expiry (columns type and expires_on, by the snake_case convention).</summary>
     private sealed class CurrentDocument

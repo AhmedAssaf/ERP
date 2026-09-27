@@ -7,15 +7,15 @@ using Platform.Shared.Tenancy;
 
 namespace Platform.Modules.Identity;
 
-/// <summary>The user holds <see cref="Role"/> in the host tenant (F-07).</summary>
-internal sealed class TenantRoleRequirement(string role) : IAuthorizationRequirement
+/// <summary>The user holds at least one of <see cref="Roles"/> in the host tenant (F-07).</summary>
+internal sealed class TenantRoleRequirement(params IReadOnlyList<string> roles) : IAuthorizationRequirement
 {
-    public string Role { get; } = role;
+    public IReadOnlyList<string> Roles { get; } = roles.Count > 0 ? roles : throw new ArgumentException("At least one role is required.", nameof(roles));
 }
 
 /// <summary>
-/// Passes when the members identity (<see cref="MembersClaimsTransformation"/>) carries the role; role claims on any other
-/// identity count for nothing. A member of the host tenant without the role is audited as <c>identity.role_denied</c>,
+/// Passes when the members identity (<see cref="MembersClaimsTransformation"/>) carries one of the roles; role claims on any other
+/// identity count for nothing. A member of the host tenant without any of them is audited as <c>identity.role_denied</c>,
 /// once per user, host and path per minute (<see cref="DenialAuditThrottle"/>). A user outside the tenant is left to the
 /// same-tenant check, which audits that case, so one attempt is never logged twice.
 /// </summary>
@@ -32,7 +32,8 @@ internal sealed class TenantRoleHandler(
         }
 
         var holds = context.User.Identities.Any(i =>
-            i.AuthenticationType == MembersClaimsTransformation.AuthenticationType && i.HasClaim(IdentityClaims.Role, requirement.Role));
+            i.AuthenticationType == MembersClaimsTransformation.AuthenticationType
+            && requirement.Roles.Any(role => i.HasClaim(IdentityClaims.Role, role)));
         if (holds)
         {
             context.Succeed(requirement);
@@ -54,7 +55,7 @@ internal sealed class TenantRoleHandler(
         await audit.WriteAsync(
             new AuditEntry(userId, "identity.role_denied", "path", request.Path, new Dictionary<string, string?>
             {
-                ["role"] = requirement.Role,
+                ["role"] = string.Join(",", requirement.Roles),
                 ["host"] = request.Host,
             }),
             request.Aborted);

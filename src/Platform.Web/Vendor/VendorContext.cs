@@ -13,14 +13,24 @@ namespace Platform.Web.Vendor;
 /// <summary>
 /// Sets the vendor context of a request or circuit (vendor spec section 2): only on a tenant host, only for a principal
 /// that passes the whole Vendor policy there (verified email, realm role, a vendor row, membership of the host tenant's
-/// organization), and only with the company found for that principal's own <c>sub</c>. Nothing a client sends can name
-/// a company. A principal without the vendor role is not evaluated at all, so staff requests cost no lookup.
+/// organization), or on the join page the JoiningVendor policy (the same without the membership, which joining adds), and
+/// only with the company found for that principal's own <c>sub</c>. Nothing a client sends can name a company. A principal
+/// without the vendor role is not evaluated at all, so staff requests cost no lookup.
 /// </summary>
 internal sealed class VendorContextResolver(
     ITenantAccessor tenants, IAuthorizationService authorization, IVendorUsers users, VendorAccessor accessor)
 {
-    public async Task ResolveAsync(ClaimsPrincipal? user, CancellationToken cancellationToken)
+    public Task ResolveAsync(ClaimsPrincipal? user, CancellationToken cancellationToken) =>
+        ResolveAsync(user, VendorPolicies.Vendor, cancellationToken);
+
+    /// <summary>Sets the vendor context after <paramref name="policy"/> (Vendor or JoiningVendor) passed for the principal.</summary>
+    public async Task ResolveAsync(ClaimsPrincipal? user, string policy, CancellationToken cancellationToken)
     {
+        if (policy is not (VendorPolicies.Vendor or VendorPolicies.JoiningVendor))
+        {
+            throw new ArgumentException($"The vendor context follows the {VendorPolicies.Vendor} or {VendorPolicies.JoiningVendor} policy only.", nameof(policy));
+        }
+
         if (tenants.Current is null || user?.Identity?.IsAuthenticated != true
             || !user.HasClaim(IdentityClaims.Roles, IdentityClaims.VendorRealmRole)
             || user.FindFirst(IdentityClaims.Subject)?.Value is not { Length: > 0 } userId)
@@ -28,7 +38,7 @@ internal sealed class VendorContextResolver(
             return;
         }
 
-        if (!(await authorization.AuthorizeAsync(user, VendorPolicies.Vendor)).Succeeded)
+        if (!(await authorization.AuthorizeAsync(user, policy)).Succeeded)
         {
             return;
         }
@@ -41,26 +51,34 @@ internal sealed class VendorContextResolver(
 }
 
 /// <summary>
-/// After authorization: an endpoint that requires the Vendor policy (and does not allow anonymous access) gets the vendor
-/// context of its already-authorized user, so its database connections carry <c>app.vendor_company_id</c>. The platform
-/// host never has one.
+/// After authorization: an endpoint that requires the Vendor policy, or the JoiningVendor policy of the join page (and does
+/// not allow anonymous access), gets the vendor context of its already-authorized user, so its database connections carry
+/// <c>app.vendor_company_id</c>. The platform host never has one.
 /// </summary>
 internal sealed class VendorContextMiddleware(RequestDelegate next)
 {
     public async Task InvokeAsync(HttpContext context, VendorContextResolver resolver)
     {
-        if (!PlatformRequest.IsPlatform(context) && RequiresVendorPolicy(context.GetEndpoint()))
+        if (!PlatformRequest.IsPlatform(context) && VendorPolicyOf(context.GetEndpoint()) is { } policy)
         {
-            await resolver.ResolveAsync(context.User, context.RequestAborted);
+            await resolver.ResolveAsync(context.User, policy, context.RequestAborted);
         }
 
         await next(context);
     }
 
-    private static bool RequiresVendorPolicy(Endpoint? endpoint) =>
-        endpoint is not null
-        && endpoint.Metadata.GetMetadata<IAllowAnonymous>() is null
-        && endpoint.Metadata.GetOrderedMetadata<IAuthorizeData>().Any(a => a.Policy == VendorPolicies.Vendor);
+    private static string? VendorPolicyOf(Endpoint? endpoint)
+    {
+        if (endpoint is null || endpoint.Metadata.GetMetadata<IAllowAnonymous>() is not null)
+        {
+            return null;
+        }
+
+        var policies = endpoint.Metadata.GetOrderedMetadata<IAuthorizeData>().Select(a => a.Policy).ToList();
+        return policies.Contains(VendorPolicies.Vendor) ? VendorPolicies.Vendor
+            : policies.Contains(VendorPolicies.JoiningVendor) ? VendorPolicies.JoiningVendor
+            : null;
+    }
 }
 
 /// <summary>

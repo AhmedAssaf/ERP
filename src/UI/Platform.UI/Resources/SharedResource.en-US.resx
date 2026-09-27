@@ -312,4 +312,49 @@
   <data name="Vendor.Upload.Error.Expiry" xml:space="preserve"><value>Enter a valid expiry date between the years 2000 and 2100.</value></data>
   <data name="Vendor.Upload.Error.Infected" xml:space="preserve"><value>The file contains a virus and was deleted. Check your computer and upload a clean copy.</value></data>
   <data name="Vendor.Upload.Error.Expired" xml:space="preserve"><value>This upload is more than a day old. Upload the file again.</value></data>
+  <data name="Admin.Nav.Vendors" xml:space="preserve"><value>Vendors</value></data>
+  <data name="Admin.Vendors.Title" xml:space="preserve"><value>Vendors</value></data>
+  <data name="Admin.Vendors.Intro" xml:space="preserve"><value>Companies that registered through {0}'s portal or chose to work with it. Check a vendor's details and documents before you approve it.</value></data>
+  <data name="Admin.Vendors.Filter.Label" xml:space="preserve"><value>Show vendors</value></data>
+  <data name="Admin.Vendors.Filter.All" xml:space="preserve"><value>All</value></data>
+  <data name="Admin.Vendors.Filter.Pending" xml:space="preserve"><value>Waiting for approval</value></data>
+  <data name="Admin.Vendors.Filter.Approved" xml:space="preserve"><value>Approved</value></data>
+  <data name="Admin.Vendors.Table" xml:space="preserve"><value>Vendors of this organization</value></data>
+  <data name="Admin.Vendors.Column.Name" xml:space="preserve"><value>Company</value></data>
+  <data name="Admin.Vendors.Column.Cr" xml:space="preserve"><value>CR number</value></data>
+  <data name="Admin.Vendors.Column.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Admin.Vendors.Column.Documents" xml:space="preserve"><value>Documents</value></data>
+  <data name="Admin.Vendors.Status.Pending" xml:space="preserve"><value>Waiting for approval</value></data>
+  <data name="Admin.Vendors.Status.Approved" xml:space="preserve"><value>Approved</value></data>
+  <data name="Admin.Vendors.Documents.Valid" xml:space="preserve"><value>Complete and valid</value></data>
+  <data name="Admin.Vendors.Documents.Blocking" xml:space="preserve"><value>Missing or expired: {0}</value></data>
+  <data name="Admin.Vendors.Documents.Separator" xml:space="preserve"><value>, </value></data>
+  <data name="Admin.Vendors.EmptyTitle" xml:space="preserve"><value>No vendors to show</value></data>
+  <data name="Admin.Vendors.EmptyBody" xml:space="preserve"><value>Vendors appear here once they register through your portal or choose to work with your organization.</value></data>
+  <data name="Admin.Vendors.Back" xml:space="preserve"><value>All vendors</value></data>
+  <data name="Admin.Vendors.Loading" xml:space="preserve"><value>Loading the vendor…</value></data>
+  <data name="Admin.Vendors.NotFound" xml:space="preserve"><value>This vendor does not work with your organization, or the link is wrong.</value></data>
+  <data name="Admin.Vendors.Card.Heading" xml:space="preserve"><value>Company</value></data>
+  <data name="Admin.Vendors.Field.FirstSeen" xml:space="preserve"><value>Registered or joined on</value></data>
+  <data name="Admin.Vendors.Documents.Heading" xml:space="preserve"><value>Documents</value></data>
+  <data name="Admin.Vendors.Documents.Table" xml:space="preserve"><value>Documents that passed the virus check</value></data>
+  <data name="Admin.Vendors.Documents.Empty" xml:space="preserve"><value>The vendor has no document that passed the virus check yet.</value></data>
+  <data name="Admin.Vendors.Document.Current" xml:space="preserve"><value>Current</value></data>
+  <data name="Admin.Vendors.Document.Expired" xml:space="preserve"><value>Expired</value></data>
+  <data name="Admin.Vendors.Document.History" xml:space="preserve"><value>Replaced by a newer file</value></data>
+  <data name="Admin.Vendors.Blocking.Heading" xml:space="preserve"><value>This vendor cannot submit offers yet</value></data>
+  <data name="Admin.Vendors.Approve" xml:space="preserve"><value>Approve</value></data>
+  <data name="Admin.Vendors.ApproveTitle" xml:space="preserve"><value>Approve {0}?</value></data>
+  <data name="Admin.Vendors.ApproveBody" xml:space="preserve"><value>Once approved, the vendor can take part in your organization's tenders. The approval is recorded under your name.</value></data>
+  <data name="Admin.Vendors.ApproveConfirm" xml:space="preserve"><value>Approve vendor</value></data>
+  <data name="Admin.Vendors.Approved" xml:space="preserve"><value>{0} is approved.</value></data>
+  <data name="Admin.Vendors.Error.NotAllowed" xml:space="preserve"><value>Only a contracts officer or a tenant administrator can approve a vendor.</value></data>
+  <data name="Admin.Vendors.Error.AlreadyApproved" xml:space="preserve"><value>This vendor is already approved.</value></data>
+  <data name="Admin.Vendors.Error.Generic" xml:space="preserve"><value>The approval could not be completed. Try again in a moment.</value></data>
+  <data name="Vendor.Join.Title" xml:space="preserve"><value>Work with {0}</value></data>
+  <data name="Vendor.Join.Intro" xml:space="preserve"><value>Your company is registered on WaslaBid. To take part in {0}'s tenders, choose to work with this organization. It then reviews your company's details and documents before approving it.</value></data>
+  <data name="Vendor.Join.Submit" xml:space="preserve"><value>Work with {0}</value></data>
+  <data name="Vendor.Join.Done" xml:space="preserve"><value>Your company now works with {0} and is waiting for its approval. Sign in again to open your vendor page here.</value></data>
+  <data name="Vendor.Join.Already" xml:space="preserve"><value>Your company already works with {0}. If your vendor page does not open here, sign in again.</value></data>
+  <data name="Vendor.Join.Error.Generic" xml:space="preserve"><value>Joining this organization could not be completed. Try again in a moment.</value></data>
 </root>

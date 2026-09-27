@@ -138,6 +138,10 @@ builder.Services.AddAuthorization(options =>
         .Combine(VendorsModule.VendorRequirements)
         .Build());
     options.AddPolicy(VendorPolicies.VendorApplicant, VendorsModule.VendorApplicantPolicy);
+    // /vendor/join (V-7): the vendor's own requirements without the host check, for a tenant it does not work with yet.
+    options.AddPolicy(VendorPolicies.JoiningVendor, VendorsModule.VendorRequirements);
+    // /admin/vendors (V-11): a contracts officer or tenant admin of the host tenant.
+    options.AddPolicy(VendorPolicies.VendorManager, IdentityModule.AnyTenantRolePolicy(TenantRoles.TenantAdmin, TenantRoles.ContractsOfficer));
 });
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, HostAwareAuthorizationPolicyProvider>();
 builder.Services.AddCascadingAuthenticationState();

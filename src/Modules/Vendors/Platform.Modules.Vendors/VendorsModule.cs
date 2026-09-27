@@ -10,6 +10,7 @@ using Platform.Modules.Vendors.Contracts;
 using Platform.Modules.Vendors.Documents;
 using Platform.Modules.Vendors.Persistence;
 using Platform.Modules.Vendors.Registration;
+using Platform.Modules.Vendors.Relationships;
 using Platform.Shared.Data;
 using Platform.Shared.Scanning;
 
@@ -61,7 +62,8 @@ public static class VendorsModule
     /// The vendor pages' services (vendor plan task 2): registration (<see cref="IVendorRegistration"/>, which needs the
     /// Identity module's member directory and vendor accounts, the audit writer and the Operations module's platform
     /// audit, and keeps its duplicate-CR limit per process), the user-to-company lookup
-    /// (<see cref="IVendorUsers"/>), the current company (<see cref="IVendorCompanies"/>) and the Vendor policy's handler.
+    /// (<see cref="IVendorUsers"/>), the current company (<see cref="IVendorCompanies"/>), the Vendor policy's handler, the
+    /// staff's vendor directory with approval (<see cref="IVendorDirectory"/>) and joining another tenant (<see cref="IVendorJoin"/>).
     /// The settings (<see cref="VendorsOptions"/>, section <c>Vendors</c>) are validated when the host starts: without a
     /// usable <c>Vendors:CrAuditKey</c> the web host does not start, in Development too. The web host calls it; the
     /// worker does not serve vendors.
@@ -85,6 +87,9 @@ public static class VendorsModule
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<DuplicateCrThrottle>();
         services.AddScoped<IVendorRegistration, VendorRegistrationService>();
+        // Staff view and approval, and joining another tenant (vendor plan task 5, V-7, V-11).
+        services.AddScoped<IVendorDirectory, VendorDirectory>();
+        services.AddScoped<IVendorJoin, VendorJoin>();
         AddVendorDocuments(services);
         return services;
     }

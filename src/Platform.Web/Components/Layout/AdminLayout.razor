@@ -2,14 +2,17 @@
     The tenant administration frame (spec 4): the tenant's own brand (F-02), never WaslaBid's, and the admin navigation.
     The user menu names the signed-in admin and signs out of the tenant realm. The Staff and Branding links show only to
     a tenant admin (QA observation: the layout used to show them to every role, though the pages themselves already
-    refuse anyone else); every other role, and a member of the organization with no member row, sees no nav at all.
+    refuse anyone else). The Vendors link shows to a contracts officer or tenant admin (VendorManager policy, vendor plan
+    task 5); every other role, and a member of the organization with no member row, sees no nav at all. The links follow
+    the member's roles in identity.members rather than a policy check: every page with this layout already passed its own
+    staff policy, and a policy that fails audits identity.role_denied, which an officer opening the vendors would then
+    write on every page view for the admin links it cannot see.
 *@
 @inherits LayoutComponentBase
-@using Microsoft.AspNetCore.Authorization
 @using Platform.Modules.Identity.Contracts
 @inject IStringLocalizer<SharedResource> T
 @inject ITenantAccessor Tenants
-@inject IAuthorizationService Authorization
+@inject IMemberDirectory Members
 
 <AppShell Variant="AppShellVariant.Tenant" PortalName="@Tenants.Current?.Branding.PortalName" LogoUrl="@Tenants.Current?.Branding.LogoUrl" UserName="@_userName">
     <Navigation>
@@ -17,6 +20,10 @@
         {
             <NavLink href="admin/staff" class="@LinkClass">@T["Admin.Nav.Staff"]</NavLink>
             <NavLink href="admin/branding" class="@LinkClass">@T["Admin.Nav.Branding"]</NavLink>
+        }
+        @if (_mayManageVendors)
+        {
+            <NavLink href="admin/vendors" class="@LinkClass">@T["Admin.Nav.Vendors"]</NavLink>
         }
     </Navigation>
     <ChildContent>@Body</ChildContent>
@@ -27,12 +34,17 @@
 
     private string? _userName;
     private bool _isTenantAdmin;
+    private bool _mayManageVendors;
 
     protected override async Task OnParametersSetAsync()
     {
         var user = AuthenticationState is null ? null : (await AuthenticationState).User;
         _userName = user?.Identity?.Name;
-        _isTenantAdmin = user is not null && (await Authorization.AuthorizeAsync(user, TenantPolicies.TenantAdmin)).Succeeded;
+        var subject = user?.FindFirst(IdentityClaims.Subject)?.Value;
+        IReadOnlyList<string> roles = string.IsNullOrWhiteSpace(subject) || Tenants.Current is null ? [] : await Members.GetRolesAsync(subject);
+        _isTenantAdmin = roles.Contains(TenantRoles.TenantAdmin);
+        // The VendorManager policy's roles (IdentityModule.AnyTenantRolePolicy in the host).
+        _mayManageVendors = _isTenantAdmin || roles.Contains(TenantRoles.ContractsOfficer);
     }
 
     private const string LinkClass =

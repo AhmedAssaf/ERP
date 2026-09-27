@@ -11,6 +11,19 @@ public static class VendorPolicies
 
     /// <summary>Signed in with a verified email: who may open <c>/vendor/register/company</c>.</summary>
     public const string VendorApplicant = "VendorApplicant";
+
+    /// <summary>
+    /// The Vendor policy without the host check: a signed-in vendor with a verified email, the realm role <c>vendor</c> and
+    /// a <c>vendor.vendor_users</c> row, whatever organizations it belongs to. Who may open <c>/vendor/join</c> on the
+    /// host of a tenant it does not work with yet.
+    /// </summary>
+    public const string JoiningVendor = "JoiningVendor";
+
+    /// <summary>
+    /// Tenant staff who see and approve the tenant's vendors (V-11): a contracts officer or tenant admin of the host tenant,
+    /// never a principal holding the realm role <c>vendor</c>.
+    /// </summary>
+    public const string VendorManager = "VendorManager";
 }
 
 /// <summary>

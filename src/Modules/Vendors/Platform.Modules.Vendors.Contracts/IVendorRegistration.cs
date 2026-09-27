@@ -93,4 +93,7 @@ public static class VendorErrors
     public const string StaffAccount = "vendor.staff_account";
 
     public const string RegistrationFailed = "vendor.registration_failed";
+
+    /// <summary>The identity provider did not add the vendor to the tenant's organization; nothing was joined.</summary>
+    public const string JoinFailed = "vendor.join_failed";
 }

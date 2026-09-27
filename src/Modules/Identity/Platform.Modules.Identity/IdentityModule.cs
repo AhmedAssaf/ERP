@@ -64,6 +64,26 @@ public static class IdentityModule
         [TenantPolicies.FinanceApprover] = RolePolicy(TenantRoles.FinanceApprover),
     };
 
+    /// <summary>
+    /// A tenant role policy that passes for any one of <paramref name="roles"/>: signed in, a member of the host tenant's
+    /// organization, not holding the realm role <c>vendor</c>, and holding one of the roles in the host tenant according to
+    /// <c>identity.members</c>. A member holding none of them is audited as <c>identity.role_denied</c>, as for one role.
+    /// </summary>
+    public static AuthorizationPolicy AnyTenantRolePolicy(params IReadOnlyList<string> roles)
+    {
+        ArgumentNullException.ThrowIfNull(roles);
+        var unknown = roles.Where(r => !TenantRoles.All.Contains(r, StringComparer.Ordinal)).ToList();
+        if (roles.Count == 0 || unknown.Count > 0)
+        {
+            throw new ArgumentException($"Name one or more tenant roles; not tenant roles: {string.Join(", ", unknown)}.", nameof(roles));
+        }
+
+        return new AuthorizationPolicyBuilder()
+            .Combine(TenantStaffPolicy)
+            .AddRequirements(new TenantRoleRequirement([.. roles]))
+            .Build();
+    }
+
     public static IServiceCollection AddIdentityModule(this IServiceCollection services, string connectionString)
     {
         ArgumentNullException.ThrowIfNull(services);

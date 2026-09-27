@@ -52,6 +52,18 @@ internal static class VendorRows
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
+    /// <summary>Removes the relationship as the owner (no application path does; <c>blocked</c> arrives with F-14).</summary>
+    public static async Task UnrelateAsync(string ownerConnectionString, Guid tenantId, Guid companyId, CancellationToken cancellationToken)
+    {
+        await using var connection = new NpgsqlConnection(ownerConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = new NpgsqlCommand(
+            "delete from vendor.relationships where tenant_id = @tenant and company_id = @company", connection);
+        command.Parameters.AddWithValue("tenant", tenantId);
+        command.Parameters.AddWithValue("company", companyId);
+        (await command.ExecuteNonQueryAsync(cancellationToken)).ShouldBe(1);
+    }
+
     public static async Task<VendorUserRow?> FindUserAsync(string ownerConnectionString, string userId, CancellationToken cancellationToken)
     {
         await using var connection = new NpgsqlConnection(ownerConnectionString);

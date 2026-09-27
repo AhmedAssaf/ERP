@@ -312,4 +312,49 @@
   <data name="Vendor.Upload.Error.Expiry" xml:space="preserve"><value>أدخل تاريخ انتهاء صحيحًا بين عامي 2000 و2100.</value></data>
   <data name="Vendor.Upload.Error.Infected" xml:space="preserve"><value>يحتوي الملف على فيروس وقد حُذف. افحص جهازك وارفع نسخة سليمة.</value></data>
   <data name="Vendor.Upload.Error.Expired" xml:space="preserve"><value>مضى على عملية الرفع هذه أكثر من يوم. ارفع الملف مرة أخرى.</value></data>
+  <data name="Admin.Nav.Vendors" xml:space="preserve"><value>الموردون</value></data>
+  <data name="Admin.Vendors.Title" xml:space="preserve"><value>الموردون</value></data>
+  <data name="Admin.Vendors.Intro" xml:space="preserve"><value>الشركات التي سجّلت عبر بوابة {0} أو اختارت العمل معها. راجع بيانات المورد ومستنداته قبل اعتماده.</value></data>
+  <data name="Admin.Vendors.Filter.Label" xml:space="preserve"><value>عرض الموردين</value></data>
+  <data name="Admin.Vendors.Filter.All" xml:space="preserve"><value>الكل</value></data>
+  <data name="Admin.Vendors.Filter.Pending" xml:space="preserve"><value>بانتظار الاعتماد</value></data>
+  <data name="Admin.Vendors.Filter.Approved" xml:space="preserve"><value>معتمدون</value></data>
+  <data name="Admin.Vendors.Table" xml:space="preserve"><value>موردو هذه الجهة</value></data>
+  <data name="Admin.Vendors.Column.Name" xml:space="preserve"><value>الشركة</value></data>
+  <data name="Admin.Vendors.Column.Cr" xml:space="preserve"><value>رقم السجل التجاري</value></data>
+  <data name="Admin.Vendors.Column.Status" xml:space="preserve"><value>الحالة</value></data>
+  <data name="Admin.Vendors.Column.Documents" xml:space="preserve"><value>المستندات</value></data>
+  <data name="Admin.Vendors.Status.Pending" xml:space="preserve"><value>بانتظار الاعتماد</value></data>
+  <data name="Admin.Vendors.Status.Approved" xml:space="preserve"><value>معتمد</value></data>
+  <data name="Admin.Vendors.Documents.Valid" xml:space="preserve"><value>مكتملة وسارية</value></data>
+  <data name="Admin.Vendors.Documents.Blocking" xml:space="preserve"><value>ناقصة أو منتهية: {0}</value></data>
+  <data name="Admin.Vendors.Documents.Separator" xml:space="preserve"><value>، </value></data>
+  <data name="Admin.Vendors.EmptyTitle" xml:space="preserve"><value>لا يوجد موردون للعرض</value></data>
+  <data name="Admin.Vendors.EmptyBody" xml:space="preserve"><value>يظهر الموردون هنا بعد تسجيلهم عبر بوابتكم أو اختيارهم العمل مع جهتكم.</value></data>
+  <data name="Admin.Vendors.Back" xml:space="preserve"><value>كل الموردين</value></data>
+  <data name="Admin.Vendors.Loading" xml:space="preserve"><value>جارٍ تحميل بيانات المورد…</value></data>
+  <data name="Admin.Vendors.NotFound" xml:space="preserve"><value>هذا المورد لا يعمل مع جهتكم، أو الرابط غير صحيح.</value></data>
+  <data name="Admin.Vendors.Card.Heading" xml:space="preserve"><value>الشركة</value></data>
+  <data name="Admin.Vendors.Field.FirstSeen" xml:space="preserve"><value>تاريخ التسجيل أو الانضمام</value></data>
+  <data name="Admin.Vendors.Documents.Heading" xml:space="preserve"><value>المستندات</value></data>
+  <data name="Admin.Vendors.Documents.Table" xml:space="preserve"><value>المستندات التي اجتازت فحص الفيروسات</value></data>
+  <data name="Admin.Vendors.Documents.Empty" xml:space="preserve"><value>لا يوجد لدى المورد بعد مستند اجتاز فحص الفيروسات.</value></data>
+  <data name="Admin.Vendors.Document.Current" xml:space="preserve"><value>ساري</value></data>
+  <data name="Admin.Vendors.Document.Expired" xml:space="preserve"><value>منتهي</value></data>
+  <data name="Admin.Vendors.Document.History" xml:space="preserve"><value>استُبدل بملف أحدث</value></data>
+  <data name="Admin.Vendors.Blocking.Heading" xml:space="preserve"><value>لا يستطيع هذا المورد تقديم العروض بعد</value></data>
+  <data name="Admin.Vendors.Approve" xml:space="preserve"><value>اعتماد</value></data>
+  <data name="Admin.Vendors.ApproveTitle" xml:space="preserve"><value>اعتماد {0}؟</value></data>
+  <data name="Admin.Vendors.ApproveBody" xml:space="preserve"><value>بعد الاعتماد يستطيع المورد المشاركة في منافسات جهتكم. يُسجَّل الاعتماد باسمك.</value></data>
+  <data name="Admin.Vendors.ApproveConfirm" xml:space="preserve"><value>اعتماد المورد</value></data>
+  <data name="Admin.Vendors.Approved" xml:space="preserve"><value>تم اعتماد {0}.</value></data>
+  <data name="Admin.Vendors.Error.NotAllowed" xml:space="preserve"><value>لا يعتمد الموردين إلا مسؤول العقود أو مدير الجهة.</value></data>
+  <data name="Admin.Vendors.Error.AlreadyApproved" xml:space="preserve"><value>هذا المورد معتمد مسبقًا.</value></data>
+  <data name="Admin.Vendors.Error.Generic" xml:space="preserve"><value>تعذّر إتمام الاعتماد. حاول مرة أخرى بعد قليل.</value></data>
+  <data name="Vendor.Join.Title" xml:space="preserve"><value>العمل مع {0}</value></data>
+  <data name="Vendor.Join.Intro" xml:space="preserve"><value>شركتك مسجّلة في وصلة بد. للمشاركة في منافسات {0}، اختر العمل مع هذه الجهة، وستراجع بيانات شركتك ومستنداتها قبل اعتمادها.</value></data>
+  <data name="Vendor.Join.Submit" xml:space="preserve"><value>العمل مع {0}</value></data>
+  <data name="Vendor.Join.Done" xml:space="preserve"><value>أصبحت شركتك تعمل مع {0} وهي بانتظار اعتمادها. سجّل الدخول مرة أخرى لفتح صفحة المورد هنا.</value></data>
+  <data name="Vendor.Join.Already" xml:space="preserve"><value>شركتك تعمل مع {0} مسبقًا. إن لم تُفتح صفحة المورد هنا، سجّل الدخول مرة أخرى.</value></data>
+  <data name="Vendor.Join.Error.Generic" xml:space="preserve"><value>تعذّر إتمام الانضمام إلى هذه الجهة. حاول مرة أخرى بعد قليل.</value></data>
 </root>

@@ -8,4 +8,7 @@ internal static partial class VendorPageLog
 {
     [LoggerMessage(Level = LogLevel.Error, Message = "Registering a vendor company from the registration page failed ({ErrorType}).")]
     public static partial void RegisterFailed(ILogger logger, string errorType);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Joining a tenant from the join page failed ({ErrorType}).")]
+    public static partial void JoinFailed(ILogger logger, string errorType);
 }

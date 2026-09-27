@@ -43,11 +43,11 @@ public sealed partial class VendorAccessTests(DatabaseFixture db)
     [Fact]
     public async Task A_vendor_cannot_open_staff_pages()
     {
-        var (vendor, _) = await VendorAsync("Staff Pages Probe");
+        var (vendor, companyId) = await VendorAsync("Staff Pages Probe");
         await using var factory = new PlatformWebFactory(db.AppConnectionString);
         using var client = factory.ClientFor("acme.localhost");
 
-        foreach (var path in new[] { "/admin/staff", "/admin/branding" })
+        foreach (var path in new[] { "/admin/staff", "/admin/branding", "/admin/vendors", $"/admin/vendors/{companyId}" })
         {
             using var response = await client.SendAsync(new HttpRequestMessage(HttpMethod.Get, path).As(vendor), Ct);
             response.StatusCode.ShouldBe(HttpStatusCode.Forbidden, path);
