@@ -11,13 +11,15 @@ namespace Platform.IntegrationTests.Vendors;
 /// <summary>
 /// The vendor consent ledger (vendor plan task 6, F-64, V-12, V-13, ADR-0010): a vendor admin grants consent per recipient,
 /// scope and period and revokes it with a new row; nothing is updated or deleted; every grant, revocation and check is
-/// audited in the platform audit, a check with the grant it relied on. A tenant never grants for a vendor. Today is fixed
-/// at 28 September 2026 in Riyadh.
+/// audited in the platform audit, a check with the grant it relied on. A tenant never grants for a vendor. Today is the real
+/// date in Riyadh, since the database refuses a grant that starts before it (migration 0015).
 /// </summary>
 [Collection(DatabaseCollection.Name)]
 public sealed class ConsentLedgerTests(DatabaseFixture db)
 {
-    private static readonly DateOnly Today = new(2026, 9, 28);
+    private static readonly DateTimeOffset Now = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(3));
+
+    private static readonly DateOnly Today = DateOnly.FromDateTime(Now.DateTime);
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -205,7 +207,8 @@ public sealed class ConsentLedgerTests(DatabaseFixture db)
             await using var command = new NpgsqlCommand("""
                 select set_config('app.tenant_id', @tenant, false), set_config('app.user_id', @user, false);
                 insert into vendor.consent_events (id, company_id, recipient_id, scope, kind, valid_from, valid_to, actor_id)
-                values (gen_random_uuid(), @company, @recipient, 'award_records', 'grant', current_date, current_date + 30, @user);
+                values (gen_random_uuid(), @company, @recipient, 'award_records', 'grant',
+                        ((now() + interval '3 hours') at time zone 'UTC')::date, ((now() + interval '3 hours') at time zone 'UTC')::date + 30, @user);
                 """, connection);
             command.Parameters.AddWithValue("tenant", TestTenants.Acme.TenantId.ToString());
             command.Parameters.AddWithValue("user", admin);
@@ -240,8 +243,125 @@ public sealed class ConsentLedgerTests(DatabaseFixture db)
         recipients.ShouldContain(r => r.Id == recipientId && r.NameAr == "جهة مستلمة للاختبار" && r.NameEn == "Recipient of Recipient Reader");
     }
 
+    [Fact]
+    public async Task The_database_refuses_a_grant_by_another_actor_or_starting_before_today()
+    {
+        var (companyId, userId, recipientId) = await VendorWithRecipientAsync("Database Checked Company");
+        const string riyadhToday = "((now() + interval '3 hours') at time zone 'UTC')::date";
+
+        // The session's own user, but another actor on the row.
+        (await InsertGrantAsVendorAsync(companyId, userId, recipientId, actorId: "someone-else", validFrom: riyadhToday + " + 1"))
+            .ShouldBe(PostgresErrorCodes.InsufficientPrivilege);
+        // Backdated: starts yesterday in Riyadh.
+        (await InsertGrantAsVendorAsync(companyId, userId, recipientId, actorId: userId, validFrom: riyadhToday + " - 1"))
+            .ShouldBe(PostgresErrorCodes.CheckViolation);
+        // Control: today in Riyadh, by the session's user.
+        (await InsertGrantAsVendorAsync(companyId, userId, recipientId, actorId: userId, validFrom: riyadhToday)).ShouldBeNull();
+        (await ConsentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct)).ShouldBeEmpty("every probe rolled back");
+    }
+
+    [Fact]
+    public async Task Another_companys_vendor_session_is_refused_by_the_check_function()
+    {
+        var (companyId, _, recipientId) = await VendorWithRecipientAsync("Checked Company");
+        var (otherId, otherUser, _) = await VendorWithRecipientAsync("Prying Company");
+
+        await using var connection = new NpgsqlConnection(db.AppConnectionString);
+        await connection.OpenAsync(Ct);
+        await using var command = new NpgsqlCommand("""
+            select set_config('app.tenant_id', @tenant, false), set_config('app.vendor_company_id', @vendor, false),
+                   set_config('app.user_id', @user, false);
+            select vendor.consent_grant_in_force(@company, @recipient, 'award_records', current_date);
+            """, connection);
+        command.Parameters.AddWithValue("tenant", TestTenants.Acme.TenantId.ToString());
+        command.Parameters.AddWithValue("vendor", otherId.ToString());
+        command.Parameters.AddWithValue("user", otherUser);
+        command.Parameters.AddWithValue("company", companyId);
+        command.Parameters.AddWithValue("recipient", recipientId);
+
+        (await Should.ThrowAsync<PostgresException>(() => command.ExecuteNonQueryAsync(Ct))).SqlState.ShouldBe(PostgresErrorCodes.InsufficientPrivilege);
+    }
+
+    [Fact]
+    public async Task Two_concurrent_revocations_write_one_row_and_one_audit_entry()
+    {
+        var (companyId, userId, recipientId) = await VendorWithRecipientAsync("Concurrent Revoker");
+        await using var host = Host();
+        var grantId = (await LedgerFor(host, companyId, userId, ledger =>
+            ledger.GrantAsync(recipientId, ConsentScope.AwardRecords, Today, Today.AddYears(1), userId, Ct))).Value;
+
+        var results = await Task.WhenAll(
+            Task.Run(() => LedgerFor(host, companyId, userId, ledger => ledger.RevokeAsync(grantId, userId, Ct)), Ct),
+            Task.Run(() => LedgerFor(host, companyId, userId, ledger => ledger.RevokeAsync(grantId, userId, Ct)), Ct));
+
+        results.Count(r => r.IsSuccess).ShouldBe(1);
+        results.Single(r => !r.IsSuccess).Error!.Code.ShouldBe(ConsentErrors.AlreadyRevoked);
+        (await ConsentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct)).Count(r => r.Kind == "revoke").ShouldBe(1);
+        (await VendorRows.PlatformAuditsAsync(db.OwnerConnectionString, userId, "vendor.consent_revoked", Ct)).Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task The_consent_audits_name_the_host_tenant_when_there_is_one()
+    {
+        var (companyId, userId, recipientId) = await VendorWithRecipientAsync("Tenant Named Company");
+        await using var host = Host();
+        var grantId = (await LedgerFor(host, companyId, userId, ledger =>
+            ledger.GrantAsync(recipientId, ConsentScope.AwardRecords, Today, Today.AddYears(1), userId, Ct))).Value;
+        (await LedgerFor(host, companyId, userId, ledger => ledger.RevokeAsync(grantId, userId, Ct))).IsSuccess.ShouldBeTrue();
+        await using (var scope = host.ScopeFor(TestTenants.Beta, actingUserId: "beta-export"))
+        {
+            await scope.ServiceProvider.GetRequiredService<IConsentLedger>().CheckAsync(companyId, recipientId, ConsentScope.AwardRecords, Today, Ct);
+        }
+
+        var acme = $"\"tenant_id\": \"{TestTenants.Acme.TenantId}\"";
+        (await VendorRows.PlatformAuditsAsync(db.OwnerConnectionString, userId, "vendor.consent_granted", Ct)).ShouldHaveSingleItem().Data.ShouldContain(acme);
+        (await VendorRows.PlatformAuditsAsync(db.OwnerConnectionString, userId, "vendor.consent_revoked", Ct)).ShouldHaveSingleItem().Data.ShouldContain(acme);
+        (await VendorRows.PlatformAuditsAsync(db.OwnerConnectionString, "beta-export", "vendor.consent_check", Ct)).ShouldHaveSingleItem()
+            .Data.ShouldContain($"\"tenant_id\": \"{TestTenants.Beta.TenantId}\"");
+
+        // Without a host tenant (an export job) the entry carries a null tenant.
+        var tenantless = $"tenantless-export-{Guid.NewGuid():N}";
+        await Check(host, companyId, recipientId, ConsentScope.AwardRecords, Today, actingUserId: tenantless);
+        (await VendorRows.PlatformAuditsAsync(db.OwnerConnectionString, tenantless, "vendor.consent_check", Ct)).ShouldHaveSingleItem()
+            .Data.ShouldContain("\"tenant_id\": null");
+    }
+
+    /// <summary>A grant inserted directly in the company's vendor session, rolled back; the SQL state it was refused with, or null.</summary>
+    private async Task<string?> InsertGrantAsVendorAsync(Guid companyId, string sessionUser, Guid recipientId, string actorId, string validFrom)
+    {
+        await using var connection = new NpgsqlConnection(db.AppConnectionString);
+        await connection.OpenAsync(Ct);
+        await using var transaction = await connection.BeginTransactionAsync(Ct);
+        try
+        {
+#pragma warning disable CA2100 // Test SQL built from constant date expressions only.
+            await using var command = new NpgsqlCommand($"""
+                select set_config('app.tenant_id', @tenant, true), set_config('app.vendor_company_id', @vendor, true),
+                       set_config('app.user_id', @user, true);
+                insert into vendor.consent_events (id, company_id, recipient_id, scope, kind, valid_from, valid_to, actor_id)
+                values (gen_random_uuid(), @vendor::uuid, @recipient, 'award_records', 'grant', {validFrom}, current_date + 60, @actor);
+                """, connection, transaction);
+#pragma warning restore CA2100
+            command.Parameters.AddWithValue("tenant", TestTenants.Acme.TenantId.ToString());
+            command.Parameters.AddWithValue("vendor", companyId.ToString());
+            command.Parameters.AddWithValue("user", sessionUser);
+            command.Parameters.AddWithValue("recipient", recipientId);
+            command.Parameters.AddWithValue("actor", actorId);
+            await command.ExecuteNonQueryAsync(Ct);
+            return null;
+        }
+        catch (PostgresException ex)
+        {
+            return ex.SqlState;
+        }
+        finally
+        {
+            await transaction.RollbackAsync(Ct);
+        }
+    }
+
     private ModuleHost Host(DateTimeOffset? now = null) =>
-        new(db.AppConnectionString, clock: new FixedClock(now ?? new DateTimeOffset(2026, 9, 28, 9, 0, 0, TimeSpan.FromHours(3))));
+        new(db.AppConnectionString, clock: new FixedClock(now ?? Now));
 
     private static async Task<T> LedgerFor<T>(ModuleHost host, Guid companyId, string userId, Func<IConsentLedger, Task<T>> action)
     {

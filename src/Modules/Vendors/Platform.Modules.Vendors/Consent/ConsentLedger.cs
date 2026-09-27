@@ -15,12 +15,14 @@ namespace Platform.Modules.Vendors.Consent;
 /// vendor context, so a tenant connection can write neither. The acting user must be a vendor admin of the company and
 /// is the actor of each row. Each change is audited in the platform audit before its transaction commits, on the audit
 /// writer's own connection: when the audit fails the row rolls back; a commit that fails after it leaves an entry for a
-/// change that did not happen. Checks go through <c>vendor.consent_grant_in_force</c> (migration 0012), which works
+/// change that did not happen. Each entry names the host tenant the vendor or the export acted on (null without one).
+/// The database holds the actor and no-backdating rules too (migration 0015). Checks go through <c>vendor.consent_grant_in_force</c> (migration 0012), which works
 /// without a vendor context, as an export needs.
 /// </summary>
 internal sealed class ConsentLedger(
     IDbContextFactory<VendorsDbContext> contexts,
     IVendorAccessor vendors,
+    ITenantAccessor tenants,
     IActingUserAccessor actingUser,
     IPlatformAudit platformAudit,
     TimeProvider clock) : IConsentLedger
@@ -76,6 +78,7 @@ internal sealed class ConsentLedger(
         await platformAudit.WriteAsync(
             new PlatformAuditEntry(actorId, "vendor.consent_granted", "vendor_company", companyId.ToString(), new Dictionary<string, string?>
             {
+                ["tenant_id"] = tenants.Current?.TenantId.ToString(),
                 ["grant_id"] = grantId.ToString(),
                 ["recipient_id"] = recipientId.ToString(),
                 ["scope"] = scopeCode,
@@ -136,6 +139,7 @@ internal sealed class ConsentLedger(
         await platformAudit.WriteAsync(
             new PlatformAuditEntry(actorId, "vendor.consent_revoked", "vendor_company", companyId.ToString(), new Dictionary<string, string?>
             {
+                ["tenant_id"] = tenants.Current?.TenantId.ToString(),
                 ["grant_id"] = grantId.ToString(),
                 ["revocation_id"] = revocationId.ToString(),
                 ["recipient_id"] = grant.RecipientId.ToString(),
@@ -196,6 +200,7 @@ internal sealed class ConsentLedger(
         await platformAudit.WriteAsync(
             new PlatformAuditEntry(actingUser.UserId, "vendor.consent_check", "vendor_company", companyId.ToString(), new Dictionary<string, string?>
             {
+                ["tenant_id"] = tenants.Current?.TenantId.ToString(),
                 ["result"] = result.Allowed ? "allowed" : "refused",
                 ["grant_id"] = grantId?.ToString(),
                 ["recipient_id"] = recipientId.ToString(),

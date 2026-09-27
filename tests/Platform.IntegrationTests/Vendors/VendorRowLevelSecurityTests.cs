@@ -776,11 +776,14 @@ public sealed partial class VendorRowLevelSecurityTests(DatabaseFixture db) : IA
     private async Task<Guid> AddConsentGrantAsync(Guid companyId)
     {
         var id = Guid.NewGuid();
-        await using var scope = _host.ScopeFor(null, companyId);
+        // The company's vendor session with its acting user as the actor, starting today in Riyadh (migration 0015).
+        await using var scope = _host.ScopeFor(null, companyId, "vendor-admin-user");
         await using var context = await CreateContextAsync(scope);
         await context.Database.ExecuteSqlAsync($"""
             insert into vendor.consent_events (id, company_id, recipient_id, scope, kind, valid_from, valid_to, actor_id)
-            values ({id}, {companyId}, {_recipientId}, 'award_records', 'grant', date '2026-01-01', date '2027-01-01', 'vendor-admin-user')
+            values ({id}, {companyId}, {_recipientId}, 'award_records', 'grant',
+                    ((now() + interval '3 hours') at time zone 'UTC')::date, ((now() + interval '3 hours') at time zone 'UTC')::date + 365,
+                    'vendor-admin-user')
             """, Ct);
         return id;
     }
@@ -788,7 +791,7 @@ public sealed partial class VendorRowLevelSecurityTests(DatabaseFixture db) : IA
     private async Task<Guid> AddConsentRevocationAsync(Guid companyId, Guid revokes)
     {
         var id = Guid.NewGuid();
-        await using var scope = _host.ScopeFor(null, companyId);
+        await using var scope = _host.ScopeFor(null, companyId, "vendor-admin-user");
         await using var context = await CreateContextAsync(scope);
         await context.Database.ExecuteSqlAsync($"""
             insert into vendor.consent_events (id, company_id, recipient_id, scope, kind, revokes_grant_id, actor_id)

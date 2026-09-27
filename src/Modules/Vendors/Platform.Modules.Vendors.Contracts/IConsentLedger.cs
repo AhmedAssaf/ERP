@@ -58,7 +58,7 @@ public sealed record ConsentCheckResult(bool Allowed, Guid? GrantId);
 /// or deleted. Granting, revoking and listing work only in a vendor context, as a vendor admin of that company, with the
 /// acting user as the actor; a tenant can never grant for a vendor. <see cref="CheckAsync"/> is the only path any export of
 /// vendor data to a third party may use. Every grant, revocation and check is audited in the platform audit (the consent
-/// concerns the platform-level company and recipient, not a tenant).
+/// concerns the platform-level company and recipient, not a tenant; each entry names the host tenant when there is one).
 /// </summary>
 public interface IConsentLedger
 {
@@ -88,8 +88,10 @@ public interface IConsentLedger
     /// <summary>
     /// Whether the company has a grant to the recipient for the scope in force on <paramref name="onDate"/> (inside its
     /// period, never revoked), and which one (the newest when several are). Audited as <c>vendor.consent_check</c> with the
-    /// result and the grant relied on, under the acting user when there is one. Asked by an export in any context except
-    /// another company's vendor context (<see cref="InvalidOperationException"/>).
+    /// result, the grant relied on and the host tenant, under the acting user when there is one. Asked by an export in any
+    /// context except another company's vendor context (<see cref="InvalidOperationException"/>). An export checks at the
+    /// moment it runs: <paramref name="onDate"/> is the export date, today in Riyadh (ADR-0010 point 2), never a date the
+    /// export is about.
     /// </summary>
     Task<ConsentCheckResult> CheckAsync(
         Guid companyId, Guid recipientId, ConsentScope scope, DateOnly onDate, CancellationToken cancellationToken = default);
