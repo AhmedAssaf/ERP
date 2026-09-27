@@ -65,8 +65,22 @@ public sealed class VendorMigrationUpgradeTests(DatabaseFixture db)
 
                 var applied = await VendorsModule.MigrateAsync(connection, Ct);
 
-                applied.ShouldContain("0006_vendors_uploads_hardening.sql");
-                applied.ShouldContain("0007_vendors_uploads_audit_bounds.sql");
+                applied.ShouldBe(["0006_vendors_uploads_hardening.sql", "0007_vendors_uploads_audit_bounds.sql", "0008_vendors_scan_queue.sql"]);
+                (await ScalarAsync<long>(connection, $"select count(*) from vendor.uploads where company_id = '{companyId}'")).ShouldBe(4);
+                (await ScalarAsync<long>(connection, $"select count(*) from vendor.uploads where company_id = '{companyId}' and last_chunk_at is not null")).ShouldBe(0);
+                (await ScalarAsync<long>(connection, $"select count(*) from vendor.documents where company_id = '{companyId}'")).ShouldBe(2);
+                (await ScalarAsync<long>(connection, $"select count(*) from vendor.uploads where company_id = '{companyId}' and outcome = 'clean' and document_id = '{clean}'")).ShouldBe(1);
+            }
+
+            // The application role calls the recreated cleanup function and gets its new columns.
+            var app = new NpgsqlConnectionStringBuilder(db.AppConnectionString) { Database = database }.ConnectionString;
+            await using (var connection = new NpgsqlConnection(app))
+            {
+                await connection.OpenAsync(Ct);
+                await using var command = new NpgsqlCommand("select * from vendor.stale_uploads()", connection);
+                await using var reader = await command.ExecuteReaderAsync(Ct);
+                Enumerable.Range(0, reader.FieldCount).Select(reader.GetName).ShouldBe(["id", "chunk_count", "company_id", "outcome"]);
+                (await reader.ReadAsync(Ct)).ShouldBeFalse("every upload is younger than the cleanup margin");
             }
         }
         finally
@@ -74,6 +88,14 @@ public sealed class VendorMigrationUpgradeTests(DatabaseFixture db)
             NpgsqlConnection.ClearAllPools();
             await ExecuteAsync(db.OwnerConnectionString, $"drop database if exists {database} with (force)");
         }
+    }
+
+    private static async Task<T> ScalarAsync<T>(NpgsqlConnection connection, string sql)
+    {
+#pragma warning disable CA2100 // Test SQL built from generated ids and constants only.
+        await using var command = new NpgsqlCommand(sql, connection);
+#pragma warning restore CA2100
+        return (T)(await command.ExecuteScalarAsync(Ct))!;
     }
 
     private static string Sha(Guid id) => Convert.ToHexStringLower(SHA256.HashData(id.ToByteArray()));

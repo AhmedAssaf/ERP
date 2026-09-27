@@ -340,6 +340,7 @@ public sealed partial class VendorRowLevelSecurityTests(DatabaseFixture db) : IA
     [InlineData("register_company", "text, text, text, text, text, text, text, text, text, text")]
     [InlineData("stale_uploads", "")]
     [InlineData("remove_stale_upload", "uuid")]
+    [InlineData("claim_stale_upload", "uuid")]
     [InlineData("pending_scan_documents", "integer")]
     public async Task Relationship_functions_run_as_their_owner_with_a_pinned_search_path_and_only_the_app_role_may_call_them(
         string name, string arguments)

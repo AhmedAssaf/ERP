@@ -96,6 +96,33 @@ internal static class VendorDocumentRows
         return (int)(await command.ExecuteScalarAsync(cancellationToken))! == 1;
     }
 
+    /// <summary>Puts a pending document back among the untried ones (no <c>last_scan_at</c>), keeping its attempts.</summary>
+    public static async Task ResetQueuePositionAsync(string ownerConnectionString, Guid documentId, CancellationToken cancellationToken)
+    {
+        await using var connection = new NpgsqlConnection(ownerConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = new NpgsqlCommand("update vendor.documents set last_scan_at = null where id = @id", connection);
+        command.Parameters.AddWithValue("id", documentId);
+        (await command.ExecuteNonQueryAsync(cancellationToken)).ShouldBe(1);
+    }
+
+    /// <summary>Every pending document's retry attempts, ordered by id.</summary>
+    public static async Task<IReadOnlyList<string>> PendingAttemptsAsync(string ownerConnectionString, CancellationToken cancellationToken)
+    {
+        await using var connection = new NpgsqlConnection(ownerConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = new NpgsqlCommand(
+            "select id::text || '=' || scan_attempts from vendor.documents where scan_status = 'pending_scan' order by id", connection);
+        var rows = new List<string>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            rows.Add(reader.GetString(0));
+        }
+
+        return rows;
+    }
+
     /// <summary>The upload's recorded outcome, or null while it is open.</summary>
     public static async Task<string?> UploadOutcomeAsync(string ownerConnectionString, Guid uploadId, CancellationToken cancellationToken)
     {

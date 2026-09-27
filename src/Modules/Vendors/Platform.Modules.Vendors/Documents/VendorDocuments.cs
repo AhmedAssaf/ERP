@@ -36,6 +36,9 @@ internal sealed partial class VendorDocuments(
 {
     public const string InfectedAction = "vendor.upload_infected";
 
+    /// <summary>The platform audit action when a document reaches <see cref="MaxScanAttempts"/> and is parked.</summary>
+    public const string ParkedAction = "vendor.document_parked";
+
     /// <summary>
     /// Retry scans without a verdict after which a document is parked for a person (V-10): it stays pending, and
     /// <c>vendor.pending_scan_documents</c> no longer lists it. The same number is in Migrations/0006.
@@ -171,10 +174,11 @@ internal sealed partial class VendorDocuments(
     /// The worker's retry scan of one pending document of the vendor context's company. Clean: moved out of quarantine
     /// and made current unless a newer file of its type already is. Infected: the finding is audited first, then the row
     /// is marked <c>infected</c> (never listed), then the file is deleted; a failure between the audit and the mark only
-    /// means the next run audits again. <see cref="ScanVerdict.Failed"/> (clamd refused this file's size) and a
-    /// quarantined file that is gone count as an attempt (logged; after <see cref="MaxScanAttempts"/> the document is
-    /// parked for a person), so the job goes on with the next document. <see cref="ScanVerdict.Unavailable"/> is not the
-    /// file's fault and is not counted.
+    /// means the next run audits again. A quarantined file that is gone is a verdict about the file and counts an attempt
+    /// at once (after <see cref="MaxScanAttempts"/> the document is parked for a person, audited). No verdict
+    /// (<see cref="ScanVerdict.Failed"/> or <see cref="ScanVerdict.Unavailable"/>) moves the document to the back of the
+    /// queue (<c>last_scan_at</c>) without counting: the job decides later in the run whether it was this file or an
+    /// outage (<see cref="VendorDocumentRescanJob"/>) and charges it with <see cref="ChargeAttemptAsync"/>.
     /// </summary>
     public async Task<RescanOutcome> RescanAsync(Guid documentId, CancellationToken cancellationToken)
     {
@@ -193,7 +197,7 @@ internal sealed partial class VendorDocuments(
             if (stored is null)
             {
                 LogQuarantineMissing(logger, companyId, documentId);
-                await CountAttemptAsync(db, companyId, documentId);
+                await CountAttemptAsync(db, companyId, documentId, touch: true);
                 return RescanOutcome.FileMissing;
             }
 
@@ -251,23 +255,32 @@ internal sealed partial class VendorDocuments(
                 return RescanOutcome.Infected;
 
             case ScanVerdict.Failed:
-                await CountAttemptAsync(db, companyId, documentId);
+                await TouchAsync(db, documentId);
                 return RescanOutcome.ScannerFailed;
 
             default:
+                await TouchAsync(db, documentId);
                 return RescanOutcome.ScannerUnavailable;
         }
     }
 
     /// <summary>
-    /// Counts one more retry attempt for a document of the vendor context's company whose retry scan failed for another
-    /// reason (storage or database), so a document that always fails that way is parked too.
+    /// Charges one retry attempt to a document of the vendor context's company that got no verdict earlier in the run,
+    /// once a later document got one (so it was the file, not an outage). <c>last_scan_at</c> was set when it was tried.
     /// </summary>
-    internal async Task CountAttemptAsync(Guid documentId)
+    internal async Task ChargeAttemptAsync(Guid documentId)
     {
         var companyId = RequireCompany();
         await using var db = await contexts.CreateDbContextAsync(CancellationToken.None);
-        await CountAttemptAsync(db, companyId, documentId);
+        await CountAttemptAsync(db, companyId, documentId, touch: false);
+    }
+
+    /// <summary>Moves a pending document of the vendor context's company to the back of the retry queue, counting nothing.</summary>
+    internal async Task TouchAsync(Guid documentId)
+    {
+        RequireCompany();
+        await using var db = await contexts.CreateDbContextAsync(CancellationToken.None);
+        await TouchAsync(db, documentId);
     }
 
     /// <summary>The refusal for a file that is not a document of the given type, or null when it may be scanned.</summary>
@@ -298,19 +311,36 @@ internal sealed partial class VendorDocuments(
             : null;
     }
 
-    /// <summary>One more retry scan without a verdict, at the database's time; logged when it parks the document.</summary>
-    private async Task CountAttemptAsync(VendorsDbContext db, Guid companyId, Guid documentId)
+    /// <summary>
+    /// One more attempt (and, with <paramref name="touch"/>, the database's time as <c>last_scan_at</c>). The attempt that
+    /// parks the document is audited (<see cref="ParkedAction"/>) before it commits, so a failed audit leaves the count as
+    /// it was and the next attempt parks and audits again.
+    /// </summary>
+    private async Task CountAttemptAsync(VendorsDbContext db, Guid companyId, Guid documentId, bool touch)
     {
+        await using var transaction = await db.Database.BeginTransactionAsync(CancellationToken.None);
         var attempts = await db.Database.SqlQuery<int>($"""
-            update vendor.documents set scan_attempts = scan_attempts + 1, last_scan_at = now()
-            where id = {documentId} and scan_status = 'pending_scan'
+            update vendor.documents
+            set scan_attempts = scan_attempts + 1, last_scan_at = case when {touch} then now() else last_scan_at end
+            where id = {documentId} and scan_status = 'pending_scan' and scan_attempts < {MaxScanAttempts}
             returning scan_attempts as "Value"
             """).ToListAsync(CancellationToken.None);
-        if (attempts is [var count] && count >= MaxScanAttempts)
+        if (attempts is [MaxScanAttempts])
         {
-            LogParked(logger, companyId, documentId, count);
+            LogParked(logger, companyId, documentId, MaxScanAttempts);
+            await platformAudit.WriteAsync(
+                new PlatformAuditEntry(null, ParkedAction, "vendor_company", companyId.ToString("D"),
+                    new Dictionary<string, string?> { ["document_id"] = documentId.ToString("D") }),
+                CancellationToken.None);
         }
+
+        await transaction.CommitAsync(CancellationToken.None);
     }
+
+    private static Task<int> TouchAsync(VendorsDbContext db, Guid documentId) =>
+        db.Database.ExecuteSqlAsync(
+            $"update vendor.documents set last_scan_at = now() where id = {documentId} and scan_status = 'pending_scan'",
+            CancellationToken.None);
 
     private static Task<int> LockCompanyAsync(VendorsDbContext db, Guid companyId, CancellationToken cancellationToken) =>
         db.Database.ExecuteSqlAsync($"select 1 from vendor.companies where id = {companyId} for update", cancellationToken);

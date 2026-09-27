@@ -24,7 +24,7 @@ namespace Platform.Modules.Vendors.Documents;
 /// completion retried while the first is still scanning is told to wait; it streams the chunks into a temporary file,
 /// scans and stores it, and writes the document row and the upload's outcome in that one transaction, so completing
 /// again always answers the first outcome and never adds a second document. A file refused for its type records the
-/// outcome <c>refused</c> and its chunks go; an expiry refusal leaves the upload open for a corrected date. An infected
+/// outcome <c>refused</c> and its chunks go; any other refusal (an invalid expiry) leaves the upload open. An infected
 /// finding is audited before the outcome commits (at least once; the entry carries the upload id, so a duplicate is
 /// recognisable). The document takes the upload's id, so a completion that failed after storing the file and is asked
 /// again stores it under the same key, and the cleanup job can find the file of one that never recorded an outcome. An
@@ -183,13 +183,14 @@ internal sealed partial class VendorUploads(
         var scanned = await documents.ScanAndStoreAsync(upload.Id, upload.DocumentType, expiresOn, file, sha256, cancellationToken);
         if (!scanned.IsSuccess)
         {
-            if (scanned.Error.Code == VendorDocumentErrors.InvalidExpiry)
+            if (scanned.Error.Code != VendorDocumentErrors.WrongType)
             {
-                // Not the file's fault: the upload stays open with its chunks, for a completion with a corrected date.
+                // An invalid expiry is not the file's fault: the upload stays open with its chunks, for a corrected date.
+                // Nothing else is recorded either, so a recorded refusal always replays exactly as WrongType.
                 return Result.Failure<VendorDocumentAdded>(scanned.Error);
             }
 
-            // The file itself is refused: recorded, so asking again answers the same and the upload no longer counts as open.
+            // The file is not a PDF, PNG or JPEG: recorded, so asking again answers the same and it no longer counts as open.
             upload.Outcome = Refused;
             await db.SaveChangesAsync(CancellationToken.None);
             await transaction.CommitAsync(CancellationToken.None);
@@ -331,7 +332,7 @@ internal sealed partial class VendorUploads(
     {
         "clean" => Result.Success(new VendorDocumentAdded(upload.DocumentId!.Value, upload.Sha256!, VendorDocumentStatus.Clean)),
         "pending_scan" => Result.Success(new VendorDocumentAdded(upload.DocumentId!.Value, upload.Sha256!, VendorDocumentStatus.PendingScan)),
-        // Only the type check can refuse an assembled file: its size was checked at the start and chunk by chunk.
+        // Only a WrongType refusal is recorded as refused.
         Refused => Result.Failure<VendorDocumentAdded>(Error.Validation(VendorDocumentErrors.WrongType, "The file is not a PDF, PNG or JPEG.")),
         _ => VendorDocuments.InfectedResult(),
     };

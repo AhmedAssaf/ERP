@@ -193,6 +193,7 @@ public sealed class VendorDocumentUploadTests(DatabaseFixture db, MinioFixture m
         var row = (await VendorDocumentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct)).ShouldHaveSingleItem();
         row.ScanStatus.ShouldBe("pending_scan");
         (await minio.ReadAsync(row.ObjectKey, Ct)).ShouldBe(file);
+        (await VendorDocumentRows.ScanAttemptsAsync(db.OwnerConnectionString, row.Id, Ct)).Attempts.ShouldBe(0);
     }
 
     [Fact]
@@ -579,30 +580,53 @@ public sealed class VendorDocumentUploadTests(DatabaseFixture db, MinioFixture m
     }
 
     [Fact]
-    public async Task After_twelve_failed_attempts_a_pending_document_is_parked_for_a_person()
+    public async Task A_poison_file_between_files_with_verdicts_is_charged_each_run_and_parked_after_twelve()
     {
         var (vendor, companyId) = await VendorAsync();
         await using var factory = Factory(scannerUp: false);
-        var bad = VendorDocumentRows.Pdf(32_000);
-        var badId = await PendingAsync(new Uploads(factory, vendor), VendorDocumentTypes.CrCertificate, bad);
-        var scanner = new ScriptedScanner(content => content.AsSpan().SequenceEqual(bad) ? ScanResult.Failed : ScanResult.Clean);
+        var uploads = new Uploads(factory, vendor);
+        var poison = VendorDocumentRows.Pdf(32_000);
+        var poisonId = await PendingAsync(uploads, VendorDocumentTypes.CrCertificate, poison);
+        var scanner = new ScriptedScanner(content => content.AsSpan().SequenceEqual(poison) ? ScanResult.Failed : ScanResult.Clean);
 
-        await RunRescanJobAsync(scanner, runs: 11);
-        (await VendorDocumentRows.ScanAttemptsAsync(db.OwnerConnectionString, badId, Ct)).Attempts.ShouldBe(11);
-        (await VendorDocumentRows.PendingScanListAsync(db.OwnerConnectionString, Ct)).ShouldContain(badId);
+        for (var run = 1; run <= 12; run++)
+        {
+            if (run == 12)
+            {
+                (await VendorDocumentRows.PendingScanListAsync(db.OwnerConnectionString, Ct)).ShouldContain(poisonId);
+                (await PlatformAuditsAsync("vendor.document_parked", poisonId)).ShouldBeEmpty();
+            }
 
+            // Each run the poison file sits right before a new file that scans clean. A clean file leaves the queue, so
+            // the poison file is put back among the untried ones, ahead of the new file, as it was on its first run.
+            await VendorDocumentRows.ResetQueuePositionAsync(db.OwnerConnectionString, poisonId, Ct);
+            await PendingAsync(uploads, VendorDocumentTypes.VatCertificate, VendorDocumentRows.Pdf(32_100 + run));
+            await RunRescanJobAsync(scanner);
+            (await VendorDocumentRows.ScanAttemptsAsync(db.OwnerConnectionString, poisonId, Ct)).Attempts.ShouldBe(run);
+        }
+
+        (await VendorDocumentRows.ScanAttemptsAsync(db.OwnerConnectionString, poisonId, Ct)).Attempts.ShouldBe(12);
+        (await VendorDocumentRows.PendingScanListAsync(db.OwnerConnectionString, Ct)).ShouldNotContain(poisonId);
+        (await VendorDocumentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct)).Single(r => r.Id == poisonId).ScanStatus.ShouldBe("pending_scan");
+        // Parked: a further run no longer tries or counts it.
+        await VendorDocumentRows.ResetQueuePositionAsync(db.OwnerConnectionString, poisonId, Ct);
         await RunRescanJobAsync(scanner);
+        (await VendorDocumentRows.ScanAttemptsAsync(db.OwnerConnectionString, poisonId, Ct)).Attempts.ShouldBe(12);
+        var parked = (await PlatformAuditsAsync("vendor.document_parked", poisonId)).ShouldHaveSingleItem();
+        parked.SubjectId.ShouldBe(companyId.ToString("D"));
+        parked.ActorId.ShouldBeNull();
 
-        (await VendorDocumentRows.ScanAttemptsAsync(db.OwnerConnectionString, badId, Ct)).Attempts.ShouldBe(12);
-        (await VendorDocumentRows.PendingScanListAsync(db.OwnerConnectionString, Ct)).ShouldNotContain(badId);
-        (await VendorDocumentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct)).ShouldHaveSingleItem().ScanStatus.ShouldBe("pending_scan");
-
-        // A platform operator looked at it and unparks it (docs/07 section 4): the retry job tries it again from zero.
-        (await VendorDocumentRows.UnparkAsync(db.OwnerConnectionString, badId, Ct)).ShouldBeTrue();
-        var (attempts, lastScanAt) = await VendorDocumentRows.ScanAttemptsAsync(db.OwnerConnectionString, badId, Ct);
+        // A platform operator looked at it and unparks it (docs/07 section 4), audited: the retry job tries it again from zero.
+        (await VendorDocumentRows.UnparkAsync(db.OwnerConnectionString, poisonId, Ct)).ShouldBeTrue();
+        var (attempts, lastScanAt) = await VendorDocumentRows.ScanAttemptsAsync(db.OwnerConnectionString, poisonId, Ct);
         attempts.ShouldBe(0);
         lastScanAt.ShouldBeNull();
-        (await VendorDocumentRows.PendingScanListAsync(db.OwnerConnectionString, Ct)).ShouldContain(badId);
+        (await VendorDocumentRows.PendingScanListAsync(db.OwnerConnectionString, Ct)).ShouldContain(poisonId);
+        var unparked = (await PlatformAuditsAsync("vendor.document_unparked", poisonId)).ShouldHaveSingleItem();
+        unparked.ActorId.ShouldBe(new Npgsql.NpgsqlConnectionStringBuilder(db.OwnerConnectionString).Username);
+        unparked.SubjectId.ShouldBe(companyId.ToString("D"));
+        (await VendorDocumentRows.UnparkAsync(db.OwnerConnectionString, poisonId, Ct)).ShouldBeFalse();
+        (await PlatformAuditsAsync("vendor.document_unparked", poisonId)).Count.ShouldBe(1);
     }
 
     [Fact]
@@ -662,10 +686,11 @@ public sealed class VendorDocumentUploadTests(DatabaseFixture db, MinioFixture m
         row.ScanStatus.ShouldBe("pending_scan");
         (await minio.ReadAsync(quarantined, Ct)).ShouldBe(file);
         (await PlatformAuditsForCompanyAsync(companyId)).ShouldBeEmpty();
-        // The run's failure on this document counts an attempt, as a scanner error does.
+        // The failure moves the document back in the queue; an attempt is charged only if a later document got a verdict.
         var (attempts, lastScanAt) = await VendorDocumentRows.ScanAttemptsAsync(db.OwnerConnectionString, documentId, Ct);
-        attempts.ShouldBe(1);
+        attempts.ShouldBeInRange(0, 1);
         lastScanAt.ShouldNotBeNull();
+        (await VendorDocumentRows.PendingScanListAsync(db.OwnerConnectionString, Ct)).ShouldContain(documentId);
 
         await RunRescanJobAsync(scanner);
 
@@ -676,27 +701,80 @@ public sealed class VendorDocumentUploadTests(DatabaseFixture db, MinioFixture m
     }
 
     [Fact]
-    public async Task Three_scanner_errors_in_a_row_stop_the_run_without_counting_the_rest()
+    public async Task Failures_are_charged_only_when_a_later_document_gets_a_verdict_and_three_in_a_row_stop_the_run()
     {
-        var (vendor, _) = await VendorAsync();
+        var (vendor, companyId) = await VendorAsync();
         await using var factory = Factory(scannerUp: false);
         var uploads = new Uploads(factory, vendor);
-        var bad = Enumerable.Range(0, 4).Select(i => VendorDocumentRows.Pdf(36_000 + i)).ToList();
+        var files = Enumerable.Range(0, 6).Select(i => VendorDocumentRows.Pdf(36_000 + i)).ToList();
         var ids = new List<Guid>();
-        foreach (var file in bad)
+        foreach (var file in files)
         {
             ids.Add(await PendingAsync(uploads, VendorDocumentTypes.CrCertificate, file));
         }
 
-        await RunRescanJobAsync(new ScriptedScanner(content => bad.Exists(b => content.AsSpan().SequenceEqual(b)) ? ScanResult.Failed : ScanResult.Clean));
+        // Failed, Clean, Failed, Failed, Failed, (never reached).
+        var clean = files[1];
+        await RunRescanJobAsync(new ScriptedScanner(content => content.AsSpan().SequenceEqual(clean) ? ScanResult.Clean : ScanResult.Failed));
 
+        var rows = await VendorDocumentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct);
+        rows.Single(r => r.Id == ids[1]).ScanStatus.ShouldBe("clean");
         var attempts = new List<int>();
+        var tried = new List<bool>();
         foreach (var id in ids)
         {
-            attempts.Add((await VendorDocumentRows.ScanAttemptsAsync(db.OwnerConnectionString, id, Ct)).Attempts);
+            var (count, lastScanAt) = await VendorDocumentRows.ScanAttemptsAsync(db.OwnerConnectionString, id, Ct);
+            attempts.Add(count);
+            tried.Add(lastScanAt is not null);
         }
 
-        attempts.ShouldBe([1, 1, 1, 0]);
+        // The first failure is charged by the clean file after it; the three trailing ones stop the run uncharged.
+        attempts.ShouldBe([1, 0, 0, 0, 0, 0]);
+        tried.ShouldBe([true, false, true, true, true, false]);
+    }
+
+    [Fact]
+    public async Task A_storage_outage_on_every_document_across_twelve_runs_charges_and_parks_nothing()
+    {
+        var (vendor, _) = await VendorAsync();
+        await using var factory = Factory(scannerUp: false);
+        var documentId = await PendingAsync(new Uploads(factory, vendor), VendorDocumentTypes.CrCertificate, VendorDocumentRows.Pdf(37_000));
+        var before = await VendorDocumentRows.PendingAttemptsAsync(db.OwnerConnectionString, Ct);
+
+        await RunRescanJobAsync(
+            new ScriptedScanner(_ => ScanResult.Clean),
+            runs: 12,
+            configure: services => services.Replace(ServiceDescriptor.Singleton<IObjectStorage>(new UnreachableStorage())));
+
+        var after = await VendorDocumentRows.PendingAttemptsAsync(db.OwnerConnectionString, Ct);
+        after.ShouldBe(before);
+        (await VendorDocumentRows.PendingScanListAsync(db.OwnerConnectionString, Ct)).ShouldContain(documentId);
+    }
+
+    [Fact]
+    public async Task A_document_the_scanner_gives_no_verdict_for_does_not_hold_the_head_of_the_queue()
+    {
+        var (vendor, companyId) = await VendorAsync();
+        await using var factory = Factory(scannerUp: false);
+        var uploads = new Uploads(factory, vendor);
+        var stuck = VendorDocumentRows.Pdf(38_000);
+        var stuckId = await PendingAsync(uploads, VendorDocumentTypes.CrCertificate, stuck);
+        var laterId = await PendingAsync(uploads, VendorDocumentTypes.VatCertificate, VendorDocumentRows.Pdf(38_100));
+        // A timeout or a limit reply on this one file: Unavailable, as an outage would be.
+        var scanner = new ScriptedScanner(content => content.AsSpan().SequenceEqual(stuck) ? ScanResult.Unavailable : ScanResult.Clean);
+
+        await RunRescanJobAsync(scanner);
+
+        // The run went on past it, and the verdict on the next document charges it one attempt.
+        (await VendorDocumentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct)).Single(r => r.Id == laterId).ScanStatus.ShouldBe("clean");
+        var (attempts, lastScanAt) = await VendorDocumentRows.ScanAttemptsAsync(db.OwnerConnectionString, stuckId, Ct);
+        lastScanAt.ShouldNotBeNull();
+        attempts.ShouldBe(1);
+
+        // Rotated: a document that arrives later is tried before it.
+        var freshId = await PendingAsync(uploads, VendorDocumentTypes.CrCertificate, VendorDocumentRows.Pdf(38_200));
+        var queue = (await VendorDocumentRows.PendingScanListAsync(db.OwnerConnectionString, Ct)).ToList();
+        queue.IndexOf(freshId).ShouldBeLessThan(queue.IndexOf(stuckId));
     }
 
     [Fact]
@@ -809,6 +887,24 @@ public sealed class VendorDocumentUploadTests(DatabaseFixture db, MinioFixture m
         // Rolling 24 hours: once a start is older than that, it no longer counts.
         await VendorDocumentRows.AgeUploadAsync(db.OwnerConnectionString, openId, TimeSpan.FromHours(25), Ct);
         await uploads.StartAsync(VendorDocumentTypes.CrCertificate, "cr.pdf", 1000, "application/pdf", expectedChunks: 1);
+    }
+
+    private async Task<IReadOnlyList<(string? ActorId, string? SubjectId)>> PlatformAuditsAsync(string action, Guid documentId)
+    {
+        await using var connection = new Npgsql.NpgsqlConnection(db.OwnerConnectionString);
+        await connection.OpenAsync(Ct);
+        await using var command = new Npgsql.NpgsqlCommand(
+            "select actor_id, subject_id from ops.platform_audit where action = @action and data ->> 'document_id' = @document", connection);
+        command.Parameters.AddWithValue("action", action);
+        command.Parameters.AddWithValue("document", documentId.ToString("D"));
+        var result = new List<(string?, string?)>();
+        await using var reader = await command.ExecuteReaderAsync(Ct);
+        while (await reader.ReadAsync(Ct))
+        {
+            result.Add((reader.IsDBNull(0) ? null : reader.GetString(0), reader.IsDBNull(1) ? null : reader.GetString(1)));
+        }
+
+        return result;
     }
 
     /// <summary>Uploads the file while the scanner is down and returns the pending document's id.</summary>
@@ -929,6 +1025,21 @@ public sealed class VendorDocumentUploadTests(DatabaseFixture db, MinioFixture m
             await _release.Task.WaitAsync(cancellationToken);
             return ScanResult.Clean;
         }
+    }
+
+    /// <summary>Object storage that cannot be reached: every call throws, as during a MinIO outage.</summary>
+    private sealed class UnreachableStorage : IObjectStorage
+    {
+        public Task PutAsync(string key, ReadOnlyMemory<byte> content, string contentType, CancellationToken cancellationToken = default) => Fail();
+
+        public Task PutAsync(string key, Stream content, string contentType, CancellationToken cancellationToken = default) => Fail();
+
+        public Task<StoredObject?> OpenAsync(string key, CancellationToken cancellationToken = default) =>
+            Task.FromException<StoredObject?>(new HttpRequestException("Simulated object storage outage."));
+
+        public Task DeleteAsync(string key, CancellationToken cancellationToken = default) => Fail();
+
+        private static Task Fail() => Task.FromException(new HttpRequestException("Simulated object storage outage."));
     }
 
     /// <summary>How many platform audit writes still fail, shared by every scope of a host.</summary>

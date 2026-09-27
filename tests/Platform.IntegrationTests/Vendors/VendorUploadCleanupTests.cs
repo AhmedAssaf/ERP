@@ -24,14 +24,16 @@ public sealed class VendorUploadCleanupTests(DatabaseFixture db, MinioFixture mi
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
-    public async Task Abandoned_uploads_older_than_a_day_are_deleted_with_their_chunks()
+    public async Task Abandoned_uploads_past_the_25_hour_margin_are_deleted_with_their_chunks()
     {
         var companyId = await VendorRows.RegisterAsync(
             db.AppConnectionString, TestTenants.Acme, Guid.NewGuid().ToString(), VendorRows.NewCrNumber(), "Cleanup Company", Ct);
         await using var host = Host();
         var abandoned = await StartWithChunkAsync(host, companyId);
         var recent = await StartWithChunkAsync(host, companyId);
-        await VendorDocumentRows.AgeUploadAsync(db.OwnerConnectionString, abandoned, TimeSpan.FromHours(25), Ct);
+        await VendorDocumentRows.AgeUploadAsync(db.OwnerConnectionString, abandoned, TimeSpan.FromHours(26), Ct);
+        // Past its usable day but inside the margin: a completion that began just before the day ended may still commit.
+        await VendorDocumentRows.AgeUploadAsync(db.OwnerConnectionString, recent, TimeSpan.FromHours(24.5), Ct);
 
         await using (var scope = host.Services.CreateAsyncScope())
         {
@@ -57,8 +59,8 @@ public sealed class VendorUploadCleanupTests(DatabaseFixture db, MinioFixture mi
         var file = VendorDocumentRows.Pdf(3000);
         await storage.PutAsync($"vendors/{companyId}/documents/{orphaned}", file, "application/pdf", Ct);
         await storage.PutAsync($"vendors/{companyId}/quarantine/{orphaned}", file, "application/pdf", Ct);
-        await VendorDocumentRows.AgeUploadAsync(db.OwnerConnectionString, orphaned, TimeSpan.FromHours(25), Ct);
-        await VendorDocumentRows.AgeUploadAsync(db.OwnerConnectionString, completed, TimeSpan.FromHours(25), Ct);
+        await VendorDocumentRows.AgeUploadAsync(db.OwnerConnectionString, orphaned, TimeSpan.FromHours(26), Ct);
+        await VendorDocumentRows.AgeUploadAsync(db.OwnerConnectionString, completed, TimeSpan.FromHours(26), Ct);
 
         await using (var scope = host.Services.CreateAsyncScope())
         {
@@ -71,6 +73,46 @@ public sealed class VendorUploadCleanupTests(DatabaseFixture db, MinioFixture mi
         // A completed upload's document is the vendor's: only the upload row goes.
         (await minio.ReadAsync($"vendors/{companyId}/quarantine/{completed}", Ct)).ShouldNotBeNull();
         (await VendorDocumentRows.UploadExistsAsync(db.OwnerConnectionString, completed, Ct)).ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task The_cleanup_skips_an_upload_whose_row_a_completion_holds_and_takes_it_on_the_next_run()
+    {
+        var companyId = await VendorRows.RegisterAsync(
+            db.AppConnectionString, TestTenants.Acme, Guid.NewGuid().ToString(), VendorRows.NewCrNumber(), "Edge Company", Ct);
+        await using var host = Host();
+        var uploadId = await StartWithChunkAsync(host, companyId);
+        var documentKey = $"vendors/{companyId}/documents/{uploadId}";
+        await host.Services.GetRequiredService<IObjectStorage>().PutAsync(documentKey, VendorDocumentRows.Pdf(3000), "application/pdf", Ct);
+        await VendorDocumentRows.AgeUploadAsync(db.OwnerConnectionString, uploadId, TimeSpan.FromHours(26), Ct);
+
+        // A completion holds the upload's row lock (FOR UPDATE, as VendorUploads.CompleteAsync takes it) while it scans
+        // and stores the file under the upload's id; the cleanup must not delete that file under it.
+        await using (var completion = new NpgsqlConnection(db.AppConnectionString))
+        {
+            await completion.OpenAsync(Ct);
+            await using var transaction = await completion.BeginTransactionAsync(Ct);
+            await using (var hold = new NpgsqlCommand(
+                "select set_config('app.vendor_company_id', @company, true); select 1 from vendor.uploads where id = @id for update",
+                completion, transaction))
+            {
+                hold.Parameters.AddWithValue("company", companyId.ToString());
+                hold.Parameters.AddWithValue("id", uploadId);
+                await hold.ExecuteNonQueryAsync(Ct);
+            }
+
+            await RunCleanupAsync(host);
+
+            (await minio.ReadAsync(documentKey, Ct)).ShouldNotBeNull();
+            (await minio.ReadAsync($"staging/{uploadId}/0", Ct)).ShouldNotBeNull();
+            (await VendorDocumentRows.UploadExistsAsync(db.OwnerConnectionString, uploadId, Ct)).ShouldBeTrue();
+            await transaction.RollbackAsync(Ct);
+        }
+
+        await RunCleanupAsync(host);
+
+        (await minio.ReadAsync(documentKey, Ct)).ShouldBeNull();
+        (await VendorDocumentRows.UploadExistsAsync(db.OwnerConnectionString, uploadId, Ct)).ShouldBeFalse();
     }
 
     [Fact]
@@ -125,6 +167,12 @@ public sealed class VendorUploadCleanupTests(DatabaseFixture db, MinioFixture mi
             manager.RemoveIfExists(VendorsModule.DocumentRescanJobId);
             manager.RemoveIfExists(VendorsModule.UploadCleanupJobId);
         }
+    }
+
+    private static async Task RunCleanupAsync(ModuleHost host)
+    {
+        await using var scope = host.Services.CreateAsyncScope();
+        await scope.ServiceProvider.GetRequiredService<VendorUploadCleanupJob>().RunAsync(Ct);
     }
 
     private ModuleHost Host()
