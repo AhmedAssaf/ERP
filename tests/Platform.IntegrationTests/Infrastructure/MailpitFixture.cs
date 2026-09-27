@@ -6,7 +6,7 @@ namespace Platform.IntegrationTests.Infrastructure;
 /// <summary>Mailpit (generic container, plan tasks 3-4): catches SMTP and exposes it over its HTTP API for assertions.</summary>
 public sealed class MailpitFixture : IAsyncLifetime
 {
-    private readonly IContainer _container = new ContainerBuilder("axllent/mailpit:latest")
+    private readonly IContainer _container = new ContainerBuilder("axllent/mailpit:v1.31.3@sha256:ed9b00c609e77e99c79b93f1178255ebc271868920f2c69a8d166bd5634ed10d")
         .WithPortBinding(1025, assignRandomHostPort: true)
         .WithPortBinding(8025, assignRandomHostPort: true)
         .WithWaitStrategy(Wait.ForUnixContainer().UntilInternalTcpPortIsAvailable(8025))

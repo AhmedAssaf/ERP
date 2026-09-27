@@ -133,6 +133,7 @@ jobs:
       # Report only: these are third-party development images from infra/compose, not images we build. When the
       # app image exists (W-19), scan it here with --exit-code 1.
       - name: Compose images scan (report only)
+        continue-on-error: true
         run: |
           images=$(grep -E '^\s+image:' infra/compose/docker-compose.yml | awk '{print $2}' | sort -u)
           for image in $images; do
