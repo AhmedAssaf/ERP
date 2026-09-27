@@ -359,7 +359,7 @@
   <data name="Vendor.Join.Error.Generic" xml:space="preserve"><value>تعذّر إتمام الانضمام إلى هذه الجهة. حاول مرة أخرى بعد قليل.</value></data>
   <data name="Vendor.Nav.Consent" xml:space="preserve"><value>الموافقات</value></data>
   <data name="Vendor.Consent.Title" xml:space="preserve"><value>الموافقة على مشاركة سجلاتك</value></data>
-  <data name="Vendor.Consent.Intro" xml:space="preserve"><value>لا تسلّم وصلة بد سجلات شركتك لأي جهة أخرى إلا ما دامت إحدى الموافقات أدناه تسمح بذلك. تحدد كل موافقة الجهة المستلمة وما يجوز مشاركته ومدته. يمكنك إلغاء أي موافقة في أي وقت، وتبقى الموافقة وإلغاؤها محفوظين في السجل.</value></data>
+  <data name="Vendor.Consent.Intro" xml:space="preserve"><value>لا تسلّم وصلة بد سجلات شركتك لأي جهة أخرى إلا ما دامت إحدى الموافقات أدناه تسمح بذلك. تحدد كل موافقة الجهة المستلمة وما يجوز مشاركته ومدته. يمكنك سحب أي موافقة في أي وقت، وتبقى الموافقة وسحبها محفوظين في السجل.</value></data>
   <data name="Vendor.Consent.New" xml:space="preserve"><value>موافقة جديدة</value></data>
   <data name="Vendor.Consent.Table" xml:space="preserve"><value>موافقات شركتك</value></data>
   <data name="Vendor.Consent.Column.Recipient" xml:space="preserve"><value>الجهة المستلمة</value></data>
@@ -375,7 +375,7 @@
   <data name="Vendor.Consent.Status.NotYetValid" xml:space="preserve"><value>تبدأ لاحقًا</value></data>
   <data name="Vendor.Consent.Status.Expired" xml:space="preserve"><value>منتهية</value></data>
   <data name="Vendor.Consent.Status.Revoked" xml:space="preserve"><value>ملغاة</value></data>
-  <data name="Vendor.Consent.Revoke" xml:space="preserve"><value>إلغاء</value></data>
+  <data name="Vendor.Consent.Revoke" xml:space="preserve"><value>سحب الموافقة</value></data>
   <data name="Vendor.Consent.EmptyTitle" xml:space="preserve"><value>لا توجد موافقات</value></data>
   <data name="Vendor.Consent.EmptyBody" xml:space="preserve"><value>لم تسمح شركتك لأي جهة بتسلّم سجلاتها.</value></data>
   <data name="Vendor.Consent.NoRecipients" xml:space="preserve"><value>لا توجد بعد جهة مستلمة يمكن منحها موافقة.</value></data>
@@ -395,9 +395,9 @@
   <data name="Vendor.Consent.Error.AlreadyRevoked" xml:space="preserve"><value>هذه الموافقة ملغاة مسبقًا.</value></data>
   <data name="Vendor.Consent.Error.NotFound" xml:space="preserve"><value>لم يُعثر على هذه الموافقة.</value></data>
   <data name="Vendor.Consent.Error.Generic" xml:space="preserve"><value>تعذّر إتمام التغيير. حاول مرة أخرى بعد قليل.</value></data>
-  <data name="Vendor.Consent.RevokeTitle" xml:space="preserve"><value>إلغاء الموافقة الممنوحة لـ {0}؟</value></data>
-  <data name="Vendor.Consent.RevokeBody" xml:space="preserve"><value>من الآن لا يجوز للجهة المستلمة تسلّم هذه السجلات. تبقى الموافقة وإلغاؤها محفوظين في السجل.</value></data>
-  <data name="Vendor.Consent.RevokeConfirm" xml:space="preserve"><value>إلغاء الموافقة</value></data>
+  <data name="Vendor.Consent.RevokeTitle" xml:space="preserve"><value>سحب الموافقة الممنوحة لـ {0}؟</value></data>
+  <data name="Vendor.Consent.RevokeBody" xml:space="preserve"><value>من الآن لا يجوز للجهة المستلمة تسلّم هذه السجلات. تبقى الموافقة وسحبها محفوظين في السجل.</value></data>
+  <data name="Vendor.Consent.RevokeConfirm" xml:space="preserve"><value>سحب الموافقة</value></data>
   <data name="Vendor.Consent.Granted" xml:space="preserve"><value>تم منح الموافقة لـ {0}.</value></data>
-  <data name="Vendor.Consent.Revoked" xml:space="preserve"><value>تم إلغاء الموافقة الممنوحة لـ {0}.</value></data>
+  <data name="Vendor.Consent.Revoked" xml:space="preserve"><value>تم سحب الموافقة الممنوحة لـ {0}.</value></data>
 </root>

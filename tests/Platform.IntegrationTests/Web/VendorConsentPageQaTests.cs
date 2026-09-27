@@ -35,7 +35,7 @@ public sealed partial class VendorConsentPageQaTests(DatabaseFixture db) : IDisp
     public static TheoryData<string, string, string, string> Languages => new()
     {
         { "en-US", "Give consent", "Test finance partner", "Revoke consent" },
-        { "ar-SA", "منح موافقة", "شريك تمويل تجريبي", "إلغاء الموافقة" },
+        { "ar-SA", "منح موافقة", "شريك تمويل تجريبي", "سحب الموافقة" },
     };
 
     public static TheoryData<string, string, string> NotAdminLanguages => new()
@@ -183,7 +183,7 @@ public sealed partial class VendorConsentPageQaTests(DatabaseFixture db) : IDisp
 
     [Theory]
     [InlineData("en-US", "Revoke consent", "Only your company's vendor administrator can change its consent.")]
-    [InlineData("ar-SA", "إلغاء الموافقة", "لا يغيّر موافقات الشركة إلا مسؤول حسابها.")]
+    [InlineData("ar-SA", "سحب الموافقة", "لا يغيّر موافقات الشركة إلا مسؤول حسابها.")]
     public async Task A_signed_in_user_who_is_not_the_companys_vendor_admin_sees_the_admin_only_error_on_revoke_and_the_grant_stays(
         string culture, string revokeConfirm, string notAdmin)
     {
