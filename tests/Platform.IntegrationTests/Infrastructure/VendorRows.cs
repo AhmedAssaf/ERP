@@ -79,14 +79,14 @@ internal static class VendorRows
             : null;
     }
 
-    /// <summary>The relationship statuses of the company by tenant.</summary>
+    /// <summary>The relationship statuses of the company by tenant, in tenant id order (never heap order, which updates change).</summary>
     public static async Task<IReadOnlyDictionary<Guid, string>> RelationshipsAsync(
         string ownerConnectionString, Guid companyId, CancellationToken cancellationToken)
     {
         await using var connection = new NpgsqlConnection(ownerConnectionString);
         await connection.OpenAsync(cancellationToken);
         await using var command = new NpgsqlCommand(
-            "select tenant_id, status from vendor.relationships where company_id = @company", connection);
+            "select tenant_id, status from vendor.relationships where company_id = @company order by tenant_id", connection);
         command.Parameters.AddWithValue("company", companyId);
         var result = new Dictionary<Guid, string>();
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);

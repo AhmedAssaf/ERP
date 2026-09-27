@@ -194,11 +194,14 @@ public sealed class VendorDirectoryTests(DatabaseFixture db)
 
         joined.IsSuccess.ShouldBeTrue(joined.Error?.Message);
         joined.Value.ShouldBe(new VendorJoined(RelationshipCreated: true, OrganizationAdded: true));
-        (await VendorRows.RelationshipsAsync(db.OwnerConnectionString, companyId, Ct)).ShouldBe(new Dictionary<Guid, string>
-        {
-            [TestTenants.Acme.TenantId] = "approved",
-            [TestTenants.Beta.TenantId] = "pending",
-        });
+        // Order-free: the rows come back in heap order, and the approval's new tuple version can land after beta's row.
+        (await VendorRows.RelationshipsAsync(db.OwnerConnectionString, companyId, Ct)).ShouldBe(
+            new Dictionary<Guid, string>
+            {
+                [TestTenants.Acme.TenantId] = "approved",
+                [TestTenants.Beta.TenantId] = "pending",
+            },
+            ignoreOrder: true);
         accounts.Steps.ShouldBe(["add-organization"]);
         accounts.Revoked.ShouldBeEmpty();
         var audit = (await VendorRows.AuditsAsync(db.OwnerConnectionString, TestTenants.Beta.TenantId, userId, "vendor.joined", Ct)).ShouldHaveSingleItem();
