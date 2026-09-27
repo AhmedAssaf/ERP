@@ -346,6 +346,7 @@ public sealed partial class VendorRowLevelSecurityTests(DatabaseFixture db) : IA
     [InlineData("related_current_documents", "")]
     [InlineData("related_company", "uuid")]
     [InlineData("related_documents", "uuid")]
+    [InlineData("consent_grant_in_force", "uuid, uuid, text, date")]
     public async Task Relationship_functions_run_as_their_owner_with_a_pinned_search_path_and_only_the_app_role_may_call_them(
         string name, string arguments)
     {

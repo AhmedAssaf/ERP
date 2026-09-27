@@ -11,4 +11,7 @@ internal static partial class VendorPageLog
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Joining a tenant from the join page failed ({ErrorType}).")]
     public static partial void JoinFailed(ILogger logger, string errorType);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "A consent {Change} from the consent page failed ({ErrorType}).")]
+    public static partial void ConsentChangeFailed(ILogger logger, string change, string errorType);
 }

@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Npgsql;
 using Platform.Modules.Vendors.Access;
+using Platform.Modules.Vendors.Consent;
 using Platform.Modules.Vendors.Contracts;
 using Platform.Modules.Vendors.Documents;
 using Platform.Modules.Vendors.Persistence;
@@ -63,7 +64,8 @@ public static class VendorsModule
     /// Identity module's member directory and vendor accounts, the audit writer and the Operations module's platform
     /// audit, and keeps its duplicate-CR limit per process), the user-to-company lookup
     /// (<see cref="IVendorUsers"/>), the current company (<see cref="IVendorCompanies"/>), the Vendor policy's handler, the
-    /// staff's vendor directory with approval (<see cref="IVendorDirectory"/>) and joining another tenant (<see cref="IVendorJoin"/>).
+    /// staff's vendor directory with approval (<see cref="IVendorDirectory"/>), joining another tenant (<see cref="IVendorJoin"/>)
+    /// and the consent ledger (<see cref="IConsentLedger"/>).
     /// The settings (<see cref="VendorsOptions"/>, section <c>Vendors</c>) are validated when the host starts: without a
     /// usable <c>Vendors:CrAuditKey</c> the web host does not start, in Development too. The web host calls it; the
     /// worker does not serve vendors.
@@ -90,6 +92,8 @@ public static class VendorsModule
         // Staff view and approval, and joining another tenant (vendor plan task 5, V-7, V-11).
         services.AddScoped<IVendorDirectory, VendorDirectory>();
         services.AddScoped<IVendorJoin, VendorJoin>();
+        // The consent ledger (vendor plan task 6, F-64, V-12).
+        services.AddScoped<IConsentLedger, ConsentLedger>();
         AddVendorDocuments(services);
         return services;
     }

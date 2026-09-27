@@ -357,4 +357,47 @@
   <data name="Vendor.Join.Done" xml:space="preserve"><value>أصبحت شركتك تعمل مع {0} وهي بانتظار اعتمادها. سجّل الدخول مرة أخرى لفتح صفحة المورد هنا.</value></data>
   <data name="Vendor.Join.Already" xml:space="preserve"><value>شركتك تعمل مع {0} مسبقًا. إن لم تُفتح صفحة المورد هنا، اختر الزر أدناه ثم سجّل الدخول مرة أخرى.</value></data>
   <data name="Vendor.Join.Error.Generic" xml:space="preserve"><value>تعذّر إتمام الانضمام إلى هذه الجهة. حاول مرة أخرى بعد قليل.</value></data>
+  <data name="Vendor.Nav.Consent" xml:space="preserve"><value>الموافقات</value></data>
+  <data name="Vendor.Consent.Title" xml:space="preserve"><value>الموافقة على مشاركة سجلاتك</value></data>
+  <data name="Vendor.Consent.Intro" xml:space="preserve"><value>لا تسلّم وصلة بد سجلات شركتك لأي جهة أخرى إلا ما دامت إحدى الموافقات أدناه تسمح بذلك. تحدد كل موافقة الجهة المستلمة وما يجوز مشاركته ومدته. يمكنك إلغاء أي موافقة في أي وقت، وتبقى الموافقة وإلغاؤها محفوظين في السجل.</value></data>
+  <data name="Vendor.Consent.New" xml:space="preserve"><value>موافقة جديدة</value></data>
+  <data name="Vendor.Consent.Table" xml:space="preserve"><value>موافقات شركتك</value></data>
+  <data name="Vendor.Consent.Column.Recipient" xml:space="preserve"><value>الجهة المستلمة</value></data>
+  <data name="Vendor.Consent.Column.Scope" xml:space="preserve"><value>ما يجوز مشاركته</value></data>
+  <data name="Vendor.Consent.Column.Period" xml:space="preserve"><value>المدة</value></data>
+  <data name="Vendor.Consent.Column.Status" xml:space="preserve"><value>الحالة</value></data>
+  <data name="Vendor.Consent.Column.Actions" xml:space="preserve"><value>الإجراءات</value></data>
+  <data name="Vendor.Consent.Scope.AwardRecords" xml:space="preserve"><value>سجلات الترسية</value></data>
+  <data name="Vendor.Consent.Scope.PoRecords" xml:space="preserve"><value>سجلات أوامر الشراء</value></data>
+  <data name="Vendor.Consent.Scope.ProfileDocuments" xml:space="preserve"><value>ملف الشركة ومستنداتها</value></data>
+  <data name="Vendor.Consent.Period" xml:space="preserve"><value>من {0} إلى {1}</value></data>
+  <data name="Vendor.Consent.Status.Active" xml:space="preserve"><value>سارية</value></data>
+  <data name="Vendor.Consent.Status.NotYetValid" xml:space="preserve"><value>تبدأ لاحقًا</value></data>
+  <data name="Vendor.Consent.Status.Expired" xml:space="preserve"><value>منتهية</value></data>
+  <data name="Vendor.Consent.Status.Revoked" xml:space="preserve"><value>ملغاة</value></data>
+  <data name="Vendor.Consent.Revoke" xml:space="preserve"><value>إلغاء</value></data>
+  <data name="Vendor.Consent.EmptyTitle" xml:space="preserve"><value>لا توجد موافقات</value></data>
+  <data name="Vendor.Consent.EmptyBody" xml:space="preserve"><value>لم تسمح شركتك لأي جهة بتسلّم سجلاتها.</value></data>
+  <data name="Vendor.Consent.NoRecipients" xml:space="preserve"><value>لا توجد بعد جهة مستلمة يمكن منحها موافقة.</value></data>
+  <data name="Vendor.Consent.GrantTitle" xml:space="preserve"><value>منح موافقة</value></data>
+  <data name="Vendor.Consent.GrantBody" xml:space="preserve"><value>يجوز للجهة المستلمة تسلّم السجلات التي تختارها خلال هذه المدة فقط.</value></data>
+  <data name="Vendor.Consent.Field.Recipient" xml:space="preserve"><value>الجهة المستلمة</value></data>
+  <data name="Vendor.Consent.Field.RecipientPlaceholder" xml:space="preserve"><value>اختر الجهة المستلمة</value></data>
+  <data name="Vendor.Consent.Field.Scope" xml:space="preserve"><value>ما يجوز مشاركته</value></data>
+  <data name="Vendor.Consent.Field.ScopePlaceholder" xml:space="preserve"><value>اختر ما يجوز مشاركته</value></data>
+  <data name="Vendor.Consent.Field.From" xml:space="preserve"><value>اليوم الأول</value></data>
+  <data name="Vendor.Consent.Field.To" xml:space="preserve"><value>اليوم الأخير</value></data>
+  <data name="Vendor.Consent.GrantConfirm" xml:space="preserve"><value>منح الموافقة</value></data>
+  <data name="Vendor.Consent.Error.Recipient" xml:space="preserve"><value>اختر الجهة المستلمة.</value></data>
+  <data name="Vendor.Consent.Error.Scope" xml:space="preserve"><value>اختر ما يجوز مشاركته.</value></data>
+  <data name="Vendor.Consent.Error.Period" xml:space="preserve"><value>اختر مدة تبدأ اليوم أو بعده وتنتهي في يومها الأول أو بعده.</value></data>
+  <data name="Vendor.Consent.Error.NotAdmin" xml:space="preserve"><value>لا يغيّر موافقات الشركة إلا مسؤول حسابها.</value></data>
+  <data name="Vendor.Consent.Error.AlreadyRevoked" xml:space="preserve"><value>هذه الموافقة ملغاة مسبقًا.</value></data>
+  <data name="Vendor.Consent.Error.NotFound" xml:space="preserve"><value>لم يُعثر على هذه الموافقة.</value></data>
+  <data name="Vendor.Consent.Error.Generic" xml:space="preserve"><value>تعذّر إتمام التغيير. حاول مرة أخرى بعد قليل.</value></data>
+  <data name="Vendor.Consent.RevokeTitle" xml:space="preserve"><value>إلغاء الموافقة الممنوحة لـ {0}؟</value></data>
+  <data name="Vendor.Consent.RevokeBody" xml:space="preserve"><value>من الآن لا يجوز للجهة المستلمة تسلّم هذه السجلات. تبقى الموافقة وإلغاؤها محفوظين في السجل.</value></data>
+  <data name="Vendor.Consent.RevokeConfirm" xml:space="preserve"><value>إلغاء الموافقة</value></data>
+  <data name="Vendor.Consent.Granted" xml:space="preserve"><value>تم منح الموافقة لـ {0}.</value></data>
+  <data name="Vendor.Consent.Revoked" xml:space="preserve"><value>تم إلغاء الموافقة الممنوحة لـ {0}.</value></data>
 </root>
