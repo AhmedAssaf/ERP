@@ -35,7 +35,7 @@ public class TenantCatalogTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task The_list_function_documents_that_it_is_gated_in_code()
+    public async Task The_list_function_documents_that_it_refuses_tenant_and_vendor_sessions_and_is_gated_in_code_beyond_that()
     {
         await using var connection = new NpgsqlConnection(db.AppConnectionString);
         await connection.OpenAsync(Ct);
@@ -44,7 +44,8 @@ public class TenantCatalogTests(DatabaseFixture db)
         var comment = (string?)await command.ExecuteScalarAsync(Ct);
 
         comment.ShouldNotBeNull();
-        comment.ShouldContain("gated in application code");
+        comment.ShouldContain("refuses (42501) a session with a tenant or vendor context");
+        comment.ShouldContain("ITenantCatalog also refuses unless the scope is a platform request");
     }
 
     [Fact]

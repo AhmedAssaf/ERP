@@ -102,6 +102,7 @@ internal static partial class BrandingEndpoints
             BrandingErrors.LogoTooLarge => "too-large",
             BrandingErrors.LogoNotImage => "not-image",
             BrandingErrors.LogoTooManyPixels => "too-many-pixels",
+            BrandingErrors.NotAllowed => "not-allowed",
             _ => "unreadable",
         });
     }

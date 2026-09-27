@@ -168,6 +168,7 @@ public sealed class BrandingPageTests(DatabaseFixture db, MinioFixture minio) : 
         await using (var scope = factory.Services.CreateAsyncScope())
         {
             scope.ServiceProvider.GetRequiredService<TenantAccessor>().Set(tenant);
+            scope.ServiceProvider.GetRequiredService<ActingUserAccessor>().Set(admin.Subject);
             var saved = await scope.ServiceProvider.GetRequiredService<IBrandingService>().SaveAsync("Renamed Portal", "#FFFACD", admin.Subject, Ct);
             saved.IsSuccess.ShouldBeTrue();
         }

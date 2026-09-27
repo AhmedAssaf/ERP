@@ -209,7 +209,7 @@
   <data name="Branding.Error.PortalName" xml:space="preserve"><value>أدخل اسمًا للبوابة لا يتجاوز 100 حرف.</value></data>
   <data name="Branding.Error.Color" xml:space="preserve"><value>أدخل اللون بالعلامة # متبوعة بستة أرقام ست عشرية، مثل ‎#0F766E.</value></data>
   <data name="Branding.Error.Generic" xml:space="preserve"><value>لم تُحفظ الهوية. حاول مرة أخرى، وإذا تكرر الخطأ فتواصل مع الدعم.</value></data>
-  <data name="Branding.NotAllowed" xml:space="preserve"><value>لم تعد مسؤولًا عن الجهة، لذا لم يُحفظ هذا التغيير.</value></data>
+  <data name="Branding.NotAllowed" xml:space="preserve"><value>لا يغيّر هوية الجهة إلا مسؤول نشط عنها، لذا لم يُحفظ هذا التغيير.</value></data>
   <data name="Branding.Logo.Heading" xml:space="preserve"><value>الشعار</value></data>
   <data name="Branding.Logo.Current" xml:space="preserve"><value>الشعار الحالي</value></data>
   <data name="Branding.Logo.None" xml:space="preserve"><value>لا يوجد شعار بعد. تعرض الترويسة اسم البوابة وحده.</value></data>

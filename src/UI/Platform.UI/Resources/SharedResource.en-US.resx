@@ -209,7 +209,7 @@
   <data name="Branding.Error.PortalName" xml:space="preserve"><value>Enter a portal name of up to 100 characters.</value></data>
   <data name="Branding.Error.Color" xml:space="preserve"><value>Enter the colour as # followed by six hexadecimal digits, for example #0F766E.</value></data>
   <data name="Branding.Error.Generic" xml:space="preserve"><value>The branding was not saved. Try again; if it keeps failing, contact support.</value></data>
-  <data name="Branding.NotAllowed" xml:space="preserve"><value>You are no longer a tenant admin, so this change was not saved.</value></data>
+  <data name="Branding.NotAllowed" xml:space="preserve"><value>Only an active tenant admin of this organization can change its branding, so this change was not saved.</value></data>
   <data name="Branding.Logo.Heading" xml:space="preserve"><value>Logo</value></data>
   <data name="Branding.Logo.Current" xml:space="preserve"><value>Current logo</value></data>
   <data name="Branding.Logo.None" xml:space="preserve"><value>No logo yet. The header shows the portal name on its own.</value></data>
