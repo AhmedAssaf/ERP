@@ -15,11 +15,12 @@ namespace Platform.Modules.Vendors.Relationships;
 /// <c>vendor.related_current_documents</c>, <c>vendor.related_company</c>, <c>vendor.related_documents</c>); the
 /// relationship row itself is read under the tenant policy. Approval re-checks the actor's role in <c>identity.members</c>
 /// at the moment it runs (the circuit's claims date from when the page opened), and the database records the acting user
-/// of the session as the approver, never an argument.
+/// of the session as the approver, never an argument. A scope with a vendor context is refused, as the functions refuse it.
 /// </summary>
 internal sealed class VendorDirectory(
     IDbContextFactory<VendorsDbContext> contexts,
     ITenantAccessor tenants,
+    IVendorAccessor vendors,
     IActingUserAccessor actingUser,
     IMemberDirectory members,
     IAuditWriter audit,
@@ -137,11 +138,18 @@ internal sealed class VendorDirectory(
         return Result.Success(VendorRelationshipStatus.Approved);
     }
 
+    // Tenant staff only: a vendor on a tenant host must never read other companies related to that tenant. The database
+    // functions refuse a vendor context too (migration 0011); this says so before any query.
     private void RequireTenant()
     {
         if (tenants.Current is null)
         {
             throw new InvalidOperationException("The vendor directory is read by tenant staff on a tenant host; this scope has none.");
+        }
+
+        if (vendors.Current is not null)
+        {
+            throw new InvalidOperationException("The vendor directory is tenant staff's; a scope with a vendor context may not use it.");
         }
     }
 

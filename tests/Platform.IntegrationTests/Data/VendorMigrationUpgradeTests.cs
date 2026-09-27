@@ -65,7 +65,7 @@ public sealed class VendorMigrationUpgradeTests(DatabaseFixture db)
 
                 var applied = await VendorsModule.MigrateAsync(connection, Ct);
 
-                applied.ShouldBe(["0006_vendors_uploads_hardening.sql", "0007_vendors_uploads_audit_bounds.sql", "0008_vendors_scan_queue.sql", "0009_vendors_scan_canary.sql", "0010_vendors_directory.sql"]);
+                applied.ShouldBe(["0006_vendors_uploads_hardening.sql", "0007_vendors_uploads_audit_bounds.sql", "0008_vendors_scan_queue.sql", "0009_vendors_scan_canary.sql", "0010_vendors_directory.sql", "0011_vendors_staff_functions_no_vendor.sql"]);
                 (await ScalarAsync<long>(connection, $"select count(*) from vendor.uploads where company_id = '{companyId}'")).ShouldBe(4);
                 (await ScalarAsync<long>(connection, $"select count(*) from vendor.uploads where company_id = '{companyId}' and last_chunk_at is not null")).ShouldBe(0);
                 (await ScalarAsync<long>(connection, $"select count(*) from vendor.documents where company_id = '{companyId}'")).ShouldBe(2);

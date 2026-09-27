@@ -43,7 +43,8 @@ public sealed record RelatedVendorDetails(
 /// The current tenant's vendors, for its staff (vendor plan task 5, F-10 as narrowed, V-7, V-11). A company is visible only
 /// while the tenant has a relationship with it; documents only once they scanned clean. The pages call it under the
 /// VendorManager policy (a contracts officer or tenant admin); <see cref="ApproveAsync"/> checks the role again.
-/// Throws <see cref="InvalidOperationException"/> when the scope has no tenant.
+/// Throws <see cref="InvalidOperationException"/> when the scope has no tenant, or has a vendor context (a vendor never
+/// reads the other companies of a tenant).
 /// </summary>
 public interface IVendorDirectory
 {

@@ -247,6 +247,21 @@ public sealed class VendorDirectoryTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task The_directory_refuses_a_scope_with_a_vendor_context()
+    {
+        var (companyId, userId) = await VendorAsync("Vendor Context Probe");
+        var (otherId, _) = await VendorAsync("Competitor Company");
+        await using var host = new ModuleHost(db.AppConnectionString);
+        await using var scope = host.ScopeFor(TestTenants.Acme, companyId, userId);
+        var directory = scope.ServiceProvider.GetRequiredService<IVendorDirectory>();
+
+        await Should.ThrowAsync<InvalidOperationException>(() => directory.ListRelatedAsync(Ct));
+        await Should.ThrowAsync<InvalidOperationException>(() => directory.GetRelatedAsync(otherId, Ct));
+        await Should.ThrowAsync<InvalidOperationException>(() => directory.ApproveAsync(otherId, userId, Ct));
+        (await VendorRows.RelationshipsAsync(db.OwnerConnectionString, otherId, Ct))[TestTenants.Acme.TenantId].ShouldBe("pending");
+    }
+
+    [Fact]
     public async Task A_membership_restored_without_a_new_relationship_is_audited_as_such_and_not_as_a_join()
     {
         // Related to acme since registration, but Keycloak no longer lists the user in acme's organization.
