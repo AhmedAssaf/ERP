@@ -69,6 +69,25 @@ internal static class MemberRows
             reader.IsDBNull(4) ? null : reader.GetFieldValue<DateTimeOffset>(4));
     }
 
+    /// <summary>
+    /// Makes <paramref name="userId"/> an active tenant admin of the tenant, as the owner, if it is not a member yet (the
+    /// branding function requires one since tenancy migration 0007). Safe to call again.
+    /// </summary>
+    public static async Task EnsureActiveAdminAsync(string ownerConnectionString, Guid tenantId, string userId, CancellationToken cancellationToken)
+    {
+        await using var connection = new NpgsqlConnection(ownerConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = new NpgsqlCommand("""
+            insert into identity.members (id, tenant_id, user_id, email, display_name, roles, status, invited_at, activated_at)
+            select gen_random_uuid(), @tenant, @user, @email, 'Branding Admin', array['tenant-admin'], 'active', now(), now()
+            where not exists (select 1 from identity.members where tenant_id = @tenant and user_id = @user)
+            """, connection);
+        command.Parameters.AddWithValue("tenant", tenantId);
+        command.Parameters.AddWithValue("user", userId);
+        command.Parameters.AddWithValue("email", $"{userId}-{tenantId:N}@admin.test");
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
     public static async Task<int> AuditCountAsync(
         string ownerConnectionString, Guid tenantId, string actorId, string action, CancellationToken cancellationToken)
     {

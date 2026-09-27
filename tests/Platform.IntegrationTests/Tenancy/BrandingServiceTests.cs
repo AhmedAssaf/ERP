@@ -52,12 +52,15 @@ public sealed class BrandingServiceTests(DatabaseFixture db, MinioFixture minio)
             (await none.ExecuteScalarAsync(Ct)).ShouldBe(0L);
         }
 
+        // As an active tenant admin of that tenant (tenancy migration 0007).
+        await MemberRows.EnsureActiveAdminAsync(db.OwnerConnectionString, mine.TenantId, Actor, Ct);
         await using (var scoped = new NpgsqlCommand("""
-            select set_config('app.tenant_id', @tenant, false);
+            select set_config('app.tenant_id', @tenant, false), set_config('app.user_id', @user, false);
             select count(*) from tenancy.update_branding('Scoped', '#000000', null);
             """, connection))
         {
             scoped.Parameters.AddWithValue("tenant", mine.TenantId.ToString());
+            scoped.Parameters.AddWithValue("user", Actor);
             await scoped.ExecuteNonQueryAsync(Ct);
         }
 
@@ -135,6 +138,7 @@ public sealed class BrandingServiceTests(DatabaseFixture db, MinioFixture minio)
         await using var host = Host();
 
         TenantBranding branding;
+        await MemberRows.EnsureActiveAdminAsync(db.OwnerConnectionString, tenant.TenantId, Actor, Ct);
         await using (var scope = host.ScopeFor(tenant))
         {
             await using var upload = new MemoryStream(Jpeg(1600, 800));
@@ -214,8 +218,9 @@ public sealed class BrandingServiceTests(DatabaseFixture db, MinioFixture minio)
     private ModuleHost Host() =>
         new(db.AppConnectionString, objectStorage: new ConfigurationBuilder().AddInMemoryCollection(minio.Settings).Build());
 
-    private static async Task<Platform.Shared.Results.Result<BrandingSaved>> SaveAsync(ModuleHost host, TenantContext tenant, string name, string colour)
+    private async Task<Platform.Shared.Results.Result<BrandingSaved>> SaveAsync(ModuleHost host, TenantContext tenant, string name, string colour)
     {
+        await MemberRows.EnsureActiveAdminAsync(db.OwnerConnectionString, tenant.TenantId, Actor, Ct);
         await using var scope = host.ScopeFor(tenant);
         return await scope.ServiceProvider.GetRequiredService<IBrandingService>().SaveAsync(name, colour, Actor, Ct);
     }

@@ -23,6 +23,7 @@ namespace Platform.Modules.Tenancy.Branding;
 internal sealed partial class BrandingService(
     [FromKeyedServices(TenancyModule.DataSourceKey)] NpgsqlDataSource dataSource,
     ITenantAccessor tenants,
+    IVendorAccessor vendors,
     ITenantDirectory directory,
     IObjectStorage storage,
     IAuditWriter audit) : IBrandingService
@@ -58,7 +59,7 @@ internal sealed partial class BrandingService(
 
         requested = requested.ToUpperInvariant();
         var stored = ColorContrast.EnsureContrast(requested, MinimumContrast);
-        var saved = await UpdateAsync(tenant, name, stored, null, cancellationToken);
+        var saved = await UpdateAsync(tenant, actorId, name, stored, null, cancellationToken);
         await audit.WriteAsync(
             new AuditEntry(actorId, "tenancy.branding_changed", "tenant", tenant.TenantId.ToString(), new Dictionary<string, string?>
             {
@@ -89,7 +90,7 @@ internal sealed partial class BrandingService(
         var logo = processed.Value;
         var hash = Convert.ToHexStringLower(SHA256.HashData(logo.Png));
         await storage.PutAsync(LogoKey(tenant.TenantId, hash), logo.Png, "image/png", cancellationToken);
-        var saved = await UpdateAsync(tenant, null, null, LogoPathPrefix + hash + ".png", cancellationToken);
+        var saved = await UpdateAsync(tenant, actorId, null, null, LogoPathPrefix + hash + ".png", cancellationToken);
         await audit.WriteAsync(
             new AuditEntry(actorId, "tenancy.branding_changed", "tenant", tenant.TenantId.ToString(), new Dictionary<string, string?>
             {
@@ -117,13 +118,19 @@ internal sealed partial class BrandingService(
     internal static string LogoKey(Guid tenantId, string hash) => $"tenants/{tenantId:D}/branding/logo-{hash}.png";
 
     private async Task<TenantBranding> UpdateAsync(
-        TenantContext tenant, string? portalName, string? primaryColor, string? logoUrl, CancellationToken cancellationToken)
+        TenantContext tenant, string actorId, string? portalName, string? primaryColor, string? logoUrl, CancellationToken cancellationToken)
     {
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
-        await using (var scope = new NpgsqlCommand("select set_config('app.tenant_id', $1, true)", connection, transaction))
+        // The function checks who acts (tenancy migration 0007): an active tenant admin of this tenant, never a vendor
+        // session. This connection does not go through the interceptor, so it carries the same settings itself.
+        await using (var scope = new NpgsqlCommand(
+            "select set_config('app.tenant_id', $1, true), set_config('app.user_id', $2, true), set_config('app.vendor_company_id', $3, true)",
+            connection, transaction))
         {
             scope.Parameters.Add(new NpgsqlParameter { Value = tenant.TenantId.ToString("D") });
+            scope.Parameters.Add(new NpgsqlParameter { Value = actorId });
+            scope.Parameters.Add(new NpgsqlParameter { Value = vendors.Current?.CompanyId.ToString("D") ?? string.Empty });
             await scope.ExecuteNonQueryAsync(cancellationToken);
         }
 
