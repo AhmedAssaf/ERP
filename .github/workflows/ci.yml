@@ -97,11 +97,15 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Cache npx packages
+      # Puppeteer downloads headless Chrome into ~/.cache/puppeteer only when mermaid-cli is installed, so both folders
+      # are cached together; caching ~/.npm alone restores mermaid-cli without its browser.
+      - name: Cache npx packages and headless Chrome
         uses: actions/cache@v6
         with:
-          path: ~/.npm
-          key: npm-mermaid-${{ runner.os }}-${{ hashFiles('.github/scripts/check-mermaid.sh') }}
+          path: |
+            ~/.npm
+            ~/.cache/puppeteer
+          key: npm-mermaid-v2-${{ runner.os }}-${{ hashFiles('.github/scripts/check-mermaid.sh') }}
 
       - name: Render every Mermaid block
         run: bash .github/scripts/check-mermaid.sh
