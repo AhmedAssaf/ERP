@@ -1,6 +1,8 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Platform.IntegrationTests.Infrastructure;
+using Platform.Modules.Audit.Contracts;
 using Platform.Modules.Identity.Contracts;
 using Platform.Modules.Vendors.Contracts;
 
@@ -244,6 +246,98 @@ public sealed class VendorDirectoryTests(DatabaseFixture db)
         (await VendorRows.RelationshipsAsync(db.OwnerConnectionString, companyId, Ct)).Keys.ShouldBe([TestTenants.Acme.TenantId]);
     }
 
+    [Fact]
+    public async Task A_membership_restored_without_a_new_relationship_is_audited_as_such_and_not_as_a_join()
+    {
+        // Related to acme since registration, but Keycloak no longer lists the user in acme's organization.
+        var (companyId, userId) = await VendorAsync("Restored Member Company");
+        var accounts = new FakeVendorAccounts { State = new(HoldsVendorRole: true, OrganizationAliases: []) };
+        await using var host = new ModuleHost(db.AppConnectionString, configure: s => s.Replace(ServiceDescriptor.Scoped<IVendorAccounts>(_ => accounts)));
+
+        var result = await JoinAsync(host, TestTenants.Acme, companyId, userId);
+
+        result.Value.ShouldBe(new VendorJoined(RelationshipCreated: false, OrganizationAdded: true));
+        (await VendorRows.AuditsAsync(db.OwnerConnectionString, TestTenants.Acme.TenantId, userId, "vendor.joined", Ct)).ShouldBeEmpty();
+        (await VendorRows.AuditsAsync(db.OwnerConnectionString, TestTenants.Acme.TenantId, userId, "vendor.membership_restored", Ct))
+            .ShouldHaveSingleItem().SubjectId.ShouldBe(companyId.ToString());
+    }
+
+    [Fact]
+    public async Task A_failed_database_step_takes_back_the_membership_the_join_added()
+    {
+        var (companyId, userId) = await VendorAsync("Rolled Back Joiner");
+        var accounts = new FakeVendorAccounts { State = new(HoldsVendorRole: true, OrganizationAliases: ["acme"]) };
+        await using var host = new ModuleHost(db.AppConnectionString, configure: s =>
+        {
+            s.Replace(ServiceDescriptor.Scoped<IVendorAccounts>(_ => accounts));
+            s.Replace(ServiceDescriptor.Scoped<IAuditWriter, FailingAuditWriter>());
+        });
+
+        var result = await JoinAsync(host, TestTenants.Beta, companyId, userId);
+
+        result.Error.ShouldNotBeNull().Code.ShouldBe(VendorErrors.JoinFailed);
+        (await VendorRows.RelationshipsAsync(db.OwnerConnectionString, companyId, Ct)).Keys.ShouldBe([TestTenants.Acme.TenantId]);
+        accounts.Revoked.ShouldHaveSingleItem().ShouldBe(new VendorAccessGrant(userId, TestTenants.Beta.KeycloakOrgAlias, RoleAdded: false, OrganizationAdded: true));
+    }
+
+    [Fact]
+    public async Task A_failed_database_step_keeps_the_membership_when_a_relationship_exists()
+    {
+        var (companyId, userId) = await VendorAsync("Kept Member Company");
+        var accounts = new FakeVendorAccounts { State = new(HoldsVendorRole: true, OrganizationAliases: []) };
+        await using var host = new ModuleHost(db.AppConnectionString, configure: s =>
+        {
+            s.Replace(ServiceDescriptor.Scoped<IVendorAccounts>(_ => accounts));
+            s.Replace(ServiceDescriptor.Scoped<IAuditWriter, FailingAuditWriter>());
+        });
+
+        // Acme's relationship exists; the membership this join re-added belongs to it and stays.
+        var result = await JoinAsync(host, TestTenants.Acme, companyId, userId);
+
+        result.Error.ShouldNotBeNull().Code.ShouldBe(VendorErrors.JoinFailed);
+        accounts.Steps.ShouldContain("add-organization");
+        accounts.Revoked.ShouldBeEmpty();
+        (await VendorRows.RelationshipsAsync(db.OwnerConnectionString, companyId, Ct))[TestTenants.Acme.TenantId].ShouldBe("pending");
+    }
+
+    [Fact]
+    public async Task Two_concurrent_joins_write_exactly_one_join_entry()
+    {
+        var (companyId, userId) = await VendorAsync("Concurrent Joiner");
+        // Both calls report the membership as added, the worst case for the audit.
+        var accounts = new FakeVendorAccounts { State = new(HoldsVendorRole: true, OrganizationAliases: ["acme"]) };
+        await using var host = new ModuleHost(db.AppConnectionString, configure: s => s.Replace(ServiceDescriptor.Scoped<IVendorAccounts>(_ => accounts)));
+
+        var results = await Task.WhenAll(
+            Task.Run(() => JoinAsync(host, TestTenants.Beta, companyId, userId), Ct),
+            Task.Run(() => JoinAsync(host, TestTenants.Beta, companyId, userId), Ct));
+
+        results.ShouldAllBe(r => r.IsSuccess);
+        results.Count(r => r.Value.RelationshipCreated).ShouldBe(1);
+        (await VendorRows.AuditsAsync(db.OwnerConnectionString, TestTenants.Beta.TenantId, userId, "vendor.joined", Ct)).Count.ShouldBe(1);
+        (await VendorRows.RelationshipsAsync(db.OwnerConnectionString, companyId, Ct))[TestTenants.Beta.TenantId].ShouldBe("pending");
+    }
+
+    [Fact]
+    public async Task Two_concurrent_approvals_write_exactly_one_approval_entry()
+    {
+        var (companyId, _) = await VendorAsync("Concurrently Approved Company");
+        var officer = await StaffAsync(TestTenants.Acme, TenantRoles.ContractsOfficer);
+        await using var host = new ModuleHost(db.AppConnectionString);
+
+        async Task<Platform.Shared.Results.Result<VendorRelationshipStatus>> ApproveOnceAsync()
+        {
+            await using var scope = host.ScopeFor(TestTenants.Acme, actingUserId: officer);
+            return await scope.ServiceProvider.GetRequiredService<IVendorDirectory>().ApproveAsync(companyId, officer, Ct);
+        }
+
+        var results = await Task.WhenAll(Task.Run(ApproveOnceAsync, Ct), Task.Run(ApproveOnceAsync, Ct));
+
+        results.Count(r => r.IsSuccess).ShouldBe(1);
+        results.Single(r => !r.IsSuccess).Error!.Code.ShouldBe(VendorDirectoryErrors.AlreadyApproved);
+        (await VendorRows.AuditsAsync(db.OwnerConnectionString, TestTenants.Acme.TenantId, officer, "vendor.approved", Ct)).Count.ShouldBe(1);
+    }
+
     private static async Task<Platform.Shared.Results.Result<VendorJoined>> JoinAsync(ModuleHost host, Platform.Shared.Tenancy.TenantContext tenant, Guid companyId, string userId)
     {
         await using var scope = host.ScopeFor(tenant, companyId, userId);
@@ -267,6 +361,13 @@ public sealed class VendorDirectoryTests(DatabaseFixture db)
         var userId = Guid.NewGuid().ToString();
         var companyId = await VendorRows.RegisterAsync(db.AppConnectionString, TestTenants.Acme, userId, VendorRows.NewCrNumber(), nameEn, Ct);
         return (companyId, userId);
+    }
+
+    /// <summary>An audit log whose database refuses every write, as a failed insert into audit.events would.</summary>
+    private sealed class FailingAuditWriter : IAuditWriter
+    {
+        public Task WriteAsync(AuditEntry entry, CancellationToken cancellationToken = default) =>
+            throw new DbUpdateException("forced audit failure", new InvalidOperationException("forced"));
     }
 
     private async Task<string> StaffAsync(Platform.Shared.Tenancy.TenantContext tenant, string role)

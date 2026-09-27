@@ -108,9 +108,11 @@ public sealed partial class VendorAccessTests(DatabaseFixture db)
         await using var factory = new PlatformWebFactory(db.AppConnectionString);
         using var client = factory.ClientFor("beta.localhost");
 
+        // Not yet related: sent to the join page, which offers "Work with {tenant}" (spec section 3).
         using (var before = await client.SendAsync(new HttpRequestMessage(HttpMethod.Get, "/vendor").As(vendor), Ct))
         {
-            before.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+            before.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+            before.Headers.Location!.OriginalString.ShouldBe("/vendor/join");
         }
 
         // Joining (task 5) creates the relationship and the organization membership the next token carries.

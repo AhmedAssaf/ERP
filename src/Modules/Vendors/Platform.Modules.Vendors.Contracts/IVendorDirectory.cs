@@ -78,7 +78,9 @@ public sealed record VendorJoined(bool RelationshipCreated, bool OrganizationAdd
 /// A vendor of another tenant starts working with the tenant of the current host (vendor plan task 5, spec section 3,
 /// ADR-0008): membership of the tenant's Keycloak organization and a pending relationship (V-7), audited as
 /// <c>vendor.joined</c> in that tenant's log. The company is the current vendor context's, the user the acting user; the
-/// host sets both after the JoiningVendor policy passed. Joining again changes nothing and is not audited again.
+/// host sets both after the JoiningVendor policy passed. Only the call that creates the relationship writes
+/// <c>vendor.joined</c>; a call that only puts the user back into the organization of a tenant the company already works
+/// with writes <c>vendor.membership_restored</c>; a call that changes nothing writes nothing.
 /// </summary>
 public interface IVendorJoin
 {

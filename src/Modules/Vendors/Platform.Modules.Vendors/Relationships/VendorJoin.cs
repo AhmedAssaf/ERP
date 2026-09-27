@@ -13,10 +13,15 @@ namespace Platform.Modules.Vendors.Relationships;
 
 /// <summary>
 /// A vendor of another tenant joins the host tenant (spec section 3, ADR-0008). Keycloak first: membership of the tenant's
-/// organization, which the Vendor policy needs there; then, in one transaction, <c>vendor.join_tenant()</c> (a pending
-/// relationship for the session's tenant and vendor company, only for a user of that company) and the audit entry
-/// <c>vendor.joined</c> in the tenant's log, before the commit. When the database step fails, the membership this call
-/// added is taken back unless a relationship with the tenant exists by then (a parallel join of the same vendor won).
+/// organization, which the Vendor policy needs there; then, in one database transaction, <c>vendor.join_tenant()</c> (a
+/// pending relationship for the session's tenant and vendor company, only for a user of that company), which answers
+/// whether this call created it. The audit entry is written before that transaction commits, but on the audit writer's
+/// own connection, so it is not part of the transaction: when the audit fails the relationship rolls back; a commit that
+/// fails after it leaves an entry for a join that did not happen, and joining again writes a second one. Only the call
+/// that created the relationship writes <c>vendor.joined</c>, so two joins at the same moment write one; a call that only
+/// put the user back into the organization of a tenant the company already works with writes
+/// <c>vendor.membership_restored</c>. When the database step fails, the membership this call added is taken back unless a
+/// relationship with the tenant exists by then (a parallel join of the same vendor won, or it was a restored membership).
 /// </summary>
 internal sealed partial class VendorJoin(
     IDbContextFactory<VendorsDbContext> contexts,
@@ -60,18 +65,22 @@ internal sealed partial class VendorJoin(
             if (created || organizationAdded)
             {
                 await audit.WriteAsync(
-                    new AuditEntry(userId, "vendor.joined", "vendor_company", vendor.CompanyId.ToString(), new Dictionary<string, string?>
-                    {
-                        ["relationship_created"] = created ? "true" : "false",
-                        ["organization_added"] = organizationAdded ? "true" : "false",
-                    }),
+                    new AuditEntry(
+                        userId,
+                        created ? "vendor.joined" : "vendor.membership_restored",
+                        "vendor_company",
+                        vendor.CompanyId.ToString(),
+                        new Dictionary<string, string?>
+                        {
+                            ["organization_added"] = organizationAdded ? "true" : "false",
+                        }),
                     cancellationToken);
             }
 
             await transaction.CommitAsync(cancellationToken);
             return Result.Success(new VendorJoined(created, organizationAdded));
         }
-        catch (Exception ex) when (ex is DbException or TimeoutException or OperationCanceledException or InvalidOperationException)
+        catch (Exception ex) when (ex is DbException or DbUpdateException or TimeoutException or OperationCanceledException or InvalidOperationException)
         {
             SaveFailed(logger, tenant.Slug, userId, ex.GetType().Name);
             if (organizationAdded)
@@ -90,8 +99,10 @@ internal sealed partial class VendorJoin(
 
     /// <summary>
     /// Takes back the organization membership this call added, unless the company has a relationship with the tenant by
-    /// now. When that re-check fails nothing is taken back: a member without a relationship opens nothing, since the Vendor
-    /// policy's pages read the relationship, and joining again completes it.
+    /// now. When that re-check fails nothing is taken back and the failure is logged: the user then stays a member without a
+    /// relationship, so the Vendor policy (which checks the organization and the vendor row, not the relationship) opens the
+    /// vendor home on this host, where the company shows no status with the tenant and the tenant's staff do not see it.
+    /// Joining again creates the relationship.
     /// </summary>
     private async Task UndoAsync(TenantContext tenant, Guid companyId, string userId)
     {

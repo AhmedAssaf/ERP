@@ -157,7 +157,52 @@ public sealed partial class VendorStaffPagesTests(DatabaseFixture db)
         already.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await already.Content.ReadAsStringAsync(Ct);
         html.ShouldContain("data-vendor-already-joined");
-        html.ShouldNotContain("data-vendor-join-form");
+        // The button stays: a user who lost the organization membership gets it back from here.
+        html.ShouldContain("data-vendor-join-form");
+    }
+
+    [Fact]
+    public async Task A_related_vendor_that_lost_its_membership_restores_it_from_the_join_page()
+    {
+        var (companyId, userId) = await VendorAsync("Lost Membership Company");
+        // Related to acme, but the token (and Keycloak) no longer carry acme's organization.
+        var vendor = Vendor(userId) with { Organizations = [] };
+        var accounts = new FakeVendorAccounts { State = new(HoldsVendorRole: true, OrganizationAliases: []) };
+        await using var factory = new PlatformWebFactory(db.AppConnectionString).WithWebHostBuilder(builder =>
+            builder.ConfigureTestServices(services => services.Replace(ServiceDescriptor.Scoped<IVendorAccounts>(_ => accounts))));
+        using var client = factory.CreateClient(new() { BaseAddress = new Uri("http://acme.localhost"), AllowAutoRedirect = false });
+
+        using var page = await client.SendAsync(new HttpRequestMessage(HttpMethod.Get, "/vendor/join").As(vendor), Ct);
+        var html = await page.Content.ReadAsStringAsync(Ct);
+        html.ShouldContain("data-vendor-already-joined");
+
+        using var joined = await PostJoinAsync(client, vendor, html);
+
+        (await joined.Content.ReadAsStringAsync(Ct)).ShouldContain("data-vendor-joined");
+        accounts.Steps.ShouldContain("add-organization");
+        (await VendorRows.RelationshipsAsync(db.OwnerConnectionString, companyId, Ct)).Keys.ShouldBe([TestTenants.Acme.TenantId]);
+        (await VendorRows.AuditsAsync(db.OwnerConnectionString, TestTenants.Acme.TenantId, userId, "vendor.membership_restored", Ct)).ShouldHaveSingleItem();
+    }
+
+    [Fact]
+    public async Task A_vendor_of_another_tenant_opening_the_vendor_home_or_the_tenant_home_is_sent_to_the_join_page()
+    {
+        var (_, userId) = await VendorAsync("Redirected Vendor Company");
+        var vendor = Vendor(userId);
+        await using var factory = new PlatformWebFactory(db.AppConnectionString);
+        using var beta = factory.ClientFor("beta.localhost");
+
+        foreach (var path in new[] { "/vendor", "/" })
+        {
+            using var response = await beta.SendAsync(new HttpRequestMessage(HttpMethod.Get, path).As(vendor), Ct);
+            response.StatusCode.ShouldBe(HttpStatusCode.Redirect, path);
+            response.Headers.Location!.OriginalString.ShouldBe("/vendor/join", path);
+        }
+
+        // At its own tenant the vendor home opens as before.
+        using var acme = factory.ClientFor("acme.localhost");
+        using var home = await acme.SendAsync(new HttpRequestMessage(HttpMethod.Get, "/vendor").As(vendor), Ct);
+        home.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
     private static async Task<string> PageAsync(HttpClient client, string path, TestUser user)

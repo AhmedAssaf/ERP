@@ -355,6 +355,6 @@
   <data name="Vendor.Join.Intro" xml:space="preserve"><value>Your company is registered on WaslaBid. To take part in {0}'s tenders, choose to work with this organization. It then reviews your company's details and documents before approving it.</value></data>
   <data name="Vendor.Join.Submit" xml:space="preserve"><value>Work with {0}</value></data>
   <data name="Vendor.Join.Done" xml:space="preserve"><value>Your company now works with {0} and is waiting for its approval. Sign in again to open your vendor page here.</value></data>
-  <data name="Vendor.Join.Already" xml:space="preserve"><value>Your company already works with {0}. If your vendor page does not open here, sign in again.</value></data>
+  <data name="Vendor.Join.Already" xml:space="preserve"><value>Your company already works with {0}. If your vendor page does not open here, choose the button below, then sign in again.</value></data>
   <data name="Vendor.Join.Error.Generic" xml:space="preserve"><value>Joining this organization could not be completed. Try again in a moment.</value></data>
 </root>
