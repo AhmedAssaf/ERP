@@ -32,7 +32,7 @@ Still to do before public use: SAIP trademark search for WaslaBid and وصلة �
 
 #### 1.1.1 Rename under consideration (2026-09-27, undecided)
 
-The user is considering replacing WaslaBid with an invented English name that is catchy and carries no dictionary meaning, possibly with "AI" in it. Nothing is renamed until the user picks one; WaslaBid stays in force until then. Domain columns record whether a DNS lookup on 2026-09-27 found records ("taken") or none ("free?", which suggests but does not prove the domain is unregistered).
+The user is considering replacing WaslaBid with an invented English name that is catchy and carries no dictionary meaning, possibly with "AI" in it. Nothing is renamed until the user picks one; WaslaBid stays in force until then. Decided 2026-09-27: the choice is made after the customer interviews (W-13), testing names with prospects, and the SAIP trademark and domains are registered only after it. Domain columns record whether a DNS lookup on 2026-09-27 found records ("taken") or none ("free?", which suggests but does not prove the domain is unregistered).
 
 Invented words:
 
