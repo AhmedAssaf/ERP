@@ -12,7 +12,9 @@ public sealed class MinioFixture : IAsyncLifetime
     private const string RootUser = "erp-test";
     private const string RootPassword = "erp_test_password";
 
-    private readonly IContainer _container = new ContainerBuilder("quay.io/minio/minio:latest")
+    private readonly IContainer _container = new ContainerBuilder("cgr.dev/chainguard/minio@sha256:6a1d0b45c8669726bba580ced0bfa4cb9fdeed1ed636dfabd81d1577beb6937b")
+        // Same image and root user as infra/compose/docker-compose.yml (see the comment there).
+        .WithCreateParameterModifier(parameters => parameters.User = "0")
         .WithCommand("server", "/data")
         .WithPortBinding(9000, assignRandomHostPort: true)
         .WithEnvironment("MINIO_ROOT_USER", RootUser)
