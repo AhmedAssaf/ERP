@@ -271,4 +271,8 @@ try {
 } finally {
   fs.writeFileSync(path.join(DIR, 'vendor-results.json'), JSON.stringify(results, null, 2));
   await browser.close();
+  // A failed step fails the run, so a shell or a script chaining this one sees it without reading the output.
+  if (results.some(r => !r.ok)) {
+    process.exitCode = 1;
+  }
 }
