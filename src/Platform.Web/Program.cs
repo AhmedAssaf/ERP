@@ -113,13 +113,18 @@ builder.Services
         options.Scope.Clear();
         options.Scope.Add("openid");
         options.Scope.Add("profile");
-        options.Scope.Add("organization");
+        // Narrowed to the host tenant's organization at each challenge (TenantOrganizationScope).
+        options.Scope.Add(TenantOrganizationScope.Scope);
         // email and email_verified: a member row seeded by email is bound to the user on first sign-in (F-07 dev seed).
         options.Scope.Add("email");
         options.TokenValidationParameters.NameClaimType = IdentityClaims.Username;
         options.Events.OnRedirectToIdentityProviderForSignOut = SignOutEndpoints.NameClientOnEndSession;
         // F-11: /vendor/register goes to the realm's registration endpoint (VendorRegistrationEndpoints).
-        options.Events.OnRedirectToIdentityProvider = VendorRegistrationEndpoints.UseRegistrationEndpoint;
+        options.Events.OnRedirectToIdentityProvider = async context =>
+        {
+            await TenantOrganizationScope.Apply(context);
+            await VendorRegistrationEndpoints.UseRegistrationEndpoint(context);
+        };
     })
     .AddPlatformAuthentication(builder.Configuration);
 builder.Services.AddAuthorization(options =>
