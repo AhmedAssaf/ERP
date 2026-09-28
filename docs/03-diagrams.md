@@ -185,6 +185,7 @@ sequenceDiagram
     GW->>API: Forward (TLS terminated)
     API->>KC: Validate token signature and expiry
     API->>API: Assert token.org == host tenant, else 403
+    Note over API: Deliberate exception: /vendor/join (JoiningVendor policy) skips the org check,<br/>since a signed-in vendor not yet in this tenant joins it there (realm role vendor still required)
     API->>DB: SET app.tenant_id = customer
     alt Staff
         API->>DB: Roles of token.sub from identity.members (F-07)

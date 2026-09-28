@@ -242,8 +242,9 @@ Checked end to end on 2026-09-28 with `tests/e2e/vendor.mjs` (21 of 21 steps pas
    `verifyEmail` are `true`.
 2. **Staff rows after any realm reset.** A reimport gives every Keycloak user a new id, but a member row seeded by email
    keeps the id it was bound to on the first sign-in, so `acme.admin` gets a 403 on every staff page. Unbind the
-   seeded rows on the local stack (as the owner, which bypasses row-level security), and they bind again on the next
-   sign-in:
+   seeded rows on the local stack as the Compose user `erp`, and they bind again on the next sign-in. This works
+   because `erp` is a superuser, which row-level security never applies to; the policies are forced, so owning the tables
+   would not be enough on its own:
 
    ```bash
    docker exec erp-postgres psql -U erp -d platform -c "update identity.members set user_id = null, status = 'invited', activated_at = null where email in ('admin@acme.waslabid.test', 'admin@beta.waslabid.test')"
