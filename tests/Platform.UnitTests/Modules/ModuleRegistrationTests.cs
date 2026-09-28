@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Platform.Modules.Audit;
 using Platform.Modules.Identity;
 using Platform.Modules.Tenancy;
+using Platform.Modules.Vendors;
 using Platform.Modules.Workflow;
 
 namespace Platform.UnitTests.Modules;
@@ -25,4 +26,8 @@ public class ModuleRegistrationTests
     [Fact]
     public void Workflow_module_registers_into_the_collection() =>
         new ServiceCollection().AddWorkflowModule(AnyConnectionString).ShouldNotBeEmpty();
+
+    [Fact]
+    public void Vendors_module_registers_into_the_collection() =>
+        new ServiceCollection().AddVendorsModule(AnyConnectionString).ShouldNotBeEmpty();
 }

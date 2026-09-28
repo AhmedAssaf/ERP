@@ -97,8 +97,9 @@ public sealed class BrandingInputTests(DatabaseFixture db, MinioFixture minio) :
 
     private async Task<Result<BrandingSaved>> SaveAsync(TenantContext tenant, string name, string colour)
     {
+        await MemberRows.EnsureActiveAdminAsync(db.OwnerConnectionString, tenant.TenantId, Actor, Ct);
         await using var host = new ModuleHost(db.AppConnectionString, objectStorage: new ConfigurationBuilder().AddInMemoryCollection(minio.Settings).Build());
-        await using var scope = host.ScopeFor(tenant);
+        await using var scope = host.ScopeFor(tenant, actingUserId: Actor);
         return await scope.ServiceProvider.GetRequiredService<IBrandingService>().SaveAsync(name, colour, Actor, Ct);
     }
 }

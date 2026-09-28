@@ -3,7 +3,9 @@
     4.5:1 contrast on white is stored darkened and the admin is told both values (D-11). The logo goes through a plain
     multipart form to /admin/branding/logo, never through the circuit (ADR-0001, D-10), and comes back here with its
     outcome in the query. After a save the page reloads, so the header and theme show the new branding at once. Tenant
-    admins only; saving checks the admin role again against identity.members, since the circuit's claims are older.
+    admins only; saving checks the admin role again against identity.members, since the circuit's claims are older. When
+    the database refuses the acting user (no longer an active tenant admin, or a vendor user), both the details form and
+    the logo upload show the same not-allowed message.
 *@
 @page "/admin/branding"
 @attribute [Authorize(Policy = TenantPolicies.TenantAdmin)]
@@ -120,6 +122,7 @@
         "too-many-pixels" => T["Branding.Logo.Error.Dimensions"].Value,
         "unreadable" => T["Branding.Logo.Error.Unreadable"].Value,
         "missing" => T["Branding.Logo.Error.Missing"].Value,
+        "not-allowed" => T["Branding.NotAllowed"].Value,
         _ => null,
     };
 
@@ -154,6 +157,9 @@
                         break;
                     case BrandingErrors.InvalidColor:
                         _colorError = T["Branding.Error.Color"];
+                        break;
+                    case BrandingErrors.NotAllowed:
+                        _saveError = T["Branding.NotAllowed"];
                         break;
                     default:
                         _saveError = T["Branding.Error.Generic"];

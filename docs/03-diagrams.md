@@ -162,7 +162,7 @@ sequenceDiagram
 
 ## 5. Login and tenant isolation: one request end to end
 
-Read it as: the same user can never reach another tenant's data because the host, the token, and the database row policy must all agree. Caddy only terminates TLS; the tenant decision is made inside the app.
+Read it as: the same user can never reach another tenant's data because the host, the token, and the database row policy must all agree. Caddy only terminates TLS; the tenant decision is made inside the app. A vendor carries a second key, its company (`app.vendor_company_id`, ADR-0012): tenant tables are staff-only unless a table is explicitly vendor-visible, and then a vendor sees only its own company's rows; the vendor's own tables (company, users, documents, consent) are keyed on the company alone, across tenants (ADR-0008).
 
 ```mermaid
 sequenceDiagram
@@ -178,18 +178,26 @@ sequenceDiagram
     B->>GW: GET /
     GW->>API: Forward with original Host header
     API->>API: Host -> tenant slug "customer"
-    API->>B: Redirect to Keycloak login (org = customer)
+    API->>B: Redirect to Keycloak login (scope organization:customer)
     B->>KC: Login (password + TOTP, or customer's Entra ID)
-    KC-->>B: Token with org = customer (no tenant roles)
+    KC-->>B: Token with org = customer if a member (no tenant roles)
     B->>GW: GET /api/tenders (Bearer token)
     GW->>API: Forward (TLS terminated)
     API->>KC: Validate token signature and expiry
     API->>API: Assert token.org == host tenant, else 403
+    Note over API: Deliberate exception: /vendor/join (JoiningVendor policy) skips the org check,<br/>since a signed-in vendor not yet in this tenant joins it there (realm role vendor still required)
     API->>DB: SET app.tenant_id = customer
-    API->>DB: Roles of token.sub from identity.members (F-07)
+    alt Staff
+        API->>DB: Roles of token.sub from identity.members (F-07)
+        API->>DB: SET app.vendor_company_id = '' (none)
+    else Vendor (realm role vendor and a vendor.users row)
+        API->>DB: SET app.vendor_company_id = the vendor's company
+    end
     API->>DB: SELECT ... FROM tenders
-    DB->>DB: RLS policy: tenant_id = current_setting('app.tenant_id')
-    DB-->>API: Only customer's rows
+    DB->>DB: Staff-only tenant tables: tenant_id = app.tenant_id AND no vendor company
+    DB->>DB: Vendor-visible tenant tables: same tenant AND (staff OR own company)
+    DB->>DB: Vendor tables: company = app.vendor_company_id
+    DB-->>API: Only customer's rows, and a vendor only its own
     API-->>B: JSON
 ```
 
@@ -362,7 +370,7 @@ erDiagram
 
 ## 8. Application modules and how they depend on each other
 
-Read it as: arrows point from the module that calls to the module it depends on. Nothing points back up, which keeps the monolith splittable later. Boxes with a thick dark border (tenancy, identity, audit, workflow, operations) exist in code today (`src/Modules/*`, checked against the project references); modules depend on each other only through their `*.Contracts` projects. Operations (F-51, F-54, F-60) is platform-level, not tenant-level: it depends on no other module, and the hosts (web, worker) wire it in.
+Read it as: arrows point from the module that calls to the module it depends on. Nothing points back up, which keeps the monolith splittable later. Boxes with a thick dark border (tenancy, identity, audit, workflow, operations, vendors) exist in code today (`src/Modules/*`, checked against the project references); modules depend on each other only through their `*.Contracts` projects. Solid arrows between built boxes are project references; dotted arrows are planned. Operations (F-51, F-54, F-60) is platform-level, not tenant-level: it depends on no other module, and the hosts (web, worker) wire it in. Vendors (F-10, F-11, F-12, F-64; schema `vendor`) calls Identity for members and the Keycloak vendor accounts, Audit for the tenant's log, and Operations for the platform audit (consent events); object storage and virus scanning live in `Platform.Shared` until a documents module exists, and it reads the tenant from the shared tenant context, not from the Tenancy module.
 
 ```mermaid
 flowchart TB
@@ -385,7 +393,8 @@ flowchart TB
     WF[workflow]:::core
     OPS[operations<br/>health, incidents, platform audit]:::platform
 
-    VEN --> TEN & IDN & DOC & NOT & AUD
+    VEN --> IDN & AUD & OPS
+    VEN -.-> DOC & NOT
     TDR --> VEN & TEN & IDN & DOC & NOT & AUD
     EVA --> TDR & IDN & AUD & NOT
     EVA --> WF
@@ -394,7 +403,7 @@ flowchart TB
     WF --> AUD
     IDN --> AUD
     TEN --> AUD
-    class TEN,IDN,AUD,WF,OPS built
+    class TEN,IDN,AUD,WF,OPS,VEN built
 ```
 
 ## 9. Deployment in a Saudi region

@@ -71,7 +71,7 @@ docker compose up -d
 | Keycloak 26 | Identity, Organizations per tenant | 8080 (admin console), 9000 (health) | KEYCLOAK_ADMIN, KEYCLOAK_ADMIN_PASSWORD |
 | Redis 7 | Circuit state, locks, rate limits | 6379 | none |
 | MinIO | S3-compatible object storage, bucket `erp-dev` | 9002 (API), 9003 (console) | MINIO_ROOT_USER, MINIO_ROOT_PASSWORD |
-| ClamAV | Virus scanning for uploads | 3310 | none |
+| ClamAV | Virus scanning for vendor uploads: the web host scans every completed upload over TCP `INSTREAM`, the worker retries pending ones (F-12), and the health board checks it | 3310 | none |
 | Mailpit | Catches all outgoing email, shows it in a web UI | 1025 (SMTP), 8025 (UI) | none |
 | Caddy | Local TLS edge; `https://<tenant>.localhost` forwards to the app on the host | 80, 443 by default; set `CADDY_HTTP_PORT` and `CADDY_HTTPS_PORT` (for example 8081 and 8443) on Windows machines where 443 sits in a reserved range | none |
 
@@ -81,10 +81,11 @@ Reset everything: `docker compose down -v` then `up -d` again. ClamAV takes up t
 
 ### Run the app locally
 
-With the Compose stack up and these five values filled in `infra/compose/.env` (see `.env.example` for how to generate
+With the Compose stack up and these six values filled in `infra/compose/.env` (see `.env.example` for how to generate
 them): `WASLABID_WEB_CLIENT_SECRET`, `WASLABID_PLATFORM_CLIENT_SECRET`, `WASLABID_ADMIN_API_SECRET`,
-`WASLABID_DEV_USER_PASSWORD` (at least 12 characters, not a user name, or the platform realm import fails) and
-`MINIO_HEALTH_PROBE_PASSWORD`, run these once from the repository root (Git Bash). The commands read the values from `.env` into shell variables and never print them (N-10); user secrets live outside the repository.
+`WASLABID_DEV_USER_PASSWORD` (at least 12 characters, not a user name, or the platform realm import fails),
+`MINIO_HEALTH_PROBE_PASSWORD` and `VENDORS_CR_AUDIT_KEY` (base64 of at least 32 bytes; the web host does not start
+without it), run these once from the repository root (Git Bash). The commands read the values from `.env` into shell variables and never print them (N-10); user secrets live outside the repository.
 
 ```bash
 env_value() { grep "^$1=" infra/compose/.env | cut -d= -f2- | tr -d '\r'; }
@@ -106,6 +107,8 @@ dotnet user-secrets set "KeycloakAdmin:ClientSecret" "$ADMIN_API_SECRET" --proje
 # least-privilege application user in the Compose stack yet.
 dotnet user-secrets set "ObjectStorage:AccessKey" "$(env_value MINIO_ROOT_USER)" --project src/Platform.Web > /dev/null
 dotnet user-secrets set "ObjectStorage:SecretKey" "$(env_value MINIO_ROOT_PASSWORD)" --project src/Platform.Web > /dev/null
+# Key of the duplicate-CR audit (V-6, keyed HMAC-SHA256 of the CR number); checked when the web host starts.
+dotnet user-secrets set "Vendors:CrAuditKey" "$(env_value VENDORS_CR_AUDIT_KEY)" --project src/Platform.Web > /dev/null
 unset PGPW WEB_SECRET PLATFORM_SECRET ADMIN_API_SECRET
 ```
 
@@ -225,6 +228,63 @@ Sign in as the platform admin the first time:
 Checked end to end on 2026-09-26 (admin plan Task 11): every command in this section, from the user secrets to the
 realm reimport, the migrator, the worker and the web host, run on Windows 11 with Git Bash against the Compose stack,
 then a browser pass through Caddy for the tenant admin, an invited evaluator and the platform admin.
+
+#### Vendor slice (F-11, F-12, F-10, F-64)
+
+Checked end to end on 2026-09-28 with `tests/e2e/vendor.mjs` (21 of 21 steps pass; see `tests/e2e/README.md`).
+
+1. **Realm reimport for registration.** The vendor slice changed the tenant realm: self-registration on, email
+   verification on, email as user name, the realm role `vendor`. A `waslabid` realm imported before that keeps the old
+   settings, and `/vendor/register` then shows Keycloak's login instead of its registration form. Delete only the
+   tenant realm and recreate Keycloak, with the same commands as step 1 of "Platform console host" above but for
+   `waslabid` alone (the platform realm is unchanged), then run the migrator with `--seed-dev` (it also adds the test
+   consent recipient "Test finance partner"). Check the realm with the admin API: `registrationAllowed` and
+   `verifyEmail` are `true`.
+2. **Staff rows after any realm reset.** A reimport gives every Keycloak user a new id, but a member row seeded by email
+   keeps the id it was bound to on the first sign-in, so `acme.admin` gets a 403 on every staff page. Unbind the
+   seeded rows on the local stack as the Compose user `erp`, and they bind again on the next sign-in. This works
+   because `erp` is a superuser, which row-level security never applies to; the policies are forced, so owning the tables
+   would not be enough on its own:
+
+   ```bash
+   docker exec erp-postgres psql -U erp -d platform -c "update identity.members set user_id = null, status = 'invited', activated_at = null where email in ('admin@acme.waslabid.test', 'admin@beta.waslabid.test')"
+   ```
+
+3. **Worker settings.** The worker runs the vendor jobs (the retry scan of pending documents every 5 minutes and the
+   cleanup of abandoned upload staging), so it needs object storage and ClamAV too. `ClamAv:Host`/`Port` and
+   `ObjectStorage:ServiceUrl`/`BucketName` have Development defaults; the object storage keys are user secrets, as for
+   the web host (the MinIO root user in development):
+
+   ```bash
+   env_value() { grep "^$1=" infra/compose/.env | cut -d= -f2- | tr -d '\r'; }
+   dotnet user-secrets set "ObjectStorage:AccessKey" "$(env_value MINIO_ROOT_USER)" --project src/Platform.Worker > /dev/null
+   dotnet user-secrets set "ObjectStorage:SecretKey" "$(env_value MINIO_ROOT_PASSWORD)" --project src/Platform.Worker > /dev/null
+   ```
+
+4. **ClamAV must be healthy** before a vendor uploads: an upload completed while it is down stays "waiting for the
+   virus check" until the worker's retry finds it answering again. `minio-init` also sets the lifecycle rule that
+   expires `staging/` after 2 days.
+5. **Walk through it.** Open `https://acme.localhost:8443/vendor/register`, register with any address, open the
+   "Verify email" message in Mailpit (`http://localhost:8025`), fill the company form and accept the privacy notice,
+   sign in again, upload the two certificates on `/vendor`, and manage consent on `/vendor/consent`. Vendors sign in
+   with a password only; staff pages ask for TOTP. Approve as `acme.admin` on `/admin/vendors`. The same vendor opening
+   `https://beta.localhost:8443/vendor` is sent to `/vendor/join`. Each tenant host asks Keycloak for its own
+   organization only (`organization:<alias>`), so a vendor working with both tenants is not shown an organization
+   picker.
+
+#### Operations
+
+- Parked vendor document (12 retry scans without a verdict, V-10; the worker logs its id): once the cause is fixed, a platform operator connects with their own personal database login, which is a member of `erp`, runs `SET ROLE erp;` and then `select vendor.unpark_document('<document id>');` (neither `erp_app` nor public may execute it); the next five-minute retry scan tries it again. The audit records `session_user`, so it names the person, never the shared `erp` role; do not connect as `erp` itself for this. Parking and unparking are both in the platform audit (`vendor.document_parked`, `vendor.document_unparked`).
+- Personal database login for that step, created once per operator on the local Compose stack. Set the password in your own shell first (`export ERP_OPERATOR_DB_PASSWORD=...`, typed or read from your password manager, never saved in a file in the repository); `docker exec -e ERP_OPERATOR_DB_PASSWORD` passes it by name, so the value appears in no command line:
+
+  ```bash
+  docker exec -i -e ERP_OPERATOR_DB_PASSWORD erp-postgres psql -U erp -d platform -v login=ahmed_ops <<'SQL'
+  \getenv pw ERP_OPERATOR_DB_PASSWORD
+  create role :"login" login noinherit password :'pw' in role erp;
+  SQL
+  ```
+
+  `noinherit` means the login has no rights of its own until it runs `SET ROLE erp;`. Connect as it with `psql -h localhost -U ahmed_ops -d platform` (the password prompt reads it; or `PGPASSWORD` from the same variable). The integration test `A_personal_login_that_sets_role_erp_unparks_a_document_and_the_audit_names_that_login` checks this path.
 
 ## 5. Branches, commits, pull requests
 

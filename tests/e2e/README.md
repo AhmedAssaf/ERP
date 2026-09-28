@@ -1,4 +1,4 @@
-# End-to-end scripts (foundation and admin-ui slices)
+# End-to-end scripts (foundation, admin-ui and vendor slices)
 
 Playwright scripts driven from the command line, not a `dotnet test` project. They exercise the real local stack
 (Keycloak, Mailpit, MinIO, the web host, Docker) through a browser, the way the qa-engineer agent ran them by hand
@@ -48,6 +48,17 @@ for the two scenario scripts) to judge the result.
 - **`golden.mjs`** — the admin subset of the W-06 golden screenshot set: `/dev/gallery` at 360px and 1280px, in both
   `ar-SA` and `en-US`, signed in as `acme.admin`. Writes PNGs and an overflow report (`noOverflow` per page) to
   `../Platform.UITests/golden`. Run with `node golden.mjs`.
+- **`vendor.mjs`** — the vendor slice (vendor plan task 7, F-11, F-12, F-10 as narrowed, F-64): a fresh vendor
+  (unique email and CR number per run) registers at `acme.localhost:8443/vendor/register`, verifies the email from
+  Mailpit, is refused without the privacy notice and then registers the company with it, signs in again, uploads the
+  CR certificate (expiry a year ahead) and the VAT certificate (expiry 30 days ago) through the chunked upload with
+  ClamAV and sees the VAT one expired, grants and revokes a consent to the seeded test recipient; `acme.admin` approves
+  it; `beta.admin` does not see it; the vendor opens `beta.localhost:8443/vendor`, is sent to `/vendor/join`, joins and
+  signs in again; `beta.admin` then sees it pending while acme still shows it approved; the last step fails on any
+  browser console error (a failed interactive circuit). Needs the realm with self-registration (docs/07 section 4,
+  "Vendor slice"), the migrator's `--seed-dev` (the test recipient) and both the web host and the worker. The vendor's
+  generated password and the two PDFs live in `.state/`; screenshots in `shots-vendor/`; results in
+  `vendor-results.json`. Run with `node vendor.mjs` (about two minutes).
 - **`check.mjs`** — a smaller foundation smoke check: Arabic and RTL rendering on the tenant home page, the language
   switch changing `<html lang>` without a full reload, and that a `beta.admin` token is refused on the `acme` host
   (tenant isolation). Takes the `.env` path and a screenshot output directory as arguments, since it predates the

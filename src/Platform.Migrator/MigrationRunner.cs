@@ -3,6 +3,7 @@ using Platform.Modules.Audit;
 using Platform.Modules.Identity;
 using Platform.Modules.Operations;
 using Platform.Modules.Tenancy;
+using Platform.Modules.Vendors;
 using Platform.Modules.Workflow;
 using Platform.Shared;
 
@@ -23,6 +24,7 @@ public static class MigrationRunner
         applied.AddRange(Named("identity", await IdentityModule.MigrateAsync(connection, cancellationToken)));
         applied.AddRange(Named("workflow", await WorkflowModule.MigrateAsync(connection, cancellationToken)));
         applied.AddRange(Named("operations", await OperationsModule.MigrateAsync(connection, cancellationToken)));
+        applied.AddRange(Named("vendors", await VendorsModule.MigrateAsync(connection, cancellationToken)));
         return applied;
     }
 

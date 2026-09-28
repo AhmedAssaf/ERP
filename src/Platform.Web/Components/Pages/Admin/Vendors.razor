@@ -1,0 +1,104 @@
+@*
+    F-10 as narrowed (docs/05 row 22, vendor plan task 5, V-7, V-11): the tenant's vendors, pending and approved, with
+    their CR number, status with this tenant and whether their required documents are complete and valid today. Only
+    companies related to this tenant are listed (vendor.related_companies). Filtered by ?status=pending or ?status=approved
+    through plain links, so the page needs no circuit. Contracts officers and tenant admins only (VendorManager policy).
+*@
+@page "/admin/vendors"
+@attribute [Authorize(Policy = VendorPolicies.VendorManager)]
+@using System.Globalization
+@using Platform.Modules.Vendors.Contracts
+@inject IVendorDirectory Directory
+@inject ITenantAccessor Tenants
+@inject IStringLocalizer<SharedResource> T
+
+<PageTitle>@T["Admin.Vendors.Title"]</PageTitle>
+
+<h1 class="text-display">@T["Admin.Vendors.Title"]</h1>
+<p class="max-w-prose text-ink-muted">@T["Admin.Vendors.Intro", Tenants.Current?.Branding.PortalName ?? string.Empty]</p>
+
+<nav aria-label="@T["Admin.Vendors.Filter.Label"]" class="flex flex-wrap gap-2">
+    @foreach (var (filter, label) in Filters)
+    {
+        <a href="@FilterHref(filter)" data-filter="@(filter ?? "all")" aria-current="@(filter == _filter ? "page" : null)"
+           class="inline-flex min-h-11 items-center rounded-control border border-line px-4 text-body underline-offset-4 hover:underline aria-[current=page]:border-action aria-[current=page]:font-semibold">
+            @T[label]
+        </a>
+    }
+</nav>
+
+<section aria-labelledby="vendors-heading" class="grid gap-4">
+    <h2 id="vendors-heading" class="sr-only">@T["Admin.Vendors.Table"]</h2>
+    <DataTable Items="_shown" Label="@T["Admin.Vendors.Table"]">
+        <ChildContent>
+            <TemplateColumn TGridItem="RelatedVendor" Title="@T["Admin.Vendors.Column.Name"]">
+                <a href="@($"admin/vendors/{context.Id}")" data-vendor="@context.Id" class="font-semibold underline-offset-4 hover:underline">@Name(context)</a>
+            </TemplateColumn>
+            <TemplateColumn TGridItem="RelatedVendor" Title="@T["Admin.Vendors.Column.Cr"]">
+                <span dir="ltr" class="tabular-nums">@context.CrNumber</span>
+            </TemplateColumn>
+            <TemplateColumn TGridItem="RelatedVendor" Title="@T["Admin.Vendors.Column.Status"]">
+                @if (context.Status == VendorRelationshipStatus.Approved)
+                {
+                    <StatusBadge Tone="StatusTone.Success" data-vendor-status="@($"{context.Id}:approved")">@T["Admin.Vendors.Status.Approved"]</StatusBadge>
+                }
+                else
+                {
+                    <StatusBadge Tone="StatusTone.Warning" data-vendor-status="@($"{context.Id}:pending")">@T["Admin.Vendors.Status.Pending"]</StatusBadge>
+                }
+            </TemplateColumn>
+            <TemplateColumn TGridItem="RelatedVendor" Title="@T["Admin.Vendors.Column.Documents"]">
+                @if (context.BlockingDocuments.Count == 0)
+                {
+                    <StatusBadge Tone="StatusTone.Success" data-vendor-documents="@($"{context.Id}:valid")">@T["Admin.Vendors.Documents.Valid"]</StatusBadge>
+                }
+                else
+                {
+                    <StatusBadge Tone="StatusTone.Danger" data-vendor-documents="@($"{context.Id}:blocking")">
+                        @T["Admin.Vendors.Documents.Blocking", string.Join(T["Admin.Vendors.Documents.Separator"].Value, context.BlockingDocuments.Select(b => DocumentName(b.NameAr, b.NameEn)))]
+                    </StatusBadge>
+                }
+            </TemplateColumn>
+        </ChildContent>
+        <EmptyContent>
+            <EmptyState Title="@T["Admin.Vendors.EmptyTitle"]" HeadingLevel="3">@T["Admin.Vendors.EmptyBody"]</EmptyState>
+        </EmptyContent>
+    </DataTable>
+</section>
+
+@code {
+    private const string Pending = "pending";
+    private const string Approved = "approved";
+
+    private static readonly (string? Filter, string Label)[] Filters =
+    [
+        (null, "Admin.Vendors.Filter.All"),
+        (Pending, "Admin.Vendors.Filter.Pending"),
+        (Approved, "Admin.Vendors.Filter.Approved"),
+    ];
+
+    private IReadOnlyList<RelatedVendor> _shown = [];
+    private string? _filter;
+
+    [SupplyParameterFromQuery(Name = "status")] private string? Status { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Anything but the two known filters shows every vendor.
+        _filter = Status is Pending or Approved ? Status : null;
+        var vendors = await Directory.ListRelatedAsync();
+        _shown = _filter switch
+        {
+            Pending => [.. vendors.Where(v => v.Status == VendorRelationshipStatus.Pending)],
+            Approved => [.. vendors.Where(v => v.Status == VendorRelationshipStatus.Approved)],
+            _ => vendors,
+        };
+    }
+
+    private static string FilterHref(string? filter) => filter is null ? "admin/vendors" : $"admin/vendors?status={filter}";
+
+    private static string Name(RelatedVendor vendor) => DocumentName(vendor.NameAr, vendor.NameEn);
+
+    private static string DocumentName(string arabic, string english) =>
+        CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar" ? arabic : english;
+}

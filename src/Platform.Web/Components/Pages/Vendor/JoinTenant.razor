@@ -1,0 +1,107 @@
+@*
+    The second tenant (vendor plan task 5, spec section 3, ADR-0008, V-7): a signed-in vendor whose company works with
+    another tenant opens /vendor/join on this tenant's host and chooses "Work with {tenant}". That adds it to the tenant's
+    Keycloak organization and creates a pending relationship, audited in this tenant's log (IVendorJoin); then the vendor
+    signs in again so the next token carries the organization, returning to /vendor. A vendor opening /vendor or / on a
+    tenant host it does not work with is sent here (VendorHomeRedirectMiddleware). Static server rendering on purpose:
+    the vendor is not a member of this tenant's organization yet, so no interactive circuit would be authorized for it.
+    The JoiningVendor policy (the Vendor policy without the host check) guards it, and the host sets the vendor context
+    after it passed; the company and user come from that context and the principal, never from the form. A company that
+    already works with this tenant is told so, and keeps the button: a user who lost the organization membership gets it
+    back from here (audited as vendor.membership_restored).
+*@
+@page "/vendor/join"
+@attribute [Authorize(Policy = VendorPolicies.JoiningVendor)]
+@inject IVendorCompanies Companies
+@inject IVendorJoin Join
+@inject ITenantAccessor Tenants
+@inject IStringLocalizer<SharedResource> T
+@inject ILogger<JoinTenant> Logger
+
+<PageTitle>@T["Vendor.Join.Title", TenantName]</PageTitle>
+
+<AppShell Variant="AppShellVariant.Vendor" PortalName="@Tenants.Current?.Branding.PortalName" LogoUrl="@Tenants.Current?.Branding.LogoUrl">
+    <h1 class="text-display font-semibold">@T["Vendor.Join.Title", TenantName]</h1>
+
+    @if (_joined)
+    {
+        <section data-vendor-joined class="grid max-w-2xl gap-4">
+            <p role="status">@T["Vendor.Join.Done", TenantName]</p>
+            @SignInAgain
+        </section>
+    }
+    else if (_company?.Relationship is not null)
+    {
+        @* The button stays: a user of a related company who lost the organization membership gets it back here. *@
+        <section data-vendor-already-joined class="grid max-w-2xl gap-4">
+            <p role="status">@T["Vendor.Join.Already", TenantName]</p>
+            <p><a href="vendor" class="underline underline-offset-4">@T["Vendor.Register.GoToVendorHome"]</a></p>
+            @JoinForm
+        </section>
+    }
+    else
+    {
+        <p class="max-w-2xl text-ink-muted">@T["Vendor.Join.Intro", TenantName]</p>
+        @JoinForm
+    }
+</AppShell>
+
+@code {
+    private VendorCompany? _company;
+    private bool _joined;
+    private string? _error;
+
+    private string TenantName => Tenants.Current?.Branding.PortalName ?? string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _company = await Companies.CurrentAsync();
+    }
+
+    private async Task JoinAsync()
+    {
+        _error = null;
+        try
+        {
+            var result = await Join.JoinAsync();
+            if (result.IsSuccess)
+            {
+                _joined = true;
+                return;
+            }
+
+            _error = T["Vendor.Join.Error.Generic"];
+        }
+        catch (Exception ex)
+        {
+            VendorPageLog.JoinFailed(Logger, ex.GetType().Name);
+            _error = T["Vendor.Join.Error.Generic"];
+        }
+    }
+
+    // The one form of the page (a static form is dispatched by its name, so it renders once in either branch).
+    private RenderFragment JoinForm => __builder =>
+    {
+        <form method="post" @formname="vendor-join" @onsubmit="JoinAsync" data-vendor-join-form class="grid max-w-2xl gap-4">
+            <AntiforgeryToken />
+            @if (_error is not null)
+            {
+                <p role="alert" class="text-body text-danger" data-form-error>@_error</p>
+            }
+
+            <div>
+                <Button Type="submit" Variant="ButtonVariant.Primary">@T["Vendor.Join.Submit", TenantName]</Button>
+            </div>
+        </form>
+    };
+
+    // Signs out of this host's session and back in, returning to /vendor, so the next token carries the organization.
+    private RenderFragment SignInAgain => __builder =>
+    {
+        <form method="post" action="/account/sign-out" data-vendor-sign-out>
+            <AntiforgeryToken />
+            <input type="hidden" name="returnUrl" value="/vendor" />
+            <Button Type="submit" Variant="ButtonVariant.Primary">@T["Vendor.Register.SignInAgain"]</Button>
+        </form>
+    };
+}

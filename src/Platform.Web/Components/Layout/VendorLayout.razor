@@ -1,0 +1,28 @@
+@*
+    The vendor frame on a tenant host (vendor spec section 4): the tenant's own brand only (F-02), never WaslaBid's, named
+    as the tenant's supplier portal, with vendor navigation only and never a staff link. The user menu names the signed-in
+    vendor user and signs out of the tenant realm.
+*@
+@inherits LayoutComponentBase
+@inject IStringLocalizer<SharedResource> T
+@inject ITenantAccessor Tenants
+
+<AppShell Variant="AppShellVariant.Vendor" PortalName="@Tenants.Current?.Branding.PortalName" LogoUrl="@Tenants.Current?.Branding.LogoUrl" UserName="@_userName">
+    <Navigation>
+        <NavLink href="vendor" Match="NavLinkMatch.All" class="@LinkClass">@T["Vendor.Nav.Home"]</NavLink>
+        <NavLink href="vendor/consent" class="@LinkClass">@T["Vendor.Nav.Consent"]</NavLink>
+    </Navigation>
+    <ChildContent>@Body</ChildContent>
+</AppShell>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    private string? _userName;
+
+    protected override async Task OnParametersSetAsync() =>
+        _userName = AuthenticationState is null ? null : (await AuthenticationState).User.Identity?.Name;
+
+    private const string LinkClass =
+        "whitespace-nowrap py-1 underline-offset-4 hover:underline aria-[current=page]:font-semibold aria-[current=page]:underline";
+}

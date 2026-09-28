@@ -1,0 +1,216 @@
+@*
+    F-11 (vendor plan task 2, spec section 3, V-6, V-14): a signed-in user with a verified email registers their company
+    on the tenant's host. Static server rendering on purpose: the user is not a member of the tenant's organization yet,
+    so no interactive circuit would be authorized for them. The user id and email come from the principal, never from the
+    form; the tenant is the host's. Before the form, the page asks the registration service what it would refuse for
+    this user (a company already, tenant staff, a member of another organization) and says so instead of the form; when
+    Keycloak cannot answer, the form shows and the registration decides. The form carries the culture the privacy notice
+    was shown in, stored with the acceptance. Every field error shows at once in the user's language; after success the
+    page signs the user out and back in (returning to /vendor), so the next token carries the realm role vendor and the
+    organization.
+*@
+@page "/vendor/register/company"
+@using System.Globalization
+@attribute [Authorize(Policy = VendorPolicies.VendorApplicant)]
+@inject IVendorRegistration Registration
+@inject ITenantAccessor Tenants
+@inject IStringLocalizer<SharedResource> T
+@inject ILogger<RegisterCompany> Logger
+
+<PageTitle>@T["Vendor.Register.Title"]</PageTitle>
+
+<AppShell Variant="AppShellVariant.Tenant" PortalName="@Tenants.Current?.Branding.PortalName" LogoUrl="@Tenants.Current?.Branding.LogoUrl">
+    <h1 class="text-display font-semibold">@T["Vendor.Register.Title"]</h1>
+
+    @if (_registered)
+    {
+        <section data-vendor-registered class="grid max-w-2xl gap-4">
+            <p role="status">@T["Vendor.Register.Done"]</p>
+            <form method="post" action="/account/sign-out" data-vendor-sign-out>
+                <AntiforgeryToken />
+                <input type="hidden" name="returnUrl" value="/vendor" />
+                <Button Type="submit" Variant="ButtonVariant.Primary">@T["Vendor.Register.SignInAgain"]</Button>
+            </form>
+        </section>
+    }
+    else if (_check == VendorRegistrationCheck.AlreadyRegistered)
+    {
+        <p data-vendor-already class="max-w-2xl">@T["Vendor.Register.AlreadyRegistered"]</p>
+        <p><a href="vendor" class="underline underline-offset-4">@T["Vendor.Register.GoToVendorHome"]</a></p>
+    }
+    else if (_check == VendorRegistrationCheck.StaffAccount)
+    {
+        <p data-vendor-refused role="status" class="max-w-2xl">@T["Vendor.Register.Error.StaffAccount"]</p>
+    }
+    else
+    {
+        <p class="max-w-2xl text-ink-muted">@T["Vendor.Register.Intro"]</p>
+        <form method="post" @formname="vendor-register" @onsubmit="SubmitAsync" data-vendor-register class="grid max-w-2xl gap-4" novalidate>
+            <AntiforgeryToken />
+            <TextField Label="@T["Vendor.Field.CrNumber"]" Help="@T["Vendor.Field.CrNumber.Help"]" Required="true" name="Input.CrNumber"
+                       Value="@Input!.CrNumber" Error="@Message(VendorErrors.InvalidCrNumber)" dir="ltr" inputmode="numeric" autocomplete="off" />
+            <TextField Label="@T["Vendor.Field.NameAr"]" Required="true" name="Input.NameAr" Value="@Input.NameAr"
+                       Error="@Message(VendorErrors.InvalidNameAr)" dir="rtl" lang="ar" autocomplete="organization" />
+            <TextField Label="@T["Vendor.Field.NameEn"]" Required="true" name="Input.NameEn" Value="@Input.NameEn"
+                       Error="@Message(VendorErrors.InvalidNameEn)" dir="ltr" lang="en" autocomplete="organization" />
+            <TextField Label="@T["Vendor.Field.VatNumber"]" Help="@T["Vendor.Field.VatNumber.Help"]" Required="true" name="Input.VatNumber"
+                       Value="@Input.VatNumber" Error="@Message(VendorErrors.InvalidVatNumber)" dir="ltr" inputmode="numeric" autocomplete="off" />
+            <TextField Label="@T["Vendor.Field.Address"]" name="Input.Address" Value="@Input.Address"
+                       Error="@Message(VendorErrors.InvalidAddress)" autocomplete="street-address" />
+            <TextField Label="@T["Vendor.Field.ContactName"]" Required="true" name="Input.ContactName" Value="@Input.ContactName"
+                       Error="@Message(VendorErrors.InvalidContactName)" autocomplete="name" />
+            <TextField Label="@T["Vendor.Field.ContactPhone"]" Type="tel" name="Input.ContactPhone" Value="@Input.ContactPhone"
+                       Error="@Message(VendorErrors.InvalidContactPhone)" dir="ltr" autocomplete="tel" />
+            <TextField Label="@T["Vendor.Field.ContactEmail"]" Type="email" Required="true" name="Input.ContactEmail" Value="@Input.ContactEmail"
+                       Error="@Message(VendorErrors.InvalidContactEmail)" dir="ltr" autocomplete="email" />
+
+            <section data-privacy-notice="@VendorPrivacyNotice.CurrentVersion" aria-labelledby="privacy-heading"
+                     class="grid gap-3 rounded-card border border-line bg-surface p-4">
+                <h2 id="privacy-heading" class="text-heading">@T["Vendor.Privacy.Heading"]</h2>
+                <p class="text-body">@T["Vendor.Privacy.V1"]</p>
+                <input type="hidden" name="Input.PrivacyNoticeCulture" value="@ShownCulture" />
+                <label class="flex min-h-11 cursor-pointer items-center gap-3 text-body">
+                    <input type="checkbox" class="size-5 shrink-0 accent-action" name="Input.AcceptedPrivacyNotice"
+                           value="@VendorPrivacyNotice.CurrentVersion" checked="@(Input.AcceptedPrivacyNotice == VendorPrivacyNotice.CurrentVersion)"
+                           aria-invalid="@(Message(VendorErrors.PrivacyNoticeRequired) is null ? null : "true")"
+                           aria-describedby="@(Message(VendorErrors.PrivacyNoticeRequired) is null ? null : "privacy-error")" />
+                    @T["Vendor.Privacy.Accept"]
+                </label>
+                @if (Message(VendorErrors.PrivacyNoticeRequired) is { } privacyError)
+                {
+                    <p id="privacy-error" class="text-small text-danger">@privacyError</p>
+                }
+            </section>
+
+            @if (_formError is not null)
+            {
+                <p role="alert" class="text-body text-danger" data-form-error>@_formError</p>
+            }
+
+            <div>
+                <Button Type="submit" Variant="ButtonVariant.Primary">@T["Vendor.Register.Submit"]</Button>
+            </div>
+        </form>
+    }
+</AppShell>
+
+@code {
+    private readonly Dictionary<string, string> _fieldErrors = new(StringComparer.Ordinal);
+    private string? _formError;
+    private bool _registered;
+    private VendorRegistrationCheck _check = VendorRegistrationCheck.Open;
+
+    [CascadingParameter] private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    [SupplyParameterFromForm(FormName = "vendor-register")] private RegistrationForm? Input { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Input ??= new RegistrationForm();
+        // The service refuses a post from such a user as well; this only says so before the form.
+        _check = await Registration.CheckAsync();
+    }
+
+    // The culture the notice text below is shown in: the Arabic text for an Arabic UI culture, the English one otherwise.
+    private static string ShownCulture =>
+        CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar" ? VendorPrivacyNotice.Arabic : VendorPrivacyNotice.English;
+
+    private async Task SubmitAsync()
+    {
+        _fieldErrors.Clear();
+        _formError = null;
+        var registration = Input!.ToRegistration();
+        var errors = Registration.Validate(registration);
+        if (errors.Count > 0)
+        {
+            foreach (var error in errors)
+            {
+                _fieldErrors[error.Code] = FieldMessage(error.Code);
+            }
+
+            return;
+        }
+
+        var user = AuthenticationState is null ? null : (await AuthenticationState).User;
+        var userId = user?.FindFirst(IdentityClaims.Subject)?.Value;
+        var email = user?.FindFirst(IdentityClaims.Email)?.Value;
+        if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(email))
+        {
+            _formError = T["Vendor.Register.Error.Generic"];
+            return;
+        }
+
+        try
+        {
+            // The user is the acting user the host set from this principal; the service never takes it as an argument.
+            var result = await Registration.RegisterCompanyAsync(registration, email);
+            if (result.IsSuccess)
+            {
+                _registered = true;
+                return;
+            }
+
+            if (result.Error.Kind == ErrorKind.Validation)
+            {
+                _fieldErrors[result.Error.Code] = FieldMessage(result.Error.Code);
+                return;
+            }
+
+            _formError = result.Error.Code switch
+            {
+                VendorErrors.DuplicateCr => T["Vendor.Register.Error.Duplicate"],
+                VendorErrors.AlreadyRegistered => T["Vendor.Register.AlreadyRegistered"],
+                VendorErrors.StaffAccount => T["Vendor.Register.Error.StaffAccount"],
+                _ => T["Vendor.Register.Error.Generic"],
+            };
+        }
+        catch (Exception ex)
+        {
+            VendorPageLog.RegisterFailed(Logger, ex.GetType().Name);
+            _formError = T["Vendor.Register.Error.Generic"];
+        }
+    }
+
+    private string? Message(string code) => _fieldErrors.GetValueOrDefault(code);
+
+    private string FieldMessage(string code) => code switch
+    {
+        VendorErrors.InvalidCrNumber => T["Vendor.Register.Error.CrNumber"],
+        VendorErrors.InvalidNameAr => T["Vendor.Register.Error.NameAr"],
+        VendorErrors.InvalidNameEn => T["Vendor.Register.Error.NameEn"],
+        VendorErrors.InvalidVatNumber => T["Vendor.Register.Error.VatNumber"],
+        VendorErrors.InvalidAddress => T["Vendor.Register.Error.Address"],
+        VendorErrors.InvalidContactName => T["Vendor.Register.Error.ContactName"],
+        VendorErrors.InvalidContactPhone => T["Vendor.Register.Error.ContactPhone"],
+        VendorErrors.InvalidContactEmail => T["Vendor.Register.Error.ContactEmail"],
+        VendorErrors.PrivacyNoticeRequired => T["Vendor.Register.Error.Privacy"],
+        _ => T["Vendor.Register.Error.Generic"],
+    };
+
+    /// <summary>The posted form, bound by name (<c>Input.CrNumber</c>, ...).</summary>
+    private sealed class RegistrationForm
+    {
+        public string? CrNumber { get; set; }
+
+        public string? NameAr { get; set; }
+
+        public string? NameEn { get; set; }
+
+        public string? VatNumber { get; set; }
+
+        public string? Address { get; set; }
+
+        public string? ContactName { get; set; }
+
+        public string? ContactPhone { get; set; }
+
+        public string? ContactEmail { get; set; }
+
+        public string? AcceptedPrivacyNotice { get; set; }
+
+        public string? PrivacyNoticeCulture { get; set; }
+
+        public VendorRegistration ToRegistration() => new(
+            CrNumber, NameAr, NameEn, VatNumber, Address, ContactName, ContactPhone, ContactEmail, AcceptedPrivacyNotice, PrivacyNoticeCulture);
+    }
+}

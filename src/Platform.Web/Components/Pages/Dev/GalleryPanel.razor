@@ -24,6 +24,14 @@
                 <ChildContent><p class="text-ink-muted">@T["Gallery.Sample.PageBody"]</p></ChildContent>
             </AppShell>
         </div>
+        <div class="overflow-hidden rounded-card border border-line">
+            <AppShell Variant="AppShellVariant.Vendor" PortalName="@T["Gallery.Sample.PortalName"]" UserName="@T["Gallery.Sample.UserName"]">
+                <Navigation>
+                    <a href="/dev/gallery" aria-current="page" class="border-b-2 border-current py-1 font-semibold">@T["Gallery.Sample.NavCompany"]</a>
+                </Navigation>
+                <ChildContent><p class="text-ink-muted">@T["Gallery.Sample.PageBody"]</p></ChildContent>
+            </AppShell>
+        </div>
     </GallerySection>
 
     <GallerySection Name="Button" Title="@T["Gallery.Section.Button"]">
@@ -105,6 +113,22 @@
         </EmptyState>
     </GallerySection>
 
+    <GallerySection Name="FileUpload" Title="@T["Gallery.Section.FileUpload"]">
+        @* The component as a page shows it (idle; the script loads on the first file choice), then each state of its status line. *@
+        <div class="rounded-card border border-line p-4">
+            <FileUpload Label="@T["Gallery.Sample.UploadLabel"]" DocumentType="sample" AcceptedTypes="UploadTypes" MaxBytes="10 * 1024 * 1024"
+                        ExpiryRequired="true" EndpointBaseUrl="/dev/gallery/uploads" />
+        </div>
+        <div class="grid gap-4 rounded-card border border-line p-4 sm:grid-cols-2">
+            <FileUploadStatus State="FileUploadState.Uploading" Percent="40" />
+            <FileUploadStatus State="FileUploadState.Scanning" />
+            <FileUploadStatus State="FileUploadState.Pending" />
+            <FileUploadStatus State="FileUploadState.Done" />
+            <FileUploadStatus State="FileUploadState.Rejected" Reason="@T["Gallery.Sample.UploadRejected"]" />
+            <FileUploadStatus State="FileUploadState.Failed" />
+        </div>
+    </GallerySection>
+
     <GallerySection Name="AuditList" Title="@T["Gallery.Section.AuditList"]">
         <AuditList Label="@T["Gallery.Sample.AuditLabel"]" Entries="Audit" />
     </GallerySection>
@@ -116,6 +140,8 @@
     private IReadOnlyList<HealthSample> Health { get; set; } = [];
 
     private IReadOnlyList<AuditEntry> Audit { get; set; } = [];
+
+    private static readonly string[] UploadTypes = ["application/pdf", "image/png", "image/jpeg"];
 
     protected override void OnInitialized()
     {

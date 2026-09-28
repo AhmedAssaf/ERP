@@ -96,7 +96,8 @@ services:
       retries: 20
 
   minio-init:
-    # One-shot: creates the dev bucket and a least-privilege health-probe user (list-only, spec section 6), then exits.
+    # One-shot: creates the dev bucket, a least-privilege health-probe user (list-only, spec section 6) and the
+    # lifecycle rule that expires upload staging after 2 days (vendor spec V-9), then exits.
     # The -dev variant carries the shell the entrypoint below needs.
     image: cgr.dev/chainguard/minio-client@sha256:fdb40d819ca51969c86fa76f45a67bb841759daf85d4c6ce9aa86d27f6e47ae9
     container_name: erp-minio-init
@@ -111,6 +112,7 @@ services:
       printf '%s' '{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":[\"s3:ListBucket\"],\"Resource\":[\"arn:aws:s3:::${STORAGE_BUCKET:-erp-dev}\"]}]}' > /tmp/health-probe-policy.json &&
       mc admin policy create local health-probe-read /tmp/health-probe-policy.json &&
       mc admin policy attach local health-probe-read --user health-probe &&
+      printf '%s' '{\"Rules\":[{\"ID\":\"expire-staging\",\"Status\":\"Enabled\",\"Filter\":{\"Prefix\":\"staging/\"},\"Expiration\":{\"Days\":2}}]}' | mc ilm import local/${STORAGE_BUCKET:-erp-dev} &&
       echo 'bucket ready: ${STORAGE_BUCKET:-erp-dev}'"
 
   clamav:

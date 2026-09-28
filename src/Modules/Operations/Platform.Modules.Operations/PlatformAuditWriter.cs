@@ -4,7 +4,12 @@ using Platform.Modules.Operations.Contracts;
 
 namespace Platform.Modules.Operations;
 
-internal sealed class PlatformAuditWriter(IDbContextFactory<OperationsDbContext> contexts, TimeProvider clock) : IPlatformAudit
+/// <summary>
+/// Writes <c>ops.platform_audit</c> through <c>ops.write_platform_audit</c> (operations migration 0004): the application
+/// role holds no INSERT on the table, the function sets the time, and a session with a tenant or vendor context may write
+/// only as its own acting user.
+/// </summary>
+internal sealed class PlatformAuditWriter(IDbContextFactory<OperationsDbContext> contexts) : IPlatformAudit
 {
     private static readonly Dictionary<string, string?> NoData = [];
 
@@ -13,16 +18,10 @@ internal sealed class PlatformAuditWriter(IDbContextFactory<OperationsDbContext>
         ArgumentNullException.ThrowIfNull(entry);
 
         await using var db = await contexts.CreateDbContextAsync(cancellationToken);
-        db.PlatformAudit.Add(new PlatformAuditRow
-        {
-            Id = Guid.CreateVersion7(),
-            OccurredAt = clock.GetUtcNow(),
-            ActorId = entry.ActorId,
-            Action = entry.Action,
-            SubjectType = entry.SubjectType,
-            SubjectId = entry.SubjectId,
-            Data = JsonSerializer.Serialize(entry.Data ?? NoData),
-        });
-        await db.SaveChangesAsync(cancellationToken);
+        var id = Guid.CreateVersion7();
+        var data = JsonSerializer.Serialize(entry.Data ?? NoData);
+        await db.Database.ExecuteSqlAsync(
+            $"select ops.write_platform_audit({id}, {entry.ActorId}, {entry.Action}, {entry.SubjectType}, {entry.SubjectId}, {data}::jsonb)",
+            cancellationToken);
     }
 }

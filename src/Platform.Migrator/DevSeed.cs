@@ -27,6 +27,9 @@ public static class DevSeed
 
     public static IReadOnlyList<DevTenant> Tenants { get; } = [Acme, Beta];
 
+    /// <summary>The development seed's consent recipient (V-13): no real recipient exists yet and no migration adds one.</summary>
+    public static Guid TestRecipientId { get; } = Guid.Parse("0f0e0d0c-0000-7000-8000-0000000c0e01");
+
     public static async Task SeedTenantsAsync(string ownerConnectionString, CancellationToken cancellationToken = default)
     {
         await using var connection = new NpgsqlConnection(ownerConnectionString);
@@ -102,5 +105,22 @@ public static class DevSeed
             command.Parameters.AddWithValue("roles", new[] { TenantRoles.TenantAdmin });
             await command.ExecuteNonQueryAsync(cancellationToken);
         }
+    }
+
+    /// <summary>
+    /// Adds the test consent recipient ("Test finance partner" in both languages) so the consent screen and its check can
+    /// be exercised locally (V-13, F-64). As the owner: the application role may only read <c>vendor.recipients</c>.
+    /// </summary>
+    public static async Task SeedConsentRecipientsAsync(string ownerConnectionString, CancellationToken cancellationToken = default)
+    {
+        await using var connection = new NpgsqlConnection(ownerConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = new NpgsqlCommand("""
+            insert into vendor.recipients (id, name_ar, name_en)
+            values (@id, 'شريك تمويل تجريبي', 'Test finance partner')
+            on conflict (id) do nothing;
+            """, connection);
+        command.Parameters.AddWithValue("id", TestRecipientId);
+        await command.ExecuteNonQueryAsync(cancellationToken);
     }
 }

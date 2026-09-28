@@ -9,13 +9,20 @@ namespace Platform.Shared.Data;
 /// <summary>
 /// Sets app.tenant_id on every connection EF Core opens so PostgreSQL row-level security sees the current tenant.
 /// With no tenant it sets the empty string, which platform.current_tenant() reads as NULL: zero rows, inserts rejected.
+/// It sets app.vendor_company_id the same way from the vendor accessor (platform.current_vendor_company(), vendor
+/// tables), so a connection carries both the host's tenant and, for a signed-in vendor user, its company. It sets
+/// app.user_id from the acting-user accessor (platform.current_user_id()), the authenticated principal's sub, so
+/// security-definer functions record who acted without trusting a parameter.
 /// Npgsql resets session state when the connection goes back to the pool.
 /// The first open per connection string checks the role: a superuser or BYPASSRLS role would silently ignore every
 /// policy, so such a connection is refused instead of used.
 /// </summary>
-public sealed class TenantConnectionInterceptor(ITenantAccessor tenants) : DbConnectionInterceptor
+public sealed class TenantConnectionInterceptor(ITenantAccessor tenants, IVendorAccessor vendors, IActingUserAccessor actingUser)
+    : DbConnectionInterceptor
 {
-    private const string SetTenantSql = "select set_config('app.tenant_id', @tenant, false)";
+    private const string SetContextSql =
+        "select set_config('app.tenant_id', @tenant, false), set_config('app.vendor_company_id', @vendor, false), "
+        + "set_config('app.user_id', @user, false)";
     private const string BypassesRlsSql = "select rolsuper or rolbypassrls from pg_roles where rolname = current_user";
 
     // Verdict per connection string: true when its role bypasses row-level security.
@@ -70,11 +77,21 @@ public sealed class TenantConnectionInterceptor(ITenantAccessor tenants) : DbCon
     private DbCommand CreateCommand(DbConnection connection)
     {
         var command = connection.CreateCommand();
-        command.CommandText = SetTenantSql;
-        var parameter = command.CreateParameter();
-        parameter.ParameterName = "tenant";
-        parameter.Value = tenants.Current?.TenantId.ToString("D", CultureInfo.InvariantCulture) ?? string.Empty;
-        command.Parameters.Add(parameter);
+        command.CommandText = SetContextSql;
+        AddParameter(command, "tenant", tenants.Current?.TenantId);
+        AddParameter(command, "vendor", vendors.Current?.CompanyId);
+        AddParameter(command, "user", actingUser.UserId ?? string.Empty);
         return command;
+    }
+
+    private static void AddParameter(DbCommand command, string name, Guid? value) =>
+        AddParameter(command, name, value?.ToString("D", CultureInfo.InvariantCulture) ?? string.Empty);
+
+    private static void AddParameter(DbCommand command, string name, string value)
+    {
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = name;
+        parameter.Value = value;
+        command.Parameters.Add(parameter);
     }
 }

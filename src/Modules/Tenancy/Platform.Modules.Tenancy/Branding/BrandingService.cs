@@ -19,10 +19,19 @@ namespace Platform.Modules.Tenancy.Branding;
 /// from this process's host cache, so the next request shows the new branding; other web instances follow within the
 /// cache's 60 seconds. Logos go to object storage under <c>tenants/{tenantId}/branding/</c>, named by their SHA-256, so
 /// the URL changes with the content and can be cached for ever.
+/// <para>
+/// Who acts is the request or circuit's acting user (<see cref="IActingUserAccessor"/>), which the database reads from
+/// the session (vendor spec section 2); the <c>actorId</c> a caller passes must be that same user, and anything else is a
+/// defect. The function refuses anyone but an active tenant admin of the tenant, and any vendor user or vendor session
+/// (tenancy migrations 0007 and 0008); that refusal is <see cref="BrandingErrors.NotAllowed"/> on both the name and colour
+/// save and the logo upload.
+/// </para>
 /// </summary>
 internal sealed partial class BrandingService(
     [FromKeyedServices(TenancyModule.DataSourceKey)] NpgsqlDataSource dataSource,
     ITenantAccessor tenants,
+    IVendorAccessor vendors,
+    IActingUserAccessor actingUser,
     ITenantDirectory directory,
     IObjectStorage storage,
     IAuditWriter audit) : IBrandingService
@@ -38,6 +47,7 @@ internal sealed partial class BrandingService(
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(actorId);
         var tenant = RequireTenant();
+        RequireActingUser(actorId);
 
         var name = portalName?.Trim() ?? string.Empty;
         if (name.Length == 0 || name.Length > MaxPortalName || name.Any(char.IsControl) || TextSafety.HasInvisibleOrBidiControl(name))
@@ -58,7 +68,11 @@ internal sealed partial class BrandingService(
 
         requested = requested.ToUpperInvariant();
         var stored = ColorContrast.EnsureContrast(requested, MinimumContrast);
-        var saved = await UpdateAsync(tenant, name, stored, null, cancellationToken);
+        if (await UpdateAsync(tenant, name, stored, null, cancellationToken) is not { } saved)
+        {
+            return Result.Failure<BrandingSaved>(NotAllowed());
+        }
+
         await audit.WriteAsync(
             new AuditEntry(actorId, "tenancy.branding_changed", "tenant", tenant.TenantId.ToString(), new Dictionary<string, string?>
             {
@@ -78,6 +92,12 @@ internal sealed partial class BrandingService(
         ArgumentNullException.ThrowIfNull(content);
         ArgumentException.ThrowIfNullOrWhiteSpace(actorId);
         var tenant = RequireTenant();
+        RequireActingUser(actorId);
+        if (vendors.Current is not null)
+        {
+            // The database refuses a vendor session too; answering first keeps the file out of storage.
+            return Result.Failure<TenantBranding>(NotAllowed());
+        }
 
         var bytes = await ReadAtMostAsync(content, LogoImage.MaxBytes + 1, cancellationToken);
         var processed = LogoImage.Process(bytes, contentType);
@@ -89,7 +109,12 @@ internal sealed partial class BrandingService(
         var logo = processed.Value;
         var hash = Convert.ToHexStringLower(SHA256.HashData(logo.Png));
         await storage.PutAsync(LogoKey(tenant.TenantId, hash), logo.Png, "image/png", cancellationToken);
-        var saved = await UpdateAsync(tenant, null, null, LogoPathPrefix + hash + ".png", cancellationToken);
+        if (await UpdateAsync(tenant, null, null, LogoPathPrefix + hash + ".png", cancellationToken) is not { } saved)
+        {
+            // The stored file stays unreferenced; it is named by its content, so it is harmless and reused on a retry.
+            return Result.Failure<TenantBranding>(NotAllowed());
+        }
+
         await audit.WriteAsync(
             new AuditEntry(actorId, "tenancy.branding_changed", "tenant", tenant.TenantId.ToString(), new Dictionary<string, string?>
             {
@@ -116,14 +141,22 @@ internal sealed partial class BrandingService(
 
     internal static string LogoKey(Guid tenantId, string hash) => $"tenants/{tenantId:D}/branding/logo-{hash}.png";
 
-    private async Task<TenantBranding> UpdateAsync(
+    /// <summary>The saved branding, or null when the database refused the acting user (42501).</summary>
+    private async Task<TenantBranding?> UpdateAsync(
         TenantContext tenant, string? portalName, string? primaryColor, string? logoUrl, CancellationToken cancellationToken)
     {
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
-        await using (var scope = new NpgsqlCommand("select set_config('app.tenant_id', $1, true)", connection, transaction))
+        // The function checks who acts (tenancy migrations 0007 and 0008): an active tenant admin of this tenant, never a
+        // vendor user or session. This connection does not go through the interceptor, so it carries the same settings
+        // itself, from the same accessors.
+        await using (var scope = new NpgsqlCommand(
+            "select set_config('app.tenant_id', $1, true), set_config('app.user_id', $2, true), set_config('app.vendor_company_id', $3, true)",
+            connection, transaction))
         {
             scope.Parameters.Add(new NpgsqlParameter { Value = tenant.TenantId.ToString("D") });
+            scope.Parameters.Add(new NpgsqlParameter { Value = actingUser.UserId ?? string.Empty });
+            scope.Parameters.Add(new NpgsqlParameter { Value = vendors.Current?.CompanyId.ToString("D") ?? string.Empty });
             await scope.ExecuteNonQueryAsync(cancellationToken);
         }
 
@@ -135,14 +168,23 @@ internal sealed partial class BrandingService(
             update.Parameters.Add(new NpgsqlParameter { Value = (object?)portalName ?? DBNull.Value, NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Text });
             update.Parameters.Add(new NpgsqlParameter { Value = (object?)primaryColor ?? DBNull.Value, NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Text });
             update.Parameters.Add(new NpgsqlParameter { Value = (object?)logoUrl ?? DBNull.Value, NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Text });
-            await using var reader = await update.ExecuteReaderAsync(cancellationToken);
-            if (!await reader.ReadAsync(cancellationToken))
+            try
             {
-                throw new InvalidOperationException($"Tenant '{tenant.Slug}' has no row to brand.");
-            }
+                await using var reader = await update.ExecuteReaderAsync(cancellationToken);
+                if (!await reader.ReadAsync(cancellationToken))
+                {
+                    throw new InvalidOperationException($"Tenant '{tenant.Slug}' has no row to brand.");
+                }
 
-            saved = new TenantBranding(reader.GetString(0), reader.GetString(1), reader.IsDBNull(2) ? null : reader.GetString(2));
-            hosts = reader.GetFieldValue<string[]>(3);
+                saved = new TenantBranding(reader.GetString(0), reader.GetString(1), reader.IsDBNull(2) ? null : reader.GetString(2));
+                hosts = reader.GetFieldValue<string[]>(3);
+            }
+            catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.InsufficientPrivilege)
+            {
+                // Not an active tenant admin (any more), or a vendor user: the caller answers NotAllowed. The transaction
+                // is rolled back when it is disposed.
+                return null;
+            }
         }
 
         await transaction.CommitAsync(cancellationToken);
@@ -166,6 +208,17 @@ internal sealed partial class BrandingService(
 
         return buffer.ToArray();
     }
+
+    private void RequireActingUser(string actorId)
+    {
+        if (!string.Equals(actingUser.UserId, actorId, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("A tenant is branded by the acting user of the request or circuit.");
+        }
+    }
+
+    private static Error NotAllowed() =>
+        Error.Refused(BrandingErrors.NotAllowed, "Only an active tenant admin of this tenant can change its branding.");
 
     private TenantContext RequireTenant() =>
         tenants.Current ?? throw new InvalidOperationException("Branding belongs to a tenant; this request or circuit has none.");

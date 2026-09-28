@@ -52,12 +52,15 @@ public sealed class BrandingServiceTests(DatabaseFixture db, MinioFixture minio)
             (await none.ExecuteScalarAsync(Ct)).ShouldBe(0L);
         }
 
+        // As an active tenant admin of that tenant (tenancy migration 0007).
+        await MemberRows.EnsureActiveAdminAsync(db.OwnerConnectionString, mine.TenantId, Actor, Ct);
         await using (var scoped = new NpgsqlCommand("""
-            select set_config('app.tenant_id', @tenant, false);
+            select set_config('app.tenant_id', @tenant, false), set_config('app.user_id', @user, false);
             select count(*) from tenancy.update_branding('Scoped', '#000000', null);
             """, connection))
         {
             scoped.Parameters.AddWithValue("tenant", mine.TenantId.ToString());
+            scoped.Parameters.AddWithValue("user", Actor);
             await scoped.ExecuteNonQueryAsync(Ct);
         }
 
@@ -135,7 +138,8 @@ public sealed class BrandingServiceTests(DatabaseFixture db, MinioFixture minio)
         await using var host = Host();
 
         TenantBranding branding;
-        await using (var scope = host.ScopeFor(tenant))
+        await MemberRows.EnsureActiveAdminAsync(db.OwnerConnectionString, tenant.TenantId, Actor, Ct);
+        await using (var scope = host.ScopeFor(tenant, actingUserId: Actor))
         {
             await using var upload = new MemoryStream(Jpeg(1600, 800));
             var saved = await scope.ServiceProvider.GetRequiredService<IBrandingService>().SaveLogoAsync(upload, "image/jpeg", Actor, Ct);
@@ -166,6 +170,88 @@ public sealed class BrandingServiceTests(DatabaseFixture db, MinioFixture minio)
         }
 
         (await MemberRows.AuditCountAsync(db.OwnerConnectionString, tenant.TenantId, Actor, "tenancy.branding_changed", Ct)).ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Saving_as_someone_other_than_the_acting_user_is_a_defect()
+    {
+        // The database checks the acting user of the session (app.user_id), which comes from the request or circuit's
+        // principal, never from a parameter (vendor spec section 2); an actorId that differs is a caller's bug.
+        var tenant = await TenantRows.InsertAsync(db.OwnerConnectionString, Ct);
+        await MemberRows.EnsureActiveAdminAsync(db.OwnerConnectionString, tenant.TenantId, Actor, Ct);
+        await using var host = Host();
+        await using var scope = host.ScopeFor(tenant, actingUserId: "someone-else");
+        var branding = scope.ServiceProvider.GetRequiredService<IBrandingService>();
+
+        await Should.ThrowAsync<InvalidOperationException>(() => branding.SaveAsync("Mismatch", "#1E4E79", Actor, Ct));
+        await using (var upload = new MemoryStream(Jpeg(200, 100)))
+        {
+            await Should.ThrowAsync<InvalidOperationException>(() => branding.SaveLogoAsync(upload, "image/jpeg", Actor, Ct));
+        }
+
+        (await TenantRows.BrandingAsync(db.AppConnectionString, tenant, Ct)).ShouldBe(tenant.Branding);
+        (await MemberRows.AuditCountAsync(db.OwnerConnectionString, tenant.TenantId, Actor, "tenancy.branding_changed", Ct)).ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task Saving_without_an_acting_user_is_a_defect()
+    {
+        var tenant = await TenantRows.InsertAsync(db.OwnerConnectionString, Ct);
+        await MemberRows.EnsureActiveAdminAsync(db.OwnerConnectionString, tenant.TenantId, Actor, Ct);
+        await using var host = Host();
+        await using var scope = host.ScopeFor(tenant);
+
+        await Should.ThrowAsync<InvalidOperationException>(
+            () => scope.ServiceProvider.GetRequiredService<IBrandingService>().SaveAsync("Nobody", "#1E4E79", Actor, Ct));
+
+        (await TenantRows.BrandingAsync(db.AppConnectionString, tenant, Ct)).ShouldBe(tenant.Branding);
+    }
+
+    [Fact]
+    public async Task An_acting_user_who_is_not_an_active_tenant_admin_is_not_allowed_on_either_path()
+    {
+        var tenant = await TenantRows.InsertAsync(db.OwnerConnectionString, Ct);
+        const string stranger = "branding-stranger";
+        await using var host = Host();
+        await using var scope = host.ScopeFor(tenant, actingUserId: stranger);
+        var branding = scope.ServiceProvider.GetRequiredService<IBrandingService>();
+
+        (await branding.SaveAsync("Stranger", "#1E4E79", stranger, Ct)).Error.ShouldNotBeNull().Code.ShouldBe(BrandingErrors.NotAllowed);
+        await using (var upload = new MemoryStream(Jpeg(200, 100)))
+        {
+            (await branding.SaveLogoAsync(upload, "image/jpeg", stranger, Ct)).Error.ShouldNotBeNull().Code.ShouldBe(BrandingErrors.NotAllowed);
+        }
+
+        (await TenantRows.BrandingAsync(db.AppConnectionString, tenant, Ct)).ShouldBe(tenant.Branding);
+    }
+
+    [Fact]
+    public async Task A_tenant_admin_who_is_also_a_vendor_user_is_not_allowed_with_or_without_a_vendor_context()
+    {
+        // In a circuit the vendor context may be set (name and colour); the logo POST has none. Both refuse the same way:
+        // a vendor user never brands a tenant (V-3: vendors never hold staff rows; the same rule as approve_relationship).
+        var tenant = await TenantRows.InsertAsync(db.OwnerConnectionString, Ct);
+        var dualUser = $"dual-{Guid.NewGuid():N}";
+        var companyId = await VendorRows.RegisterAsync(db.AppConnectionString, tenant, dualUser, VendorRows.NewCrNumber(), "Dual Branding Company", Ct);
+        await MemberRows.EnsureActiveAdminAsync(db.OwnerConnectionString, tenant.TenantId, dualUser, Ct);
+        await using var host = Host();
+
+        await using (var circuit = host.ScopeFor(tenant, companyId, dualUser))
+        {
+            var saved = await circuit.ServiceProvider.GetRequiredService<IBrandingService>().SaveAsync("Dual", "#1E4E79", dualUser, Ct);
+            saved.Error.ShouldNotBeNull().Code.ShouldBe(BrandingErrors.NotAllowed);
+        }
+
+        await using (var request = host.ScopeFor(tenant, actingUserId: dualUser))
+        {
+            var branding = request.ServiceProvider.GetRequiredService<IBrandingService>();
+            (await branding.SaveAsync("Dual", "#1E4E79", dualUser, Ct)).Error.ShouldNotBeNull().Code.ShouldBe(BrandingErrors.NotAllowed);
+            await using var upload = new MemoryStream(Jpeg(200, 100));
+            (await branding.SaveLogoAsync(upload, "image/jpeg", dualUser, Ct)).Error.ShouldNotBeNull().Code.ShouldBe(BrandingErrors.NotAllowed);
+        }
+
+        (await TenantRows.BrandingAsync(db.AppConnectionString, tenant, Ct)).ShouldBe(tenant.Branding);
+        (await MemberRows.AuditCountAsync(db.OwnerConnectionString, tenant.TenantId, dualUser, "tenancy.branding_changed", Ct)).ShouldBe(0);
     }
 
     [Theory]
@@ -214,9 +300,10 @@ public sealed class BrandingServiceTests(DatabaseFixture db, MinioFixture minio)
     private ModuleHost Host() =>
         new(db.AppConnectionString, objectStorage: new ConfigurationBuilder().AddInMemoryCollection(minio.Settings).Build());
 
-    private static async Task<Platform.Shared.Results.Result<BrandingSaved>> SaveAsync(ModuleHost host, TenantContext tenant, string name, string colour)
+    private async Task<Platform.Shared.Results.Result<BrandingSaved>> SaveAsync(ModuleHost host, TenantContext tenant, string name, string colour)
     {
-        await using var scope = host.ScopeFor(tenant);
+        await MemberRows.EnsureActiveAdminAsync(db.OwnerConnectionString, tenant.TenantId, Actor, Ct);
+        await using var scope = host.ScopeFor(tenant, actingUserId: Actor);
         return await scope.ServiceProvider.GetRequiredService<IBrandingService>().SaveAsync(name, colour, Actor, Ct);
     }
 

@@ -12,8 +12,10 @@ public sealed record BrandingSaved(TenantBranding Branding, string RequestedColo
 
 /// <summary>
 /// The current tenant's branding (F-02 as narrowed, spec 4.3 and D-9 to D-11): portal name, primary colour and logo.
-/// Every call works on the tenant of the current request or circuit and can change only that tenant. Error codes are the
-/// constants of <see cref="BrandingErrors"/>.
+/// Every call works on the tenant of the current request or circuit and can change only that tenant. A save acts as the
+/// request or circuit's acting user: <c>actorId</c> must be that user (anything else throws), and a user who is not an
+/// active tenant admin of the tenant, or who is a vendor user, gets <see cref="BrandingErrors.NotAllowed"/>. Error codes
+/// are the constants of <see cref="BrandingErrors"/>.
 /// </summary>
 public interface IBrandingService
 {
@@ -47,4 +49,7 @@ public static class BrandingErrors
     public const string LogoNotImage = "tenancy.logo_not_image";
     public const string LogoTooManyPixels = "tenancy.logo_too_many_pixels";
     public const string LogoUnreadable = "tenancy.logo_unreadable";
+
+    /// <summary>The acting user is not an active tenant admin of this tenant, or is a vendor user (tenancy migration 0008).</summary>
+    public const string NotAllowed = "tenancy.branding_not_allowed";
 }

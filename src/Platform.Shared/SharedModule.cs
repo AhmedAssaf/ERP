@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Npgsql;
 using Platform.Shared.Data;
 using Platform.Shared.Email;
+using Platform.Shared.Scanning;
 using Platform.Shared.Storage;
 using Platform.Shared.Tenancy;
 
@@ -17,11 +18,31 @@ public static class SharedModule
         services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<TenantAccessor>();
         services.AddScoped<ITenantAccessor>(sp => sp.GetRequiredService<TenantAccessor>());
+        services.AddScoped<VendorAccessor>();
+        services.AddScoped<IVendorAccessor>(sp => sp.GetRequiredService<VendorAccessor>());
+        services.AddScoped<ActingUserAccessor>();
+        services.AddScoped<IActingUserAccessor>(sp => sp.GetRequiredService<ActingUserAccessor>());
         services.AddScoped<PlatformRequestContext>();
         services.AddScoped<IPlatformRequestContext>(sp => sp.GetRequiredService<PlatformRequestContext>());
         // Unconfigured until the host calls AddObjectStorage; using it then throws rather than guessing a bucket.
         services.TryAddSingleton(ObjectStorageSettings.None);
         services.TryAddSingleton<IObjectStorage, S3ObjectStorage>();
+        // Unconfigured until the host calls AddVirusScanner: every scan is then unavailable, so nothing is listed unscanned.
+        services.TryAddSingleton(ClamAvSettings.None);
+        services.TryAddSingleton<IVirusScanner, ClamAvScanner>();
+        return services;
+    }
+
+    /// <summary>
+    /// Configures the virus scanner (<see cref="IVirusScanner"/>, ClamAV) from <c>ClamAv:*</c> (<see cref="ClamAvSettings"/>),
+    /// the keys the worker's ClamAV health check reads. Without a host, scanning stays unavailable.
+    /// </summary>
+    public static IServiceCollection AddVirusScanner(this IServiceCollection services, IConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configuration);
+        services.Replace(ServiceDescriptor.Singleton(ClamAvSettings.FromConfiguration(configuration)));
+        services.TryAddSingleton<IVirusScanner, ClamAvScanner>();
         return services;
     }
 

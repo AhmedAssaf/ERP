@@ -1,5 +1,6 @@
 using System.Net;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Platform.IntegrationTests.Infrastructure;
 
 namespace Platform.IntegrationTests.Web;
 
@@ -9,7 +10,9 @@ public class HealthEndpointTests
     public async Task Health_endpoint_answers_without_a_database_or_tenant()
     {
         await using var factory = new WebApplicationFactory<Program>()
-            .WithWebHostBuilder(b => b.UseSetting("ConnectionStrings:Platform", "Host=unused;Database=unused"));
+            .WithWebHostBuilder(b => b
+                .UseSetting("ConnectionStrings:Platform", "Host=unused;Database=unused")
+                .UseSetting(TestSecrets.CrAuditKeySetting.Key, TestSecrets.CrAuditKeySetting.Value));
         using var client = factory.CreateClient();
 
         var response = await client.GetAsync(new Uri("/health", UriKind.Relative), TestContext.Current.CancellationToken);

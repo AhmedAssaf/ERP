@@ -11,8 +11,17 @@ namespace Platform.IntegrationTests.Infrastructure;
 /// <summary>
 /// A signed-in user for web tests, sent as a header and turned into the claims Keycloak issues. <paramref name="TokenRoles"/>
 /// become <c>role</c> claims on the token's own identity, as a token that tried to carry tenant roles would.
+/// <paramref name="RealmRoles"/> become <c>roles</c> claims (Keycloak realm roles, the tenant realm's id token mapper);
+/// <paramref name="Email"/> and <paramref name="EmailVerified"/> become <c>email</c> and <c>email_verified</c>.
 /// </summary>
-internal sealed record TestUser(string Subject, IReadOnlyList<string> Organizations, string? Locale = null, IReadOnlyList<string>? TokenRoles = null)
+internal sealed record TestUser(
+    string Subject,
+    IReadOnlyList<string> Organizations,
+    string? Locale = null,
+    IReadOnlyList<string>? TokenRoles = null,
+    IReadOnlyList<string>? RealmRoles = null,
+    string? Email = null,
+    bool EmailVerified = false)
 {
     public const string Header = "X-Test-User";
 
@@ -42,6 +51,16 @@ internal sealed class TestAuthHandler(IOptionsMonitor<AuthenticationSchemeOption
         }
 
         claims.AddRange((user.TokenRoles ?? []).Select(r => new Claim("role", r)));
+        claims.AddRange((user.RealmRoles ?? []).Select(r => new Claim("roles", r)));
+        if (user.Email is not null)
+        {
+            claims.Add(new Claim("email", user.Email));
+        }
+
+        if (user.EmailVerified)
+        {
+            claims.Add(new Claim("email_verified", "true"));
+        }
 
         var identity = new ClaimsIdentity(claims, SchemeName, "preferred_username", "role");
         return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(identity), SchemeName)));

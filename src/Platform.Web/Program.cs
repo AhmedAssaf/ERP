@@ -9,6 +9,8 @@ using Platform.Modules.Identity;
 using Platform.Modules.Identity.Contracts;
 using Platform.Modules.Operations;
 using Platform.Modules.Tenancy;
+using Platform.Modules.Vendors;
+using Platform.Modules.Vendors.Contracts;
 using Platform.Modules.Workflow;
 using Platform.Shared;
 using Platform.Shared.Jobs;
@@ -19,6 +21,7 @@ using Platform.Web.Components;
 using Platform.Web.Localization;
 using Platform.Web.PlatformHost;
 using Platform.Web.Tenancy;
+using Platform.Web.Vendor;
 
 var builder = WebApplication.CreateBuilder(args);
 var platformDb = builder.Configuration.GetConnectionString("Platform");
@@ -48,6 +51,8 @@ builder.Services.AddHealthChecks();
 builder.Services.AddPlatformShared();
 // One bucket for every module (settings ObjectStorage:*): tenant logos (F-02) and storage usage in the console (F-54).
 builder.Services.AddObjectStorage(builder.Configuration);
+// F-12: vendor documents are scanned by ClamAV before they are listed (settings ClamAv:*, as the worker's health check).
+builder.Services.AddVirusScanner(builder.Configuration);
 builder.Services.AddAuditModule(platformDb);
 builder.Services.AddTenancyModule(platformDb);
 builder.Services.AddIdentityModule(platformDb);
@@ -55,6 +60,13 @@ builder.Services.AddIdentityModule(platformDb);
 builder.Services.AddKeycloakAdmin(builder.Configuration);
 builder.Services.AddWorkflowModule(platformDb);
 builder.Services.AddOperationsModule(platformDb);
+// Vendor slice (ADR-0008): one vendor company across tenants.
+builder.Services.AddVendorsModule(platformDb);
+// Vendor pages (F-11): registration, the Vendor policy's company check, and the vendor context after that policy passes.
+builder.Services.AddVendorPortal(builder.Configuration);
+// V-9: the upload API is limited per vendor company (Vendors:UploadRequestsPerMinute).
+builder.Services.AddVendorUploadRateLimit();
+builder.Services.AddScoped<VendorContextResolver>();
 // The web host only enqueues and reads jobs (D-6): Hangfire storage without a server, plus the dashboard (task 7).
 builder.Services.AddJobClient(platformDb);
 builder.Services.AddJobsDashboard();
@@ -62,6 +74,7 @@ builder.Services.AddOperationsConsole(builder.Configuration);
 builder.Services.AddScoped<TenantOverview>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<CircuitHandler, TenantCircuitHandler>();
+builder.Services.AddScoped<CircuitHandler, VendorCircuitHandler>();
 builder.Services.Configure<PlatformHostOptions>(builder.Configuration.GetSection(PlatformHostOptions.Section));
 
 // Two sign-ins side by side (spec 3.1): tenant hosts use the tenant realm and cookie, the platform host the platform
@@ -100,22 +113,40 @@ builder.Services
         options.Scope.Clear();
         options.Scope.Add("openid");
         options.Scope.Add("profile");
-        options.Scope.Add("organization");
+        // Narrowed to the host tenant's organization at each challenge (TenantOrganizationScope).
+        options.Scope.Add(TenantOrganizationScope.Scope);
         // email and email_verified: a member row seeded by email is bound to the user on first sign-in (F-07 dev seed).
         options.Scope.Add("email");
         options.TokenValidationParameters.NameClaimType = IdentityClaims.Username;
         options.Events.OnRedirectToIdentityProviderForSignOut = SignOutEndpoints.NameClientOnEndSession;
+        // F-11: /vendor/register goes to the realm's registration endpoint (VendorRegistrationEndpoints).
+        options.Events.OnRedirectToIdentityProvider = async context =>
+        {
+            await TenantOrganizationScope.Apply(context);
+            await VendorRegistrationEndpoints.UseRegistrationEndpoint(context);
+        };
     })
     .AddPlatformAuthentication(builder.Configuration);
 builder.Services.AddAuthorization(options =>
 {
     // Fallback covers endpoints with no metadata; default covers [Authorize] and RequireAuthorization(). Both are the
-    // tenant policy here; HostAwareAuthorizationPolicyProvider swaps in PlatformAdmin on the platform host.
-    options.FallbackPolicy = IdentityModule.SameTenantPolicy;
-    options.DefaultPolicy = IdentityModule.SameTenantPolicy;
+    // tenant staff policy here (same tenant, never the realm role vendor), so a vendor opens no staff page that forgot
+    // its policy; HostAwareAuthorizationPolicyProvider swaps in PlatformAdmin on the platform host.
+    options.FallbackPolicy = IdentityModule.TenantStaffPolicy;
+    options.DefaultPolicy = IdentityModule.TenantStaffPolicy;
     options.AddPolicy(PlatformAuthentication.PolicyName, PlatformAuthentication.AdminPolicy);
     // F-07: TenantAdmin, ContractsOfficer, TechnicalEvaluator, FinanceApprover (same tenant plus the role in identity.members).
     options.AddTenantRolePolicies();
+    // Vendor pages (spec section 3, V-3): the vendor's own requirements plus membership of the host tenant's organization.
+    options.AddPolicy(VendorPolicies.Vendor, new AuthorizationPolicyBuilder()
+        .Combine(IdentityModule.SameTenantPolicy)
+        .Combine(VendorsModule.VendorRequirements)
+        .Build());
+    options.AddPolicy(VendorPolicies.VendorApplicant, VendorsModule.VendorApplicantPolicy);
+    // /vendor/join (V-7): the vendor's own requirements without the host check, for a tenant it does not work with yet.
+    options.AddPolicy(VendorPolicies.JoiningVendor, VendorsModule.VendorRequirements);
+    // /admin/vendors (V-11): a contracts officer or tenant admin of the host tenant.
+    options.AddPolicy(VendorPolicies.VendorManager, IdentityModule.AnyTenantRolePolicy(TenantRoles.TenantAdmin, TenantRoles.ContractsOfficer));
 });
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, HostAwareAuthorizationPolicyProvider>();
 builder.Services.AddCascadingAuthenticationState();
@@ -165,14 +196,23 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseAuthentication();
+// The acting user (app.user_id) of every connection from here on: the authenticated principal's sub.
+app.UseMiddleware<ActingUserMiddleware>();
 app.UseRequestLocalization();
+// A signed-in vendor who opens the tenant's home goes to the vendor home instead of the staff home's 403.
+app.UseMiddleware<VendorHomeRedirectMiddleware>();
 app.UseAuthorization();
 app.UseMiddleware<PlatformAdminEverywhereMiddleware>();
+app.UseMiddleware<VendorContextMiddleware>();
 app.UseAntiforgery();
+// After the vendor context: the upload API's limit is partitioned by the vendor company.
+app.UseRateLimiter();
 app.MapStaticAssets().AllowAnonymous();
 app.MapHealthChecks("/health").AllowAnonymous();
 app.MapCultureEndpoints();
 app.MapSignOutEndpoints();
+app.MapVendorRegistrationEndpoints();
+app.MapVendorUploadEndpoints();
 app.MapBrandingEndpoints();
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 app.MapJobsDashboard();

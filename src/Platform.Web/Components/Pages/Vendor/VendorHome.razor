@@ -1,0 +1,222 @@
+@*
+    The vendor's home on a tenant host (vendor spec sections 3 and 4, plan task 4; F-11, F-12). The company it acts for,
+    read under the vendor row-level security, with its relationship to this tenant (V-7); the required documents (V-8),
+    one row per type with its status: current, expired or missing as IVendorCompliance decides, and beside it the state of
+    a newer file that is not listed (waiting for the virus scan, or found infected), so a new upload never looks missing;
+    the missing and expired documents named; and an upload per type. The upload goes over chunked HTTP through FileUpload,
+    never through the circuit (ADR-0001); when it finishes the page reads the lists again. Interactive, since FileUpload
+    reports progress. Vendors only (the Vendor policy); staff get 403.
+*@
+@page "/vendor"
+@attribute [Authorize(Policy = VendorPolicies.Vendor)]
+@rendermode InteractiveServer
+@layout Platform.Web.Components.Layout.VendorLayout
+@using System.Globalization
+@using Microsoft.AspNetCore.Components.QuickGrid
+@inject IVendorCompanies Companies
+@inject IVendorDocuments Documents
+@inject IVendorCompliance Compliance
+@inject ITenantAccessor Tenants
+@inject TimeProvider Clock
+@inject IStringLocalizer<SharedResource> T
+
+<PageTitle>@T["Vendor.Home.Title"]</PageTitle>
+
+<h1 class="text-display font-semibold">@T["Vendor.Home.Title"]</h1>
+
+@if (_company is { } company)
+{
+    <section data-vendor-company="@company.Id" aria-labelledby="company-heading" class="grid gap-3 rounded-card border border-line bg-surface p-4">
+        <h2 id="company-heading" class="text-heading">@T["Vendor.Home.Company"]</h2>
+        <dl class="grid gap-x-6 gap-y-2 text-body sm:grid-cols-[auto_1fr]">
+            <dt class="font-semibold">@T["Vendor.Field.NameAr"]</dt>
+            <dd lang="ar" dir="rtl" class="text-start">@company.NameAr</dd>
+            <dt class="font-semibold">@T["Vendor.Field.NameEn"]</dt>
+            <dd lang="en" dir="ltr" class="text-start">@company.NameEn</dd>
+            <dt class="font-semibold">@T["Vendor.Field.CrNumber"]</dt>
+            <dd dir="ltr" class="text-start tabular-nums">@company.CrNumber</dd>
+            <dt class="font-semibold">@T["Vendor.Field.VatNumber"]</dt>
+            <dd dir="ltr" class="text-start tabular-nums">@company.VatNumber</dd>
+            @if (company.Relationship is { } relationship)
+            {
+                <dt class="font-semibold">@T["Vendor.Home.Relationship", Tenants.Current?.Branding.PortalName ?? string.Empty]</dt>
+                <dd>
+                    @if (relationship == VendorRelationshipStatus.Approved)
+                    {
+                        <StatusBadge Tone="StatusTone.Success" data-relationship="approved">@T["Vendor.Relationship.Approved"]</StatusBadge>
+                    }
+                    else
+                    {
+                        <StatusBadge Tone="StatusTone.Warning" data-relationship="pending">@T["Vendor.Relationship.Pending"]</StatusBadge>
+                    }
+                </dd>
+            }
+        </dl>
+    </section>
+
+    <section aria-labelledby="documents-heading" class="grid gap-3">
+        <h2 id="documents-heading" class="text-heading">@T["Vendor.Documents.Heading"]</h2>
+        <p class="max-w-prose text-ink-muted">@T["Vendor.Documents.Intro"]</p>
+        @if (_blocking.Count > 0)
+        {
+            <div role="note" class="grid max-w-prose gap-2 rounded-card border border-warning bg-warning/10 p-4 text-ink">
+                <p class="font-semibold">@T["Vendor.Blocking.Heading"]</p>
+                <ul class="grid list-disc gap-1 ps-5">
+                    @foreach (var item in _blocking)
+                    {
+                        <li data-blocking="@($"{item.Type}:{(item.Reason == BlockingReason.Expired ? "expired" : "missing")}")">
+                            @if (item.Reason == BlockingReason.Expired && item.ExpiredOn is { } expiredOn)
+                            {
+                                @T["Vendor.Blocking.Expired", Name(item.NameAr, item.NameEn), FormatDate(expiredOn)]
+                            }
+                            else
+                            {
+                                @T["Vendor.Blocking.Missing", Name(item.NameAr, item.NameEn)]
+                            }
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+        <DataTable Items="_rows" Label="@T["Vendor.Documents.Table"]">
+            <TemplateColumn TGridItem="DocumentRow" Title="@T["Vendor.Documents.ColumnType"]">
+                <span class="font-semibold">@context.Name</span>
+            </TemplateColumn>
+            <TemplateColumn TGridItem="DocumentRow" Title="@T["Vendor.Documents.ColumnExpiry"]">
+                @if (context.ExpiresOn is { } expiresOn)
+                {
+                    <time datetime="@expiresOn.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)" class="whitespace-nowrap">@FormatDate(expiresOn)</time>
+                }
+                else
+                {
+                    <span class="text-ink-muted">@T["Vendor.Documents.NoFile"]</span>
+                }
+            </TemplateColumn>
+            <TemplateColumn TGridItem="DocumentRow" Title="@T["Vendor.Documents.ColumnStatus"]">
+                <div class="flex flex-wrap gap-2 py-2">
+                    <StatusBadge Tone="@ToneFor(context.Status)" data-document-status="@($"{context.Type}:{context.Status}")">@StatusText(context.Status)</StatusBadge>
+                    @if (context.Attempt is { } attempt)
+                    {
+                        <StatusBadge Tone="@(attempt == VendorDocumentScanState.Infected ? StatusTone.Danger : StatusTone.Info)"
+                                     data-document-attempt="@($"{context.Type}:{(attempt == VendorDocumentScanState.Infected ? "infected" : "pending_scan")}")">
+                            @(attempt == VendorDocumentScanState.Infected ? T["Vendor.Documents.Attempt.Infected"] : T["Vendor.Documents.Attempt.PendingScan"])
+                        </StatusBadge>
+                    }
+                </div>
+            </TemplateColumn>
+        </DataTable>
+    </section>
+
+    <section aria-labelledby="upload-heading" class="grid gap-3">
+        <h2 id="upload-heading" class="text-heading">@T["Vendor.Upload.Heading"]</h2>
+        <p class="max-w-prose text-ink-muted">@T["Vendor.Upload.Intro"]</p>
+        <div class="grid gap-4 lg:grid-cols-2">
+            @foreach (var type in VendorDocumentTypes.All)
+            {
+                <div data-upload-type="@type.Code" class="rounded-card border border-line bg-surface p-4">
+                    <FileUpload Label="@Name(type.NameAr, type.NameEn)" DocumentType="@type.Code"
+                                AcceptedTypes="VendorDocumentLimits.ContentTypes" MaxBytes="VendorDocumentLimits.MaxBytes" ExpiryRequired="true"
+                                EndpointBaseUrl="@Platform.Web.Vendor.UploadEndpoints.BasePath" RejectionText="RejectionText" OnCompleted="ReloadAsync" />
+                </div>
+            }
+        </div>
+    </section>
+}
+
+@code {
+    private VendorCompany? _company;
+    private IReadOnlyList<BlockingDocument> _blocking = [];
+    private IReadOnlyList<DocumentRow> _rows = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _company = await Companies.CurrentAsync();
+        if (_company is not null)
+        {
+            await LoadDocumentsAsync(_company.Id);
+        }
+    }
+
+    private async Task ReloadAsync(FileUploadCompleted completed)
+    {
+        if (_company is not null)
+        {
+            await LoadDocumentsAsync(_company.Id);
+        }
+    }
+
+    private async Task LoadDocumentsAsync(Guid companyId)
+    {
+        var documents = await Documents.ListAsync();
+        var notClean = await Documents.ListNotCleanAsync();
+        _blocking = await Compliance.GetBlockingDocumentsAsync(companyId, Today());
+        _rows = [.. VendorDocumentTypes.All.Select(type => Row(type, documents, notClean))];
+    }
+
+    private DocumentRow Row(VendorDocumentType type, IReadOnlyList<VendorDocument> documents, IReadOnlyList<VendorDocumentNotClean> notClean)
+    {
+        var current = documents.FirstOrDefault(d => d.Type == type.Code && d.IsCurrent);
+        var blocking = _blocking.FirstOrDefault(b => b.Type == type.Code);
+        var status = blocking?.Reason switch
+        {
+            BlockingReason.Expired => "expired",
+            BlockingReason.Missing => "missing",
+            _ => "current",
+        };
+        // Only a file newer than the current one says anything about this type now; older ones are history.
+        var attempt = notClean
+            .Where(d => d.Type == type.Code && (current is null || d.UploadedAt > current.UploadedAt))
+            .OrderByDescending(d => d.UploadedAt)
+            .FirstOrDefault();
+        return new DocumentRow(type.Code, Name(type.NameAr, type.NameEn), current?.ExpiresOn, status, attempt?.ScanState);
+    }
+
+    private string? RejectionText(string code) => code switch
+    {
+        VendorDocumentErrors.TooManyUploads => T["Vendor.Upload.Error.TooMany"].Value,
+        VendorDocumentErrors.WrongType => T["Vendor.Upload.Error.WrongType"].Value,
+        VendorDocumentErrors.TooLarge => T["Vendor.Upload.Error.TooLarge"].Value,
+        VendorDocumentErrors.Empty => T["Vendor.Upload.Error.Empty"].Value,
+        VendorDocumentErrors.InvalidFileName => T["Vendor.Upload.Error.FileName"].Value,
+        VendorDocumentErrors.InvalidExpiry => T["Vendor.Upload.Error.Expiry"].Value,
+        VendorDocumentErrors.Infected => T["Vendor.Upload.Error.Infected"].Value,
+        VendorDocumentErrors.UploadNotFound => T["Vendor.Upload.Error.Expired"].Value,
+        _ => null,
+    };
+
+    private string StatusText(string status) => status switch
+    {
+        "expired" => T["Vendor.Documents.Status.Expired"],
+        "missing" => T["Vendor.Documents.Status.Missing"],
+        _ => T["Vendor.Documents.Status.Current"],
+    };
+
+    private static StatusTone ToneFor(string status) => status switch
+    {
+        "expired" => StatusTone.Danger,
+        "missing" => StatusTone.Warning,
+        _ => StatusTone.Success,
+    };
+
+    private static string Name(string arabic, string english) =>
+        CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar" ? arabic : english;
+
+    // Riyadh is UTC+3 all year: the vendor's "today" for expiry, whatever the server's time zone.
+    private DateOnly Today() => DateOnly.FromDateTime(Clock.GetUtcNow().ToOffset(TimeSpan.FromHours(3)).DateTime);
+
+    // ar-SA defaults to the Umm al-Qura calendar; the product shows Gregorian dates in both languages.
+    private string FormatDate(DateOnly date)
+    {
+        var culture = CultureInfo.CurrentCulture;
+        if (culture.Calendar is not GregorianCalendar)
+        {
+            culture = (CultureInfo)culture.Clone();
+            culture.DateTimeFormat.Calendar = new GregorianCalendar();
+        }
+
+        return date.ToString(T["Vendor.Documents.DateFormat"].Value, culture);
+    }
+
+    /// <summary>One required document type: its current file's expiry and status, and the state of a newer unlisted file.</summary>
+    private sealed record DocumentRow(string Type, string Name, DateOnly? ExpiresOn, string Status, VendorDocumentScanState? Attempt);
+}

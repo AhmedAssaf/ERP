@@ -26,6 +26,10 @@
     <Project Path="src/Modules/Workflow/Platform.Modules.Workflow.Contracts/Platform.Modules.Workflow.Contracts.csproj" />
     <Project Path="src/Modules/Workflow/Platform.Modules.Workflow/Platform.Modules.Workflow.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Vendors/">
+    <Project Path="src/Modules/Vendors/Platform.Modules.Vendors.Contracts/Platform.Modules.Vendors.Contracts.csproj" />
+    <Project Path="src/Modules/Vendors/Platform.Modules.Vendors/Platform.Modules.Vendors.csproj" />
+  </Folder>
   <Folder Name="/src/UI/">
     <Project Path="src/UI/Platform.UI/Platform.UI.csproj" />
   </Folder>

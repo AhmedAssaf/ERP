@@ -209,7 +209,7 @@
   <data name="Branding.Error.PortalName" xml:space="preserve"><value>أدخل اسمًا للبوابة لا يتجاوز 100 حرف.</value></data>
   <data name="Branding.Error.Color" xml:space="preserve"><value>أدخل اللون بالعلامة # متبوعة بستة أرقام ست عشرية، مثل ‎#0F766E.</value></data>
   <data name="Branding.Error.Generic" xml:space="preserve"><value>لم تُحفظ الهوية. حاول مرة أخرى، وإذا تكرر الخطأ فتواصل مع الدعم.</value></data>
-  <data name="Branding.NotAllowed" xml:space="preserve"><value>لم تعد مسؤولًا عن الجهة، لذا لم يُحفظ هذا التغيير.</value></data>
+  <data name="Branding.NotAllowed" xml:space="preserve"><value>لا يغيّر هوية الجهة إلا مسؤول نشط عنها، لذا لم يُحفظ هذا التغيير.</value></data>
   <data name="Branding.Logo.Heading" xml:space="preserve"><value>الشعار</value></data>
   <data name="Branding.Logo.Current" xml:space="preserve"><value>الشعار الحالي</value></data>
   <data name="Branding.Logo.None" xml:space="preserve"><value>لا يوجد شعار بعد. تعرض الترويسة اسم البوابة وحده.</value></data>
@@ -222,4 +222,182 @@
   <data name="Branding.Logo.Error.Dimensions" xml:space="preserve"><value>عرض الصورة أو ارتفاعها أكبر من 4096 بكسل. غيّر حجمها ثم ارفعها مجددًا.</value></data>
   <data name="Branding.Logo.Error.Unreadable" xml:space="preserve"><value>تعذرت قراءة الصورة وقد تكون تالفة. صدّرها مجددًا بصيغة PNG أو JPEG ثم ارفعها.</value></data>
   <data name="Branding.Logo.Error.Missing" xml:space="preserve"><value>اختر ملف الشعار لرفعه.</value></data>
+  <data name="Vendor.Register.Title" xml:space="preserve"><value>سجّل شركتك</value></data>
+  <data name="Vendor.Register.Intro" xml:space="preserve"><value>أدخل بيانات شركتك كما تظهر في سجلها التجاري. ستصبح مسؤول حسابها على وصلة بد.</value></data>
+  <data name="Vendor.Register.Submit" xml:space="preserve"><value>تسجيل الشركة</value></data>
+  <data name="Vendor.Register.Done" xml:space="preserve"><value>تم تسجيل شركتك. سجّل الدخول مرة أخرى لفتح صفحة المورّد.</value></data>
+  <data name="Vendor.Register.SignInAgain" xml:space="preserve"><value>تسجيل الدخول مرة أخرى</value></data>
+  <data name="Vendor.Register.AlreadyRegistered" xml:space="preserve"><value>هذا الحساب مرتبط بشركة مورّدة بالفعل.</value></data>
+  <data name="Vendor.Register.GoToVendorHome" xml:space="preserve"><value>الانتقال إلى صفحة المورّد</value></data>
+  <data name="Vendor.Register.Error.CrNumber" xml:space="preserve"><value>أدخل رقم السجل التجاري المكوّن من 10 أرقام، بالأرقام فقط.</value></data>
+  <data name="Vendor.Register.Error.NameAr" xml:space="preserve"><value>أدخل اسم الشركة بالعربية كما هو مسجَّل، بما لا يزيد على 200 حرف، باستخدام الحروف والأرقام والمسافات والرموز . , ' - &amp; ( ) / فقط.</value></data>
+  <data name="Vendor.Register.Error.NameEn" xml:space="preserve"><value>أدخل اسم الشركة بالإنجليزية كما هو مسجَّل، بما لا يزيد على 200 حرف، باستخدام الحروف والأرقام والمسافات والرموز . , ' - &amp; ( ) / فقط.</value></data>
+  <data name="Vendor.Register.Error.VatNumber" xml:space="preserve"><value>أدخل الرقم الضريبي المكوّن من 15 رقماً، ويبدأ بالرقم 3 وينتهي به.</value></data>
+  <data name="Vendor.Register.Error.Address" xml:space="preserve"><value>أدخل العنوان في سطر واحد بما لا يزيد على 500 حرف.</value></data>
+  <data name="Vendor.Register.Error.ContactName" xml:space="preserve"><value>أدخل الاسم الكامل لمسؤول التواصل بما لا يزيد على 200 حرف، باستخدام الحروف والمسافات والفواصل العليا والشرطات والنقاط فقط.</value></data>
+  <data name="Vendor.Register.Error.ContactPhone" xml:space="preserve"><value>أدخل رقم هاتف من 7 إلى 15 رقماً؛ يُسمح بعلامة + في البداية وبالمسافات والشرطات.</value></data>
+  <data name="Vendor.Register.Error.ContactEmail" xml:space="preserve"><value>أدخل البريد الإلكتروني للعمل لمسؤول التواصل، مثل name@company.com.</value></data>
+  <data name="Vendor.Register.Error.Privacy" xml:space="preserve"><value>اقرأ إشعار الخصوصية وحدّد المربع للموافقة عليه.</value></data>
+  <data name="Vendor.Register.Error.Duplicate" xml:space="preserve"><value>هذه الشركة لديها حساب على وصلة بد بالفعل. اطلب من مسؤول حسابها أن يضيفك.</value></data>
+  <data name="Vendor.Register.Error.StaffAccount" xml:space="preserve"><value>هذا الحساب لموظف في إحدى المنشآت. سجّل شركتك بحساب منفصل.</value></data>
+  <data name="Vendor.Register.Error.Generic" xml:space="preserve"><value>تعذّر إكمال التسجيل. حاول مرة أخرى بعد قليل.</value></data>
+  <data name="Vendor.Field.CrNumber" xml:space="preserve"><value>رقم السجل التجاري</value></data>
+  <data name="Vendor.Field.CrNumber.Help" xml:space="preserve"><value>10 أرقام</value></data>
+  <data name="Vendor.Field.NameAr" xml:space="preserve"><value>اسم الشركة بالعربية</value></data>
+  <data name="Vendor.Field.NameEn" xml:space="preserve"><value>اسم الشركة بالإنجليزية</value></data>
+  <data name="Vendor.Field.VatNumber" xml:space="preserve"><value>الرقم الضريبي</value></data>
+  <data name="Vendor.Field.VatNumber.Help" xml:space="preserve"><value>15 رقماً، يبدأ بالرقم 3 وينتهي به</value></data>
+  <data name="Vendor.Field.Address" xml:space="preserve"><value>العنوان</value></data>
+  <data name="Vendor.Field.ContactName" xml:space="preserve"><value>مسؤول التواصل</value></data>
+  <data name="Vendor.Field.ContactPhone" xml:space="preserve"><value>هاتف التواصل</value></data>
+  <data name="Vendor.Field.ContactEmail" xml:space="preserve"><value>البريد الإلكتروني للتواصل</value></data>
+  <data name="Vendor.Privacy.Heading" xml:space="preserve"><value>إشعار الخصوصية</value></data>
+  <data name="Vendor.Privacy.V1" xml:space="preserve"><value>تحتفظ وصلة بد، المنصة التي تشغّل هذه البوابة، ببيانات تسجيل شركتك والمستندات التي ترفعها وسجلٍّ لما تقوم به هنا، لكي تتمكن الجهات التي تتعامل معها من تقييم شركتك ولكي يمكن تدقيق كل قرار. تُحفظ بياناتك داخل المملكة العربية السعودية. لا ترى أي جهة شركتك إلا بعد أن تسجّل لديها أو تتعامل معها عبر بوابتها. تقرّر شركتك، عبر سجل الموافقات الخاص بها، ما إذا كان يجوز لأي طرف آخر أن يتلقى سجلاتها. يمكنك طلب نسخة من بياناتك أو تصحيحها في أي وقت.</value></data>
+  <data name="Vendor.Privacy.Accept" xml:space="preserve"><value>قرأت إشعار الخصوصية وأوافق عليه.</value></data>
+  <data name="Vendor.Home.Title" xml:space="preserve"><value>صفحة المورّد</value></data>
+  <data name="AppShell.SupplierPortal" xml:space="preserve"><value>بوابة الموردين</value></data>
+  <data name="FileUpload.Help" xml:space="preserve"><value>{0}، بحد أقصى {1} ميجابايت.</value></data>
+  <data name="FileUpload.Expiry" xml:space="preserve"><value>تاريخ الانتهاء</value></data>
+  <data name="FileUpload.ExpiryRequired" xml:space="preserve"><value>أدخل تاريخ انتهاء المستند.</value></data>
+  <data name="FileUpload.Start" xml:space="preserve"><value>رفع الملف</value></data>
+  <data name="FileUpload.Cancel" xml:space="preserve"><value>إيقاف الرفع</value></data>
+  <data name="FileUpload.Progress" xml:space="preserve"><value>تقدّم الرفع</value></data>
+  <data name="FileUpload.Uploading" xml:space="preserve"><value>جارٍ الرفع… {0}%</value></data>
+  <data name="FileUpload.Scanning" xml:space="preserve"><value>جارٍ فحص الملف من الفيروسات…</value></data>
+  <data name="FileUpload.Pending" xml:space="preserve"><value>بانتظار فحص الفيروسات</value></data>
+  <data name="FileUpload.PendingBody" xml:space="preserve"><value>حُفظ الملف، ويظهر في القائمة بعد اكتمال فحص الفيروسات، ويمكنك مغادرة هذه الصفحة.</value></data>
+  <data name="FileUpload.Done" xml:space="preserve"><value>رُفع الملف وفُحص</value></data>
+  <data name="FileUpload.Rejected" xml:space="preserve"><value>لم يُرفع الملف</value></data>
+  <data name="FileUpload.Failed" xml:space="preserve"><value>توقف الرفع بسبب انقطاع الاتصال. أعد المحاولة للمتابعة من حيث توقف.</value></data>
+  <data name="FileUpload.Retry" xml:space="preserve"><value>إعادة محاولة الرفع</value></data>
+  <data name="FileUpload.WrongType" xml:space="preserve"><value>اختر ملفًا من نوع {0}.</value></data>
+  <data name="FileUpload.TooLarge" xml:space="preserve"><value>حجم الملف أكبر من {0} ميجابايت. اختر ملفًا أصغر.</value></data>
+  <data name="FileUpload.Empty" xml:space="preserve"><value>الملف فارغ. اختر ملفًا آخر.</value></data>
+  <data name="FileUpload.NotAccepted" xml:space="preserve"><value>لم يُقبل الملف. تحقق منه وحاول مرة أخرى.</value></data>
+  <data name="FileUpload.SignedOut" xml:space="preserve"><value>انتهت جلستك. سجّل الدخول مرة أخرى وارفع الملف من جديد.</value></data>
+  <data name="FileUpload.ListSeparator" xml:space="preserve"><value>، </value></data>
+  <data name="FileUpload.Or" xml:space="preserve"><value>أو</value></data>
+  <data name="Gallery.Section.FileUpload" xml:space="preserve"><value>رفع الملفات</value></data>
+  <data name="Gallery.Sample.UploadLabel" xml:space="preserve"><value>شهادة السجل التجاري</value></data>
+  <data name="Gallery.Sample.UploadRejected" xml:space="preserve"><value>يحتوي الملف على فيروس وقد حُذف.</value></data>
+  <data name="Gallery.Sample.NavCompany" xml:space="preserve"><value>الشركة والمستندات</value></data>
+  <data name="Vendor.Nav.Home" xml:space="preserve"><value>الشركة والمستندات</value></data>
+  <data name="Vendor.Home.Company" xml:space="preserve"><value>الشركة</value></data>
+  <data name="Vendor.Home.Relationship" xml:space="preserve"><value>الحالة لدى {0}</value></data>
+  <data name="Vendor.Relationship.Pending" xml:space="preserve"><value>بانتظار الاعتماد</value></data>
+  <data name="Vendor.Relationship.Approved" xml:space="preserve"><value>معتمد</value></data>
+  <data name="Vendor.Documents.Heading" xml:space="preserve"><value>المستندات</value></data>
+  <data name="Vendor.Documents.Intro" xml:space="preserve"><value>حافظ على سريان هذه المستندات، إذ لا يمكن لأي جهة قبول عروضك ما دام أحدها غير مرفوع أو منتهيًا.</value></data>
+  <data name="Vendor.Documents.Table" xml:space="preserve"><value>مستندات الشركة</value></data>
+  <data name="Vendor.Documents.ColumnType" xml:space="preserve"><value>المستند</value></data>
+  <data name="Vendor.Documents.ColumnExpiry" xml:space="preserve"><value>تاريخ الانتهاء</value></data>
+  <data name="Vendor.Documents.ColumnStatus" xml:space="preserve"><value>الحالة</value></data>
+  <data name="Vendor.Documents.NoFile" xml:space="preserve"><value>لا يوجد ملف</value></data>
+  <data name="Vendor.Documents.DateFormat" xml:space="preserve"><value>d MMMM yyyy</value></data>
+  <data name="Vendor.Documents.Status.Current" xml:space="preserve"><value>ساري</value></data>
+  <data name="Vendor.Documents.Status.Expired" xml:space="preserve"><value>منتهي</value></data>
+  <data name="Vendor.Documents.Status.Missing" xml:space="preserve"><value>غير مرفوع</value></data>
+  <data name="Vendor.Documents.Attempt.PendingScan" xml:space="preserve"><value>بانتظار فحص الفيروسات</value></data>
+  <data name="Vendor.Documents.Attempt.Infected" xml:space="preserve"><value>رُفض آخر ملف: وُجد فيه فيروس</value></data>
+  <data name="Vendor.Blocking.Heading" xml:space="preserve"><value>قبل أن تتمكن من تقديم العروض</value></data>
+  <data name="Vendor.Blocking.Missing" xml:space="preserve"><value>{0}: لم يُرفع</value></data>
+  <data name="Vendor.Blocking.Expired" xml:space="preserve"><value>{0}: انتهى في {1}</value></data>
+  <data name="Vendor.Upload.Heading" xml:space="preserve"><value>رفع مستند</value></data>
+  <data name="Vendor.Upload.Intro" xml:space="preserve"><value>ارفع أحدث شهادة. يحل الملف الجديد محل الملف الحالي بعد اجتيازه فحص الفيروسات.</value></data>
+  <data name="Vendor.Upload.Error.TooMany" xml:space="preserve"><value>لديك عمليات رفع كثيرة جارية، أو رفعت ملفات كثيرة اليوم. انتظر ساعة ثم حاول مرة أخرى.</value></data>
+  <data name="Vendor.Upload.Error.WrongType" xml:space="preserve"><value>الملف ليس بصيغة PDF أو PNG أو JPEG. اختر ملفًا آخر.</value></data>
+  <data name="Vendor.Upload.Error.TooLarge" xml:space="preserve"><value>حجم الملف أكبر من 10 ميجابايت. اختر ملفًا أصغر.</value></data>
+  <data name="Vendor.Upload.Error.Empty" xml:space="preserve"><value>الملف فارغ. اختر ملفًا آخر.</value></data>
+  <data name="Vendor.Upload.Error.FileName" xml:space="preserve"><value>اسم الملف غير مقبول. أعد تسمية الملف بحروف أو أرقام أو مسافات أو شرطات أو نقاط ثم حاول مرة أخرى.</value></data>
+  <data name="Vendor.Upload.Error.Expiry" xml:space="preserve"><value>أدخل تاريخ انتهاء صحيحًا بين عامي 2000 و2100.</value></data>
+  <data name="Vendor.Upload.Error.Infected" xml:space="preserve"><value>يحتوي الملف على فيروس وقد حُذف. افحص جهازك وارفع نسخة سليمة.</value></data>
+  <data name="Vendor.Upload.Error.Expired" xml:space="preserve"><value>مضى على عملية الرفع هذه أكثر من يوم. ارفع الملف مرة أخرى.</value></data>
+  <data name="Admin.Nav.Vendors" xml:space="preserve"><value>الموردون</value></data>
+  <data name="Admin.Vendors.Title" xml:space="preserve"><value>الموردون</value></data>
+  <data name="Admin.Vendors.Intro" xml:space="preserve"><value>الشركات التي سجّلت عبر بوابة {0} أو اختارت العمل معها. راجع بيانات المورد ومستنداته قبل اعتماده.</value></data>
+  <data name="Admin.Vendors.Filter.Label" xml:space="preserve"><value>عرض الموردين</value></data>
+  <data name="Admin.Vendors.Filter.All" xml:space="preserve"><value>الكل</value></data>
+  <data name="Admin.Vendors.Filter.Pending" xml:space="preserve"><value>بانتظار الاعتماد</value></data>
+  <data name="Admin.Vendors.Filter.Approved" xml:space="preserve"><value>معتمدون</value></data>
+  <data name="Admin.Vendors.Table" xml:space="preserve"><value>موردو هذه الجهة</value></data>
+  <data name="Admin.Vendors.Column.Name" xml:space="preserve"><value>الشركة</value></data>
+  <data name="Admin.Vendors.Column.Cr" xml:space="preserve"><value>رقم السجل التجاري</value></data>
+  <data name="Admin.Vendors.Column.Status" xml:space="preserve"><value>الحالة</value></data>
+  <data name="Admin.Vendors.Column.Documents" xml:space="preserve"><value>المستندات</value></data>
+  <data name="Admin.Vendors.Status.Pending" xml:space="preserve"><value>بانتظار الاعتماد</value></data>
+  <data name="Admin.Vendors.Status.Approved" xml:space="preserve"><value>معتمد</value></data>
+  <data name="Admin.Vendors.Documents.Valid" xml:space="preserve"><value>مكتملة وسارية</value></data>
+  <data name="Admin.Vendors.Documents.Blocking" xml:space="preserve"><value>ناقصة أو منتهية: {0}</value></data>
+  <data name="Admin.Vendors.Documents.Separator" xml:space="preserve"><value>، </value></data>
+  <data name="Admin.Vendors.EmptyTitle" xml:space="preserve"><value>لا يوجد موردون للعرض</value></data>
+  <data name="Admin.Vendors.EmptyBody" xml:space="preserve"><value>يظهر الموردون هنا بعد تسجيلهم عبر بوابتكم أو اختيارهم العمل مع جهتكم.</value></data>
+  <data name="Admin.Vendors.Back" xml:space="preserve"><value>كل الموردين</value></data>
+  <data name="Admin.Vendors.Loading" xml:space="preserve"><value>جارٍ تحميل بيانات المورد…</value></data>
+  <data name="Admin.Vendors.NotFound" xml:space="preserve"><value>هذا المورد لا يعمل مع جهتكم، أو الرابط غير صحيح.</value></data>
+  <data name="Admin.Vendors.Card.Heading" xml:space="preserve"><value>الشركة</value></data>
+  <data name="Admin.Vendors.Field.FirstSeen" xml:space="preserve"><value>تاريخ التسجيل أو الانضمام</value></data>
+  <data name="Admin.Vendors.Documents.Heading" xml:space="preserve"><value>المستندات</value></data>
+  <data name="Admin.Vendors.Documents.Table" xml:space="preserve"><value>المستندات التي اجتازت فحص الفيروسات</value></data>
+  <data name="Admin.Vendors.Documents.Empty" xml:space="preserve"><value>لا يوجد لدى المورد بعد مستند اجتاز فحص الفيروسات.</value></data>
+  <data name="Admin.Vendors.Document.Current" xml:space="preserve"><value>ساري</value></data>
+  <data name="Admin.Vendors.Document.Expired" xml:space="preserve"><value>منتهي</value></data>
+  <data name="Admin.Vendors.Document.History" xml:space="preserve"><value>استُبدل بملف أحدث</value></data>
+  <data name="Admin.Vendors.Blocking.Heading" xml:space="preserve"><value>لا يستطيع هذا المورد تقديم العروض بعد</value></data>
+  <data name="Admin.Vendors.Approve" xml:space="preserve"><value>اعتماد</value></data>
+  <data name="Admin.Vendors.ApproveTitle" xml:space="preserve"><value>اعتماد {0}؟</value></data>
+  <data name="Admin.Vendors.ApproveBody" xml:space="preserve"><value>بعد الاعتماد يستطيع المورد المشاركة في منافسات جهتكم. يُسجَّل الاعتماد باسمك.</value></data>
+  <data name="Admin.Vendors.ApproveConfirm" xml:space="preserve"><value>اعتماد المورد</value></data>
+  <data name="Admin.Vendors.Approved" xml:space="preserve"><value>تم اعتماد {0}.</value></data>
+  <data name="Admin.Vendors.Error.NotAllowed" xml:space="preserve"><value>لا يعتمد الموردين إلا مسؤول العقود أو مدير الجهة.</value></data>
+  <data name="Admin.Vendors.Error.AlreadyApproved" xml:space="preserve"><value>هذا المورد معتمد مسبقًا.</value></data>
+  <data name="Admin.Vendors.Error.Generic" xml:space="preserve"><value>تعذّر إتمام الاعتماد. حاول مرة أخرى بعد قليل.</value></data>
+  <data name="Vendor.Join.Title" xml:space="preserve"><value>العمل مع {0}</value></data>
+  <data name="Vendor.Join.Intro" xml:space="preserve"><value>شركتك مسجّلة في وصلة بد. للمشاركة في منافسات {0}، اختر العمل مع هذه الجهة، وستراجع بيانات شركتك ومستنداتها قبل اعتمادها.</value></data>
+  <data name="Vendor.Join.Submit" xml:space="preserve"><value>العمل مع {0}</value></data>
+  <data name="Vendor.Join.Done" xml:space="preserve"><value>أصبحت شركتك تعمل مع {0} وهي بانتظار اعتمادها. سجّل الدخول مرة أخرى لفتح صفحة المورد هنا.</value></data>
+  <data name="Vendor.Join.Already" xml:space="preserve"><value>شركتك تعمل مع {0} مسبقًا. إن لم تُفتح صفحة المورد هنا، اختر الزر أدناه ثم سجّل الدخول مرة أخرى.</value></data>
+  <data name="Vendor.Join.Error.Generic" xml:space="preserve"><value>تعذّر إتمام الانضمام إلى هذه الجهة. حاول مرة أخرى بعد قليل.</value></data>
+  <data name="Vendor.Nav.Consent" xml:space="preserve"><value>الموافقات</value></data>
+  <data name="Vendor.Consent.Title" xml:space="preserve"><value>الموافقة على مشاركة سجلاتك</value></data>
+  <data name="Vendor.Consent.Intro" xml:space="preserve"><value>لا تسلّم وصلة بد سجلات شركتك لأي جهة أخرى إلا ما دامت إحدى الموافقات أدناه تسمح بذلك. تحدد كل موافقة الجهة المستلمة وما يجوز مشاركته ومدته. يمكنك سحب أي موافقة في أي وقت، وتبقى الموافقة وسحبها محفوظين في السجل.</value></data>
+  <data name="Vendor.Consent.New" xml:space="preserve"><value>موافقة جديدة</value></data>
+  <data name="Vendor.Consent.Table" xml:space="preserve"><value>موافقات شركتك</value></data>
+  <data name="Vendor.Consent.Column.Recipient" xml:space="preserve"><value>الجهة المستلمة</value></data>
+  <data name="Vendor.Consent.Column.Scope" xml:space="preserve"><value>ما يجوز مشاركته</value></data>
+  <data name="Vendor.Consent.Column.Period" xml:space="preserve"><value>المدة</value></data>
+  <data name="Vendor.Consent.Column.Status" xml:space="preserve"><value>الحالة</value></data>
+  <data name="Vendor.Consent.Column.Actions" xml:space="preserve"><value>الإجراءات</value></data>
+  <data name="Vendor.Consent.Scope.AwardRecords" xml:space="preserve"><value>سجلات الترسية</value></data>
+  <data name="Vendor.Consent.Scope.PoRecords" xml:space="preserve"><value>سجلات أوامر الشراء</value></data>
+  <data name="Vendor.Consent.Scope.ProfileDocuments" xml:space="preserve"><value>ملف الشركة ومستنداتها</value></data>
+  <data name="Vendor.Consent.Period" xml:space="preserve"><value>من {0} إلى {1}</value></data>
+  <data name="Vendor.Consent.Status.Active" xml:space="preserve"><value>سارية</value></data>
+  <data name="Vendor.Consent.Status.NotYetValid" xml:space="preserve"><value>تبدأ لاحقًا</value></data>
+  <data name="Vendor.Consent.Status.Expired" xml:space="preserve"><value>منتهية</value></data>
+  <data name="Vendor.Consent.Status.Revoked" xml:space="preserve"><value>ملغاة</value></data>
+  <data name="Vendor.Consent.Revoke" xml:space="preserve"><value>سحب الموافقة</value></data>
+  <data name="Vendor.Consent.EmptyTitle" xml:space="preserve"><value>لا توجد موافقات</value></data>
+  <data name="Vendor.Consent.EmptyBody" xml:space="preserve"><value>لم تسمح شركتك لأي جهة بتسلّم سجلاتها.</value></data>
+  <data name="Vendor.Consent.NoRecipients" xml:space="preserve"><value>لا توجد بعد جهة مستلمة يمكن منحها موافقة.</value></data>
+  <data name="Vendor.Consent.GrantTitle" xml:space="preserve"><value>منح موافقة</value></data>
+  <data name="Vendor.Consent.GrantBody" xml:space="preserve"><value>يجوز للجهة المستلمة تسلّم السجلات التي تختارها خلال هذه المدة فقط.</value></data>
+  <data name="Vendor.Consent.Field.Recipient" xml:space="preserve"><value>الجهة المستلمة</value></data>
+  <data name="Vendor.Consent.Field.RecipientPlaceholder" xml:space="preserve"><value>اختر الجهة المستلمة</value></data>
+  <data name="Vendor.Consent.Field.Scope" xml:space="preserve"><value>ما يجوز مشاركته</value></data>
+  <data name="Vendor.Consent.Field.ScopePlaceholder" xml:space="preserve"><value>اختر ما يجوز مشاركته</value></data>
+  <data name="Vendor.Consent.Field.From" xml:space="preserve"><value>اليوم الأول</value></data>
+  <data name="Vendor.Consent.Field.To" xml:space="preserve"><value>اليوم الأخير</value></data>
+  <data name="Vendor.Consent.GrantConfirm" xml:space="preserve"><value>منح الموافقة</value></data>
+  <data name="Vendor.Consent.Error.Recipient" xml:space="preserve"><value>اختر الجهة المستلمة.</value></data>
+  <data name="Vendor.Consent.Error.Scope" xml:space="preserve"><value>اختر ما يجوز مشاركته.</value></data>
+  <data name="Vendor.Consent.Error.Period" xml:space="preserve"><value>اختر مدة تبدأ اليوم أو بعده وتنتهي في يومها الأول أو بعده.</value></data>
+  <data name="Vendor.Consent.Error.NotAdmin" xml:space="preserve"><value>لا يغيّر موافقات الشركة إلا مسؤول حسابها.</value></data>
+  <data name="Vendor.Consent.Error.AlreadyRevoked" xml:space="preserve"><value>هذه الموافقة ملغاة مسبقًا.</value></data>
+  <data name="Vendor.Consent.Error.NotFound" xml:space="preserve"><value>لم يُعثر على هذه الموافقة.</value></data>
+  <data name="Vendor.Consent.Error.Generic" xml:space="preserve"><value>تعذّر إتمام التغيير. حاول مرة أخرى بعد قليل.</value></data>
+  <data name="Vendor.Consent.RevokeTitle" xml:space="preserve"><value>سحب الموافقة الممنوحة لـ {0}؟</value></data>
+  <data name="Vendor.Consent.RevokeBody" xml:space="preserve"><value>من الآن لا يجوز للجهة المستلمة تسلّم هذه السجلات. تبقى الموافقة وسحبها محفوظين في السجل.</value></data>
+  <data name="Vendor.Consent.RevokeConfirm" xml:space="preserve"><value>سحب الموافقة</value></data>
+  <data name="Vendor.Consent.Granted" xml:space="preserve"><value>تم منح الموافقة لـ {0}.</value></data>
+  <data name="Vendor.Consent.Revoked" xml:space="preserve"><value>تم سحب الموافقة الممنوحة لـ {0}.</value></data>
 </root>

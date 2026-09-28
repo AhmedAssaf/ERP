@@ -45,6 +45,22 @@ public class AppShellTests : ComponentTest
     }
 
     [Fact]
+    public void AppShell_vendor_variant_shows_the_tenant_brand_and_names_the_supplier_area()
+    {
+        var cut = RenderShell(p => p
+            .Add(s => s.Variant, AppShellVariant.Vendor)
+            .Add(s => s.PortalName, "Acme Contracting")
+            .Add(s => s.LogoUrl, "/branding/acme/logo.png"));
+
+        var header = cut.Find("header");
+        header.ClassList.ShouldContain("bg-primary");
+        header.QuerySelector("img")!.GetAttribute("src").ShouldBe("/branding/acme/logo.png");
+        header.TextContent.ShouldContain("Acme Contracting");
+        header.TextContent.ShouldContain("Supplier portal");
+        header.TextContent.ShouldNotContain("WaslaBid");
+    }
+
+    [Fact]
     public void AppShell_has_navigation_main_content_and_a_skip_link()
     {
         Services.GetRequiredService<NavigationManager>().NavigateTo("/admin/users");

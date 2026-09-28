@@ -5,7 +5,8 @@ using Microsoft.Extensions.Options;
 namespace Platform.Modules.Identity.Keycloak;
 
 /// <summary>
-/// Member counts from the Keycloak Admin API, behind <see cref="CachingOrganizationMembers"/> (F-54 as narrowed). Null,
+/// User counts from the Keycloak Admin API, behind <see cref="CachingOrganizationMembers"/> (F-54 as narrowed): the
+/// organization's members less its vendors (<see cref="KeycloakAdminClient.CountOrganizationUsersAsync"/>). Null,
 /// never a guess, when the client is not configured, the organization does not exist, or Keycloak does not answer; the
 /// failure is logged. A singleton, so it resolves the typed client per call rather than holding one.
 /// </summary>
@@ -22,7 +23,7 @@ internal sealed partial class KeycloakOrganizationMemberSource(
 
         try
         {
-            return await services.GetRequiredService<KeycloakAdminClient>().CountOrganizationMembersAsync(organizationAlias, cancellationToken);
+            return await services.GetRequiredService<KeycloakAdminClient>().CountOrganizationUsersAsync(organizationAlias, cancellationToken);
         }
         catch (Exception ex) when (ex is KeycloakAdminException or HttpRequestException
             || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))

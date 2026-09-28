@@ -7,10 +7,13 @@ namespace Platform.Shared.Storage;
 /// <summary>
 /// <see cref="IObjectStorage"/> over the S3 API, path-style (MinIO does not serve virtual-host style). Without settings
 /// every call throws <see cref="InvalidOperationException"/>; S3 errors other than a missing key propagate to the caller,
-/// which logs the exception type only (an S3 error can echo the endpoint or signature, N-10).
+/// which logs the exception type only (an S3 error can echo the endpoint or signature, N-10). A missing bucket is such an
+/// error, not a missing key: it is a misconfiguration, and the vendor retry scan must see it as an outage (V-10).
 /// </summary>
 internal sealed class S3ObjectStorage(ObjectStorageSettings settings) : IObjectStorage, IDisposable
 {
+    private const string NoSuchKey = "NoSuchKey";
+
     private readonly Lazy<AmazonS3Client> _client = new(() => new AmazonS3Client(
         settings.AccessKey, settings.SecretKey, new AmazonS3Config { ServiceURL = settings.ServiceUrl, ForcePathStyle = true }));
 
@@ -24,6 +27,21 @@ internal sealed class S3ObjectStorage(ObjectStorageSettings settings) : IObjectS
             cancellationToken);
     }
 
+    public async Task PutAsync(string key, Stream content, string contentType, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        ArgumentNullException.ThrowIfNull(content);
+        ArgumentException.ThrowIfNullOrWhiteSpace(contentType);
+        if (!content.CanSeek)
+        {
+            throw new ArgumentException("The content stream must be seekable.", nameof(content));
+        }
+
+        await Client.PutObjectAsync(
+            new PutObjectRequest { BucketName = settings.BucketName, Key = key, InputStream = content, ContentType = contentType, AutoCloseStream = false },
+            cancellationToken);
+    }
+
     public async Task<StoredObject?> OpenAsync(string key, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
@@ -32,10 +50,17 @@ internal sealed class S3ObjectStorage(ObjectStorageSettings settings) : IObjectS
             var response = await Client.GetObjectAsync(new GetObjectRequest { BucketName = settings.BucketName, Key = key }, cancellationToken);
             return new StoredObject(response.ResponseStream, response.ContentLength, response.Headers.ContentType ?? "application/octet-stream");
         }
-        catch (AmazonS3Exception ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        catch (AmazonS3Exception ex) when (ex.StatusCode == HttpStatusCode.NotFound && ex.ErrorCode == NoSuchKey)
         {
             return null;
         }
+    }
+
+    public async Task DeleteAsync(string key, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        // S3 answers a delete of a missing key with success too.
+        await Client.DeleteObjectAsync(new DeleteObjectRequest { BucketName = settings.BucketName, Key = key }, cancellationToken);
     }
 
     public void Dispose()

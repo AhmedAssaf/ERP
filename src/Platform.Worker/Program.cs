@@ -3,6 +3,7 @@ using Hangfire.AspNetCore;
 using Platform.Modules.Audit;
 using Platform.Modules.Operations;
 using Platform.Modules.Tenancy;
+using Platform.Modules.Vendors;
 using Platform.Modules.Workflow;
 using Platform.Shared;
 using Platform.Shared.Jobs;
@@ -28,6 +29,11 @@ internal static class EntryPoint
         builder.Services.AddTenancyModule(platformDb);
         builder.Services.AddWorkflowModule(platformDb);
         builder.Services.AddOperationsModule(platformDb);
+        builder.Services.AddVendorsModule(platformDb);
+        // F-12: the retry scan of pending vendor documents and the cleanup of abandoned uploads (vendor plan task 3).
+        builder.Services.AddObjectStorage(builder.Configuration);
+        builder.Services.AddVirusScanner(builder.Configuration);
+        builder.Services.AddVendorJobs();
         builder.Services.AddOperationsHealthChecks(platformDb, builder.Configuration);
         builder.Services.AddJobServer(platformDb, settings => settings.ServerName = "waslabid-worker");
 
@@ -36,6 +42,7 @@ internal static class EntryPoint
         GlobalConfiguration.Configuration.UseLogProvider(new AspNetCoreLogProvider(host.Services.GetRequiredService<ILoggerFactory>()));
         // F-51: the health-check recurring job (task 3) runs every minute from here on.
         OperationsModule.ScheduleHealthCheckJob(host.Services);
+        VendorsModule.ScheduleVendorJobs(host.Services);
         await host.RunAsync();
     }
 }

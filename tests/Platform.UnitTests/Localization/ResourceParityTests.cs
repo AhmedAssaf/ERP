@@ -34,6 +34,21 @@ public class ResourceParityTests
         }
     }
 
+    [Theory]
+    [InlineData("SharedResource.ar-SA.resx")]
+    [InlineData("SharedResource.en-US.resx")]
+    public void A_button_that_opens_a_destructive_dialog_never_reads_like_the_dialogs_cancel(string file)
+    {
+        // The consent page's revoke button opens a dialog whose other button is Dialog.Cancel; in Arabic both once read
+        // "إلغاء", so a vendor could not tell withdrawing consent from closing the dialog (review of the vendor slice).
+        var values = Read(file);
+
+        foreach (var key in new[] { "Vendor.Consent.Revoke", "Vendor.Consent.RevokeConfirm" })
+        {
+            values[key].Trim().ShouldNotBe(values["Dialog.Cancel"].Trim(), key);
+        }
+    }
+
     private static Dictionary<string, string> Read(string file) =>
         XDocument.Load(Path.Combine(Resources, file)).Root!.Elements("data")
             .ToDictionary(d => (string)d.Attribute("name")!, d => (string?)d.Element("value") ?? string.Empty);

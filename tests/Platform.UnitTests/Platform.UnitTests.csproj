@@ -21,6 +21,7 @@
     <ProjectReference Include="..\..\src\Modules\Identity\Platform.Modules.Identity\Platform.Modules.Identity.csproj" />
     <ProjectReference Include="..\..\src\Modules\Workflow\Platform.Modules.Workflow\Platform.Modules.Workflow.csproj" />
     <ProjectReference Include="..\..\src\Modules\Operations\Platform.Modules.Operations\Platform.Modules.Operations.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Vendors\Platform.Modules.Vendors\Platform.Modules.Vendors.csproj" />
     <ProjectReference Include="..\..\src\UI\Platform.UI\Platform.UI.csproj" />
   </ItemGroup>
 </Project>

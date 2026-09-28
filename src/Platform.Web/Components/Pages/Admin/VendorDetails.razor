@@ -1,0 +1,245 @@
+@*
+    F-10 as narrowed (docs/05 row 22, vendor plan task 5, V-7, V-11): a related vendor's card for the tenant's staff, its
+    documents that passed the virus check with their expiry (current and replaced files), what blocks it from submitting
+    today, and Approve behind a confirmation dialog while it is pending. A company the tenant has no relationship with
+    shows only "not found". Contracts officers and tenant admins only (VendorManager policy); the directory checks the role
+    again in identity.members when Approve runs, since the circuit's claims date from when the page opened.
+*@
+@page "/admin/vendors/{CompanyId:guid}"
+@attribute [Authorize(Policy = VendorPolicies.VendorManager)]
+@rendermode InteractiveServer
+@using System.Globalization
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using Platform.Modules.Vendors.Contracts
+@inject IVendorDirectory Directory
+@inject ToastService Toasts
+@inject TimeProvider Clock
+@inject ILogger<VendorDetails> Logger
+@inject IStringLocalizer<SharedResource> T
+
+<PageTitle>@(_vendor is null ? T["Admin.Vendors.Title"] : Name(_vendor.NameAr, _vendor.NameEn))</PageTitle>
+
+<p><a href="admin/vendors" class="underline underline-offset-4">@T["Admin.Vendors.Back"]</a></p>
+
+@if (!_loaded)
+{
+    <p class="text-ink-muted" role="status">@T["Admin.Vendors.Loading"]</p>
+}
+else if (_vendor is not { } vendor)
+{
+    <p data-vendor-not-found role="status" class="max-w-prose">@T["Admin.Vendors.NotFound"]</p>
+}
+else
+{
+    <div class="flex flex-wrap items-center justify-between gap-4">
+        <h1 class="text-display">@Name(vendor.NameAr, vendor.NameEn)</h1>
+        @if (vendor.Status == VendorRelationshipStatus.Pending)
+        {
+            <Button @ref="_approveButton" Variant="ButtonVariant.Primary" data-approve OnClick="OpenApprove">@T["Admin.Vendors.Approve"]</Button>
+        }
+    </div>
+
+    <section data-vendor-card="@vendor.Id" aria-labelledby="card-heading" class="grid gap-3 rounded-card border border-line bg-surface p-4">
+        <h2 id="card-heading" class="text-heading">@T["Admin.Vendors.Card.Heading"]</h2>
+        <dl class="grid gap-x-6 gap-y-2 text-body sm:grid-cols-[auto_1fr]">
+            <dt class="font-semibold">@T["Admin.Vendors.Column.Status"]</dt>
+            <dd>
+                @if (vendor.Status == VendorRelationshipStatus.Approved)
+                {
+                    <StatusBadge Tone="StatusTone.Success" data-vendor-status="@($"{vendor.Id}:approved")">@T["Admin.Vendors.Status.Approved"]</StatusBadge>
+                }
+                else
+                {
+                    <StatusBadge Tone="StatusTone.Warning" data-vendor-status="@($"{vendor.Id}:pending")">@T["Admin.Vendors.Status.Pending"]</StatusBadge>
+                }
+            </dd>
+            <dt class="font-semibold">@T["Vendor.Field.NameAr"]</dt>
+            <dd lang="ar" dir="rtl" class="text-start">@vendor.NameAr</dd>
+            <dt class="font-semibold">@T["Vendor.Field.NameEn"]</dt>
+            <dd lang="en" dir="ltr" class="text-start">@vendor.NameEn</dd>
+            <dt class="font-semibold">@T["Vendor.Field.CrNumber"]</dt>
+            <dd dir="ltr" class="text-start tabular-nums">@vendor.CrNumber</dd>
+            <dt class="font-semibold">@T["Vendor.Field.VatNumber"]</dt>
+            <dd dir="ltr" class="text-start tabular-nums">@vendor.VatNumber</dd>
+            @if (!string.IsNullOrWhiteSpace(vendor.Address))
+            {
+                <dt class="font-semibold">@T["Vendor.Field.Address"]</dt>
+                <dd>@vendor.Address</dd>
+            }
+            <dt class="font-semibold">@T["Vendor.Field.ContactName"]</dt>
+            <dd>@vendor.ContactName</dd>
+            @if (!string.IsNullOrWhiteSpace(vendor.ContactPhone))
+            {
+                <dt class="font-semibold">@T["Vendor.Field.ContactPhone"]</dt>
+                <dd dir="ltr" class="text-start tabular-nums">@vendor.ContactPhone</dd>
+            }
+            <dt class="font-semibold">@T["Vendor.Field.ContactEmail"]</dt>
+            <dd dir="ltr" class="text-start">@vendor.ContactEmail</dd>
+            <dt class="font-semibold">@T["Admin.Vendors.Field.FirstSeen"]</dt>
+            <dd>
+                <time datetime="@vendor.FirstSeenAt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)">@FormatDate(Riyadh(vendor.FirstSeenAt))</time>
+            </dd>
+        </dl>
+    </section>
+
+    <section aria-labelledby="documents-heading" class="grid gap-3">
+        <h2 id="documents-heading" class="text-heading">@T["Admin.Vendors.Documents.Heading"]</h2>
+        @if (vendor.BlockingDocuments.Count > 0)
+        {
+            <div role="note" class="grid max-w-prose gap-2 rounded-card border border-warning bg-warning/10 p-4 text-ink">
+                <p class="font-semibold">@T["Admin.Vendors.Blocking.Heading"]</p>
+                <ul class="grid list-disc gap-1 ps-5">
+                    @foreach (var item in vendor.BlockingDocuments)
+                    {
+                        <li data-blocking="@($"{item.Type}:{(item.Reason == BlockingReason.Expired ? "expired" : "missing")}")">
+                            @if (item.Reason == BlockingReason.Expired && item.ExpiredOn is { } expiredOn)
+                            {
+                                @T["Vendor.Blocking.Expired", Name(item.NameAr, item.NameEn), FormatDate(expiredOn)]
+                            }
+                            else
+                            {
+                                @T["Vendor.Blocking.Missing", Name(item.NameAr, item.NameEn)]
+                            }
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+        <DataTable Items="vendor.Documents" Label="@T["Admin.Vendors.Documents.Table"]">
+            <ChildContent>
+                <TemplateColumn TGridItem="RelatedVendorDocument" Title="@T["Vendor.Documents.ColumnType"]">
+                    <span class="font-semibold" data-document="@context.Id">@TypeName(context.Type)</span>
+                </TemplateColumn>
+                <TemplateColumn TGridItem="RelatedVendorDocument" Title="@T["Vendor.Documents.ColumnExpiry"]">
+                    <time datetime="@context.ExpiresOn.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)" class="whitespace-nowrap">@FormatDate(context.ExpiresOn)</time>
+                </TemplateColumn>
+                <TemplateColumn TGridItem="RelatedVendorDocument" Title="@T["Vendor.Documents.ColumnStatus"]">
+                    @if (!context.IsCurrent)
+                    {
+                        <StatusBadge Tone="StatusTone.Neutral" data-document-status="@($"{context.Id}:history")">@T["Admin.Vendors.Document.History"]</StatusBadge>
+                    }
+                    else if (context.ExpiresOn < _today)
+                    {
+                        <StatusBadge Tone="StatusTone.Danger" data-document-status="@($"{context.Id}:expired")">@T["Admin.Vendors.Document.Expired"]</StatusBadge>
+                    }
+                    else
+                    {
+                        <StatusBadge Tone="StatusTone.Success" data-document-status="@($"{context.Id}:current")">@T["Admin.Vendors.Document.Current"]</StatusBadge>
+                    }
+                </TemplateColumn>
+            </ChildContent>
+            <EmptyContent>
+                <EmptyState Title="@T["Admin.Vendors.Documents.Empty"]" HeadingLevel="3" />
+            </EmptyContent>
+        </DataTable>
+    </section>
+
+    <Dialog @bind-Open="_approveOpen" Busy="_busy" OnConfirm="ApproveAsync" ReturnFocus="_approveButton?.Element"
+            Title="@T["Admin.Vendors.ApproveTitle", Name(vendor.NameAr, vendor.NameEn)]" ConfirmText="@T["Admin.Vendors.ApproveConfirm"]">
+        <p>@T["Admin.Vendors.ApproveBody"]</p>
+        @if (_approveError is not null)
+        {
+            <p role="alert" class="text-small text-danger">@_approveError</p>
+        }
+    </Dialog>
+}
+
+<ToastRegion />
+
+@code {
+    private RelatedVendorDetails? _vendor;
+    private bool _loaded;
+    private DateOnly _today;
+    private Button? _approveButton;
+    private bool _approveOpen;
+    private bool _busy;
+    private string? _approveError;
+
+    [Parameter] public Guid CompanyId { get; set; }
+
+    [CascadingParameter] private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Riyadh is UTC+3 all year: the day documents are checked against, whatever the server's time zone.
+        _today = DateOnly.FromDateTime(Riyadh(Clock.GetUtcNow()));
+        _vendor = await Directory.GetRelatedAsync(CompanyId);
+        _loaded = true;
+    }
+
+    private void OpenApprove()
+    {
+        _approveError = null;
+        _approveOpen = true;
+    }
+
+    private async Task ApproveAsync()
+    {
+        if (_vendor is not { } vendor)
+        {
+            return;
+        }
+
+        _approveError = null;
+        _busy = true;
+        try
+        {
+            var user = AuthenticationState is null ? null : (await AuthenticationState).User;
+            var actor = user?.FindFirst(IdentityClaims.Subject)?.Value;
+            if (string.IsNullOrWhiteSpace(actor))
+            {
+                _approveError = T["Admin.Vendors.Error.NotAllowed"];
+                return;
+            }
+
+            var result = await Directory.ApproveAsync(vendor.Id, actor);
+            if (!result.IsSuccess && result.Error.Code != VendorDirectoryErrors.AlreadyApproved)
+            {
+                _approveError = result.Error.Code switch
+                {
+                    VendorDirectoryErrors.NotAllowed => T["Admin.Vendors.Error.NotAllowed"],
+                    VendorDirectoryErrors.NotFound => T["Admin.Vendors.NotFound"],
+                    _ => T["Admin.Vendors.Error.Generic"],
+                };
+                return;
+            }
+
+            // Approved now, or by someone else since the page opened: either way the card shows it as approved.
+            Toasts.Show(result.IsSuccess ? T["Admin.Vendors.Approved", Name(vendor.NameAr, vendor.NameEn)] : T["Admin.Vendors.Error.AlreadyApproved"]);
+            _approveOpen = false;
+            _vendor = await Directory.GetRelatedAsync(vendor.Id);
+        }
+        catch (Exception ex)
+        {
+            VendorAdminLog.ApproveFailed(Logger, ex.GetType().Name);
+            _approveError = T["Admin.Vendors.Error.Generic"];
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private static string TypeName(string code) =>
+        VendorDocumentTypes.Find(code) is { } type ? Name(type.NameAr, type.NameEn) : code;
+
+    private static string Name(string arabic, string english) =>
+        CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar" ? arabic : english;
+
+    private static DateTime Riyadh(DateTimeOffset at) => at.ToOffset(TimeSpan.FromHours(3)).DateTime;
+
+    private string FormatDate(DateTime at) => FormatDate(DateOnly.FromDateTime(at));
+
+    // ar-SA defaults to the Umm al-Qura calendar; the product shows Gregorian dates in both languages.
+    private string FormatDate(DateOnly date)
+    {
+        var culture = CultureInfo.CurrentCulture;
+        if (culture.Calendar is not GregorianCalendar)
+        {
+            culture = (CultureInfo)culture.Clone();
+            culture.DateTimeFormat.Calendar = new GregorianCalendar();
+        }
+
+        return date.ToString(T["Vendor.Documents.DateFormat"].Value, culture);
+    }
+}

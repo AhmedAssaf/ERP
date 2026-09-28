@@ -1,0 +1,329 @@
+@*
+    The vendor consent ledger (vendor plan task 6, F-64, V-12, V-13, ADR-0010): the company's consents, each with its
+    recipient, what may be shared, its period and its status today (active, starts later, expired or revoked); a dialog to
+    give a new consent to a recipient on the platform's list; a dialog to revoke one, which adds a row and leaves the grant
+    as it was. Vendor admins only: the Vendor policy opens the page, and the ledger refuses any change by someone who is not
+    the company's vendor admin; staff get 403. Interactive, for the dialogs; the company is the circuit's vendor context and
+    the actor its signed-in user, never form input.
+*@
+@page "/vendor/consent"
+@attribute [Authorize(Policy = VendorPolicies.Vendor)]
+@rendermode InteractiveServer
+@layout Platform.Web.Components.Layout.VendorLayout
+@using System.Globalization
+@using Microsoft.AspNetCore.Components.QuickGrid
+@inject IConsentLedger Ledger
+@inject ToastService Toasts
+@inject TimeProvider Clock
+@inject ILogger<VendorConsent> Logger
+@inject IStringLocalizer<SharedResource> T
+
+<PageTitle>@T["Vendor.Consent.Title"]</PageTitle>
+
+<div class="flex flex-wrap items-center justify-between gap-4">
+    <h1 class="text-display font-semibold">@T["Vendor.Consent.Title"]</h1>
+    <Button @ref="_grantButton" Variant="ButtonVariant.Primary" data-grant Disabled="@(_recipients.Count == 0)" OnClick="OpenGrant">@T["Vendor.Consent.New"]</Button>
+</div>
+<p class="max-w-prose text-ink-muted">@T["Vendor.Consent.Intro"]</p>
+@if (_loaded && _recipients.Count == 0)
+{
+    <p class="max-w-prose text-ink-muted" data-no-recipients>@T["Vendor.Consent.NoRecipients"]</p>
+}
+
+<section aria-labelledby="consent-heading" class="grid gap-4">
+    <h2 id="consent-heading" class="sr-only">@T["Vendor.Consent.Table"]</h2>
+    <DataTable Items="_grants" Label="@T["Vendor.Consent.Table"]">
+        <ChildContent>
+            <TemplateColumn TGridItem="ConsentGrant" Title="@T["Vendor.Consent.Column.Recipient"]">
+                <span class="font-semibold" data-consent-grant="@context.Id">@Name(context.Recipient)</span>
+            </TemplateColumn>
+            <TemplateColumn TGridItem="ConsentGrant" Title="@T["Vendor.Consent.Column.Scope"]">
+                @ScopeText(context.Scope)
+            </TemplateColumn>
+            <TemplateColumn TGridItem="ConsentGrant" Title="@T["Vendor.Consent.Column.Period"]">
+                <span class="whitespace-nowrap">@T["Vendor.Consent.Period", FormatDate(context.ValidFrom), FormatDate(context.ValidTo)]</span>
+            </TemplateColumn>
+            <TemplateColumn TGridItem="ConsentGrant" Title="@T["Vendor.Consent.Column.Status"]">
+                <StatusBadge Tone="@ToneFor(context.Status)" data-consent-status="@($"{context.Id}:{StatusCode(context.Status)}")">@StatusText(context.Status)</StatusBadge>
+            </TemplateColumn>
+            <TemplateColumn TGridItem="ConsentGrant" Title="@T["Vendor.Consent.Column.Actions"]">
+                @if (context.Status is ConsentStatus.Active or ConsentStatus.NotYetValid)
+                {
+                    <Button Variant="ButtonVariant.Secondary" data-revoke="@context.Id" OnClick="() => OpenRevoke(context)">@T["Vendor.Consent.Revoke"]</Button>
+                }
+            </TemplateColumn>
+        </ChildContent>
+        <EmptyContent>
+            <EmptyState Title="@T["Vendor.Consent.EmptyTitle"]" HeadingLevel="3">@T["Vendor.Consent.EmptyBody"]</EmptyState>
+        </EmptyContent>
+    </DataTable>
+</section>
+
+<Dialog @bind-Open="_grantOpen" Busy="_busy" OnConfirm="GrantAsync" ReturnFocus="_grantButton?.Element"
+        Title="@T["Vendor.Consent.GrantTitle"]" ConfirmText="@T["Vendor.Consent.GrantConfirm"]">
+    <p>@T["Vendor.Consent.GrantBody"]</p>
+    <Select Label="@T["Vendor.Consent.Field.Recipient"]" Required="true" Placeholder="@T["Vendor.Consent.Field.RecipientPlaceholder"]"
+            Options="RecipientOptions" @bind-Value="_recipientId" Error="@_recipientError" data-consent-recipient />
+    <Select Label="@T["Vendor.Consent.Field.Scope"]" Required="true" Placeholder="@T["Vendor.Consent.Field.ScopePlaceholder"]"
+            Options="ScopeOptions" @bind-Value="_scope" Error="@_scopeError" data-consent-scope />
+    <TextField Label="@T["Vendor.Consent.Field.From"]" Type="date" Required="true" dir="ltr" @bind-Value="_from" Error="@_periodError" data-consent-from />
+    <TextField Label="@T["Vendor.Consent.Field.To"]" Type="date" Required="true" dir="ltr" @bind-Value="_to" data-consent-to />
+    @if (_grantError is not null)
+    {
+        <p role="alert" class="text-small text-danger">@_grantError</p>
+    }
+</Dialog>
+
+@if (_revoking is { } revoking)
+{
+    <Dialog @bind-Open="_revokeOpen" Busy="_busy" OnConfirm="RevokeAsync" ConfirmVariant="ButtonVariant.Danger"
+            Title="@T["Vendor.Consent.RevokeTitle", Name(revoking.Recipient)]" ConfirmText="@T["Vendor.Consent.RevokeConfirm"]">
+        <p>@T["Vendor.Consent.RevokeBody"]</p>
+        @if (_revokeError is not null)
+        {
+            <p role="alert" class="text-small text-danger">@_revokeError</p>
+        }
+    </Dialog>
+}
+
+<ToastRegion />
+
+@code {
+    private const string DateFormat = "yyyy-MM-dd";
+
+    private IReadOnlyList<ConsentGrant> _grants = [];
+    private IReadOnlyList<ConsentRecipient> _recipients = [];
+    private bool _loaded;
+    private bool _busy;
+    private Button? _grantButton;
+
+    private bool _grantOpen;
+    private string? _recipientId;
+    private string? _scope;
+    private string? _from;
+    private string? _to;
+    private string? _recipientError;
+    private string? _scopeError;
+    private string? _periodError;
+    private string? _grantError;
+
+    private bool _revokeOpen;
+    private ConsentGrant? _revoking;
+    private string? _revokeError;
+
+    [CascadingParameter] private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    private IReadOnlyList<SelectOption> RecipientOptions =>
+        [.. _recipients.Select(r => new SelectOption(r.Id.ToString(), Name(r)))];
+
+    private IReadOnlyList<SelectOption> ScopeOptions =>
+        [.. Enum.GetValues<ConsentScope>().Select(s => new SelectOption(ScopeCode(s), ScopeText(s)))];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _recipients = await Ledger.ListRecipientsAsync();
+        _grants = await Ledger.ListAsync();
+        _loaded = true;
+    }
+
+    private void OpenGrant()
+    {
+        var today = Today();
+        _recipientId = null;
+        _scope = null;
+        _from = today.ToString(DateFormat, CultureInfo.InvariantCulture);
+        _to = today.AddYears(1).ToString(DateFormat, CultureInfo.InvariantCulture);
+        _recipientError = _scopeError = _periodError = _grantError = null;
+        _grantOpen = true;
+    }
+
+    private void OpenRevoke(ConsentGrant grant)
+    {
+        _revoking = grant;
+        _revokeError = null;
+        _revokeOpen = true;
+    }
+
+    private async Task GrantAsync()
+    {
+        _recipientError = _scopeError = _periodError = _grantError = null;
+        var recipient = Guid.TryParse(_recipientId, out var id) ? _recipients.FirstOrDefault(r => r.Id == id) : null;
+        var scope = Enum.GetValues<ConsentScope>().Cast<ConsentScope?>().FirstOrDefault(s => ScopeCode(s!.Value) == _scope);
+        var fromOk = DateOnly.TryParseExact(_from, DateFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out var from);
+        var toOk = DateOnly.TryParseExact(_to, DateFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out var to);
+        if (recipient is null)
+        {
+            _recipientError = T["Vendor.Consent.Error.Recipient"];
+        }
+
+        if (scope is null)
+        {
+            _scopeError = T["Vendor.Consent.Error.Scope"];
+        }
+
+        if (!fromOk || !toOk)
+        {
+            _periodError = T["Vendor.Consent.Error.Period"];
+        }
+
+        if (recipient is null || scope is null || !fromOk || !toOk)
+        {
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            if (await ActorAsync() is not { } actor)
+            {
+                _grantError = T["Vendor.Consent.Error.NotAdmin"];
+                return;
+            }
+
+            var result = await Ledger.GrantAsync(recipient.Id, scope.Value, from, to, actor);
+            if (!result.IsSuccess)
+            {
+                switch (result.Error.Code)
+                {
+                    case ConsentErrors.InvalidPeriod:
+                        _periodError = T["Vendor.Consent.Error.Period"];
+                        break;
+                    case ConsentErrors.UnknownRecipient:
+                        _recipientError = T["Vendor.Consent.Error.Recipient"];
+                        break;
+                    case ConsentErrors.NotVendorAdmin:
+                        _grantError = T["Vendor.Consent.Error.NotAdmin"];
+                        break;
+                    default:
+                        _grantError = T["Vendor.Consent.Error.Generic"];
+                        break;
+                }
+
+                return;
+            }
+
+            Toasts.Show(T["Vendor.Consent.Granted", Name(recipient)]);
+            _grantOpen = false;
+            _grants = await Ledger.ListAsync();
+        }
+        catch (Exception ex)
+        {
+            VendorPageLog.ConsentChangeFailed(Logger, "grant", ex.GetType().Name);
+            _grantError = T["Vendor.Consent.Error.Generic"];
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task RevokeAsync()
+    {
+        if (_revoking is not { } grant)
+        {
+            return;
+        }
+
+        _revokeError = null;
+        _busy = true;
+        try
+        {
+            if (await ActorAsync() is not { } actor)
+            {
+                _revokeError = T["Vendor.Consent.Error.NotAdmin"];
+                return;
+            }
+
+            var result = await Ledger.RevokeAsync(grant.Id, actor);
+            if (!result.IsSuccess && result.Error.Code != ConsentErrors.AlreadyRevoked)
+            {
+                _revokeError = result.Error.Code switch
+                {
+                    ConsentErrors.GrantNotFound => T["Vendor.Consent.Error.NotFound"],
+                    ConsentErrors.NotVendorAdmin => T["Vendor.Consent.Error.NotAdmin"],
+                    _ => T["Vendor.Consent.Error.Generic"],
+                };
+                return;
+            }
+
+            // Revoked now, or already revoked since the page opened: either way the list shows it as revoked.
+            Toasts.Show(result.IsSuccess ? T["Vendor.Consent.Revoked", Name(grant.Recipient)] : T["Vendor.Consent.Error.AlreadyRevoked"]);
+            _revokeOpen = false;
+            _revoking = null;
+            _grants = await Ledger.ListAsync();
+        }
+        catch (Exception ex)
+        {
+            VendorPageLog.ConsentChangeFailed(Logger, "revoke", ex.GetType().Name);
+            _revokeError = T["Vendor.Consent.Error.Generic"];
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    /// <summary>The signed-in user's id; the ledger checks it is the acting user and the company's vendor admin.</summary>
+    private async Task<string?> ActorAsync()
+    {
+        var user = AuthenticationState is null ? null : (await AuthenticationState).User;
+        var actor = user?.FindFirst(IdentityClaims.Subject)?.Value;
+        return string.IsNullOrWhiteSpace(actor) ? null : actor;
+    }
+
+    private static string ScopeCode(ConsentScope scope) => scope switch
+    {
+        ConsentScope.AwardRecords => "award_records",
+        ConsentScope.PoRecords => "po_records",
+        _ => "profile_documents",
+    };
+
+    private string ScopeText(ConsentScope scope) => scope switch
+    {
+        ConsentScope.AwardRecords => T["Vendor.Consent.Scope.AwardRecords"],
+        ConsentScope.PoRecords => T["Vendor.Consent.Scope.PoRecords"],
+        _ => T["Vendor.Consent.Scope.ProfileDocuments"],
+    };
+
+    private static string StatusCode(ConsentStatus status) => status switch
+    {
+        ConsentStatus.Active => "active",
+        ConsentStatus.NotYetValid => "not_yet_valid",
+        ConsentStatus.Expired => "expired",
+        _ => "revoked",
+    };
+
+    private string StatusText(ConsentStatus status) => status switch
+    {
+        ConsentStatus.Active => T["Vendor.Consent.Status.Active"],
+        ConsentStatus.NotYetValid => T["Vendor.Consent.Status.NotYetValid"],
+        ConsentStatus.Expired => T["Vendor.Consent.Status.Expired"],
+        _ => T["Vendor.Consent.Status.Revoked"],
+    };
+
+    private static StatusTone ToneFor(ConsentStatus status) => status switch
+    {
+        ConsentStatus.Active => StatusTone.Success,
+        ConsentStatus.NotYetValid => StatusTone.Info,
+        _ => StatusTone.Neutral,
+    };
+
+    private static string Name(ConsentRecipient recipient) =>
+        CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar" ? recipient.NameAr : recipient.NameEn;
+
+    // Riyadh is UTC+3 all year: the day a consent period is checked against, whatever the server's time zone.
+    private DateOnly Today() => DateOnly.FromDateTime(Clock.GetUtcNow().ToOffset(TimeSpan.FromHours(3)).DateTime);
+
+    // ar-SA defaults to the Umm al-Qura calendar; the product shows Gregorian dates in both languages.
+    private string FormatDate(DateOnly date)
+    {
+        var culture = CultureInfo.CurrentCulture;
+        if (culture.Calendar is not GregorianCalendar)
+        {
+            culture = (CultureInfo)culture.Clone();
+            culture.DateTimeFormat.Calendar = new GregorianCalendar();
+        }
+
+        return date.ToString(T["Vendor.Documents.DateFormat"].Value, culture);
+    }
+}

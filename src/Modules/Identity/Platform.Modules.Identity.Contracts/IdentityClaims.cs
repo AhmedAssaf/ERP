@@ -11,8 +11,14 @@ public static class IdentityClaims
     /// <summary>Authentication context class: the level of authentication Keycloak achieved for the login (D-2).</summary>
     public const string Acr = "acr";
 
-    /// <summary>Realm roles, as the platform realm's client mapper emits them in the id token (one claim per role).</summary>
+    /// <summary>Realm roles, as both realms' web clients emit them in the id token through a client mapper (one claim per role).</summary>
     public const string Roles = "roles";
+
+    /// <summary>
+    /// The tenant realm's role of vendor users (vendor spec V-3). Never a default role: the application grants it when a
+    /// user registers a company, through <see cref="IVendorAccounts"/>.
+    /// </summary>
+    public const string VendorRealmRole = "vendor";
 
     public const string Email = "email";
 

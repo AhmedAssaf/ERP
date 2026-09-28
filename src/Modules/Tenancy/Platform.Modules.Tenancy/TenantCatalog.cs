@@ -6,9 +6,10 @@ using Platform.Shared.Tenancy;
 namespace Platform.Modules.Tenancy;
 
 /// <summary>
-/// Reads <c>tenancy.list_tenants()</c>. The function is executable by <c>erp_app</c>, the role every request connects as,
-/// so the database cannot tell a console request from a tenant one; like <c>resolve_host</c>, it is gated in code. This
-/// class refuses unless the scope is a platform request (<see cref="IPlatformRequestContext"/>), on top of the
+/// Reads <c>tenancy.list_tenants()</c>. The function is executable by <c>erp_app</c>, the role every request connects as;
+/// since tenancy migration 0007 it refuses a session with a tenant or vendor context, so a tenant-host request cannot list
+/// tenants. It cannot tell a platform-host session from the worker's (neither has a context, ADR-0012 point 4), so this
+/// class also refuses unless the scope is a platform request (<see cref="IPlatformRequestContext"/>), on top of the
 /// PlatformAdmin policy the console pages require.
 /// </summary>
 internal sealed class TenantCatalog(

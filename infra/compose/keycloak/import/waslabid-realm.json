@@ -21,6 +21,19 @@
   "otpPolicyPeriod": 30,
   "otpPolicyLookAheadWindow": 1,
   "browserFlow": "tenant browser",
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": true,
+  "verifyEmail": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "roles": {
+    "realm": [
+      {
+        "name": "vendor",
+        "description": "Vendor user of a registered vendor company (vendor spec V-3). Granted by the app on company registration, never a default role"
+      }
+    ]
+  },
   "smtpServer": {
     "host": "mailpit",
     "port": "1025",
@@ -30,6 +43,9 @@
     "ssl": "false",
     "starttls": "false"
   },
+  "authenticatorConfig": [
+    { "alias": "tenant browser otp unless vendor", "config": { "condUserRole": "vendor", "negate": "true" } }
+  ],
   "authenticationFlows": [
     {
       "alias": "tenant browser",
@@ -70,6 +86,17 @@
       "builtIn": false,
       "authenticationExecutions": [
         { "authenticator": "auth-username-password-form", "requirement": "REQUIRED", "priority": 10, "authenticatorFlow": false, "userSetupAllowed": false },
+        { "flowAlias": "tenant browser otp", "requirement": "CONDITIONAL", "priority": 20, "authenticatorFlow": true, "userSetupAllowed": false }
+      ]
+    },
+    {
+      "alias": "tenant browser otp",
+      "description": "The OTP form for every tenant user except holders of the realm role vendor (F-06, vendor spec V-4)",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        { "authenticator": "conditional-user-role", "authenticatorConfig": "tenant browser otp unless vendor", "requirement": "REQUIRED", "priority": 10, "authenticatorFlow": false, "userSetupAllowed": false },
         { "authenticator": "auth-otp-form", "requirement": "REQUIRED", "priority": 20, "authenticatorFlow": false, "userSetupAllowed": false }
       ]
     }
@@ -103,7 +130,24 @@
         "post.logout.redirect.uris": "https://acme.localhost:8443/signout-callback-oidc##https://beta.localhost:8443/signout-callback-oidc##https://acme.localhost/signout-callback-oidc##https://beta.localhost/signout-callback-oidc"
       },
       "defaultClientScopes": ["basic", "profile", "email", "roles", "web-origins", "acr"],
-      "optionalClientScopes": ["organization"]
+      "optionalClientScopes": ["organization"],
+      "protocolMappers": [
+        {
+          "name": "realm roles in id token",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "roles",
+            "multivalued": "true",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
     },
     {
       "clientId": "waslabid-tests",

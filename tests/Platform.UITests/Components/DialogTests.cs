@@ -1,6 +1,9 @@
 using AngleSharp.Dom;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.JSInterop;
 using Platform.UI.Components;
 using Platform.UITests.Fixtures;
 
@@ -24,6 +27,48 @@ public class DialogTests : ComponentTest
         changes.ShouldBe([false]);
         cut.FindAll("[role=dialog]").ShouldBeEmpty();
         LastFocusedId().ShouldBe(_opener.Id);
+    }
+
+    /// <remarks>
+    /// The staff vendor page closes its Approve dialog after approving, and the Approve button that opened it is gone by
+    /// then, so the browser refuses to focus it. Found by the vendor slice browser pass (plan task 7): the refusal ended
+    /// the officer's circuit. Closing must still succeed, and focus goes to the page's main region (docs/08 section 8)
+    /// rather than being left on the document body, where a keyboard or screen reader user would lose their place.
+    /// </remarks>
+    [Fact]
+    public void Closing_after_the_page_removed_the_opener_focuses_the_main_region()
+    {
+        var logger = new CapturingLogger<Dialog>();
+        Services.AddSingleton<ILogger<Dialog>>(logger);
+        JSInterop.SetupVoid(FocusIdentifier, i => i.Arguments[0] is ElementReference { Id: "opener-button" })
+            .SetException(new JSException("Unable to focus an invalid element."));
+        var module = JSInterop.SetupModule(Dialog.ModulePath);
+        module.SetupVoid("focusMain").SetVoidResult();
+        var cut = RenderOpenDialog();
+
+        Should.NotThrow(() => cut.Render(p => p.Add(d => d.Open, false)));
+
+        cut.FindAll("[role=dialog]").ShouldBeEmpty();
+        LastFocusedId().ShouldBe(_opener.Id);
+        module.VerifyInvoke("focusMain");
+        logger.Entries.ShouldContain(e => e.Level == LogLevel.Information && e.Message.Contains("no longer rendered", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Closing_still_succeeds_when_the_main_region_cannot_take_focus_either()
+    {
+        var logger = new CapturingLogger<Dialog>();
+        Services.AddSingleton<ILogger<Dialog>>(logger);
+        JSInterop.SetupVoid(FocusIdentifier, i => i.Arguments[0] is ElementReference { Id: "opener-button" })
+            .SetException(new JSException("Unable to focus an invalid element."));
+        var module = JSInterop.SetupModule(Dialog.ModulePath);
+        module.SetupVoid("focusMain").SetException(new JSException("No main region."));
+        var cut = RenderOpenDialog();
+
+        Should.NotThrow(() => cut.Render(p => p.Add(d => d.Open, false)));
+
+        cut.FindAll("[role=dialog]").ShouldBeEmpty();
+        logger.Entries.Count(e => e.Level == LogLevel.Information).ShouldBe(2);
     }
 
     [Fact]
@@ -136,4 +181,17 @@ public class DialogTests : ComponentTest
 
     private string LastFocusedId() =>
         ((ElementReference)JSInterop.Invocations[FocusIdentifier][^1].Arguments[0]!).Id;
+
+    private sealed class CapturingLogger<T> : ILogger<T>
+    {
+        public List<(LogLevel Level, string Message)> Entries { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
+            Entries.Add((logLevel, formatter(state, exception)));
+    }
 }

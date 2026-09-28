@@ -209,7 +209,7 @@
   <data name="Branding.Error.PortalName" xml:space="preserve"><value>Enter a portal name of up to 100 characters.</value></data>
   <data name="Branding.Error.Color" xml:space="preserve"><value>Enter the colour as # followed by six hexadecimal digits, for example #0F766E.</value></data>
   <data name="Branding.Error.Generic" xml:space="preserve"><value>The branding was not saved. Try again; if it keeps failing, contact support.</value></data>
-  <data name="Branding.NotAllowed" xml:space="preserve"><value>You are no longer a tenant admin, so this change was not saved.</value></data>
+  <data name="Branding.NotAllowed" xml:space="preserve"><value>Only an active tenant admin of this organization can change its branding, so this change was not saved.</value></data>
   <data name="Branding.Logo.Heading" xml:space="preserve"><value>Logo</value></data>
   <data name="Branding.Logo.Current" xml:space="preserve"><value>Current logo</value></data>
   <data name="Branding.Logo.None" xml:space="preserve"><value>No logo yet. The header shows the portal name on its own.</value></data>
@@ -222,4 +222,182 @@
   <data name="Branding.Logo.Error.Dimensions" xml:space="preserve"><value>The image is wider or taller than 4096 pixels. Resize it and upload it again.</value></data>
   <data name="Branding.Logo.Error.Unreadable" xml:space="preserve"><value>The image could not be read; it may be damaged. Export it again as PNG or JPEG and upload it.</value></data>
   <data name="Branding.Logo.Error.Missing" xml:space="preserve"><value>Choose a logo file to upload.</value></data>
+  <data name="Vendor.Register.Title" xml:space="preserve"><value>Register your company</value></data>
+  <data name="Vendor.Register.Intro" xml:space="preserve"><value>Enter your company's details as they appear in its commercial registration. You become its administrator on WaslaBid.</value></data>
+  <data name="Vendor.Register.Submit" xml:space="preserve"><value>Register company</value></data>
+  <data name="Vendor.Register.Done" xml:space="preserve"><value>Your company is registered. Sign in again to open your vendor page.</value></data>
+  <data name="Vendor.Register.SignInAgain" xml:space="preserve"><value>Sign in again</value></data>
+  <data name="Vendor.Register.AlreadyRegistered" xml:space="preserve"><value>This account already belongs to a vendor company.</value></data>
+  <data name="Vendor.Register.GoToVendorHome" xml:space="preserve"><value>Go to your vendor page</value></data>
+  <data name="Vendor.Register.Error.CrNumber" xml:space="preserve"><value>Enter the 10-digit commercial registration (CR) number, using digits only.</value></data>
+  <data name="Vendor.Register.Error.NameAr" xml:space="preserve"><value>Enter the company's Arabic name as registered, up to 200 characters, using letters, digits, spaces and . , ' - &amp; ( ) /.</value></data>
+  <data name="Vendor.Register.Error.NameEn" xml:space="preserve"><value>Enter the company's English name as registered, up to 200 characters, using letters, digits, spaces and . , ' - &amp; ( ) /.</value></data>
+  <data name="Vendor.Register.Error.VatNumber" xml:space="preserve"><value>Enter the 15-digit VAT number; it starts and ends with 3.</value></data>
+  <data name="Vendor.Register.Error.Address" xml:space="preserve"><value>Enter the address on one line, in up to 500 characters.</value></data>
+  <data name="Vendor.Register.Error.ContactName" xml:space="preserve"><value>Enter the contact person's full name, up to 200 characters, using letters, spaces, apostrophes, hyphens and periods.</value></data>
+  <data name="Vendor.Register.Error.ContactPhone" xml:space="preserve"><value>Enter a phone number of 7 to 15 digits; a + at the start, spaces and hyphens are allowed.</value></data>
+  <data name="Vendor.Register.Error.ContactEmail" xml:space="preserve"><value>Enter the contact's work email address, for example name@company.com.</value></data>
+  <data name="Vendor.Register.Error.Privacy" xml:space="preserve"><value>Read the privacy notice and tick the box to accept it.</value></data>
+  <data name="Vendor.Register.Error.Duplicate" xml:space="preserve"><value>This company already has an account on WaslaBid. Ask its administrator to add you.</value></data>
+  <data name="Vendor.Register.Error.StaffAccount" xml:space="preserve"><value>This account belongs to a staff member. Register your company with a separate account.</value></data>
+  <data name="Vendor.Register.Error.Generic" xml:space="preserve"><value>The registration could not be completed. Try again in a moment.</value></data>
+  <data name="Vendor.Field.CrNumber" xml:space="preserve"><value>Commercial registration (CR) number</value></data>
+  <data name="Vendor.Field.CrNumber.Help" xml:space="preserve"><value>10 digits</value></data>
+  <data name="Vendor.Field.NameAr" xml:space="preserve"><value>Company name in Arabic</value></data>
+  <data name="Vendor.Field.NameEn" xml:space="preserve"><value>Company name in English</value></data>
+  <data name="Vendor.Field.VatNumber" xml:space="preserve"><value>VAT number</value></data>
+  <data name="Vendor.Field.VatNumber.Help" xml:space="preserve"><value>15 digits, starting and ending with 3</value></data>
+  <data name="Vendor.Field.Address" xml:space="preserve"><value>Address</value></data>
+  <data name="Vendor.Field.ContactName" xml:space="preserve"><value>Contact person</value></data>
+  <data name="Vendor.Field.ContactPhone" xml:space="preserve"><value>Contact phone</value></data>
+  <data name="Vendor.Field.ContactEmail" xml:space="preserve"><value>Contact email</value></data>
+  <data name="Vendor.Privacy.Heading" xml:space="preserve"><value>Privacy notice</value></data>
+  <data name="Vendor.Privacy.V1" xml:space="preserve"><value>WaslaBid, the platform that runs this portal, keeps your company's registration details, the documents you upload and a record of what you do here, so that the organizations you work with can assess your company and every decision can be audited. Your data is stored in Saudi Arabia. An organization sees your company only after you register or work with it through its portal. Your company decides, through its consent ledger, whether any other party may receive its records. You can ask for a copy of your data or for its correction at any time.</value></data>
+  <data name="Vendor.Privacy.Accept" xml:space="preserve"><value>I have read the privacy notice and accept it.</value></data>
+  <data name="Vendor.Home.Title" xml:space="preserve"><value>Vendor page</value></data>
+  <data name="AppShell.SupplierPortal" xml:space="preserve"><value>Supplier portal</value></data>
+  <data name="FileUpload.Help" xml:space="preserve"><value>{0}, up to {1} MB.</value></data>
+  <data name="FileUpload.Expiry" xml:space="preserve"><value>Expiry date</value></data>
+  <data name="FileUpload.ExpiryRequired" xml:space="preserve"><value>Enter the date the document expires.</value></data>
+  <data name="FileUpload.Start" xml:space="preserve"><value>Upload file</value></data>
+  <data name="FileUpload.Cancel" xml:space="preserve"><value>Stop upload</value></data>
+  <data name="FileUpload.Progress" xml:space="preserve"><value>Upload progress</value></data>
+  <data name="FileUpload.Uploading" xml:space="preserve"><value>Uploading… {0}%</value></data>
+  <data name="FileUpload.Scanning" xml:space="preserve"><value>Checking the file for viruses…</value></data>
+  <data name="FileUpload.Pending" xml:space="preserve"><value>Waiting for the virus check</value></data>
+  <data name="FileUpload.PendingBody" xml:space="preserve"><value>The file is saved. It is listed once the virus check has finished; you can leave this page.</value></data>
+  <data name="FileUpload.Done" xml:space="preserve"><value>Uploaded and checked</value></data>
+  <data name="FileUpload.Rejected" xml:space="preserve"><value>The file was not uploaded</value></data>
+  <data name="FileUpload.Failed" xml:space="preserve"><value>The upload stopped because the connection failed. Retry to continue from where it stopped.</value></data>
+  <data name="FileUpload.Retry" xml:space="preserve"><value>Retry upload</value></data>
+  <data name="FileUpload.WrongType" xml:space="preserve"><value>Choose a file of type {0}.</value></data>
+  <data name="FileUpload.TooLarge" xml:space="preserve"><value>The file is larger than {0} MB. Choose a smaller file.</value></data>
+  <data name="FileUpload.Empty" xml:space="preserve"><value>The file is empty. Choose another file.</value></data>
+  <data name="FileUpload.NotAccepted" xml:space="preserve"><value>The file was not accepted. Check it and try again.</value></data>
+  <data name="FileUpload.SignedOut" xml:space="preserve"><value>Your session has ended. Sign in again and upload the file once more.</value></data>
+  <data name="FileUpload.ListSeparator" xml:space="preserve"><value>, </value></data>
+  <data name="FileUpload.Or" xml:space="preserve"><value>or</value></data>
+  <data name="Gallery.Section.FileUpload" xml:space="preserve"><value>File upload</value></data>
+  <data name="Gallery.Sample.UploadLabel" xml:space="preserve"><value>Commercial registration certificate</value></data>
+  <data name="Gallery.Sample.UploadRejected" xml:space="preserve"><value>The file contains a virus and was deleted.</value></data>
+  <data name="Gallery.Sample.NavCompany" xml:space="preserve"><value>Company and documents</value></data>
+  <data name="Vendor.Nav.Home" xml:space="preserve"><value>Company and documents</value></data>
+  <data name="Vendor.Home.Company" xml:space="preserve"><value>Company</value></data>
+  <data name="Vendor.Home.Relationship" xml:space="preserve"><value>Status with {0}</value></data>
+  <data name="Vendor.Relationship.Pending" xml:space="preserve"><value>Waiting for approval</value></data>
+  <data name="Vendor.Relationship.Approved" xml:space="preserve"><value>Approved</value></data>
+  <data name="Vendor.Documents.Heading" xml:space="preserve"><value>Documents</value></data>
+  <data name="Vendor.Documents.Intro" xml:space="preserve"><value>Keep these documents current: an organization cannot accept your offers while one is missing or expired.</value></data>
+  <data name="Vendor.Documents.Table" xml:space="preserve"><value>Company documents</value></data>
+  <data name="Vendor.Documents.ColumnType" xml:space="preserve"><value>Document</value></data>
+  <data name="Vendor.Documents.ColumnExpiry" xml:space="preserve"><value>Expiry date</value></data>
+  <data name="Vendor.Documents.ColumnStatus" xml:space="preserve"><value>Status</value></data>
+  <data name="Vendor.Documents.NoFile" xml:space="preserve"><value>No file</value></data>
+  <data name="Vendor.Documents.DateFormat" xml:space="preserve"><value>d MMMM yyyy</value></data>
+  <data name="Vendor.Documents.Status.Current" xml:space="preserve"><value>Current</value></data>
+  <data name="Vendor.Documents.Status.Expired" xml:space="preserve"><value>Expired</value></data>
+  <data name="Vendor.Documents.Status.Missing" xml:space="preserve"><value>Missing</value></data>
+  <data name="Vendor.Documents.Attempt.PendingScan" xml:space="preserve"><value>Waiting for the virus check</value></data>
+  <data name="Vendor.Documents.Attempt.Infected" xml:space="preserve"><value>Latest file rejected: a virus was found</value></data>
+  <data name="Vendor.Blocking.Heading" xml:space="preserve"><value>Before you can submit offers</value></data>
+  <data name="Vendor.Blocking.Missing" xml:space="preserve"><value>{0}: not uploaded</value></data>
+  <data name="Vendor.Blocking.Expired" xml:space="preserve"><value>{0}: expired on {1}</value></data>
+  <data name="Vendor.Upload.Heading" xml:space="preserve"><value>Upload a document</value></data>
+  <data name="Vendor.Upload.Intro" xml:space="preserve"><value>Upload the latest certificate. A new file replaces the current one once it has passed the virus check.</value></data>
+  <data name="Vendor.Upload.Error.TooMany" xml:space="preserve"><value>You have too many uploads in progress, or have uploaded many files today. Wait an hour and try again.</value></data>
+  <data name="Vendor.Upload.Error.WrongType" xml:space="preserve"><value>The file is not a PDF, PNG or JPEG file. Choose another file.</value></data>
+  <data name="Vendor.Upload.Error.TooLarge" xml:space="preserve"><value>The file is larger than 10 MB. Choose a smaller file.</value></data>
+  <data name="Vendor.Upload.Error.Empty" xml:space="preserve"><value>The file is empty. Choose another file.</value></data>
+  <data name="Vendor.Upload.Error.FileName" xml:space="preserve"><value>The file name is not accepted. Rename the file with letters, digits, spaces, hyphens or dots and try again.</value></data>
+  <data name="Vendor.Upload.Error.Expiry" xml:space="preserve"><value>Enter a valid expiry date between the years 2000 and 2100.</value></data>
+  <data name="Vendor.Upload.Error.Infected" xml:space="preserve"><value>The file contains a virus and was deleted. Check your computer and upload a clean copy.</value></data>
+  <data name="Vendor.Upload.Error.Expired" xml:space="preserve"><value>This upload is more than a day old. Upload the file again.</value></data>
+  <data name="Admin.Nav.Vendors" xml:space="preserve"><value>Vendors</value></data>
+  <data name="Admin.Vendors.Title" xml:space="preserve"><value>Vendors</value></data>
+  <data name="Admin.Vendors.Intro" xml:space="preserve"><value>Companies that registered through {0}'s portal or chose to work with it. Check a vendor's details and documents before you approve it.</value></data>
+  <data name="Admin.Vendors.Filter.Label" xml:space="preserve"><value>Show vendors</value></data>
+  <data name="Admin.Vendors.Filter.All" xml:space="preserve"><value>All</value></data>
+  <data name="Admin.Vendors.Filter.Pending" xml:space="preserve"><value>Waiting for approval</value></data>
+  <data name="Admin.Vendors.Filter.Approved" xml:space="preserve"><value>Approved</value></data>
+  <data name="Admin.Vendors.Table" xml:space="preserve"><value>Vendors of this organization</value></data>
+  <data name="Admin.Vendors.Column.Name" xml:space="preserve"><value>Company</value></data>
+  <data name="Admin.Vendors.Column.Cr" xml:space="preserve"><value>CR number</value></data>
+  <data name="Admin.Vendors.Column.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Admin.Vendors.Column.Documents" xml:space="preserve"><value>Documents</value></data>
+  <data name="Admin.Vendors.Status.Pending" xml:space="preserve"><value>Waiting for approval</value></data>
+  <data name="Admin.Vendors.Status.Approved" xml:space="preserve"><value>Approved</value></data>
+  <data name="Admin.Vendors.Documents.Valid" xml:space="preserve"><value>Complete and valid</value></data>
+  <data name="Admin.Vendors.Documents.Blocking" xml:space="preserve"><value>Missing or expired: {0}</value></data>
+  <data name="Admin.Vendors.Documents.Separator" xml:space="preserve"><value>, </value></data>
+  <data name="Admin.Vendors.EmptyTitle" xml:space="preserve"><value>No vendors to show</value></data>
+  <data name="Admin.Vendors.EmptyBody" xml:space="preserve"><value>Vendors appear here once they register through your portal or choose to work with your organization.</value></data>
+  <data name="Admin.Vendors.Back" xml:space="preserve"><value>All vendors</value></data>
+  <data name="Admin.Vendors.Loading" xml:space="preserve"><value>Loading the vendor…</value></data>
+  <data name="Admin.Vendors.NotFound" xml:space="preserve"><value>This vendor does not work with your organization, or the link is wrong.</value></data>
+  <data name="Admin.Vendors.Card.Heading" xml:space="preserve"><value>Company</value></data>
+  <data name="Admin.Vendors.Field.FirstSeen" xml:space="preserve"><value>Registered or joined on</value></data>
+  <data name="Admin.Vendors.Documents.Heading" xml:space="preserve"><value>Documents</value></data>
+  <data name="Admin.Vendors.Documents.Table" xml:space="preserve"><value>Documents that passed the virus check</value></data>
+  <data name="Admin.Vendors.Documents.Empty" xml:space="preserve"><value>The vendor has no document that passed the virus check yet.</value></data>
+  <data name="Admin.Vendors.Document.Current" xml:space="preserve"><value>Current</value></data>
+  <data name="Admin.Vendors.Document.Expired" xml:space="preserve"><value>Expired</value></data>
+  <data name="Admin.Vendors.Document.History" xml:space="preserve"><value>Replaced by a newer file</value></data>
+  <data name="Admin.Vendors.Blocking.Heading" xml:space="preserve"><value>This vendor cannot submit offers yet</value></data>
+  <data name="Admin.Vendors.Approve" xml:space="preserve"><value>Approve</value></data>
+  <data name="Admin.Vendors.ApproveTitle" xml:space="preserve"><value>Approve {0}?</value></data>
+  <data name="Admin.Vendors.ApproveBody" xml:space="preserve"><value>Once approved, the vendor can take part in your organization's tenders. The approval is recorded under your name.</value></data>
+  <data name="Admin.Vendors.ApproveConfirm" xml:space="preserve"><value>Approve vendor</value></data>
+  <data name="Admin.Vendors.Approved" xml:space="preserve"><value>{0} is approved.</value></data>
+  <data name="Admin.Vendors.Error.NotAllowed" xml:space="preserve"><value>Only a contracts officer or a tenant administrator can approve a vendor.</value></data>
+  <data name="Admin.Vendors.Error.AlreadyApproved" xml:space="preserve"><value>This vendor is already approved.</value></data>
+  <data name="Admin.Vendors.Error.Generic" xml:space="preserve"><value>The approval could not be completed. Try again in a moment.</value></data>
+  <data name="Vendor.Join.Title" xml:space="preserve"><value>Work with {0}</value></data>
+  <data name="Vendor.Join.Intro" xml:space="preserve"><value>Your company is registered on WaslaBid. To take part in {0}'s tenders, choose to work with this organization. It then reviews your company's details and documents before approving it.</value></data>
+  <data name="Vendor.Join.Submit" xml:space="preserve"><value>Work with {0}</value></data>
+  <data name="Vendor.Join.Done" xml:space="preserve"><value>Your company now works with {0} and is waiting for its approval. Sign in again to open your vendor page here.</value></data>
+  <data name="Vendor.Join.Already" xml:space="preserve"><value>Your company already works with {0}. If your vendor page does not open here, choose the button below, then sign in again.</value></data>
+  <data name="Vendor.Join.Error.Generic" xml:space="preserve"><value>Joining this organization could not be completed. Try again in a moment.</value></data>
+  <data name="Vendor.Nav.Consent" xml:space="preserve"><value>Consent</value></data>
+  <data name="Vendor.Consent.Title" xml:space="preserve"><value>Consent to share your records</value></data>
+  <data name="Vendor.Consent.Intro" xml:space="preserve"><value>WaslaBid hands your company's records to another party only while a consent below allows it. Each consent names the recipient, what may be shared and for how long. You can revoke a consent at any time; it and its revocation stay on record.</value></data>
+  <data name="Vendor.Consent.New" xml:space="preserve"><value>New consent</value></data>
+  <data name="Vendor.Consent.Table" xml:space="preserve"><value>Consents of your company</value></data>
+  <data name="Vendor.Consent.Column.Recipient" xml:space="preserve"><value>Recipient</value></data>
+  <data name="Vendor.Consent.Column.Scope" xml:space="preserve"><value>What may be shared</value></data>
+  <data name="Vendor.Consent.Column.Period" xml:space="preserve"><value>Period</value></data>
+  <data name="Vendor.Consent.Column.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Vendor.Consent.Column.Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="Vendor.Consent.Scope.AwardRecords" xml:space="preserve"><value>Award records</value></data>
+  <data name="Vendor.Consent.Scope.PoRecords" xml:space="preserve"><value>Purchase order records</value></data>
+  <data name="Vendor.Consent.Scope.ProfileDocuments" xml:space="preserve"><value>Company profile and documents</value></data>
+  <data name="Vendor.Consent.Period" xml:space="preserve"><value>{0} to {1}</value></data>
+  <data name="Vendor.Consent.Status.Active" xml:space="preserve"><value>Active</value></data>
+  <data name="Vendor.Consent.Status.NotYetValid" xml:space="preserve"><value>Starts later</value></data>
+  <data name="Vendor.Consent.Status.Expired" xml:space="preserve"><value>Expired</value></data>
+  <data name="Vendor.Consent.Status.Revoked" xml:space="preserve"><value>Revoked</value></data>
+  <data name="Vendor.Consent.Revoke" xml:space="preserve"><value>Revoke</value></data>
+  <data name="Vendor.Consent.EmptyTitle" xml:space="preserve"><value>No consent given</value></data>
+  <data name="Vendor.Consent.EmptyBody" xml:space="preserve"><value>Your company has not allowed any party to receive its records.</value></data>
+  <data name="Vendor.Consent.NoRecipients" xml:space="preserve"><value>There is no recipient to give consent to yet.</value></data>
+  <data name="Vendor.Consent.GrantTitle" xml:space="preserve"><value>Give consent</value></data>
+  <data name="Vendor.Consent.GrantBody" xml:space="preserve"><value>The recipient may receive the records you choose, only within this period.</value></data>
+  <data name="Vendor.Consent.Field.Recipient" xml:space="preserve"><value>Recipient</value></data>
+  <data name="Vendor.Consent.Field.RecipientPlaceholder" xml:space="preserve"><value>Choose a recipient</value></data>
+  <data name="Vendor.Consent.Field.Scope" xml:space="preserve"><value>What may be shared</value></data>
+  <data name="Vendor.Consent.Field.ScopePlaceholder" xml:space="preserve"><value>Choose what may be shared</value></data>
+  <data name="Vendor.Consent.Field.From" xml:space="preserve"><value>First day</value></data>
+  <data name="Vendor.Consent.Field.To" xml:space="preserve"><value>Last day</value></data>
+  <data name="Vendor.Consent.GrantConfirm" xml:space="preserve"><value>Grant consent</value></data>
+  <data name="Vendor.Consent.Error.Recipient" xml:space="preserve"><value>Choose a recipient.</value></data>
+  <data name="Vendor.Consent.Error.Scope" xml:space="preserve"><value>Choose what may be shared.</value></data>
+  <data name="Vendor.Consent.Error.Period" xml:space="preserve"><value>Choose a period that starts today or later and ends on or after its first day.</value></data>
+  <data name="Vendor.Consent.Error.NotAdmin" xml:space="preserve"><value>Only your company's vendor administrator can change its consent.</value></data>
+  <data name="Vendor.Consent.Error.AlreadyRevoked" xml:space="preserve"><value>This consent is already revoked.</value></data>
+  <data name="Vendor.Consent.Error.NotFound" xml:space="preserve"><value>This consent was not found.</value></data>
+  <data name="Vendor.Consent.Error.Generic" xml:space="preserve"><value>The change could not be completed. Try again in a moment.</value></data>
+  <data name="Vendor.Consent.RevokeTitle" xml:space="preserve"><value>Revoke consent to {0}?</value></data>
+  <data name="Vendor.Consent.RevokeBody" xml:space="preserve"><value>From now on the recipient may not receive these records. The consent and its revocation stay on record.</value></data>
+  <data name="Vendor.Consent.RevokeConfirm" xml:space="preserve"><value>Revoke consent</value></data>
+  <data name="Vendor.Consent.Granted" xml:space="preserve"><value>Consent given to {0}.</value></data>
+  <data name="Vendor.Consent.Revoked" xml:space="preserve"><value>Consent to {0} revoked.</value></data>
 </root>

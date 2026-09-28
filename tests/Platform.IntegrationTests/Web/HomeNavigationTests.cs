@@ -87,6 +87,28 @@ public sealed class HomeNavigationTests(DatabaseFixture db, MinioFixture minio) 
         html.ShouldContain("admin/branding");
     }
 
+    [Fact]
+    public async Task A_signed_in_vendor_opening_home_is_sent_to_the_vendor_home()
+    {
+        var (tenant, member) = await AdminRequests.TenantWithMemberAsync(db, [TenantRoles.TenantAdmin], "en", Ct);
+        // A vendor of the tenant, and a member row holder who also carries the vendor role: neither may see the staff home.
+        var vendor = new TestUser($"vendor-{Guid.NewGuid():N}", [tenant.KeycloakOrgAlias], "en", RealmRoles: [IdentityClaims.VendorRealmRole]);
+        var both = member with { RealmRoles = [IdentityClaims.VendorRealmRole] };
+        await using var factory = AdminRequests.Factory(db.AppConnectionString, minio);
+        using var client = AdminRequests.Client(factory, TenantRows.Host(tenant));
+
+        foreach (var user in new[] { vendor, both })
+        {
+            using var response = await AdminRequests.GetAsync(client, "/", user, Ct);
+
+            response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+            response.Headers.Location.ShouldNotBeNull().OriginalString.ShouldBe("/vendor");
+        }
+
+        using var staff = await AdminRequests.GetAsync(client, "/", member, Ct);
+        staff.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
     private async Task<string> HomeAsync(string[] roles, string locale)
     {
         var (tenant, user) = await AdminRequests.TenantWithMemberAsync(db, roles, locale, Ct);
