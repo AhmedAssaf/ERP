@@ -1,7 +1,7 @@
 # ADR-0012: Keep vendor sessions out of staff rows in row-level security
 
 Date: 2026-09-28
-Status: Proposed
+Status: Accepted 2026-09-28
 Deciders: Ahmed Assaf
 Related: N-02 tenant isolation, F-10, F-23, F-41, ADR-0008, vendor slice spec `docs/superpowers/specs/2026-09-27-vendors-design.md`, pentest of the vendor slice 2026-09-28 (P-1 to P-3)
 

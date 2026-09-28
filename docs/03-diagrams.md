@@ -162,7 +162,7 @@ sequenceDiagram
 
 ## 5. Login and tenant isolation: one request end to end
 
-Read it as: the same user can never reach another tenant's data because the host, the token, and the database row policy must all agree. Caddy only terminates TLS; the tenant decision is made inside the app. A vendor carries a second key, its company (`app.vendor_company_id`, ADR-0012, Proposed): tenant tables are staff-only unless a table is explicitly vendor-visible, and then a vendor sees only its own company's rows; the vendor's own tables (company, users, documents, consent) are keyed on the company alone, across tenants (ADR-0008).
+Read it as: the same user can never reach another tenant's data because the host, the token, and the database row policy must all agree. Caddy only terminates TLS; the tenant decision is made inside the app. A vendor carries a second key, its company (`app.vendor_company_id`, ADR-0012): tenant tables are staff-only unless a table is explicitly vendor-visible, and then a vendor sees only its own company's rows; the vendor's own tables (company, users, documents, consent) are keyed on the company alone, across tenants (ADR-0008).
 
 ```mermaid
 sequenceDiagram
