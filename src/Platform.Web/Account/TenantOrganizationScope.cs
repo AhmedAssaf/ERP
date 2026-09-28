@@ -9,7 +9,8 @@ namespace Platform.Web.Account;
 /// to several organizations (a vendor working with more than one tenant, ADR-0008) a picker listing every tenant they
 /// belong to on each sign-in, and the token carries whichever one they picked. The named scope needs no picker, puts
 /// this tenant's alias in the token only when the user is a member, and never tells a tenant host about the others.
-/// A challenge with no tenant (no tenant page can succeed there) keeps the configured scopes unchanged.
+/// A challenge with no tenant (no tenant page can succeed there) drops the organization scope altogether, so it can
+/// never bring back the picker or put any tenant's alias in the token.
 /// </summary>
 internal static class TenantOrganizationScope
 {
@@ -18,14 +19,15 @@ internal static class TenantOrganizationScope
     public static Task Apply(RedirectContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        var tenant = context.HttpContext.RequestServices.GetService<ITenantAccessor>()?.Current;
-        if (tenant is null || string.IsNullOrWhiteSpace(context.ProtocolMessage.Scope))
+        if (string.IsNullOrWhiteSpace(context.ProtocolMessage.Scope))
         {
             return Task.CompletedTask;
         }
 
+        var tenant = context.HttpContext.RequestServices.GetService<ITenantAccessor>()?.Current;
         var scopes = context.ProtocolMessage.Scope.Split(' ', StringSplitOptions.RemoveEmptyEntries)
-            .Select(s => string.Equals(s, Scope, StringComparison.Ordinal) ? $"{Scope}:{tenant.KeycloakOrgAlias}" : s);
+            .Where(s => tenant is not null || !string.Equals(s, Scope, StringComparison.Ordinal))
+            .Select(s => tenant is not null && string.Equals(s, Scope, StringComparison.Ordinal) ? $"{Scope}:{tenant.KeycloakOrgAlias}" : s);
         context.ProtocolMessage.Scope = string.Join(' ', scopes);
         return Task.CompletedTask;
     }
