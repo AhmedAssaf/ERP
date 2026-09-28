@@ -71,7 +71,7 @@ docker compose up -d
 | Keycloak 26 | Identity, Organizations per tenant | 8080 (admin console), 9000 (health) | KEYCLOAK_ADMIN, KEYCLOAK_ADMIN_PASSWORD |
 | Redis 7 | Circuit state, locks, rate limits | 6379 | none |
 | MinIO | S3-compatible object storage, bucket `erp-dev` | 9002 (API), 9003 (console) | MINIO_ROOT_USER, MINIO_ROOT_PASSWORD |
-| ClamAV | Virus scanning for uploads | 3310 | none |
+| ClamAV | Virus scanning for vendor uploads: the web host scans every completed upload over TCP `INSTREAM`, the worker retries pending ones (F-12), and the health board checks it | 3310 | none |
 | Mailpit | Catches all outgoing email, shows it in a web UI | 1025 (SMTP), 8025 (UI) | none |
 | Caddy | Local TLS edge; `https://<tenant>.localhost` forwards to the app on the host | 80, 443 by default; set `CADDY_HTTP_PORT` and `CADDY_HTTPS_PORT` (for example 8081 and 8443) on Windows machines where 443 sits in a reserved range | none |
 
@@ -228,6 +228,48 @@ Sign in as the platform admin the first time:
 Checked end to end on 2026-09-26 (admin plan Task 11): every command in this section, from the user secrets to the
 realm reimport, the migrator, the worker and the web host, run on Windows 11 with Git Bash against the Compose stack,
 then a browser pass through Caddy for the tenant admin, an invited evaluator and the platform admin.
+
+#### Vendor slice (F-11, F-12, F-10, F-64)
+
+Checked end to end on 2026-09-28 with `tests/e2e/vendor.mjs` (21 of 21 steps pass; see `tests/e2e/README.md`).
+
+1. **Realm reimport for registration.** The vendor slice changed the tenant realm: self-registration on, email
+   verification on, email as user name, the realm role `vendor`. A `waslabid` realm imported before that keeps the old
+   settings, and `/vendor/register` then shows Keycloak's login instead of its registration form. Delete only the
+   tenant realm and recreate Keycloak, with the same commands as step 1 of "Platform console host" above but for
+   `waslabid` alone (the platform realm is unchanged), then run the migrator with `--seed-dev` (it also adds the test
+   consent recipient "Test finance partner"). Check the realm with the admin API: `registrationAllowed` and
+   `verifyEmail` are `true`.
+2. **Staff rows after any realm reset.** A reimport gives every Keycloak user a new id, but a member row seeded by email
+   keeps the id it was bound to on the first sign-in, so `acme.admin` gets a 403 on every staff page. Unbind the
+   seeded rows on the local stack (as the owner, which bypasses row-level security), and they bind again on the next
+   sign-in:
+
+   ```bash
+   docker exec erp-postgres psql -U erp -d platform -c "update identity.members set user_id = null, status = 'invited', activated_at = null where email in ('admin@acme.waslabid.test', 'admin@beta.waslabid.test')"
+   ```
+
+3. **Worker settings.** The worker runs the vendor jobs (the retry scan of pending documents every 5 minutes and the
+   cleanup of abandoned upload staging), so it needs object storage and ClamAV too. `ClamAv:Host`/`Port` and
+   `ObjectStorage:ServiceUrl`/`BucketName` have Development defaults; the object storage keys are user secrets, as for
+   the web host (the MinIO root user in development):
+
+   ```bash
+   env_value() { grep "^$1=" infra/compose/.env | cut -d= -f2- | tr -d '\r'; }
+   dotnet user-secrets set "ObjectStorage:AccessKey" "$(env_value MINIO_ROOT_USER)" --project src/Platform.Worker > /dev/null
+   dotnet user-secrets set "ObjectStorage:SecretKey" "$(env_value MINIO_ROOT_PASSWORD)" --project src/Platform.Worker > /dev/null
+   ```
+
+4. **ClamAV must be healthy** before a vendor uploads: an upload completed while it is down stays "waiting for the
+   virus check" until the worker's retry finds it answering again. `minio-init` also sets the lifecycle rule that
+   expires `staging/` after 2 days.
+5. **Walk through it.** Open `https://acme.localhost:8443/vendor/register`, register with any address, open the
+   "Verify email" message in Mailpit (`http://localhost:8025`), fill the company form and accept the privacy notice,
+   sign in again, upload the two certificates on `/vendor`, and manage consent on `/vendor/consent`. Vendors sign in
+   with a password only; staff pages ask for TOTP. Approve as `acme.admin` on `/admin/vendors`. The same vendor opening
+   `https://beta.localhost:8443/vendor` is sent to `/vendor/join`. Each tenant host asks Keycloak for its own
+   organization only (`organization:<alias>`), so a vendor working with both tenants is not shown an organization
+   picker.
 
 #### Operations
 
