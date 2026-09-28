@@ -112,7 +112,14 @@ public sealed class KeycloakFixture : IAsyncLifetime
     public static string CurrentOtp() => new Totp(System.Text.Encoding.UTF8.GetBytes(OtpSecret)).ComputeTotp();
 
     /// <summary>Signs in through the tests-only client and returns the id token.</summary>
-    public async Task<string> SignInAsync(string username, CancellationToken cancellationToken)
+    public Task<string> SignInAsync(string username, CancellationToken cancellationToken) =>
+        SignInAsync(username, "openid organization", cancellationToken);
+
+    /// <summary>
+    /// Signs in through the tests-only client asking for <paramref name="scope"/> (for example <c>openid organization:acme</c>,
+    /// the scope the host sends on a tenant host) and returns the id token Keycloak issues for it.
+    /// </summary>
+    public async Task<string> SignInAsync(string username, string scope, CancellationToken cancellationToken)
     {
         using var http = new HttpClient();
         using var form = new FormUrlEncodedContent(new Dictionary<string, string>
@@ -121,7 +128,7 @@ public sealed class KeycloakFixture : IAsyncLifetime
             ["grant_type"] = "password",
             ["username"] = username,
             ["password"] = UserPassword,
-            ["scope"] = "openid organization",
+            ["scope"] = scope,
         });
         using var response = await http.PostAsync(new Uri($"{Authority}/protocol/openid-connect/token"), form, cancellationToken);
         response.EnsureSuccessStatusCode();

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Platform.IntegrationTests.Infrastructure;
 
@@ -59,4 +60,24 @@ public class OidcChallengeTests(DatabaseFixture db, KeycloakFixture keycloak) : 
         scopes.ShouldNotContain("organization");
         scopes.ShouldNotContain("organization:*");
     }
+
+    /// <remarks>
+    /// Pins the Keycloak behaviour the named scope relies on, so an upgrade that changes it fails here: a member asking for
+    /// <c>organization:acme</c> gets a token carrying the alias, and a user asking for an organization they do not belong
+    /// to still gets a token, with no organization claim at all (never an error, a picker, or another tenant's alias).
+    /// The tests-only client's password grant stands in for the code exchange; the scope handling is the same.
+    /// </remarks>
+    [Fact]
+    public async Task Keycloak_puts_the_named_organization_in_the_token_only_for_a_member()
+    {
+        var member = new JsonWebToken(await keycloak.SignInAsync("acme.admin", "openid organization:acme", Ct));
+        var nonMember = new JsonWebToken(await keycloak.SignInAsync("acme.admin", "openid organization:beta", Ct));
+
+        OrganizationValues(member).ShouldBe(["acme"]);
+        nonMember.Subject.ShouldBe(member.Subject);
+        OrganizationValues(nonMember).ShouldBeEmpty();
+    }
+
+    private static string[] OrganizationValues(JsonWebToken token) =>
+        [.. token.Claims.Where(c => c.Type == "organization").Select(c => c.Value)];
 }
