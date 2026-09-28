@@ -110,7 +110,7 @@ Wireframes of the MVP screens built on these tokens are in `docs/wireframes/mvp-
 
 ## 8. Accessibility floor (N-09)
 
-Keyboard reachable everything, visible focus ring in the tenant primary, 4.5:1 text contrast enforced by the token contrast check, labels tied to inputs, live region for toasts, dialogs trap focus, tables have real headers. These are checked in the gallery, not left to chance.
+Keyboard reachable everything, visible focus ring in the tenant primary, 4.5:1 text contrast enforced by the token contrast check, labels tied to inputs, live region for toasts, dialogs trap focus and return it to the control that opened them on close, or to the page's `main` region when the page has removed that control, tables have real headers. These are checked in the gallery, not left to chance.
 
 ## 9. Voice in the interface
 
