@@ -26,6 +26,24 @@ public class DialogTests : ComponentTest
         LastFocusedId().ShouldBe(_opener.Id);
     }
 
+    /// <remarks>
+    /// The staff vendor page closes its Approve dialog after approving, and the Approve button that opened it is gone by
+    /// then, so the browser refuses to focus it. Found by the vendor slice browser pass (plan task 7): the refusal ended
+    /// the officer's circuit. Closing must still succeed; focus stays where the browser leaves it.
+    /// </remarks>
+    [Fact]
+    public void Closing_after_the_page_removed_the_opener_does_not_fail()
+    {
+        JSInterop.SetupVoid(FocusIdentifier, i => i.Arguments[0] is ElementReference { Id: "opener-button" })
+            .SetException(new Microsoft.JSInterop.JSException("Unable to focus an invalid element."));
+        var cut = RenderOpenDialog();
+
+        Should.NotThrow(() => cut.Render(p => p.Add(d => d.Open, false)));
+
+        cut.FindAll("[role=dialog]").ShouldBeEmpty();
+        LastFocusedId().ShouldBe(_opener.Id);
+    }
+
     [Fact]
     public void Other_keys_do_not_close_the_dialog()
     {

@@ -1,10 +1,13 @@
 @*
     Confirmation for an irreversible action (docs/08 section 6): the title states the consequence, the body says what
     cannot be undone, the confirm button repeats the verb. Focus moves to Cancel on open, is trapped between two guards,
-    Escape closes, and focus returns to ReturnFocus (the button that opened it) on close. Confirm does not close the
+    Escape closes, and focus returns to ReturnFocus (the button that opened it) on close, unless the page has removed it. Confirm does not close the
     dialog: the page closes it when the action succeeded, and keeps it open with Busy while the action runs.
 *@
+@using Microsoft.Extensions.Logging
+@using Microsoft.JSInterop
 @inject IStringLocalizer<SharedResource> T
+@inject ILogger<Dialog> Logger
 
 @if (_open)
 {
@@ -95,7 +98,16 @@
             _returnFocusOnClose = false;
             if (ReturnFocus is { } target)
             {
-                await target.FocusAsync();
+                try
+                {
+                    await target.FocusAsync();
+                }
+                catch (JSException ex)
+                {
+                    // The page removed the opener while the dialog was open (an Approve button gone once approved); the
+                    // browser refuses to focus it. Closing still succeeds and focus stays where the browser leaves it.
+                    Logger.LogDebug(ex, "Dialog {DialogId} could not return focus: the opener is no longer rendered.", _id);
+                }
             }
         }
     }
