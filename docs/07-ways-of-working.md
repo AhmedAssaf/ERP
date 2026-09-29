@@ -272,6 +272,30 @@ Checked end to end on 2026-09-28 with `tests/e2e/vendor.mjs` (21 of 21 steps pas
    organization only (`organization:<alias>`), so a vendor working with both tenants is not shown an organization
    picker.
 
+#### Edge and key ring outside Development (W-24)
+
+In Development nothing changes: the web host takes only `X-Forwarded-Proto` from the local Caddy, from any address, and
+keeps its Data Protection keys unencrypted in the database. Everywhere else it refuses to start without these settings:
+
+| Setting | What it is | Example |
+|---|---|---|
+| `ForwardedHeaders:KnownProxies` | Caddy's address(es); a list (`ForwardedHeaders__KnownProxies__0`) or comma-separated | `172.18.0.5` |
+| `ForwardedHeaders:KnownNetworks` | Or Caddy's network in CIDR form; `/0` is refused | `172.18.0.0/16` (pin the Compose network's subnet) |
+| `DataProtection:CertificatePath` | PFX whose RSA key encrypts every Data Protection key before it is stored | a mounted secret file |
+| `DataProtection:CertificatePassword` | Its password, a secret (N-10) | from the secret store, never a file in the repository |
+
+Only the last `X-Forwarded-For` entry, the one Caddy appended, is taken, and only from those addresses; `X-Forwarded-Host`
+is never taken, so the tenant always comes from the `Host` header Caddy passes through. The key ring (login cookie,
+antiforgery tokens, Blazor's prerendered state) lives in `platform.data_protection_keys` under the application name
+`waslabid-web`, so any number of web instances and any restart accept the same cookie. `erp_app` reads and adds keys only
+on a connection without a tenant, vendor or user context and never updates or deletes them. The key ring is also in
+every database backup, which is why it is encrypted with the certificate: keep the certificate out of the backup. Replacing
+the certificate makes the stored keys unreadable, so the host makes a new key and every user signs in again; reading old
+keys with a previous certificate is not built yet.
+The worker does not load the key ring; it issues and reads no cookie. Make a certificate once with
+`openssl req -x509 -newkey rsa:3072 -nodes -days 1095 -subj "/CN=waslabid-key-ring" -keyout k.pem -out c.pem` and
+`openssl pkcs12 -export -inkey k.pem -in c.pem -out key-ring.pfx`, then delete the PEM files.
+
 #### Operations
 
 - Parked vendor document (12 retry scans without a verdict, V-10; the worker logs its id): once the cause is fixed, a platform operator connects with their own personal database login, which is a member of `erp`, runs `SET ROLE erp;` and then `select vendor.unpark_document('<document id>');` (neither `erp_app` nor public may execute it); the next five-minute retry scan tries it again. The audit records `session_user`, so it names the person, never the shared `erp` role; do not connect as `erp` itself for this. Parking and unparking are both in the platform audit (`vendor.document_parked`, `vendor.document_unparked`).

@@ -36,6 +36,10 @@ internal sealed class PlatformWebFactory(string appConnectionString, OidcSetting
             builder.UseSetting("KeycloakAdmin:BaseUrl", "https://keycloak.invalid");
             builder.UseSetting("KeycloakAdmin:ClientSecret", "unused-in-tests");
             builder.UseSetting("KeycloakAdmin:TenantUrl", "https://{slug}.example.invalid/");
+            // W-24: required outside Development and Testing as well: the edge proxy's address and the key ring certificate.
+            builder.UseSetting("ForwardedHeaders:KnownProxies:0", "10.0.0.1");
+            builder.UseSetting("DataProtection:CertificatePath", TestCertificates.KeyRingPath);
+            builder.UseSetting("DataProtection:CertificatePassword", TestCertificates.KeyRingPassword);
         }
 
         if (oidc is not null)
