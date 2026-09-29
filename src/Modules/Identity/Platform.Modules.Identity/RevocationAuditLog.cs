@@ -12,10 +12,15 @@ namespace Platform.Modules.Identity;
 /// W-21: writes the end of a session (<c>identity.session_revoked</c>) to the tenant's audit log from a scope of its own,
 /// so it does not depend on the request or circuit whose check found the removal (that scope can be disposed before the
 /// shared check completes). A write that fails is queued and written by <see cref="RetryPendingAsync"/>, which
-/// <see cref="RevocationAuditRetry"/> runs every <see cref="RetryEvery"/>; the queue holds at most
-/// <see cref="Capacity"/> entries and logs anything beyond it at error level with the user and tenant, so the log is the
-/// record of last resort. The queue lives in memory: a process that stops before the retry loses what is queued, which
-/// the error log line of the failed write then records. Singleton.
+/// <see cref="RevocationAuditRetry"/> runs every <see cref="RetryEvery"/> and once more when the host stops.
+/// <para>
+/// Logging: the first failure of an entry is an error naming the user and tenant (the record of last resort); its later
+/// failed retries are debug lines, and each retry cycle that leaves entries queued logs one warning with the queue size,
+/// so an outage costs one error per ended session plus one warning per cycle, not one error per entry per cycle. The
+/// queue holds at most <see cref="Capacity"/> entries; beyond it an entry is dropped with a critical line. The queue lives
+/// in memory: what the last flush at shutdown cannot write is counted in a critical line.
+/// </para>
+/// Singleton.
 /// </summary>
 internal sealed partial class RevocationAuditLog(IServiceScopeFactory scopes, ILogger<RevocationAuditLog> logger)
 {
@@ -31,38 +36,50 @@ internal sealed partial class RevocationAuditLog(IServiceScopeFactory scopes, IL
     {
         ArgumentNullException.ThrowIfNull(tenant);
         ArgumentNullException.ThrowIfNull(entry);
-        if (!await TryWriteAsync(tenant, entry, cancellationToken))
+        if (await TryWriteAsync(tenant, entry, cancellationToken) is { } errorType)
         {
+            WriteFailed(logger, entry.Action, entry.SubjectId, tenant.Slug, errorType);
             Queue(tenant, entry);
         }
     }
 
-    /// <summary>Tries every queued entry once; those that fail again stay queued.</summary>
+    /// <summary>
+    /// Tries every queued entry once; those that fail again stay queued (a debug line each). A cycle that leaves entries
+    /// queued logs one warning with the queue size. Stops early, leaving the rest queued, when
+    /// <paramref name="cancellationToken"/> is cancelled.
+    /// </summary>
     public async Task RetryPendingAsync(CancellationToken cancellationToken)
     {
-        for (var remaining = _pending.Count; remaining > 0 && _pending.TryDequeue(out var item); remaining--)
+        var tried = 0;
+        for (var remaining = _pending.Count; remaining > 0 && !cancellationToken.IsCancellationRequested && _pending.TryDequeue(out var item); remaining--)
         {
-            if (!await TryWriteAsync(item.Tenant, item.Entry, cancellationToken))
+            tried++;
+            if (await TryWriteAsync(item.Tenant, item.Entry, cancellationToken) is { } errorType)
             {
+                RetryFailed(logger, item.Entry.Action, item.Entry.SubjectId, item.Tenant.Slug, errorType);
                 _pending.Enqueue(item);
             }
         }
+
+        if (tried > 0 && !_pending.IsEmpty)
+        {
+            StillQueued(logger, _pending.Count);
+        }
     }
 
-    private async Task<bool> TryWriteAsync(TenantContext tenant, AuditEntry entry, CancellationToken cancellationToken)
+    // Null when written; otherwise the failure's type name (never its message, N-10).
+    private async Task<string?> TryWriteAsync(TenantContext tenant, AuditEntry entry, CancellationToken cancellationToken)
     {
         try
         {
             await using var scope = scopes.CreateAsyncScope();
             scope.ServiceProvider.GetRequiredService<TenantAccessor>().Set(tenant);
             await scope.ServiceProvider.GetRequiredService<IAuditWriter>().WriteAsync(entry, cancellationToken);
-            return true;
+            return null;
         }
-        catch (Exception ex) when (ex is DbException or InvalidOperationException or TimeoutException
-            || (ex is OperationCanceledException && !cancellationToken.IsCancellationRequested))
+        catch (Exception ex) when (ex is DbException or InvalidOperationException or TimeoutException or OperationCanceledException)
         {
-            WriteFailed(logger, entry.Action, entry.SubjectId, tenant.Slug, ex.GetType().Name);
-            return false;
+            return ex.GetType().Name;
         }
     }
 
@@ -79,6 +96,12 @@ internal sealed partial class RevocationAuditLog(IServiceScopeFactory scopes, IL
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Audit {Action} of user {UserId} on tenant {Tenant} was not written ({ErrorType}); it is queued for retry.")]
     private static partial void WriteFailed(ILogger logger, string action, string? userId, string tenant, string errorType);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Retry of audit {Action} of user {UserId} on tenant {Tenant} failed again ({ErrorType}); it stays queued.")]
+    private static partial void RetryFailed(ILogger logger, string action, string? userId, string tenant, string errorType);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "{Count} session revocation audits are still queued after a retry.")]
+    private static partial void StillQueued(ILogger logger, int count);
 
     [LoggerMessage(Level = LogLevel.Critical, Message = "Audit {Action} of user {UserId} on tenant {Tenant} was dropped: the retry queue is full.")]
     private static partial void Dropped(ILogger logger, string action, string? userId, string tenant);
@@ -98,9 +121,32 @@ internal sealed class RevocationAuditWriter(ITenantAccessor tenants, RevocationA
     }
 }
 
-/// <summary>Retries queued revocation audits every <see cref="RevocationAuditLog.RetryEvery"/> while the host runs.</summary>
-internal sealed class RevocationAuditRetry(RevocationAuditLog log, TimeProvider clock) : BackgroundService
+/// <summary>
+/// Retries queued revocation audits every <see cref="RevocationAuditLog.RetryEvery"/> while the host runs, and once more
+/// when it stops, within <see cref="FlushTimeout"/>; whatever is still queued then is counted in a critical log line,
+/// since it is lost with the process.
+/// </summary>
+internal sealed partial class RevocationAuditRetry(RevocationAuditLog log, TimeProvider clock, ILogger<RevocationAuditRetry> logger) : BackgroundService
 {
+    internal static readonly TimeSpan FlushTimeout = TimeSpan.FromSeconds(5);
+
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        await base.StopAsync(cancellationToken);
+        if (log.PendingCount == 0)
+        {
+            return;
+        }
+
+        using var flush = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        flush.CancelAfter(FlushTimeout);
+        await log.RetryPendingAsync(flush.Token);
+        if (log.PendingCount is > 0 and var lost)
+        {
+            Unwritten(logger, lost);
+        }
+    }
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         using var timer = new PeriodicTimer(RevocationAuditLog.RetryEvery, clock);
@@ -109,4 +155,7 @@ internal sealed class RevocationAuditRetry(RevocationAuditLog log, TimeProvider 
             await log.RetryPendingAsync(stoppingToken);
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Critical, Message = "{Count} session revocation audits were not written before the host stopped and are lost; the error log lines of their first failure name them.")]
+    private static partial void Unwritten(ILogger logger, int count);
 }

@@ -264,22 +264,40 @@ public sealed class MembershipRevalidatorTests
     }
 
     [Fact]
-    public void At_capacity_confirmed_memberships_are_dropped_before_seen_removals()
+    public void At_capacity_the_oldest_confirmations_are_dropped_before_seen_removals()
     {
         var evidence = new MembershipEvidence(capacity: 4);
         var at = new DateTimeOffset(2026, 9, 29, 8, 0, 0, TimeSpan.Zero);
         evidence.Record("acme", "removed-1", new MembershipFact(Member: false, at));
         evidence.Record("acme", "removed-2", new MembershipFact(Member: false, at));
-        evidence.Record("acme", "member-1", new MembershipFact(Member: true, at));
-        evidence.Record("acme", "member-2", new MembershipFact(Member: true, at));
+        evidence.Record("acme", "member-old", new MembershipFact(Member: true, at));
+        evidence.Record("acme", "member-new", new MembershipFact(Member: true, at.AddSeconds(1)));
 
-        evidence.Record("acme", "member-3", new MembershipFact(Member: true, at));
+        evidence.Record("acme", "member-3", new MembershipFact(Member: true, at.AddSeconds(2)));
 
         evidence.Latest("acme", "removed-1").ShouldBe(new MembershipFact(false, at));
         evidence.Latest("acme", "removed-2").ShouldBe(new MembershipFact(false, at));
-        evidence.Latest("acme", "member-1").ShouldBeNull();
-        evidence.Latest("acme", "member-3").ShouldBe(new MembershipFact(true, at));
-        evidence.Count.ShouldBe(3);
+        evidence.Latest("acme", "member-old").ShouldBeNull();
+        evidence.Latest("acme", "member-new").ShouldNotBeNull("only the oldest confirmations go, down to 90 percent");
+        evidence.Latest("acme", "member-3").ShouldNotBeNull();
+        evidence.Count.ShouldBe(4);
+    }
+
+    [Fact]
+    public void At_capacity_only_a_tenth_of_the_confirmations_is_evicted_so_keycloak_is_not_asked_for_everyone_at_once()
+    {
+        var evidence = new MembershipEvidence(capacity: 100);
+        var at = new DateTimeOffset(2026, 9, 29, 8, 0, 0, TimeSpan.Zero);
+        for (var i = 0; i < 100; i++)
+        {
+            evidence.Record("acme", $"u{i}", new MembershipFact(Member: true, at.AddSeconds(i)));
+        }
+
+        evidence.Record("acme", "u100", new MembershipFact(Member: true, at.AddSeconds(100)));
+
+        evidence.Count.ShouldBe(91);
+        Enumerable.Range(0, 10).ShouldAllBe(i => evidence.Latest("acme", $"u{i}") == null);
+        Enumerable.Range(10, 91).ShouldAllBe(i => evidence.Latest("acme", $"u{i}") != null);
     }
 
     private static ClaimsPrincipal Staff(string subject, string organization) => Principal(subject, [organization], vendorRole: false);

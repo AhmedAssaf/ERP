@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Platform.Modules.Audit.Contracts;
 using Platform.Modules.Identity;
@@ -55,6 +56,64 @@ public sealed class RevocationAuditLogTests
         log.PendingCount.ShouldBe(0);
     }
 
+    [Fact]
+    public async Task A_failed_entry_is_one_error_then_debug_lines_with_one_warning_per_retry_cycle()
+    {
+        // Review: an outage must not log an error per queued entry on every 30-second cycle.
+        var (provider, recorded) = Services(failFirst: 3);
+        var logger = new RecordingLogger<RevocationAuditLog>();
+        var log = new RevocationAuditLog(provider.GetRequiredService<IServiceScopeFactory>(), logger);
+        var accessor = new TenantAccessor();
+        accessor.Set(Acme);
+
+        await new RevocationAuditWriter(accessor, log).WriteAsync(Entry(), Ct);
+        await log.RetryPendingAsync(Ct);
+        await log.RetryPendingAsync(Ct);
+        await log.RetryPendingAsync(Ct);
+
+        recorded.ShouldHaveSingleItem();
+        logger.At(LogLevel.Error).ShouldHaveSingleItem().ShouldContain("u1");
+        logger.At(LogLevel.Debug).Count.ShouldBe(2);
+        logger.At(LogLevel.Warning).ShouldBe(["1 session revocation audits are still queued after a retry.", "1 session revocation audits are still queued after a retry."]);
+    }
+
+    [Fact]
+    public async Task Stopping_the_host_flushes_the_queue_once_more()
+    {
+        var (provider, recorded) = Services(failFirst: 1);
+        var log = new RevocationAuditLog(provider.GetRequiredService<IServiceScopeFactory>(), NullLogger<RevocationAuditLog>.Instance);
+        var accessor = new TenantAccessor();
+        accessor.Set(Acme);
+        await new RevocationAuditWriter(accessor, log).WriteAsync(Entry(), Ct);
+        var logger = new RecordingLogger<RevocationAuditRetry>();
+        using var retry = new RevocationAuditRetry(log, TimeProvider.System, logger);
+
+        await retry.StopAsync(Ct);
+
+        recorded.ShouldHaveSingleItem();
+        log.PendingCount.ShouldBe(0);
+        logger.At(LogLevel.Critical).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Entries_the_last_flush_cannot_write_are_counted_in_a_critical_line()
+    {
+        var (provider, recorded) = Services(failFirst: int.MaxValue);
+        var log = new RevocationAuditLog(provider.GetRequiredService<IServiceScopeFactory>(), NullLogger<RevocationAuditLog>.Instance);
+        var accessor = new TenantAccessor();
+        accessor.Set(Acme);
+        await new RevocationAuditWriter(accessor, log).WriteAsync(Entry(), Ct);
+        await new RevocationAuditWriter(accessor, log).WriteAsync(Entry(), Ct);
+        var logger = new RecordingLogger<RevocationAuditRetry>();
+        using var retry = new RevocationAuditRetry(log, TimeProvider.System, logger);
+
+        await retry.StopAsync(Ct);
+
+        recorded.ShouldBeEmpty();
+        logger.At(LogLevel.Critical).ShouldHaveSingleItem().ShouldStartWith("2 session revocation audits were not written before the host stopped");
+        RevocationAuditRetry.FlushTimeout.ShouldBeLessThanOrEqualTo(TimeSpan.FromSeconds(5));
+    }
+
     private static AuditEntry Entry() =>
         new("u1", "identity.session_revoked", "user", "u1", new Dictionary<string, string?> { ["reason"] = "removed_from_organization" });
 
@@ -67,6 +126,32 @@ public sealed class RevocationAuditLogTests
         services.AddScoped<ITenantAccessor>(sp => sp.GetRequiredService<TenantAccessor>());
         services.AddScoped<IAuditWriter>(sp => new RecordingAudit(sp.GetRequiredService<ITenantAccessor>(), recorded, failures));
         return (services.BuildServiceProvider(validateScopes: true), recorded);
+    }
+
+    private sealed class RecordingLogger<T> : ILogger<T>
+    {
+        private readonly List<(LogLevel Level, string Message)> _entries = [];
+
+        public List<string> At(LogLevel level)
+        {
+            lock (_entries)
+            {
+                return [.. _entries.Where(e => e.Level == level).Select(e => e.Message)];
+            }
+        }
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            lock (_entries)
+            {
+                _entries.Add((logLevel, formatter(state, exception)));
+            }
+        }
     }
 
     private sealed class StrongBox(int value)

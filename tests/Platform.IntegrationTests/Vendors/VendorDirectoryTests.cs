@@ -351,6 +351,34 @@ public sealed class VendorDirectoryTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task A_failed_database_step_keeps_the_membership_when_a_parallel_join_created_the_relationship_meanwhile()
+    {
+        // The only way into UndoAsync's "relationship exists, keep the membership" branch since W-21: beta is not related
+        // when this join checks, a parallel join of the same vendor creates the relationship while this one is adding the
+        // membership in Keycloak, and this join's own database step then fails. The membership belongs to the winner's
+        // relationship and must stay; taking it back would lock the vendor out of a tenant it works with.
+        var (companyId, userId) = await VendorAsync("Parallel Join Winner Company");
+        var accounts = new FakeVendorAccounts
+        {
+            State = new(HoldsVendorRole: true, OrganizationAliases: ["acme"]),
+            OnAddOrganization = _ => VendorRows.RelateAsync(db.OwnerConnectionString, TestTenants.Beta.TenantId, companyId, Ct),
+        };
+        await using var host = new ModuleHost(db.AppConnectionString, configure: s =>
+        {
+            s.Replace(ServiceDescriptor.Scoped<IVendorAccounts>(_ => accounts));
+            s.Replace(ServiceDescriptor.Scoped<IAuditWriter, FailingAuditWriter>());
+        });
+
+        var result = await JoinAsync(host, TestTenants.Beta, companyId, userId);
+
+        result.Error.ShouldNotBeNull().Code.ShouldBe(VendorErrors.JoinFailed);
+        accounts.Steps.ToArray().ShouldBe(["add-organization"]);
+        accounts.Revoked.ShouldBeEmpty("the parallel join's relationship owns the membership now");
+        (await VendorRows.RelationshipsAsync(db.OwnerConnectionString, companyId, Ct)).Keys.ShouldBe(
+            [TestTenants.Acme.TenantId, TestTenants.Beta.TenantId], ignoreOrder: true);
+    }
+
+    [Fact]
     public async Task Two_concurrent_joins_write_exactly_one_join_entry()
     {
         var (companyId, userId) = await VendorAsync("Concurrent Joiner");

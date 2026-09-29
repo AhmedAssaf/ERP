@@ -53,9 +53,9 @@ internal readonly record struct MembershipFact(bool Member, DateTimeOffset At);
 /// only by a newer one, so a sign-in older than a seen removal cannot mask it, and a sign-in after it (Keycloak put the
 /// organization in the new token) supersedes it. Also holds the Keycloak checks in flight, so concurrent requests of one
 /// user ask once, and per scope the time until which Keycloak is not asked after a failure, so one organization's (or the
-/// account endpoint's) failures never stop the checks of another. Past <see cref="Capacity"/> facts, confirmed
-/// memberships are dropped first (the next check of those users asks Keycloak again) and seen removals only if nothing
-/// else is left. Per process: with several web instances each learns on its own.
+/// account endpoint's) failures never stop the checks of another. At its capacity the map is trimmed to 90 percent, the
+/// oldest confirmed memberships first (the next check of those users asks Keycloak again) and seen removals only if
+/// confirmations alone cannot get there. Per process: with several web instances each learns on its own.
 /// </summary>
 internal sealed class MembershipEvidence
 {
@@ -150,8 +150,10 @@ internal sealed class MembershipEvidence
 
     public void QuietKeycloakUntil(string scope, DateTimeOffset until) => _quietUntilTicks[scope] = until.UtcTicks;
 
-    // Confirmed memberships go first: forgetting one costs one Keycloak call; forgetting a seen removal costs a call for
-    // every replay of the ended session and a second audit row for the same removal.
+    // Down to a low-water mark of 90 percent, oldest first, so a full map sends only a tenth of its users back to
+    // Keycloak rather than all of them at once, and the next trim is a tenth of the capacity away. Confirmed memberships go
+    // first: forgetting one costs one Keycloak call; forgetting a seen removal costs a call for every replay of the ended
+    // session and a second audit row for the same removal, so removals go only if confirmations alone cannot reach the mark.
     private void Trim()
     {
         lock (_trimGate)
@@ -161,18 +163,17 @@ internal sealed class MembershipEvidence
                 return;
             }
 
-            foreach (var entry in _facts.Where(e => e.Value.Member))
+            var lowWater = _capacity * 9L / 10;
+            var oldestFirst = _facts.ToArray()
+                .OrderBy(e => e.Value.Member ? 0 : 1)
+                .ThenBy(e => e.Value.At);
+            foreach (var entry in oldestFirst)
             {
-                Forget(entry.Key.Scope, entry.Key.UserId, entry.Value);
-            }
+                if (Count <= lowWater)
+                {
+                    return;
+                }
 
-            if (Count < _capacity)
-            {
-                return;
-            }
-
-            foreach (var entry in _facts)
-            {
                 Forget(entry.Key.Scope, entry.Key.UserId, entry.Value);
             }
         }
