@@ -355,8 +355,9 @@
   <data name="Vendor.Join.Intro" xml:space="preserve"><value>شركتك مسجّلة في وصلة بد. للمشاركة في منافسات {0}، اختر العمل مع هذه الجهة، وستراجع بيانات شركتك ومستنداتها قبل اعتمادها.</value></data>
   <data name="Vendor.Join.Submit" xml:space="preserve"><value>العمل مع {0}</value></data>
   <data name="Vendor.Join.Done" xml:space="preserve"><value>أصبحت شركتك تعمل مع {0} وهي بانتظار اعتمادها. سجّل الدخول مرة أخرى لفتح صفحة المورد هنا.</value></data>
-  <data name="Vendor.Join.Already" xml:space="preserve"><value>شركتك تعمل مع {0} مسبقًا. إن لم تُفتح صفحة المورد هنا، اختر الزر أدناه ثم سجّل الدخول مرة أخرى.</value></data>
+  <data name="Vendor.Join.Already" xml:space="preserve"><value>شركتك تعمل مع {0} مسبقًا. إن لم تُفتح صفحة المورد هنا، اختر الزر أدناه ثم سجّل الدخول مرة أخرى. إن ألغت {0} وصولك، فهي وحدها من يعيده.</value></data>
   <data name="Vendor.Join.Error.Generic" xml:space="preserve"><value>تعذّر إتمام الانضمام إلى هذه الجهة. حاول مرة أخرى بعد قليل.</value></data>
+  <data name="Vendor.Join.Error.AccessRemoved" xml:space="preserve"><value>أُلغي وصولك إلى {0}، ولا يعيده إلا {0}. تواصل معها.</value></data>
   <data name="Vendor.Nav.Consent" xml:space="preserve"><value>الموافقات</value></data>
   <data name="Vendor.Consent.Title" xml:space="preserve"><value>الموافقة على مشاركة سجلاتك</value></data>
   <data name="Vendor.Consent.Intro" xml:space="preserve"><value>لا تسلّم وصلة بد سجلات شركتك لأي جهة أخرى إلا ما دامت إحدى الموافقات أدناه تسمح بذلك. تحدد كل موافقة الجهة المستلمة وما يجوز مشاركته ومدته. يمكنك سحب أي موافقة في أي وقت، وتبقى الموافقة وسحبها محفوظين في السجل.</value></data>

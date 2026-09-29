@@ -1,47 +1,48 @@
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Routing;
 using Microsoft.AspNetCore.Components.Server.Circuits;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging.Abstractions;
+using Platform.IntegrationTests.Identity;
 using Platform.IntegrationTests.Infrastructure;
+using Platform.Modules.Identity;
 using Platform.Modules.Identity.Contracts;
+using Platform.Shared.Tenancy;
 using Platform.Web.Account;
 
 namespace Platform.IntegrationTests.Web;
 
 /// <summary>
 /// W-21 in an open Blazor circuit: the circuit's authentication state is revalidated every minute through the same
-/// membership check as HTTP requests; when it fails the circuit's user becomes anonymous, the browser is sent to a full
-/// reload of the page (whose request is challenged, so it shows the sign-in page), and no further event of that circuit
-/// runs, even from a client that ignores the reload.
+/// membership check as HTTP requests; when it fails, or the connection cookie's expiry passes, the circuit's user becomes
+/// anonymous, the browser is sent to a full reload of the page (whose request is challenged, so it shows the sign-in
+/// page), and no further event of that circuit runs, even from a client that ignores the reload. A circuit on a tenant host
+/// is revalidated against the tenant its circuit handler set; one without a tenant off the platform host fails closed.
 /// </summary>
 [Collection(DatabaseCollection.Name)]
 public sealed class CircuitRevalidationTests(DatabaseFixture db)
 {
+    private static readonly TimeSpan Fast = TimeSpan.FromMilliseconds(20);
+
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
     public async Task A_circuit_whose_member_was_removed_turns_anonymous_and_reloads_into_the_sign_in_page()
     {
         var navigation = new RecordingNavigationManager("https://acme.localhost/", "https://acme.localhost/admin/staff");
-        var guard = new CircuitSessionGuard(navigation, NullLogger<CircuitSessionGuard>.Instance);
+        var guard = Guard(navigation);
         var context = new QueueSynchronizationContext();
         await OpenOnAsync(context, guard);
         var revalidation = new ScriptedRevalidation(stillMember: false);
-        using var provider = new MembershipRevalidatingStateProvider(NullLoggerFactory.Instance, revalidation, guard, TimeSpan.FromMilliseconds(20));
-        var signedOut = new TaskCompletionSource<AuthenticationState>();
-        provider.AuthenticationStateChanged += async task =>
-        {
-            var changed = await task;
-            if (changed.User.Identity?.IsAuthenticated != true)
-            {
-                signedOut.TrySetResult(changed);
-            }
-        };
+        using var provider = Provider(revalidation, guard, TestTenants.Acme);
 
-        provider.SetAuthenticationState(Task.FromResult(new AuthenticationState(Member())));
-        var state = await signedOut.Task.WaitAsync(TimeSpan.FromSeconds(10), Ct);
+        var state = await SignInAndWaitForSignOutAsync(provider);
         context.RunPending();
 
         state.User.Identity?.IsAuthenticated.ShouldNotBe(true);
@@ -54,9 +55,9 @@ public sealed class CircuitRevalidationTests(DatabaseFixture db)
     public async Task A_circuit_whose_member_is_still_in_the_organization_stays_signed_in()
     {
         var navigation = new RecordingNavigationManager("https://acme.localhost/", "https://acme.localhost/vendor");
-        var guard = new CircuitSessionGuard(navigation, NullLogger<CircuitSessionGuard>.Instance);
+        var guard = Guard(navigation);
         var revalidation = new ScriptedRevalidation(stillMember: true);
-        using var provider = new MembershipRevalidatingStateProvider(NullLoggerFactory.Instance, revalidation, guard, TimeSpan.FromMilliseconds(20));
+        using var provider = Provider(revalidation, guard, TestTenants.Acme);
 
         provider.SetAuthenticationState(Task.FromResult(new AuthenticationState(Member())));
         await revalidation.CalledTwice.WaitAsync(TimeSpan.FromSeconds(10), Ct);
@@ -67,10 +68,68 @@ public sealed class CircuitRevalidationTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task A_circuit_ends_once_its_connection_cookie_has_expired()
+    {
+        // Review: a circuit must not outlive the cookie that opened it. The cookie expires in 30 minutes; the membership
+        // still stands, so only the expiry can end it.
+        var clock = new TestClock();
+        var navigation = new RecordingNavigationManager("https://acme.localhost/", "https://acme.localhost/admin/staff");
+        var guard = Guard(navigation, Connection(expiresUtc: clock.GetUtcNow().AddMinutes(30)));
+        var context = new QueueSynchronizationContext();
+        await OpenOnAsync(context, guard);
+        var revalidation = new ScriptedRevalidation(stillMember: true);
+        using var provider = Provider(revalidation, guard, TestTenants.Acme, clock: clock);
+
+        provider.SetAuthenticationState(Task.FromResult(new AuthenticationState(Member())));
+        await revalidation.CalledTwice.WaitAsync(TimeSpan.FromSeconds(10), Ct);
+        guard.Ended.ShouldBeFalse("the cookie has not expired yet");
+        // The ticket keeps its expiry to the second.
+        guard.SessionExpiresAt.ShouldNotBeNull().ShouldBe(clock.GetUtcNow().AddMinutes(30), TimeSpan.FromSeconds(1));
+
+        clock.Advance(TimeSpan.FromMinutes(30));
+        var state = await WaitForSignOutAsync(provider);
+        context.RunPending();
+
+        state.User.Identity?.IsAuthenticated.ShouldNotBe(true);
+        guard.Ended.ShouldBeTrue();
+        navigation.Navigations.ShouldBe([("https://acme.localhost/admin/staff", true)]);
+    }
+
+    [Fact]
+    public async Task A_circuit_without_a_tenant_off_the_platform_host_fails_closed()
+    {
+        // Review: with no tenant the membership check has nothing to compare and answers true, so a circuit on a tenant
+        // host that somehow lost its tenant would never be revalidated. The provider refuses it instead.
+        var navigation = new RecordingNavigationManager("https://acme.localhost/", "https://acme.localhost/vendor");
+        var guard = Guard(navigation);
+        var revalidation = new ScriptedRevalidation(stillMember: true);
+        using var provider = Provider(revalidation, guard, tenant: null);
+
+        var state = await SignInAndWaitForSignOutAsync(provider);
+
+        state.User.Identity?.IsAuthenticated.ShouldNotBe(true);
+        guard.Ended.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task A_platform_circuit_has_no_tenant_and_stays_signed_in()
+    {
+        var navigation = new RecordingNavigationManager("https://platform.localhost/", "https://platform.localhost/platform");
+        var guard = Guard(navigation);
+        var revalidation = new ScriptedRevalidation(stillMember: true);
+        using var provider = Provider(revalidation, guard, tenant: null, platform: true);
+
+        provider.SetAuthenticationState(Task.FromResult(new AuthenticationState(Member())));
+        await revalidation.CalledTwice.WaitAsync(TimeSpan.FromSeconds(10), Ct);
+
+        guard.Ended.ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task An_ended_circuit_runs_no_further_event_and_sends_the_browser_to_sign_in_again()
     {
         var navigation = new RecordingNavigationManager("https://acme.localhost/", "https://acme.localhost/vendor/consent");
-        var guard = new CircuitSessionGuard(navigation, NullLogger<CircuitSessionGuard>.Instance);
+        var guard = Guard(navigation);
         var context = new QueueSynchronizationContext();
         await OpenOnAsync(context, guard);
         var runs = 0;
@@ -92,10 +151,20 @@ public sealed class CircuitRevalidationTests(DatabaseFixture db)
     [Fact]
     public void The_host_revalidates_circuits_every_minute_so_a_removal_ends_a_circuit_within_five_minutes()
     {
-        // Worst case: the membership confirmed just before the removal is reused for two minutes, and the circuit's next
-        // revalidation comes at most one interval later.
+        // Keycloak up: the confirmation just before the removal is reused for MemberFor, and the circuit's next
+        // revalidation comes at most one interval later, plus the time of that check.
         MembershipRevalidatingStateProvider.Interval.ShouldBe(TimeSpan.FromMinutes(1));
-        (TimeSpan.FromMinutes(2) + MembershipRevalidatingStateProvider.Interval).ShouldBeLessThan(TimeSpan.FromMinutes(5));
+        (MembershipRevalidator.MemberFor + MembershipRevalidatingStateProvider.Interval + MembershipRevalidator.CheckTimeout)
+            .ShouldBeLessThan(TimeSpan.FromMinutes(5));
+    }
+
+    [Fact]
+    public void A_removal_during_a_keycloak_failure_still_ends_a_circuit_within_five_minutes()
+    {
+        // Review: Keycloak failing after the removal keeps the session for the grace after the last confirmation, and an
+        // open circuit notices one interval (and one check timeout) later at most.
+        (MembershipRevalidator.Grace + MembershipRevalidatingStateProvider.Interval + MembershipRevalidator.CheckTimeout)
+            .ShouldBeLessThan(TimeSpan.FromMinutes(5));
     }
 
     [Fact]
@@ -110,8 +179,91 @@ public sealed class CircuitRevalidationTests(DatabaseFixture db)
             .ShouldBeSameAs(scope.ServiceProvider.GetServices<CircuitHandler>().OfType<CircuitSessionGuard>().Single());
     }
 
+    [Fact]
+    public async Task The_circuit_scope_revalidates_against_the_tenant_its_circuit_handler_set()
+    {
+        // Review: the circuit's revalidation runs in the circuit's scope; it must see the tenant TenantCircuitHandler set
+        // when the circuit opened, or it would answer true for everyone.
+        var source = new NotMemberSource();
+        await using var factory = new PlatformWebFactory(db.AppConnectionString).WithWebHostBuilder(builder =>
+            builder.ConfigureTestServices(services => services.Replace(ServiceDescriptor.Singleton<IOrganizationMembershipSource>(source))));
+        await using var scope = factory.Services.CreateAsyncScope();
+        var services = scope.ServiceProvider;
+        var connection = new DefaultHttpContext { RequestServices = services };
+        connection.Request.Scheme = "https";
+        connection.Request.Host = new HostString("acme.localhost");
+        services.GetRequiredService<IHttpContextAccessor>().HttpContext = connection;
+        ((IHostEnvironmentNavigationManager)services.GetRequiredService<NavigationManager>())
+            .Initialize("https://acme.localhost/", "https://acme.localhost/admin/staff");
+
+        foreach (var handler in services.GetServices<CircuitHandler>().OrderBy(h => h.Order))
+        {
+            await handler.OnCircuitOpenedAsync(null!, Ct);
+        }
+
+        var subject = $"w21.circuit.{Guid.NewGuid():N}";
+        var stillMember = await services.GetRequiredService<IMembershipRevalidation>().IsStillMemberAsync(
+            new ClaimsPrincipal(new ClaimsIdentity([new Claim("sub", subject), new Claim("organization", "acme")], "test")), null, Ct);
+
+        services.GetRequiredService<ITenantAccessor>().Current.ShouldBe(TestTenants.Acme);
+        stillMember.ShouldBeFalse();
+        source.Asked.ShouldBe([("acme", subject)]);
+    }
+
     private static ClaimsPrincipal Member() =>
         new(new ClaimsIdentity([new Claim("sub", "acme.member"), new Claim("organization", "acme")], "test"));
+
+    private static CircuitSessionGuard Guard(NavigationManager navigation, HttpContext? connection = null) =>
+        new(navigation, new HttpContextAccessor { HttpContext = connection }, NullLogger<CircuitSessionGuard>.Instance);
+
+    private static MembershipRevalidatingStateProvider Provider(
+        IMembershipRevalidation revalidation, CircuitSessionGuard guard, TenantContext? tenant, bool platform = false, TimeProvider? clock = null)
+    {
+        var tenants = new TenantAccessor();
+        if (tenant is not null)
+        {
+            tenants.Set(tenant);
+        }
+
+        var platformContext = new PlatformRequestContext();
+        if (platform)
+        {
+            platformContext.MarkPlatform();
+        }
+
+        return new MembershipRevalidatingStateProvider(
+            NullLoggerFactory.Instance, revalidation, guard, tenants, platformContext, clock ?? TimeProvider.System, Fast);
+    }
+
+    /// <summary>The /_blazor connection request as the authentication middleware leaves it: the cookie ticket's properties.</summary>
+    private static DefaultHttpContext Connection(DateTimeOffset expiresUtc)
+    {
+        var connection = new DefaultHttpContext();
+        var ticket = new AuthenticationTicket(Member(), new AuthenticationProperties { ExpiresUtc = expiresUtc }, "Cookies");
+        connection.Features.Set<IAuthenticateResultFeature>(new ResultFeature(AuthenticateResult.Success(ticket)));
+        return connection;
+    }
+
+    private static async Task<AuthenticationState> SignInAndWaitForSignOutAsync(MembershipRevalidatingStateProvider provider)
+    {
+        var signedOut = WaitForSignOutAsync(provider);
+        provider.SetAuthenticationState(Task.FromResult(new AuthenticationState(Member())));
+        return await signedOut;
+    }
+
+    private static Task<AuthenticationState> WaitForSignOutAsync(MembershipRevalidatingStateProvider provider)
+    {
+        var signedOut = new TaskCompletionSource<AuthenticationState>(TaskCreationOptions.RunContinuationsAsynchronously);
+        provider.AuthenticationStateChanged += async task =>
+        {
+            var changed = await task;
+            if (changed.User.Identity?.IsAuthenticated != true)
+            {
+                signedOut.TrySetResult(changed);
+            }
+        };
+        return signedOut.Task.WaitAsync(TimeSpan.FromSeconds(10), Ct);
+    }
 
     // The circuit opens on its own synchronization context (the renderer's); the guard remembers it there.
     private static async Task OpenOnAsync(SynchronizationContext context, CircuitSessionGuard guard)
@@ -125,6 +277,26 @@ public sealed class CircuitRevalidationTests(DatabaseFixture db)
         finally
         {
             SynchronizationContext.SetSynchronizationContext(previous);
+        }
+    }
+
+    private sealed class ResultFeature(AuthenticateResult result) : IAuthenticateResultFeature
+    {
+        public AuthenticateResult? AuthenticateResult { get; set; } = result;
+    }
+
+    private sealed class NotMemberSource : IOrganizationMembershipSource
+    {
+        public List<(string Alias, string User)> Asked { get; } = [];
+
+        public Task<OrganizationMembership> CheckAsync(string organizationAlias, string userId, CancellationToken cancellationToken)
+        {
+            lock (Asked)
+            {
+                Asked.Add((organizationAlias, userId));
+            }
+
+            return Task.FromResult(OrganizationMembership.NotMember);
         }
     }
 

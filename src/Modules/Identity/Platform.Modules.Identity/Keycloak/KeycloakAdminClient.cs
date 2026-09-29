@@ -290,6 +290,28 @@ internal sealed class KeycloakAdminClient(HttpClient http, KeycloakAdminState st
     }
 
     /// <summary>
+    /// Whether the account exists and is enabled (W-21, P-2), for a session that claims no organization of its host:
+    /// 200 is an account (disabled when it is), 404 no such user. Any other status throws <see cref="KeycloakAdminException"/>.
+    /// </summary>
+    public async Task<OrganizationMembership> AccountAsync(string userId, CancellationToken cancellationToken)
+    {
+        using var response = await SendAsync(HttpMethod.Get, $"{Realm}/users/{Uri.EscapeDataString(userId)}", null, cancellationToken);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            return OrganizationMembership.NotMember;
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new KeycloakAdminException($"Keycloak refused the account check ({(int)response.StatusCode}).", response.StatusCode);
+        }
+
+        var user = await response.Content.ReadFromJsonAsync<MemberResponse>(Json, cancellationToken)
+            ?? throw new KeycloakAdminException("Keycloak's account response was empty.");
+        return user.Enabled ? OrganizationMembership.Member : OrganizationMembership.Disabled;
+    }
+
+    /// <summary>
     /// The number of the tenant's users in the organization with <paramref name="alias"/> (F-54): its members less those
     /// holding the realm role <c>vendor</c>, who join a tenant's organization as vendors (V-3), not as its users. Null when
     /// there is no such organization. Without any vendor in the realm this is Keycloak's member count; otherwise the

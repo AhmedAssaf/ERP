@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 
@@ -6,13 +7,16 @@ namespace Platform.Web.Account;
 /// <summary>
 /// W-21 in an open Blazor circuit: once <see cref="MembershipRevalidatingStateProvider"/> finds the session no longer
 /// stands, <see cref="End"/> sends the browser to a full reload of the current page, whose request is challenged (the
-/// cookie's own revalidation refuses it), so the user lands on the sign-in page; and from then on no inbound activity of
-/// the circuit (event, JavaScript callback, navigation) runs, so a client that ignores the reload can do nothing more.
-/// The navigation is posted to the circuit's own synchronization context, captured when the circuit opened (circuit
-/// handlers open on the renderer's dispatcher), because revalidation runs on a background thread. Outside a circuit
-/// (prerendering) nothing was captured and <see cref="End"/> only marks the scope.
+/// cookie's own revalidation or expiry refuses it), so the user lands on the sign-in page; and from then on no inbound
+/// activity of the circuit (event, JavaScript callback, navigation) runs, so a client that ignores the reload can do
+/// nothing more. When the circuit opens it remembers two things from its connection request: the circuit's own
+/// synchronization context (circuit handlers open on the renderer's dispatcher), to which the navigation is posted because
+/// revalidation runs on a background thread; and when the connection's cookie expires (<see cref="SessionExpiresAt"/>, from
+/// the authentication result the middleware left on the request), so a circuit never outlives its cookie. Outside a
+/// circuit (prerendering) nothing was captured and <see cref="End"/> only marks the scope.
 /// </summary>
-internal sealed partial class CircuitSessionGuard(NavigationManager navigation, ILogger<CircuitSessionGuard> logger) : CircuitHandler
+internal sealed partial class CircuitSessionGuard(
+    NavigationManager navigation, IHttpContextAccessor httpContextAccessor, ILogger<CircuitSessionGuard> logger) : CircuitHandler
 {
     private volatile SynchronizationContext? _circuitContext;
     private volatile bool _ended;
@@ -21,9 +25,13 @@ internal sealed partial class CircuitSessionGuard(NavigationManager navigation, 
 
     public bool Ended => _ended;
 
+    /// <summary>When the cookie of the circuit's connection request expires; null when unknown (no cookie ticket).</summary>
+    public DateTimeOffset? SessionExpiresAt { get; private set; }
+
     public override Task OnCircuitOpenedAsync(Circuit circuit, CancellationToken cancellationToken)
     {
         _circuitContext = SynchronizationContext.Current;
+        SessionExpiresAt = httpContextAccessor.HttpContext?.Features.Get<IAuthenticateResultFeature>()?.AuthenticateResult?.Properties?.ExpiresUtc;
         return Task.CompletedTask;
     }
 

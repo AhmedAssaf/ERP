@@ -123,6 +123,8 @@ builder.Services
         // email and email_verified: a member row seeded by email is bound to the user on first sign-in (F-07 dev seed).
         options.Scope.Add("email");
         options.TokenValidationParameters.NameClaimType = IdentityClaims.Username;
+        // W-21: the token's issue time is when Keycloak vouched for the organization; the sign-in stamp uses it.
+        options.ClaimActions.Remove(MembershipRevalidation.IssuedAtClaim);
         options.Events.OnRedirectToIdentityProviderForSignOut = SignOutEndpoints.NameClientOnEndSession;
         // F-11: /vendor/register goes to the realm's registration endpoint (VendorRegistrationEndpoints).
         options.Events.OnRedirectToIdentityProvider = async context =>

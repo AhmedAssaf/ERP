@@ -281,19 +281,36 @@ public sealed class VendorDirectoryTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task A_membership_restored_without_a_new_relationship_is_audited_as_such_and_not_as_a_join()
+    public async Task A_user_of_a_related_company_who_lost_the_membership_cannot_restore_it_by_joining()
     {
-        // Related to acme since registration, but Keycloak no longer lists the user in acme's organization.
-        var (companyId, userId) = await VendorAsync("Restored Member Company");
+        // W-21 pentest P-1: related to acme since registration, but acme removed the user from its organization. Joining
+        // must not put it back; restoring access is the tenant's decision. The refusal is audited in acme's log.
+        var (companyId, userId) = await VendorAsync("Removed Member Company");
         var accounts = new FakeVendorAccounts { State = new(HoldsVendorRole: true, OrganizationAliases: []) };
         await using var host = new ModuleHost(db.AppConnectionString, configure: s => s.Replace(ServiceDescriptor.Scoped<IVendorAccounts>(_ => accounts)));
 
         var result = await JoinAsync(host, TestTenants.Acme, companyId, userId);
 
-        result.Value.ShouldBe(new VendorJoined(RelationshipCreated: false, OrganizationAdded: true));
-        (await VendorRows.AuditsAsync(db.OwnerConnectionString, TestTenants.Acme.TenantId, userId, "vendor.joined", Ct)).ShouldBeEmpty();
-        (await VendorRows.AuditsAsync(db.OwnerConnectionString, TestTenants.Acme.TenantId, userId, "vendor.membership_restored", Ct))
+        result.Error.ShouldNotBeNull().Code.ShouldBe(VendorErrors.MembershipRemoved);
+        accounts.Steps.ToArray().ShouldBe(["describe"], customMessage: "Keycloak is asked, never changed");
+        (await VendorRows.AuditsAsync(db.OwnerConnectionString, TestTenants.Acme.TenantId, userId, "vendor.membership_restored", Ct)).ShouldBeEmpty();
+        (await VendorRows.AuditsAsync(db.OwnerConnectionString, TestTenants.Acme.TenantId, userId, "vendor.membership_restore_refused", Ct))
             .ShouldHaveSingleItem().SubjectId.ShouldBe(companyId.ToString());
+    }
+
+    [Fact]
+    public async Task A_user_of_a_related_company_still_in_the_organization_joins_again_without_any_change()
+    {
+        // The button stays useful for a member whose token does not carry the organization yet: nothing to restore.
+        var (companyId, userId) = await VendorAsync("Still Member Company");
+        var accounts = new FakeVendorAccounts { State = new(HoldsVendorRole: true, OrganizationAliases: ["acme"]) };
+        await using var host = new ModuleHost(db.AppConnectionString, configure: s => s.Replace(ServiceDescriptor.Scoped<IVendorAccounts>(_ => accounts)));
+
+        var result = await JoinAsync(host, TestTenants.Acme, companyId, userId);
+
+        result.Value.ShouldBe(new VendorJoined(RelationshipCreated: false, OrganizationAdded: false));
+        accounts.Steps.ToArray().ShouldBe(["describe"]);
+        (await VendorRows.AuditsAsync(db.OwnerConnectionString, TestTenants.Acme.TenantId, userId, "vendor.membership_restore_refused", Ct)).ShouldBeEmpty();
     }
 
     [Fact]
@@ -315,9 +332,9 @@ public sealed class VendorDirectoryTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task A_failed_database_step_keeps_the_membership_when_a_relationship_exists()
+    public async Task A_related_company_is_refused_without_any_keycloak_change_even_when_the_audit_fails()
     {
-        var (companyId, userId) = await VendorAsync("Kept Member Company");
+        var (companyId, userId) = await VendorAsync("Refused Despite Audit Failure");
         var accounts = new FakeVendorAccounts { State = new(HoldsVendorRole: true, OrganizationAliases: []) };
         await using var host = new ModuleHost(db.AppConnectionString, configure: s =>
         {
@@ -325,11 +342,10 @@ public sealed class VendorDirectoryTests(DatabaseFixture db)
             s.Replace(ServiceDescriptor.Scoped<IAuditWriter, FailingAuditWriter>());
         });
 
-        // Acme's relationship exists; the membership this join re-added belongs to it and stays.
         var result = await JoinAsync(host, TestTenants.Acme, companyId, userId);
 
-        result.Error.ShouldNotBeNull().Code.ShouldBe(VendorErrors.JoinFailed);
-        accounts.Steps.ShouldContain("add-organization");
+        result.Error.ShouldNotBeNull().Code.ShouldBe(VendorErrors.MembershipRemoved);
+        accounts.Steps.ToArray().ShouldBe(["describe"]);
         accounts.Revoked.ShouldBeEmpty();
         (await VendorRows.RelationshipsAsync(db.OwnerConnectionString, companyId, Ct))[TestTenants.Acme.TenantId].ShouldBe("pending");
     }

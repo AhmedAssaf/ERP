@@ -94,6 +94,20 @@ public sealed class KeycloakAdminClientTests
         handler.Requests.ShouldContain(r => r.StartsWith("GET /admin/realms/waslabid/organizations/org-1/members/u1 Bearer token-", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public async Task The_account_check_reads_the_users_enabled_flag()
+    {
+        // W-21, P-2: a session that claims no organization of its host is still refused once the account is disabled.
+        var handler = new ScriptedHandler { AccountAnswers = { ["u1"] = "true", ["u2"] = "false", ["u9"] = "503" } };
+        var client = Client(handler, new KeycloakAdminState(new ManualClock()));
+
+        (await client.AccountAsync("u1", Ct)).ShouldBe(OrganizationMembership.Member);
+        (await client.AccountAsync("u2", Ct)).ShouldBe(OrganizationMembership.Disabled);
+        (await client.AccountAsync("gone", Ct)).ShouldBe(OrganizationMembership.NotMember);
+        (await Should.ThrowAsync<KeycloakAdminException>(() => client.AccountAsync("u9", Ct))).Status.ShouldBe(HttpStatusCode.ServiceUnavailable);
+        handler.Requests.ShouldContain(r => r.StartsWith("GET /admin/realms/waslabid/users/u1 Bearer token-", StringComparison.Ordinal));
+    }
+
     /// <summary>
     /// QA pass, F-06: <see cref="KeycloakAdminException.DuringUserCreation"/> is true only when it is the create-user
     /// request itself that Keycloak refused with 400, so <c>StaffService</c> can tell that apart from a 400 raised
@@ -190,6 +204,9 @@ public sealed class KeycloakAdminClientTests
         /// <summary>Ids of the users holding the realm role vendor, served a page at a time.</summary>
         public List<string> VendorUsers { get; init; } = [];
 
+        /// <summary>Per user id: "true" or "false" (its enabled flag), or a status code; any other id is 404.</summary>
+        public Dictionary<string, string> AccountAnswers { get; } = [];
+
         /// <summary>Per member id: "true" or "false" (its enabled flag), or a status code; any other id is 404.</summary>
         public Dictionary<string, string> MemberAnswers { get; } = [];
 
@@ -226,6 +243,17 @@ public sealed class KeycloakAdminClientTests
                 return MemberAnswers.TryGetValue(id, out var answer)
                     ? answer is "true" or "false"
                         ? Json($$"""{"id":"{{id}}","username":"{{id}}","enabled":{{answer}},"membershipType":"MANAGED"}""")
+                        : new HttpResponseMessage((HttpStatusCode)int.Parse(answer, System.Globalization.CultureInfo.InvariantCulture))
+                    : new HttpResponseMessage(HttpStatusCode.NotFound);
+            }
+
+            const string userPath = "/admin/realms/waslabid/users/";
+            if (request.Method == HttpMethod.Get && path.StartsWith(userPath, StringComparison.Ordinal) && !path[userPath.Length..].Contains('/', StringComparison.Ordinal))
+            {
+                var id = path[userPath.Length..];
+                return AccountAnswers.TryGetValue(id, out var answer)
+                    ? answer is "true" or "false"
+                        ? Json($$"""{"id":"{{id}}","username":"{{id}}","enabled":{{answer}}}""")
                         : new HttpResponseMessage((HttpStatusCode)int.Parse(answer, System.Globalization.CultureInfo.InvariantCulture))
                     : new HttpResponseMessage(HttpStatusCode.NotFound);
             }

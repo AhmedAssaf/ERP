@@ -1,19 +1,26 @@
+using System.Globalization;
 using System.Net;
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.OAuth.Claims;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Platform.IntegrationTests.Infrastructure;
 using Platform.IntegrationTests.Web;
 using Platform.Modules.Audit;
+using Platform.Modules.Identity;
+using Platform.Modules.Identity.Contracts;
 using Platform.Shared.Tenancy;
+using Platform.Web.Account;
 using Platform.Web.PlatformHost;
 
 namespace Platform.IntegrationTests.Identity;
@@ -194,7 +201,7 @@ public sealed class MembershipRevalidationTests(DatabaseFixture db, KeycloakFixt
 
 /// <summary>
 /// W-21 when Keycloak cannot answer (the Admin API points at a closed port): a session whose membership was confirmed
-/// within ten minutes is kept, an older one is challenged, and nothing is audited, since nothing is known about the
+/// within three and a half minutes is kept, an older one is challenged, and nothing is audited, since nothing is known about the
 /// membership. The platform console's session is never revalidated against a tenant organization.
 /// </summary>
 [Collection(DatabaseCollection.Name)]
@@ -205,7 +212,7 @@ public sealed class MembershipRevalidationOutageTests(DatabaseFixture db)
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
-    public async Task When_keycloak_cannot_answer_a_session_signed_in_within_ten_minutes_is_kept_and_an_older_one_is_challenged()
+    public async Task When_keycloak_cannot_answer_a_session_signed_in_within_three_and_a_half_minutes_is_kept_and_an_older_one_is_challenged()
     {
         var userId = $"w21.outage.{Guid.NewGuid():N}";
         var clock = new TestClock();
@@ -213,9 +220,9 @@ public sealed class MembershipRevalidationOutageTests(DatabaseFixture db)
         var session = MembershipRevalidationTests.Session(factory, userId, "acme", clock.GetUtcNow());
         using var client = MembershipRevalidationTests.Client(factory, "acme.localhost");
 
-        clock.Advance(TimeSpan.FromMinutes(9));
+        clock.Advance(TimeSpan.FromMinutes(3));
         (await MembershipRevalidationTests.GetAsync(client, session)).StatusCode.ShouldBe(HttpStatusCode.OK);
-        clock.Advance(TimeSpan.FromMinutes(1));
+        clock.Advance(TimeSpan.FromSeconds(30));
 
         MembershipRevalidationTests.ShouldBeChallenged(await MembershipRevalidationTests.GetAsync(client, session));
         (await MembershipRevalidationTests.RevokedRowsAsync(db, TestTenants.Acme, userId)).ShouldBeEmpty();
@@ -266,4 +273,77 @@ internal sealed class TestClock : TimeProvider
     public override DateTimeOffset GetUtcNow() => new(Interlocked.Read(ref _ticks), TimeSpan.Zero);
 
     public void Advance(TimeSpan by) => Interlocked.Add(ref _ticks, by.Ticks);
+}
+
+/// <summary>
+/// W-21 review: the end of a session is audited even when the request whose check found the removal ended (its scope,
+/// with its database context factory, disposed) before Keycloak answered. The sign-in stamp is the token's own issue time
+/// when the token carries one, since that is when Keycloak vouched for the organization.
+/// </summary>
+[Collection(DatabaseCollection.Name)]
+public sealed class MembershipRevalidationAuditTests(DatabaseFixture db)
+{
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    [Fact]
+    public async Task A_removal_found_by_a_request_that_ended_before_keycloak_answered_is_still_audited()
+    {
+        var source = new GatedSource();
+        await using var factory = new PlatformWebFactory(db.AppConnectionString).WithWebHostBuilder(builder =>
+            builder.ConfigureTestServices(services => services.Replace(ServiceDescriptor.Singleton<IOrganizationMembershipSource>(source))));
+        var subject = $"w21.ended.{Guid.NewGuid():N}";
+        Task<bool> check;
+        await using (var request = factory.Services.CreateAsyncScope())
+        {
+            request.ServiceProvider.GetRequiredService<TenantAccessor>().Set(TestTenants.Acme);
+            var revalidation = request.ServiceProvider.GetRequiredService<IMembershipRevalidation>();
+            check = revalidation.IsStillMemberAsync(
+                new ClaimsPrincipal(new ClaimsIdentity([new Claim("sub", subject), new Claim("organization", "acme")], "test")), null, Ct);
+            await source.Asked.WaitAsync(TimeSpan.FromSeconds(10), Ct);
+        }
+
+        source.Answer(OrganizationMembership.NotMember);
+
+        (await check.WaitAsync(TimeSpan.FromSeconds(10), Ct)).ShouldBeFalse();
+        (await MembershipRevalidationTests.RevokedRowsAsync(db, TestTenants.Acme, subject)).ShouldHaveSingleItem().ActorId.ShouldBe(subject);
+    }
+
+    [Fact]
+    public void The_sign_in_stamp_is_the_tokens_issue_time_when_the_token_carries_one()
+    {
+        var now = new DateTimeOffset(2026, 9, 29, 8, 0, 0, TimeSpan.Zero);
+        var issued = now.AddSeconds(-7);
+        var withIat = new ClaimsPrincipal(new ClaimsIdentity([new Claim("iat", issued.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture))], "test"));
+        var fromTheFuture = new ClaimsPrincipal(new ClaimsIdentity([new Claim("iat", now.AddMinutes(5).ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture))], "test"));
+
+        MembershipRevalidation.SignInTime(withIat, now).ShouldBe(issued);
+        MembershipRevalidation.SignInTime(fromTheFuture, now).ShouldBe(now, customMessage: "a token time later than the sign-in is never trusted");
+        MembershipRevalidation.SignInTime(new ClaimsPrincipal(new ClaimsIdentity()), now).ShouldBe(now);
+    }
+
+    [Fact]
+    public async Task The_tenant_scheme_keeps_the_tokens_issue_time_on_the_principal()
+    {
+        await using var factory = new PlatformWebFactory(db.AppConnectionString, new OidcSettings("https://keycloak.invalid/realms/waslabid", "unused-in-tests"));
+
+        var oidc = factory.Services.GetRequiredService<IOptionsMonitor<OpenIdConnectOptions>>().Get(OpenIdConnectDefaults.AuthenticationScheme);
+
+        oidc.ClaimActions.OfType<DeleteClaimAction>().ShouldNotContain(a => a.ClaimType == "iat");
+    }
+
+    private sealed class GatedSource : IOrganizationMembershipSource
+    {
+        private readonly TaskCompletionSource _asked = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource<OrganizationMembership> _answer = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public Task Asked => _asked.Task;
+
+        public void Answer(OrganizationMembership answer) => _answer.TrySetResult(answer);
+
+        public Task<OrganizationMembership> CheckAsync(string organizationAlias, string userId, CancellationToken cancellationToken)
+        {
+            _asked.TrySetResult();
+            return _answer.Task;
+        }
+    }
 }

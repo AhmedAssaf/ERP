@@ -104,7 +104,11 @@ public static class IdentityModule
         // W-21: sessions revalidated against Keycloak organization membership; AddKeycloakAdmin supplies the answers.
         services.TryAddSingleton<MembershipEvidence>();
         services.TryAddSingleton<IOrganizationMembershipSource, UnavailableOrganizationMembership>();
-        services.AddScoped<IMembershipRevalidation, MembershipRevalidator>();
+        services.TryAddSingleton<RevocationAuditLog>();
+        services.AddScoped<RevocationAuditWriter>();
+        services.AddScoped<IMembershipRevalidation>(sp =>
+            ActivatorUtilities.CreateInstance<MembershipRevalidator>(sp, sp.GetRequiredService<RevocationAuditWriter>()));
+        services.AddHostedService<RevocationAuditRetry>();
         return services;
     }
 

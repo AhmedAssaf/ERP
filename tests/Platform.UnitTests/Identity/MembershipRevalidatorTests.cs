@@ -17,6 +17,9 @@ public sealed class MembershipRevalidatorTests
     private static readonly TenantContext Acme = new(
         Guid.Parse("0199a000-0000-7000-8000-00000000ac3e"), "acme", "acme", "ar-SA", new TenantBranding("Acme", "#0F766E", null));
 
+    private static readonly TenantContext Beta = new(
+        Guid.Parse("0199a000-0000-7000-8000-0000000be7a0"), "beta", "beta", "en-US", new TenantBranding("Beta", "#1D4ED8", null));
+
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
@@ -121,34 +124,73 @@ public sealed class MembershipRevalidatorTests
         world.Source.Calls.ShouldBe(1);
     }
 
-    [Theory]
-    [InlineData(false, "beta")]
-    [InlineData(true, "acme")]
-    public async Task A_session_without_the_host_tenants_organization_or_without_a_tenant_is_not_revalidated(bool platformHost, string organization)
+    [Fact]
+    public async Task A_session_on_a_host_without_a_tenant_or_without_a_user_is_not_revalidated()
     {
-        // Another tenant's alias opens nothing on this host anyway (SameTenant), and the platform host has no tenant; its
-        // own realm has no organizations. Neither costs a Keycloak call.
-        var world = new World(platformHost ? null : Acme);
+        // The platform host has no tenant (its own realm has no organizations), nor has /health; neither costs a call.
+        var world = new World(null);
         world.Source.Answers["u1"] = OrganizationMembership.NotMember;
+        world.Source.AccountAnswers["u1"] = OrganizationMembership.Disabled;
 
-        (await world.Revalidator().IsStillMemberAsync(Staff("u1", organization), null, Ct)).ShouldBeTrue();
-        (await world.Revalidator().IsStillMemberAsync(new ClaimsPrincipal(new ClaimsIdentity()), null, Ct)).ShouldBeTrue();
+        (await world.Revalidator().IsStillMemberAsync(Staff("u1", "acme"), null, Ct)).ShouldBeTrue();
+        (await new World(Acme).Revalidator().IsStillMemberAsync(new ClaimsPrincipal(new ClaimsIdentity()), null, Ct)).ShouldBeTrue();
 
         world.Source.Calls.ShouldBe(0);
+        world.Source.AccountCalls.ShouldBe(0);
         world.Audit.Entries.ShouldBeEmpty();
     }
 
+    [Theory]
+    [InlineData("beta")]
+    [InlineData(null)]
+    public async Task A_disabled_account_is_refused_on_a_session_without_the_host_tenants_organization(string? organization)
+    {
+        // P-2: a vendor on another tenant's join page, an acme cookie replayed on another host, or an applicant: no
+        // organization of this host to revalidate, but the account itself must still be enabled.
+        var world = new World(Acme);
+        world.Source.AccountAnswers["u1"] = OrganizationMembership.Disabled;
+        var user = organization is null ? Principal("u1", [], vendorRole: true) : Principal("u1", [organization], vendorRole: true);
+
+        (await world.Revalidator().IsStillMemberAsync(user, null, Ct)).ShouldBeFalse();
+
+        world.Source.Calls.ShouldBe(0, "no organization of this host is claimed, so none is asked about");
+        world.Source.AccountCalls.ShouldBe(1);
+        var entry = world.Audit.Entries.ShouldHaveSingleItem();
+        entry.Action.ShouldBe("identity.session_revoked");
+        entry.SubjectId.ShouldBe("u1");
+        entry.Data!["reason"].ShouldBe("account_disabled");
+        entry.Data.ContainsKey("organization").ShouldBeFalse();
+        entry.Data["session"].ShouldBe("vendor");
+    }
+
     [Fact]
-    public async Task When_keycloak_cannot_answer_a_membership_confirmed_within_ten_minutes_is_kept_and_an_older_one_is_refused()
+    public async Task The_account_check_is_reused_for_two_minutes_across_tenants()
+    {
+        var world = new World(Acme);
+        var user = Principal("u1", [], vendorRole: true);
+
+        (await world.Revalidator().IsStillMemberAsync(user, null, Ct)).ShouldBeTrue();
+        world.Clock.Advance(TimeSpan.FromSeconds(119));
+        (await world.Revalidator(Beta).IsStillMemberAsync(user, null, Ct)).ShouldBeTrue();
+        world.Source.AccountCalls.ShouldBe(1);
+
+        world.Source.AccountAnswers["u1"] = OrganizationMembership.NotMember;
+        world.Clock.Advance(TimeSpan.FromSeconds(1));
+        (await world.Revalidator(Beta).IsStillMemberAsync(user, null, Ct)).ShouldBeFalse("a deleted account ends its sessions too");
+        world.Audit.Entries.ShouldHaveSingleItem().Data!["reason"].ShouldBe("account_removed");
+    }
+
+    [Fact]
+    public async Task When_keycloak_cannot_answer_a_membership_confirmed_within_three_and_a_half_minutes_is_kept_and_an_older_one_is_refused()
     {
         var world = new World(Acme);
         world.Source.Answers["u1"] = OrganizationMembership.Unavailable;
         var user = Staff("u1", "acme");
         var signedIn = world.Clock.GetUtcNow();
 
-        world.Clock.Advance(TimeSpan.FromMinutes(3));
+        world.Clock.Advance(TimeSpan.FromSeconds(180));
         (await world.Revalidator().IsStillMemberAsync(user, signedIn, Ct)).ShouldBeTrue();
-        world.Clock.Advance(TimeSpan.FromMinutes(6) + TimeSpan.FromSeconds(59));
+        world.Clock.Advance(TimeSpan.FromSeconds(29));
         (await world.Revalidator().IsStillMemberAsync(user, signedIn, Ct)).ShouldBeTrue();
 
         world.Clock.Advance(TimeSpan.FromSeconds(1));
@@ -156,7 +198,7 @@ public sealed class MembershipRevalidatorTests
 
         // Nothing is known about the membership itself, so nothing is audited; the host logs the outage.
         world.Audit.Entries.ShouldBeEmpty();
-        MembershipRevalidator.Grace.ShouldBe(TimeSpan.FromMinutes(10));
+        MembershipRevalidator.Grace.ShouldBe(TimeSpan.FromSeconds(210));
     }
 
     [Fact]
@@ -169,13 +211,13 @@ public sealed class MembershipRevalidatorTests
     }
 
     [Fact]
-    public async Task After_keycloak_failed_it_is_not_asked_again_for_thirty_seconds()
+    public async Task After_keycloak_failed_for_an_organization_it_is_not_asked_about_that_organization_for_thirty_seconds()
     {
         var world = new World(Acme);
         world.Source.Answers["u1"] = OrganizationMembership.Unavailable;
         world.Source.Answers["u2"] = OrganizationMembership.Member;
         var signedIn = world.Clock.GetUtcNow();
-        world.Clock.Advance(TimeSpan.FromMinutes(3));
+        world.Clock.Advance(TimeSpan.FromSeconds(150));
 
         (await world.Revalidator().IsStillMemberAsync(Staff("u1", "acme"), signedIn, Ct)).ShouldBeTrue();
         world.Clock.Advance(TimeSpan.FromSeconds(29));
@@ -221,6 +263,25 @@ public sealed class MembershipRevalidatorTests
         world.Audit.Entries.Count.ShouldBe(1);
     }
 
+    [Fact]
+    public void At_capacity_confirmed_memberships_are_dropped_before_seen_removals()
+    {
+        var evidence = new MembershipEvidence(capacity: 4);
+        var at = new DateTimeOffset(2026, 9, 29, 8, 0, 0, TimeSpan.Zero);
+        evidence.Record("acme", "removed-1", new MembershipFact(Member: false, at));
+        evidence.Record("acme", "removed-2", new MembershipFact(Member: false, at));
+        evidence.Record("acme", "member-1", new MembershipFact(Member: true, at));
+        evidence.Record("acme", "member-2", new MembershipFact(Member: true, at));
+
+        evidence.Record("acme", "member-3", new MembershipFact(Member: true, at));
+
+        evidence.Latest("acme", "removed-1").ShouldBe(new MembershipFact(false, at));
+        evidence.Latest("acme", "removed-2").ShouldBe(new MembershipFact(false, at));
+        evidence.Latest("acme", "member-1").ShouldBeNull();
+        evidence.Latest("acme", "member-3").ShouldBe(new MembershipFact(true, at));
+        evidence.Count.ShouldBe(3);
+    }
+
     private static ClaimsPrincipal Staff(string subject, string organization) => Principal(subject, [organization], vendorRole: false);
 
     private static ClaimsPrincipal Principal(string subject, IReadOnlyList<string> organizations, bool vendorRole)
@@ -245,12 +306,14 @@ public sealed class MembershipRevalidatorTests
 
         public MembershipEvidence Evidence { get; } = new();
 
-        public MembershipRevalidator Revalidator()
+        public MembershipRevalidator Revalidator() => Revalidator(tenant);
+
+        public MembershipRevalidator Revalidator(TenantContext? on)
         {
             var accessor = new TenantAccessor();
-            if (tenant is not null)
+            if (on is not null)
             {
-                accessor.Set(tenant);
+                accessor.Set(on);
             }
 
             Audit.Accessor = accessor;
@@ -262,7 +325,19 @@ public sealed class MembershipRevalidatorTests
     {
         private int _calls;
 
+        private int _accountCalls;
+
         public Dictionary<string, OrganizationMembership> Answers { get; } = [];
+
+        public Dictionary<string, OrganizationMembership> AccountAnswers { get; } = [];
+
+        public int AccountCalls => _accountCalls;
+
+        public Task<OrganizationMembership> CheckAccountAsync(string userId, CancellationToken cancellationToken)
+        {
+            Interlocked.Increment(ref _accountCalls);
+            return Task.FromResult(AccountAnswers.TryGetValue(userId, out var answer) ? answer : OrganizationMembership.Member);
+        }
 
         public Task? Gate { get; set; }
 
@@ -276,7 +351,6 @@ public sealed class MembershipRevalidatorTests
                 await gate;
             }
 
-            organizationAlias.ShouldBe("acme");
             return Answers.TryGetValue(userId, out var answer) ? answer : OrganizationMembership.Member;
         }
     }
