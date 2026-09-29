@@ -2,15 +2,31 @@
 -- so a login cookie (and an antiforgery token, and Blazor's prerendered component state) issued by one instance is
 -- accepted by another. One row per XML element Data Protection stores (a key or a revocation); it only ever adds.
 --
--- A platform-level table with no tenant_id, like ops.platform_audit, and guarded the same way:
--- 1. Grants: erp_app may SELECT and INSERT, never UPDATE or DELETE, so the application cannot rewrite or drop a key.
--- 2. Forced row-level security: only a connection with no tenant, no vendor and no acting user sees or adds a row. The
---    web host's key repository opens its own connections that never carry a request's context; every EF Core
---    connection opened for a request does carry one (TenantConnectionInterceptor), so a query injected there cannot
---    read the key material. Until a separate worker role exists (W-36), "no context" also matches an anonymous request
---    on the platform host.
--- 3. At rest, outside Development and Testing, each key is encrypted with the certificate in DataProtection:CertificatePath
---    before it is stored here, so a copy of the database or of a backup alone cannot forge a cookie.
+-- Whoever can add a key can forge any session, so the protection is who may write here, not what a session claims:
+-- 1. Its own role. Only erp_key_ring may read or add rows (SELECT and INSERT, never UPDATE, DELETE or TRUNCATE), and only
+--    the web host's key-ring pool connects as it (ConnectionStrings:KeyRing, a secret). erp_app, which every module,
+--    the worker and Hangfire use, and which any injected SQL would run as, has no right on the table at all. The
+--    migration creates the role without a login; the migrator gives it one from ConnectionStrings:KeyRing (N-10: the
+--    password is never in a script).
+-- 2. At rest, outside Development and Testing, each key is encrypted with the certificate in DataProtection:CertificatePath,
+--    so a copy of the database or of a backup alone cannot forge a cookie; the host then also ignores any key stored
+--    without encryption.
+-- 3. Defence in depth only: forced row-level security admits a row only on a connection with no tenant, vendor or user
+--    context. The key-ring pool never sets one. This is not the protection: a session can clear its own settings.
+do $$
+begin
+    if not exists (select 1 from pg_roles where rolname = 'erp_key_ring') then
+        create role erp_key_ring nologin noinherit;
+    end if;
+end
+$$;
+
+do $$
+begin
+    execute format('grant connect on database %I to erp_key_ring', current_database());
+end
+$$;
+
 create table if not exists platform.data_protection_keys (
     id            bigint      generated always as identity primary key,
     friendly_name text        not null,
@@ -18,7 +34,13 @@ create table if not exists platform.data_protection_keys (
     created_at    timestamptz not null default now()
 );
 
-grant select, insert on platform.data_protection_keys to erp_app;
+revoke all on platform.data_protection_keys from public;
+revoke all on platform.data_protection_keys from erp_app;
+grant usage on schema platform to erp_key_ring;
+grant execute on function platform.current_tenant() to erp_key_ring;
+grant execute on function platform.current_vendor_company() to erp_key_ring;
+grant execute on function platform.current_user_id() to erp_key_ring;
+grant select, insert on platform.data_protection_keys to erp_key_ring;
 
 alter table platform.data_protection_keys enable row level security;
 alter table platform.data_protection_keys force row level security;
@@ -28,4 +50,4 @@ create policy data_protection_keys_without_context on platform.data_protection_k
     with check (platform.current_tenant() is null and platform.current_vendor_company() is null and platform.current_user_id() is null);
 
 comment on table platform.data_protection_keys is
-    'Data Protection key ring of Platform.Web (W-24), application name waslabid-web. erp_app reads and adds rows only on a connection without a tenant, vendor or user context, and never updates or deletes them.';
+    'Data Protection key ring of Platform.Web (W-24), application name waslabid-web. Only erp_key_ring (the web host''s key-ring pool) may select and insert; erp_app has no right on it.';

@@ -104,6 +104,9 @@ public sealed class ForwardedHeadersTests(DatabaseFixture db)
     [InlineData("ForwardedHeaders:KnownNetworks:0", "172.18.0.0")]
     [InlineData("ForwardedHeaders:KnownNetworks:0", "0.0.0.0/0")]
     [InlineData("ForwardedHeaders:KnownNetworks:0", "::/0")]
+    [InlineData("ForwardedHeaders:KnownNetworks:0", "0.0.0.0/1,128.0.0.0/1")]
+    [InlineData("ForwardedHeaders:KnownNetworks:0", "::/1,8000::/1")]
+    [InlineData("ForwardedHeaders:KnownNetworks:0", "0.0.0.0/2,64.0.0.0/2,128.0.0.0/1")]
     public void A_known_proxy_setting_that_is_unusable_or_trusts_every_address_stops_the_host(string key, string value)
     {
         using var factory = Factory((key, value));
@@ -111,6 +114,26 @@ public sealed class ForwardedHeadersTests(DatabaseFixture db)
         var refused = Should.Throw<InvalidOperationException>(() => factory.Server);
 
         refused.Message.ShouldContain(key[..key.LastIndexOf(':')]);
+    }
+
+    [Fact]
+    public void Networks_that_leave_a_gap_are_accepted()
+    {
+        using var factory = Factory(("ForwardedHeaders:KnownNetworks:0", "0.0.0.0/2,128.0.0.0/1"));
+
+        Should.NotThrow(() => factory.Server);
+    }
+
+    [Fact]
+    public void A_network_written_with_host_bits_names_the_network_and_the_proxy_it_probably_meant()
+    {
+        using var factory = Factory(("ForwardedHeaders:KnownNetworks:0", "172.18.0.5/16"));
+
+        var refused = Should.Throw<InvalidOperationException>(() => factory.Server);
+
+        refused.Message.ShouldContain("host bits");
+        refused.Message.ShouldContain("172.18.0.0/16");
+        refused.Message.ShouldContain("'ForwardedHeaders:KnownProxies' as 172.18.0.5");
     }
 
     [Fact]

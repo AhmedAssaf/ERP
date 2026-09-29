@@ -12,6 +12,7 @@ public class HealthEndpointTests
         await using var factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(b => b
                 .UseSetting("ConnectionStrings:Platform", "Host=unused;Database=unused")
+                .UseSetting("ConnectionStrings:KeyRing", TestSecrets.KeyRingConnectionString("Host=unused;Database=unused"))
                 .UseSetting(TestSecrets.CrAuditKeySetting.Key, TestSecrets.CrAuditKeySetting.Value));
         using var client = factory.CreateClient();
 

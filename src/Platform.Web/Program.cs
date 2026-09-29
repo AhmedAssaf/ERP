@@ -154,9 +154,9 @@ builder.Services.AddPlatformLocalization();
 builder.Services.AddPlatformUI();
 
 // W-24 (Platform.Web/Edge): forwarded headers only from Caddy (ForwardedHeaders:*), and one Data Protection key ring in
-// PostgreSQL for every instance, encrypted at rest outside Development (DataProtection:*).
+// PostgreSQL for every instance under its own role (ConnectionStrings:KeyRing), encrypted outside Development (DataProtection:*).
 builder.Services.AddEdgeForwardedHeaders(builder.Configuration, builder.Environment);
-builder.Services.AddKeyRing(platformDb, builder.Configuration, builder.Environment);
+builder.Services.AddKeyRing(builder.Configuration, builder.Environment);
 
 var app = builder.Build();
 

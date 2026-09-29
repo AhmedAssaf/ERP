@@ -24,6 +24,8 @@ internal sealed class PlatformWebFactory(string appConnectionString, OidcSetting
     {
         builder.UseEnvironment(environment);
         builder.UseSetting("ConnectionStrings:Platform", appConnectionString);
+        // W-24: the key ring's own role on the same database.
+        builder.UseSetting("ConnectionStrings:KeyRing", TestSecrets.KeyRingConnectionString(appConnectionString));
         builder.UseSetting("Oidc:Authority", oidc?.Authority ?? "https://keycloak.invalid/realms/waslabid");
         builder.UseSetting("Oidc:ClientSecret", oidc?.ClientSecret ?? "unused-in-tests");
         builder.UseSetting("Platform:Host", PlatformHost);
