@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Security.Cryptography.X509Certificates;
 using System.Xml.Linq;
 using Microsoft.AspNetCore.DataProtection.Repositories;
 using Microsoft.AspNetCore.DataProtection.XmlEncryption;
@@ -12,15 +13,18 @@ namespace Platform.Web.Edge;
 /// adds rows (Data Protection never changes a stored element; a revocation is a new element) and never logs an element: a
 /// key's XML is key material (N-10); a log line names a key by its id only.
 /// <list type="bullet">
-/// <item>When the host encrypts keys with a certificate (<paramref name="requireEncryptedKeys"/>), a key stored any other way
-/// is ignored: it must carry its secret only as <c>encryptedSecret</c> with the certificate decryptor, and no
+/// <item>When the host encrypts keys with a certificate (<paramref name="certificate"/>), a key stored any other way is
+/// ignored: it must carry its secret only as <c>encryptedSecret</c> with the certificate decryptor, and no
 /// <c>masterKey</c> in the clear. Defence in depth behind the role; encryption is not authentication.</item>
-/// <item>Two instances starting on an empty table would each make a key. A new key is stored under a transaction advisory
-/// lock after a re-read, and not stored at all when a trusted key already covers its activation; Data Protection re-reads
-/// the ring after making a key, so that instance then uses the stored one.</item>
+/// <item>Two instances starting together would each make a key. A new key is stored under a transaction advisory lock
+/// after a re-read, and skipped only when another instance has just stored its twin: a key activated within
+/// <see cref="ActivationSkew"/> of it, valid past the propagation window, and (with a certificate) encrypted with this
+/// host's own certificate, so this host can read it. Data Protection re-reads the ring after making a key, so that
+/// instance then uses the stored twin. Any other key, such as one left behind by a certificate replacement that no
+/// instance can decrypt any more, never stops a new key from being stored.</item>
 /// </list>
 /// </summary>
-internal sealed partial class PostgresXmlRepository(NpgsqlDataSource dataSource, bool requireEncryptedKeys, ILogger<PostgresXmlRepository> logger)
+internal sealed partial class PostgresXmlRepository(NpgsqlDataSource dataSource, X509Certificate2? certificate, ILogger<PostgresXmlRepository> logger)
     : IXmlRepository
 {
     // "WASLKR": this table's own advisory lock, distinct from the migrator's.
@@ -30,6 +34,9 @@ internal sealed partial class PostgresXmlRepository(NpgsqlDataSource dataSource,
     private static readonly TimeSpan PropagationWindow = TimeSpan.FromDays(2);
     private static readonly TimeSpan ActivationSkew = TimeSpan.FromMinutes(5);
     private static readonly string CertificateDecryptor = typeof(EncryptedXmlDecryptor).FullName!;
+
+    // EncryptedXml puts the encrypting certificate in the key's KeyInfo (X509Data/X509Certificate, base64 of its DER form).
+    private readonly string? _certificateData = certificate is null ? null : Convert.ToBase64String(certificate.RawData);
 
     public IReadOnlyCollection<XElement> GetAllElements()
     {
@@ -80,7 +87,7 @@ internal sealed partial class PostgresXmlRepository(NpgsqlDataSource dataSource,
     {
         foreach (var element in elements)
         {
-            if (requireEncryptedKeys && element.Name.LocalName == "key" && !IsEncryptedWithCertificate(element))
+            if (certificate is not null && element.Name.LocalName == "key" && !IsEncryptedWithCertificate(element))
             {
                 LogKeyIgnored(logger, element.Attribute("id")?.Value);
                 continue;
@@ -103,7 +110,7 @@ internal sealed partial class PostgresXmlRepository(NpgsqlDataSource dataSource,
     private static string? DecryptorTypeName(XElement secret) =>
         ((string?)secret.Attribute("decryptorType"))?.Split(',')[0].Trim();
 
-    private static bool IsCoveredByStoredKey(XElement newKey, List<XElement> stored)
+    private bool IsCoveredByStoredKey(XElement newKey, List<XElement> stored)
     {
         // A revocation can make any stored key unusable; then storing is always right.
         if (stored.Any(e => e.Name.LocalName == "revocation") || Dates(newKey) is not { } wanted)
@@ -112,10 +119,18 @@ internal sealed partial class PostgresXmlRepository(NpgsqlDataSource dataSource,
         }
 
         return stored
-            .Where(e => e.Name.LocalName == "key")
+            .Where(e => e.Name.LocalName == "key" && IsReadableHere(e))
             .Select(Dates)
-            .Any(d => d is { } have && have.Activation <= wanted.Activation + ActivationSkew && have.Expiration > wanted.Activation + PropagationWindow);
+            .Any(d => d is { } have
+                && (have.Activation - wanted.Activation).Duration() <= ActivationSkew
+                && have.Expiration > wanted.Activation + PropagationWindow);
     }
+
+    // Without a certificate every stored key is readable; with one, only a key encrypted with this very certificate.
+    private bool IsReadableHere(XElement key) =>
+        _certificateData is null
+        || key.Descendants().Any(e => e.Name.LocalName == "X509Certificate" && string.Equals(
+            string.Concat(e.Value.Where(c => !char.IsWhiteSpace(c))), _certificateData, StringComparison.Ordinal));
 
     private static (DateTimeOffset Activation, DateTimeOffset Expiration)? Dates(XElement key)
     {

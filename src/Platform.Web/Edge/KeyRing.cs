@@ -15,7 +15,7 @@ namespace Platform.Web.Edge;
 /// persistence in the stack and a file share would need one per deployment.</item>
 /// <item>Access: whoever can add a key can forge any session, so the ring has its own role, <c>erp_key_ring</c>, and its
 /// own connection string, <c>ConnectionStrings:KeyRing</c> (a secret, N-10), used by this pool alone. The application
-/// role (<c>ConnectionStrings:Platform</c>) has no right on the table, and the host refuses to use it for the ring.</item>
+/// role (<c>ConnectionStrings:Platform</c>) has no right on the table, and the host accepts no other role for the ring.</item>
 /// <item>Application name <see cref="ApplicationName"/>: without it the key ring is isolated per content root path, so
 /// two instances deployed to different folders could not read each other's cookies.</item>
 /// <item>At rest: the certificate in <c>DataProtection:CertificatePath</c> (a PFX, password in
@@ -35,6 +35,7 @@ internal static class KeyRing
     public const string CertificatePathSetting = "DataProtection:CertificatePath";
     public const string CertificatePasswordSetting = "DataProtection:CertificatePassword";
     public const string LogCategory = "Microsoft.AspNetCore.DataProtection";
+    public const string KeyRingRoleName = "erp_key_ring";
 
     private const string DataSourceKey = "Platform.Web.KeyRing";
 
@@ -47,7 +48,7 @@ internal static class KeyRing
         var certificate = LoadCertificate(configuration, environment);
         services.AddKeyedSingleton(DataSourceKey, (_, _) => NpgsqlDataSource.Create(connectionString));
         services.AddSingleton(sp => new PostgresXmlRepository(
-            sp.GetRequiredKeyedService<NpgsqlDataSource>(DataSourceKey), certificate is not null, sp.GetRequiredService<ILogger<PostgresXmlRepository>>()));
+            sp.GetRequiredKeyedService<NpgsqlDataSource>(DataSourceKey), certificate, sp.GetRequiredService<ILogger<PostgresXmlRepository>>()));
         services.AddOptions<KeyManagementOptions>().Configure<PostgresXmlRepository>((options, repository) => options.XmlRepository = repository);
         var builder = services.AddDataProtection().SetApplicationName(ApplicationName);
         if (certificate is not null)
@@ -96,12 +97,14 @@ internal static class KeyRing
                 + "the role erp_key_ring; set it with dotnet user-secrets (docs/07 section 4).");
         }
 
+        // Exactly the role the migrator gives a login (KeyRingRole): never the application role, and never a pasted owner
+        // or other connection string that would carry more rights than SELECT and INSERT on the ring.
         var ringUser = new NpgsqlConnectionStringBuilder(keyRing).Username;
-        var appUser = new NpgsqlConnectionStringBuilder(configuration.GetConnectionString("Platform") ?? string.Empty).Username;
-        if (string.IsNullOrEmpty(ringUser) || string.Equals(ringUser, appUser, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(ringUser, KeyRingRoleName, StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
-                $"Connection string '{ConnectionStringName}' must connect as its own role (erp_key_ring), not as the application role.");
+                $"Connection string '{ConnectionStringName}' must connect as its own role ({KeyRingRoleName}), not as the application role "
+                + "or any other role.");
         }
 
         return keyRing;

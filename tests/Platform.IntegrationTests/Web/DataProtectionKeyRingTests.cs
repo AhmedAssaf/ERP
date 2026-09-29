@@ -168,14 +168,16 @@ public sealed class DataProtectionKeyRingTests(DatabaseFixture db) : IAsyncLifet
     /// Two instances starting at the same moment on an empty table: both would make a key. The first stores it, the second
     /// sees it under the store lock and uses it, so there is one key and a cookie from either instance opens the other.
     /// </summary>
-    [Fact]
-    public async Task Two_instances_starting_together_on_an_empty_ring_share_one_key()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Two_instances_starting_together_on_an_empty_ring_share_one_key(bool withCertificate)
     {
         for (var round = 0; round < 3; round++)
         {
             await ExecuteAsync(OwnerConnectionString, "delete from platform.data_protection_keys");
-            await using var first = new PlatformWebFactory(AppConnectionString);
-            await using var second = new PlatformWebFactory(AppConnectionString);
+            await using var first = withCertificate ? WithCertificate(new PlatformWebFactory(AppConnectionString)) : new PlatformWebFactory(AppConnectionString);
+            await using var second = withCertificate ? WithCertificate(new PlatformWebFactory(AppConnectionString)) : new PlatformWebFactory(AppConnectionString);
 
             await Task.WhenAll(Task.Run(() => first.Server), Task.Run(() => second.Server));
 
@@ -185,6 +187,34 @@ public sealed class DataProtectionKeyRingTests(DatabaseFixture db) : IAsyncLifet
             CookieFormat(first).Unprotect(fromSecond).ShouldNotBeNull().Principal.FindFirst("sub")!.Value.ShouldBe("second");
             (await KeyRowsAsync()).Count.ShouldBe(1, $"round {round}");
         }
+    }
+
+    /// <summary>
+    /// After the certificate is replaced (docs/07: every user signs in again), the old key can no longer be decrypted, so
+    /// the host makes a new one. That key must be stored even though the old key's period still covers it; otherwise
+    /// every instance runs on a key of its own in memory, and cookies neither cross instances nor survive a restart until
+    /// the old key expires (review of W-24).
+    /// </summary>
+    [Fact]
+    public async Task After_the_certificate_is_replaced_a_new_key_is_stored_and_cookies_cross_instances_and_restarts()
+    {
+        await using (var beforeReplacement = WithCertificate(new PlatformWebFactory(AppConnectionString)))
+        {
+            CookieFormat(beforeReplacement).Protect(Ticket("before"));
+        }
+
+        var (path, password) = TestCertificates.Create("CN=waslabid-tests-replacement-key-ring");
+        string cookie;
+        await using (var first = WithCertificate(new PlatformWebFactory(AppConnectionString), path, password))
+        await using (var second = WithCertificate(new PlatformWebFactory(AppConnectionString), path, password))
+        {
+            cookie = CookieFormat(first).Protect(Ticket("after"));
+            CookieFormat(second).Unprotect(cookie).ShouldNotBeNull("a cookie from one instance opens the other").Principal.FindFirst("sub")!.Value.ShouldBe("after");
+        }
+
+        await using var restarted = WithCertificate(new PlatformWebFactory(AppConnectionString), path, password);
+        CookieFormat(restarted).Unprotect(cookie).ShouldNotBeNull("the cookie survives a restart").Principal.FindFirst("sub")!.Value.ShouldBe("after");
+        (await KeyRowsAsync()).Count.ShouldBe(2, "the old key and the one made under the new certificate");
     }
 
     /// <summary>
@@ -211,6 +241,18 @@ public sealed class DataProtectionKeyRingTests(DatabaseFixture db) : IAsyncLifet
         var refused = Should.Throw<InvalidOperationException>(() => factory.Server);
 
         refused.Message.ShouldContain("'KeyRing'");
+    }
+
+    /// <summary>The migrator gives only erp_key_ring a login for the ring; a pasted owner connection string is refused too.</summary>
+    [Fact]
+    public void A_key_ring_connection_as_any_role_but_erp_key_ring_does_not_start()
+    {
+        using var factory = new PlatformWebFactory(AppConnectionString)
+            .WithWebHostBuilder(builder => builder.UseSetting("ConnectionStrings:KeyRing", OwnerConnectionString));
+
+        var refused = Should.Throw<InvalidOperationException>(() => factory.Server);
+
+        refused.Message.ShouldContain("erp_key_ring");
     }
 
     [Fact]
@@ -261,10 +303,13 @@ public sealed class DataProtectionKeyRingTests(DatabaseFixture db) : IAsyncLifet
     }
 
     private static WebApplicationFactory<Program> WithCertificate(PlatformWebFactory factory) =>
+        WithCertificate(factory, TestCertificates.KeyRingPath, TestCertificates.KeyRingPassword);
+
+    private static WebApplicationFactory<Program> WithCertificate(PlatformWebFactory factory, string path, string password) =>
         factory.WithWebHostBuilder(builder =>
         {
-            builder.UseSetting("DataProtection:CertificatePath", TestCertificates.KeyRingPath);
-            builder.UseSetting("DataProtection:CertificatePassword", TestCertificates.KeyRingPassword);
+            builder.UseSetting("DataProtection:CertificatePath", path);
+            builder.UseSetting("DataProtection:CertificatePassword", password);
         });
 
     private static ISecureDataFormat<AuthenticationTicket> CookieFormat(WebApplicationFactory<Program> factory) =>

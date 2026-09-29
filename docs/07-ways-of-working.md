@@ -81,7 +81,7 @@ Reset everything: `docker compose down -v` then `up -d` again. ClamAV takes up t
 
 ### Run the app locally
 
-With the Compose stack up and these six values filled in `infra/compose/.env` (see `.env.example` for how to generate
+With the Compose stack up and these seven values filled in `infra/compose/.env` (see `.env.example` for how to generate
 them): `WASLABID_WEB_CLIENT_SECRET`, `WASLABID_PLATFORM_CLIENT_SECRET`, `WASLABID_ADMIN_API_SECRET`,
 `WASLABID_DEV_USER_PASSWORD` (at least 12 characters, not a user name, or the platform realm import fails),
 `MINIO_HEALTH_PROBE_PASSWORD`, `VENDORS_CR_AUDIT_KEY` (base64 of at least 32 bytes; the web host does not start
@@ -285,8 +285,14 @@ which lives in `platform.data_protection_keys` under the application name `wasla
 and any restart accept the same cookie. Whoever can add a key can forge any session, so the table has its own role,
 `erp_key_ring`, with SELECT and INSERT only, used only by the web host's key-ring pool (`ConnectionStrings:KeyRing`).
 `erp_app`, which every module, the worker and Hangfire use, has no right on it at all, and the host refuses a key-ring
-connection string that uses the application role. Migration `platform/0007` creates the role without a login; the
-migrator gives it one from its own `ConnectionStrings:KeyRing`, so the password is never in a script (N-10).
+connection string for any role but `erp_key_ring`. Migration `platform/0007` creates the role without a login; the
+migrator gives it one from its own `ConnectionStrings:KeyRing`, so the password is never in a script (N-10); it sends
+PostgreSQL only a SCRAM-SHA-256 verifier it computed, never the password, so nothing a server log records lets anyone
+log in. The password must be printable ASCII (`openssl rand -hex 32`). The migrator's owner role needs CREATEROLE (or
+superuser) to create the role and give it its login: the Compose owner `erp` is a superuser; on the pilot (W-19) grant
+the migration owner CREATEROLE, or have an administrator create `erp_key_ring` and set its password once
+(`\password erp_key_ring` in psql, which also sends only a verifier) and leave `ConnectionStrings:KeyRing` unset for the
+migrator.
 Row-level security on the table (no tenant, vendor or user context) is defence in depth only, never the protection.
 
 In Development: the host takes only `X-Forwarded-Proto` from the local Caddy, from any address, and keeps the keys
@@ -307,7 +313,7 @@ Everywhere else the host refuses to start without these settings:
 Forwarded headers are taken only from those addresses, and only the last `X-Forwarded-For` entry counts. Caddy v2
 replaces that header with the client address it sees (it trusts no incoming `X-Forwarded-*` unless configured to), and
 the one-hop limit keeps a client-written address out even if that changes. A whole network trusts every other container
-on it, so prefer `KnownProxies` with Caddy's pinned address (pentest I-1). `X-Forwarded-Host` is never taken: the tenant
+on it, so prefer `KnownProxies` with Caddy's pinned address (finding of the W-24 edge and key ring pentest). `X-Forwarded-Host` is never taken: the tenant
 always comes from the `Host` header Caddy passes through.
 
 The key ring is in every database backup, which is why it is encrypted with the certificate: keep the certificate out of
