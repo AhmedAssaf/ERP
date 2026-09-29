@@ -287,8 +287,8 @@ and any restart accept the same cookie. Whoever can add a key can forge any sess
 `erp_app`, which every module, the worker and Hangfire use, has no right on it at all, and the host refuses a key-ring
 connection string for any role but `erp_key_ring`. Migration `platform/0007` creates the role without a login; the
 migrator gives it one from its own `ConnectionStrings:KeyRing`, so the password is never in a script (N-10); it sends
-PostgreSQL only a SCRAM-SHA-256 verifier it computed, never the password, so nothing a server log records lets anyone
-log in. The password must be printable ASCII (`openssl rand -hex 32`). The migrator's owner role needs CREATEROLE (or
+PostgreSQL only a SCRAM-SHA-256 verifier it computed, never the password, so a server log never holds the password
+(keep database connections on TLS outside the host). The password must be printable ASCII (`openssl rand -hex 32`). The migrator's owner role needs CREATEROLE (or
 superuser) to create the role and give it its login: the Compose owner `erp` is a superuser; on the pilot (W-19) grant
 the migration owner CREATEROLE, or have an administrator create `erp_key_ring` and set its password once
 (`\password erp_key_ring` in psql, which also sends only a verifier) and leave `ConnectionStrings:KeyRing` unset for the
