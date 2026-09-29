@@ -66,6 +66,7 @@ public sealed class VendorSessionPolicyUpgradeTests(DatabaseFixture db)
                 "vendors/0015_vendors_consent_actor_and_start.sql",
                 "vendors/0016_vendors_approver_and_consent_rules.sql",
                 "vendors/0017_vendors_consent_rule_names.sql",
+                "vendors/0018_vendors_cr_ownership.sql",
             ]);
             await using (var connection = new NpgsqlConnection(connectionString))
             {

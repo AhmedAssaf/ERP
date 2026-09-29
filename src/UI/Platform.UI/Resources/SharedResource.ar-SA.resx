@@ -400,4 +400,95 @@
   <data name="Vendor.Consent.RevokeConfirm" xml:space="preserve"><value>سحب الموافقة</value></data>
   <data name="Vendor.Consent.Granted" xml:space="preserve"><value>تم منح الموافقة لـ {0}.</value></data>
   <data name="Vendor.Consent.Revoked" xml:space="preserve"><value>تم سحب الموافقة الممنوحة لـ {0}.</value></data>
+  <data name="Admin.Vendors.Ownership.Loading" xml:space="preserve"><value>جارٍ تحميل التحقق من الملكية.</value></data>
+  <data name="Admin.Vendors.Ownership.AlreadyVerified" xml:space="preserve"><value>تم التحقق من ملكية المنشأة من قبل عن طريق {0}، ولا حاجة إلى تحقق جديد.</value></data>
+  <data name="Admin.Vendors.Ownership.Heading" xml:space="preserve"><value>التحقق من الملكية</value></data>
+  <data name="Admin.Vendors.Ownership.Intro" xml:space="preserve"><value>قبل أول اعتماد للمنشأة، تحقق من أن من سجّلها هو مالكها أو مفوَّض بالتصرف عنها. شهادة السجل التجاري ضمن مستندات هذه الصفحة.</value></data>
+  <data name="Admin.Vendors.Ownership.Disputed" xml:space="preserve"><value>تراجع وصلة بد ملكية هذه المنشأة، ويمكن اعتمادها بعد إغلاق المراجعة.</value></data>
+  <data name="Admin.Vendors.Ownership.NoCertificate" xml:space="preserve"><value>لا توجد لدى المنشأة شهادة سجل تجاري سارية للتحقق منها. اطلب من المورد رفعها ثم اعتمدها.</value></data>
+  <data name="Admin.Vendors.Ownership.Registrant" xml:space="preserve"><value>سجّلها</value></data>
+  <data name="Admin.Vendors.Ownership.RegistrantUnknown" xml:space="preserve"><value>لم تستجب خدمة تسجيل الدخول، لذلك لا يظهر الاسم. حاول مرة أخرى بعد قليل.</value></data>
+  <data name="Admin.Vendors.Ownership.Wathq.Found" xml:space="preserve"><value>يُظهر السجل التجاري (واثق) الملاك والمديرين أدناه. تحقق من أن من سجّل المنشأة واحد منهم، أو أن لديه تفويضًا.</value></data>
+  <data name="Admin.Vendors.Ownership.Wathq.Owners" xml:space="preserve"><value>الملاك والشركاء</value></data>
+  <data name="Admin.Vendors.Ownership.Wathq.Managers" xml:space="preserve"><value>المديرون</value></data>
+  <data name="Admin.Vendors.Ownership.Wathq.NoManagers" xml:space="preserve"><value>لا يذكر السجل أي مدير.</value></data>
+  <data name="Admin.Vendors.Ownership.Wathq.Party" xml:space="preserve"><value>{0} ({1})</value></data>
+  <data name="Admin.Vendors.Ownership.Wathq.Separator" xml:space="preserve"><value>، </value></data>
+  <data name="Admin.Vendors.Ownership.Lookup.Manual" xml:space="preserve"><value>تحقق من أن شهادة السجل التجاري تذكر من سجّل المنشأة مالكًا أو مديرًا، أو أن لديه خطاب تفويض.</value></data>
+  <data name="Admin.Vendors.Ownership.Lookup.Found" xml:space="preserve"><value>أجاب السجل التجاري (واثق).</value></data>
+  <data name="Admin.Vendors.Ownership.Lookup.NotConfigured" xml:space="preserve"><value>تستخدم المنصة واثق، لكنه غير مهيأ بعد. تحقق من شهادة السجل التجاري يدويًا بدلًا من ذلك.</value></data>
+  <data name="Admin.Vendors.Ownership.Lookup.Unavailable" xml:space="preserve"><value>لم يستجب واثق. تحقق من شهادة السجل التجاري يدويًا بدلًا من ذلك.</value></data>
+  <data name="Admin.Vendors.Ownership.Lookup.NotFound" xml:space="preserve"><value>لا يوجد لدى واثق سجل بهذا الرقم. تحقق من الشهادة يدويًا وانتبه، فقد يكون الرقم غير صحيح.</value></data>
+  <data name="Admin.Vendors.Ownership.Confirm" xml:space="preserve"><value>تحققت من أن الشهادة تذكر هذا الشخص، أو أن لديه تفويضًا.</value></data>
+  <data name="Admin.Vendors.Ownership.Note" xml:space="preserve"><value>ما الذي تحققت منه</value></data>
+  <data name="Admin.Vendors.Ownership.NoteHelp" xml:space="preserve"><value>حتى 1,000 حرف، ويُحفظ مع التحقق. مثال: الشهادة تذكر هذا الشخص مالكًا للمنشأة.</value></data>
+  <data name="Admin.Vendors.Ownership.Method.Manual" xml:space="preserve"><value>فحص شهادة السجل التجاري</value></data>
+  <data name="Admin.Vendors.Ownership.Method.Wathq" xml:space="preserve"><value>مطابقة السجل التجاري (واثق)</value></data>
+  <data name="Admin.Vendors.Ownership.Method.Dispute" xml:space="preserve"><value>مراجعة من وصلة بد</value></data>
+  <data name="Admin.Vendors.Ownership.Error.NotConfirmed" xml:space="preserve"><value>حدّد المربع لتأكيد أنك تحققت من ملكية المنشأة.</value></data>
+  <data name="Admin.Vendors.Ownership.Error.Note" xml:space="preserve"><value>اكتب ما تحققت منه في حدود 1,000 حرف.</value></data>
+  <data name="Admin.Vendors.Ownership.Error.Unverified" xml:space="preserve"><value>أكّد ملكية المنشأة قبل أول اعتماد لها.</value></data>
+  <data name="Admin.Vendors.Ownership.Error.WathqNotSelected" xml:space="preserve"><value>أصبحت المنصة تتحقق من الملكية يدويًا. أغلق هذه النافذة واعتمد من جديد.</value></data>
+  <data name="Console.Nav.Vendors" xml:space="preserve"><value>ملكية الموردين</value></data>
+  <data name="Console.Ownership.Title" xml:space="preserve"><value>ملكية الموردين</value></data>
+  <data name="Console.Ownership.Method.Heading" xml:space="preserve"><value>طريقة التحقق من الملكية</value></data>
+  <data name="Console.Ownership.Method.Intro" xml:space="preserve"><value>قبل أول اعتماد للمنشأة لدى أي جهة، يؤكد الموظف المعتمِد أن من سجّلها هو مالكها. تسري الطريقة على جميع الجهات. ومع واثق يرى الموظف أيضًا الملاك والمديرين من السجل التجاري.</value></data>
+  <data name="Console.Ownership.Wathq.Configured" xml:space="preserve"><value>واثق مهيأ</value></data>
+  <data name="Console.Ownership.Wathq.NotConfigured" xml:space="preserve"><value>واثق غير مهيأ</value></data>
+  <data name="Console.Ownership.Wathq.Fallback" xml:space="preserve"><value>واثق غير مهيأ، لذا يتحقق الموظفون من الشهادات يدويًا إلى أن يُضبط عنوانه ومفتاحه.</value></data>
+  <data name="Console.Ownership.Method.Label" xml:space="preserve"><value>الطريقة</value></data>
+  <data name="Console.Ownership.Method.Manual" xml:space="preserve"><value>فحص يدوي لشهادة السجل التجاري</value></data>
+  <data name="Console.Ownership.Method.Wathq" xml:space="preserve"><value>استعلام واثق يؤكده الموظف</value></data>
+  <data name="Console.Ownership.Method.Save" xml:space="preserve"><value>حفظ الطريقة</value></data>
+  <data name="Console.Ownership.Method.Saved" xml:space="preserve"><value>الطريقة الآن: {0}.</value></data>
+  <data name="Console.Ownership.Disputes.Heading" xml:space="preserve"><value>نزاعات الملكية</value></data>
+  <data name="Console.Ownership.Disputes.Intro" xml:space="preserve"><value>يفيد كل طلب بأن منشأة مسجلة في وصلة بد تعود لشخص آخر. تواصل مع مقدم الطلب، وتحقق من شهادة السجل التجاري وأي تفويض، ثم اقبل الطلب أو ارفضه.</value></data>
+  <data name="Console.Ownership.Disputes.Company" xml:space="preserve"><value>المنشأة</value></data>
+  <data name="Console.Ownership.Disputes.Cr" xml:space="preserve"><value>السجل التجاري</value></data>
+  <data name="Console.Ownership.Disputes.Claimant" xml:space="preserve"><value>مقدم الطلب</value></data>
+  <data name="Console.Ownership.Disputes.Statement" xml:space="preserve"><value>البيان</value></data>
+  <data name="Console.Ownership.Disputes.Raised" xml:space="preserve"><value>أُرسل</value></data>
+  <data name="Console.Ownership.Disputes.Current" xml:space="preserve"><value>مسؤول المورد الحالي</value></data>
+  <data name="Console.Ownership.Disputes.EmptyTitle" xml:space="preserve"><value>لا توجد نزاعات مفتوحة</value></data>
+  <data name="Console.Ownership.Disputes.EmptyBody" xml:space="preserve"><value>تظهر هنا طلبات المنشآت التي تجد رقم سجلها التجاري مسجلًا باسم غيرها.</value></data>
+  <data name="Console.Ownership.Verified.Manual" xml:space="preserve"><value>تحقق موظف من الملكية</value></data>
+  <data name="Console.Ownership.Verified.Wathq" xml:space="preserve"><value>تحقق موظف من الملكية عبر واثق</value></data>
+  <data name="Console.Ownership.Verified.Dispute" xml:space="preserve"><value>حُددت الملكية بمراجعة من وصلة بد</value></data>
+  <data name="Console.Ownership.Verified.None" xml:space="preserve"><value>لم يُتحقق من الملكية بعد</value></data>
+  <data name="Console.Ownership.Uphold" xml:space="preserve"><value>قبول</value></data>
+  <data name="Console.Ownership.Reject" xml:space="preserve"><value>رفض</value></data>
+  <data name="Console.Ownership.UpholdTitle" xml:space="preserve"><value>نقل {0} إلى {1}؟</value></data>
+  <data name="Console.Ownership.RejectTitle" xml:space="preserve"><value>رفض طلب {0}؟</value></data>
+  <data name="Console.Ownership.UpholdConfirm" xml:space="preserve"><value>نقل المنشأة</value></data>
+  <data name="Console.Ownership.RejectConfirm" xml:space="preserve"><value>رفض الطلب</value></data>
+  <data name="Console.Ownership.UpholdBody" xml:space="preserve"><value>يفقد مستخدمو المورد الحاليون الوصول، ويصبح مقدم الطلب مسؤول المورد. تبقى مستندات المنشأة وسجل موافقاتها وعلاقاتها معها. لا يمكن التراجع عن ذلك من هنا.</value></data>
+  <data name="Console.Ownership.RejectBody" xml:space="preserve"><value>يُغلق الطلب ولا يتغير شيء آخر، ويمكن لمقدم الطلب إرسال طلب جديد.</value></data>
+  <data name="Console.Ownership.Note" xml:space="preserve"><value>ما الذي تحققت منه</value></data>
+  <data name="Console.Ownership.NoteHelp" xml:space="preserve"><value>حتى 1,000 حرف، ويُحفظ في سجل تدقيق المنصة.</value></data>
+  <data name="Console.Ownership.Upheld" xml:space="preserve"><value>أصبحت {0} تابعة لـ {1}.</value></data>
+  <data name="Console.Ownership.UpheldKeycloakFailed" xml:space="preserve"><value>أصبحت {0} تابعة لـ {1}، لكن خدمة تسجيل الدخول لم تُحدَّث. امنح دور المورد في Keycloak.</value></data>
+  <data name="Console.Ownership.Rejected" xml:space="preserve"><value>رُفض طلب {0}.</value></data>
+  <data name="Console.Ownership.Failed" xml:space="preserve"><value>تعذر إتمام الإجراء. حاول مرة أخرى بعد قليل.</value></data>
+  <data name="Console.Ownership.Error.Note" xml:space="preserve"><value>اكتب ما تحققت منه في حدود 1,000 حرف.</value></data>
+  <data name="Console.Ownership.Error.NotOpen" xml:space="preserve"><value>لم يعد هذا النزاع مفتوحًا.</value></data>
+  <data name="Console.Ownership.Error.AlreadyVendor" xml:space="preserve"><value>أصبح حساب مقدم الطلب تابعًا لمنشأة موردة، فلا يمكنه تولي هذه المنشأة.</value></data>
+  <data name="Console.Ownership.Error.StaffAccount" xml:space="preserve"><value>أصبح حساب مقدم الطلب تابعًا لموظف في جهة، فلا يمكن أن يصبح مسؤول مورد.</value></data>
+  <data name="Vendor.Register.DisputeLink" xml:space="preserve"><value>هل هذه منشأتك؟ اطلب من وصلة بد مراجعة ملكيتها.</value></data>
+  <data name="Vendor.Dispute.Title" xml:space="preserve"><value>طلب مراجعة ملكية منشأة من وصلة بد</value></data>
+  <data name="Vendor.Dispute.Intro" xml:space="preserve"><value>إذا سجّل شخص آخر رقم السجل التجاري لمنشأتك، فأخبرنا لماذا المنشأة لك. ستتواصل معك وصلة بد عبر بريدك الموثق، وتتحقق معك من شهادة السجل التجاري، ويمكنها نقل المنشأة إلى حسابك.</value></data>
+  <data name="Vendor.Dispute.Statement" xml:space="preserve"><value>لماذا المنشأة لك</value></data>
+  <data name="Vendor.Dispute.StatementHelp" xml:space="preserve"><value>حتى 2,000 حرف. مثال: دورك في المنشأة ومن يمكنه تأكيد ذلك.</value></data>
+  <data name="Vendor.Dispute.Submit" xml:space="preserve"><value>إرسال الطلب</value></data>
+  <data name="Vendor.Dispute.Raised" xml:space="preserve"><value>سُجّل طلبك، وستتواصل معك وصلة بد على {0}.</value></data>
+  <data name="Vendor.Dispute.Own.Heading" xml:space="preserve"><value>طلباتك</value></data>
+  <data name="Vendor.Dispute.Status.open" xml:space="preserve"><value>قيد المراجعة</value></data>
+  <data name="Vendor.Dispute.Status.upheld" xml:space="preserve"><value>نُقلت المنشأة إليك</value></data>
+  <data name="Vendor.Dispute.Status.rejected" xml:space="preserve"><value>مرفوض</value></data>
+  <data name="Vendor.Dispute.Error.Statement" xml:space="preserve"><value>اشرح في حدود 2,000 حرف لماذا المنشأة لك.</value></data>
+  <data name="Vendor.Dispute.Error.NoCompany" xml:space="preserve"><value>لا توجد منشأة في وصلة بد بهذا الرقم. سجّل منشأتك بدلًا من ذلك.</value></data>
+  <data name="Vendor.Dispute.Error.AlreadyOpen" xml:space="preserve"><value>لديك طلب مفتوح لهذه المنشأة، وستتواصل معك وصلة بد.</value></data>
+  <data name="Vendor.Dispute.Error.TooManyOpen" xml:space="preserve"><value>لديك ثلاثة طلبات مفتوحة. انتظر حتى تغلق وصلة بد أحدها.</value></data>
+  <data name="Vendor.Dispute.Error.AlreadyVendor" xml:space="preserve"><value>هذا الحساب تابع لمنشأة موردة. استخدم حسابًا آخر لهذا الطلب.</value></data>
+  <data name="Vendor.Dispute.Error.Limited" xml:space="preserve"><value>جُرّبت أرقام سجل تجاري كثيرة من هذا الحساب. حاول مرة أخرى بعد ساعة.</value></data>
+  <data name="Vendor.Dispute.Error.Generic" xml:space="preserve"><value>تعذر إرسال الطلب. حاول مرة أخرى بعد قليل.</value></data>
 </root>

@@ -4,6 +4,11 @@
     today, and Approve behind a confirmation dialog while it is pending. A company the tenant has no relationship with
     shows only "not found". Contracts officers and tenant admins only (VendorManager policy); the directory checks the role
     again in identity.members when Approve runs, since the circuit's claims date from when the page opened.
+    W-33: before a company's first approval by any tenant the dialog carries the ownership check. It is loaded when the
+    dialog opens (a Wathq lookup is paid per call, so never on page load): the CR number, the registering person from the
+    identity provider, and the CR's owners and managers from Wathq when that is the platform's method, or why the officer
+    checks by hand. The officer confirms with a box and a note; a company verified already (here or at another tenant,
+    which is never told) is approved without it.
 *@
 @page "/admin/vendors/{CompanyId:guid}"
 @attribute [Authorize(Policy = VendorPolicies.VendorManager)]
@@ -11,6 +16,7 @@
 @using System.Globalization
 @using Microsoft.AspNetCore.Components.QuickGrid
 @using Platform.Modules.Vendors.Contracts
+@using Platform.Shared.Results
 @inject IVendorDirectory Directory
 @inject ToastService Toasts
 @inject TimeProvider Clock
@@ -136,6 +142,93 @@ else
 
     <Dialog @bind-Open="_approveOpen" Busy="_busy" OnConfirm="ApproveAsync" ReturnFocus="_approveButton?.Element"
             Title="@T["Admin.Vendors.ApproveTitle", Name(vendor.NameAr, vendor.NameEn)]" ConfirmText="@T["Admin.Vendors.ApproveConfirm"]">
+        @if (_check is null)
+        {
+            <p role="status" class="text-ink-muted" data-ownership-loading>@T["Admin.Vendors.Ownership.Loading"]</p>
+        }
+        else if (_check.Verified)
+        {
+            <p data-ownership-verified="@MethodCode(_check.VerifiedMethod)">@T["Admin.Vendors.Ownership.AlreadyVerified", MethodName(_check.VerifiedMethod)]</p>
+        }
+        else
+        {
+            <section data-ownership-check aria-labelledby="ownership-heading" class="grid gap-3 rounded-card border border-line p-3">
+                <h3 id="ownership-heading" class="text-subheading">@T["Admin.Vendors.Ownership.Heading"]</h3>
+                <p class="text-small text-ink-muted">@T["Admin.Vendors.Ownership.Intro"]</p>
+                @if (_check.Disputed)
+                {
+                    <p role="note" data-ownership-disputed class="text-small text-danger">@T["Admin.Vendors.Ownership.Disputed"]</p>
+                }
+                @if (!_check.HasCertificate)
+                {
+                    <p role="note" data-ownership-no-certificate class="text-small text-warning">@T["Admin.Vendors.Ownership.NoCertificate"]</p>
+                }
+                <dl class="grid gap-x-4 gap-y-1 text-small sm:grid-cols-[auto_1fr]">
+                    <dt class="font-semibold">@T["Vendor.Field.CrNumber"]</dt>
+                    <dd dir="ltr" class="text-start tabular-nums">@_check.CrNumber</dd>
+                    <dt class="font-semibold">@T["Admin.Vendors.Ownership.Registrant"]</dt>
+                    <dd data-ownership-registrant>
+                        @if (_check.Registrant is { Name: null, Email: null })
+                        {
+                            <span class="text-ink-muted">@T["Admin.Vendors.Ownership.RegistrantUnknown"]</span>
+                        }
+                        else if (_check.Registrant is { } registrant)
+                        {
+                            <span class="grid">
+                                @if (registrant.Name is not null)
+                                {
+                                    <span>@registrant.Name</span>
+                                }
+                                @if (registrant.Email is not null)
+                                {
+                                    <bdi dir="ltr" class="text-start">@registrant.Email</bdi>
+                                }
+                            </span>
+                        }
+                    </dd>
+                </dl>
+                @if (_check.Lookup is { } lookup)
+                {
+                    <div data-ownership-lookup="@LookupCode(lookup.Outcome)" class="grid gap-2 text-small">
+                        @if (lookup.Outcome == CrLookupOutcome.Found)
+                        {
+                            <p>@T["Admin.Vendors.Ownership.Wathq.Found"]</p>
+                            <p class="font-semibold">@T["Admin.Vendors.Ownership.Wathq.Owners"]</p>
+                            <ul class="grid list-disc gap-1 ps-5">
+                                @foreach (var party in lookup.Owners)
+                                {
+                                    <li data-wathq-owner>@Party(party)</li>
+                                }
+                            </ul>
+                            <p class="font-semibold">@T["Admin.Vendors.Ownership.Wathq.Managers"]</p>
+                            @if (lookup.Managers.Count == 0)
+                            {
+                                <p class="text-ink-muted">@T["Admin.Vendors.Ownership.Wathq.NoManagers"]</p>
+                            }
+                            else
+                            {
+                                <ul class="grid list-disc gap-1 ps-5">
+                                    @foreach (var party in lookup.Managers)
+                                    {
+                                        <li data-wathq-manager>@Party(party)</li>
+                                    }
+                                </ul>
+                            }
+                        }
+                        else
+                        {
+                            <p>@T[$"Admin.Vendors.Ownership.Lookup.{lookup.Outcome}"]</p>
+                        }
+                    </div>
+                }
+                <label class="flex min-h-11 cursor-pointer items-center gap-3 text-body">
+                    <input type="checkbox" class="size-5 shrink-0 accent-action" data-ownership-confirm @bind="_confirmed" />
+                    @T["Admin.Vendors.Ownership.Confirm"]
+                </label>
+                <TextField Label="@T["Admin.Vendors.Ownership.Note"]" Help="@T["Admin.Vendors.Ownership.NoteHelp"]" Required="true"
+                           @bind-Value="_note" Error="@_noteError" data-ownership-note maxlength="1000" autocomplete="off" />
+            </section>
+        }
         <p>@T["Admin.Vendors.ApproveBody"]</p>
         @if (_approveError is not null)
         {
@@ -154,6 +247,10 @@ else
     private bool _approveOpen;
     private bool _busy;
     private string? _approveError;
+    private OwnershipCheck? _check;
+    private bool _confirmed;
+    private string? _note;
+    private string? _noteError;
 
     [Parameter] public Guid CompanyId { get; set; }
 
@@ -167,10 +264,27 @@ else
         _loaded = true;
     }
 
-    private void OpenApprove()
+    private async Task OpenApprove()
     {
         _approveError = null;
+        _noteError = null;
+        _confirmed = false;
+        _note = null;
+        _check = null;
         _approveOpen = true;
+        try
+        {
+            _check = await Directory.GetOwnershipCheckAsync(CompanyId);
+            if (_check is null)
+            {
+                _approveError = T["Admin.Vendors.NotFound"];
+            }
+        }
+        catch (Exception ex)
+        {
+            VendorAdminLog.OwnershipCheckFailed(Logger, ex.GetType().Name);
+            _approveError = T["Admin.Vendors.Error.Generic"];
+        }
     }
 
     private async Task ApproveAsync()
@@ -192,13 +306,47 @@ else
                 return;
             }
 
-            var result = await Directory.ApproveAsync(vendor.Id, actor);
+            if (_check is null)
+            {
+                _approveError ??= T["Admin.Vendors.Error.Generic"];
+                return;
+            }
+
+            _noteError = null;
+            Result<VendorRelationshipStatus> result;
+            if (_check.Verified)
+            {
+                result = await Directory.ApproveAsync(vendor.Id, actor);
+            }
+            else
+            {
+                if (!_confirmed)
+                {
+                    _approveError = T["Admin.Vendors.Ownership.Error.NotConfirmed"];
+                    return;
+                }
+
+                var outcome = _check.Lookup?.Outcome ?? CrLookupOutcome.Manual;
+                result = await Directory.ApproveAsync(
+                    vendor.Id, actor, new OwnershipConfirmation(_note, BasedOnWathq: outcome == CrLookupOutcome.Found, outcome));
+            }
+
+            if (!result.IsSuccess && result.Error.Code == CrOwnershipErrors.NoteRequired)
+            {
+                _noteError = T["Admin.Vendors.Ownership.Error.Note"];
+                return;
+            }
+
             if (!result.IsSuccess && result.Error.Code != VendorDirectoryErrors.AlreadyApproved)
             {
                 _approveError = result.Error.Code switch
                 {
                     VendorDirectoryErrors.NotAllowed => T["Admin.Vendors.Error.NotAllowed"],
                     VendorDirectoryErrors.NotFound => T["Admin.Vendors.NotFound"],
+                    CrOwnershipErrors.Unverified => T["Admin.Vendors.Ownership.Error.Unverified"],
+                    CrOwnershipErrors.NoCertificate => T["Admin.Vendors.Ownership.NoCertificate"],
+                    CrOwnershipErrors.Disputed => T["Admin.Vendors.Ownership.Disputed"],
+                    CrOwnershipErrors.WathqNotSelected => T["Admin.Vendors.Ownership.Error.WathqNotSelected"],
                     _ => T["Admin.Vendors.Error.Generic"],
                 };
                 return;
@@ -218,6 +366,26 @@ else
         {
             _busy = false;
         }
+    }
+
+    private static string LookupCode(CrLookupOutcome outcome) => outcome switch
+    {
+        CrLookupOutcome.Manual => "manual",
+        CrLookupOutcome.Found => "found",
+        CrLookupOutcome.NotConfigured => "not-configured",
+        CrLookupOutcome.Unavailable => "unavailable",
+        _ => "not-found",
+    };
+
+    private static string MethodCode(OwnershipVerificationMethod? method) => method?.ToString().ToLowerInvariant() ?? string.Empty;
+
+    private string MethodName(OwnershipVerificationMethod? method) =>
+        T[$"Admin.Vendors.Ownership.Method.{method ?? OwnershipVerificationMethod.Manual}"];
+
+    private string Party(CrParty party)
+    {
+        var details = new[] { party.Type }.Concat(party.Positions).Where(d => !string.IsNullOrWhiteSpace(d)).Distinct(StringComparer.Ordinal).ToList();
+        return details.Count == 0 ? party.Name : T["Admin.Vendors.Ownership.Wathq.Party", party.Name, string.Join(T["Admin.Vendors.Ownership.Wathq.Separator"].Value, details)];
     }
 
     private static string TypeName(string code) =>

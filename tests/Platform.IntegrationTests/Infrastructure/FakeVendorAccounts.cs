@@ -18,6 +18,15 @@ internal sealed class FakeVendorAccounts : IVendorAccounts
     /// <summary>When set, adding the organization fails as Keycloak failing would.</summary>
     public bool FailOrganization { get; set; }
 
+    /// <summary>The name and email of every account, by user id; an account missing here has none.</summary>
+    public ConcurrentDictionary<string, VendorAccountProfile> Profiles { get; } = new(StringComparer.Ordinal);
+
+    /// <summary>When set, reading a profile fails as Keycloak failing would.</summary>
+    public bool FailProfile { get; set; }
+
+    /// <summary>The users granted the realm role <c>vendor</c> by <see cref="GrantRoleAsync"/>.</summary>
+    public ConcurrentQueue<string> Granted { get; } = new();
+
     public ConcurrentQueue<VendorAccessGrant> Revoked { get; } = new();
 
     public ConcurrentQueue<string> Steps { get; } = new();
@@ -31,6 +40,7 @@ internal sealed class FakeVendorAccounts : IVendorAccounts
     public async Task<bool> GrantRoleAsync(string userId, CancellationToken cancellationToken = default)
     {
         Steps.Enqueue("grant-role");
+        Granted.Enqueue(userId);
         if (OnGrantRole is not null)
         {
             await OnGrantRole(userId);
@@ -52,5 +62,13 @@ internal sealed class FakeVendorAccounts : IVendorAccounts
         Steps.Enqueue("revoke");
         Revoked.Enqueue(grant);
         return Task.CompletedTask;
+    }
+
+    public Task<VendorAccountProfile?> ProfileAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        Steps.Enqueue("profile");
+        return FailProfile
+            ? throw new IdentityProviderException("Keycloak did not describe the user's name and email.", new HttpRequestException("forced"))
+            : Task.FromResult(Profiles.TryGetValue(userId, out var profile) ? profile : null);
     }
 }

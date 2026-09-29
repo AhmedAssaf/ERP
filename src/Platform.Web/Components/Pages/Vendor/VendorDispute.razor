@@ -1,0 +1,208 @@
+@*
+    W-33: the real company's way back when someone else registered its CR number first. A signed-in person with a
+    verified email, no vendor company and no staff role asks WaslaBid to review who owns the company; a platform admin
+    checks the CR certificate with them outside the platform and decides in the console. Static server rendering, like
+    the registration page it is linked from: the person is not a member of the tenant's organization, so no interactive
+    circuit would be authorized for them. The claimant, their email and name come from the principal, never from the form;
+    the privacy notice they accept is the one they will hold as the company's vendor admin if the review moves it to them.
+*@
+@page "/vendor/dispute"
+@using System.Globalization
+@attribute [Authorize(Policy = VendorPolicies.VendorApplicant)]
+@inject ICrDisputes Disputes
+@inject ITenantAccessor Tenants
+@inject IStringLocalizer<SharedResource> T
+@inject ILogger<VendorDispute> Logger
+
+<PageTitle>@T["Vendor.Dispute.Title"]</PageTitle>
+
+<AppShell Variant="AppShellVariant.Tenant" PortalName="@Tenants.Current?.Branding.PortalName" LogoUrl="@Tenants.Current?.Branding.LogoUrl">
+    <h1 class="text-display font-semibold">@T["Vendor.Dispute.Title"]</h1>
+
+    @if (_raised)
+    {
+        <p data-dispute-raised role="status" class="max-w-2xl">@T["Vendor.Dispute.Raised", _email ?? string.Empty]</p>
+    }
+    else
+    {
+        <p class="max-w-2xl text-ink-muted">@T["Vendor.Dispute.Intro"]</p>
+        <form method="post" @formname="vendor-dispute" @onsubmit="SubmitAsync" data-vendor-dispute class="grid max-w-2xl gap-4" novalidate>
+            <AntiforgeryToken />
+            <TextField Label="@T["Vendor.Field.CrNumber"]" Help="@T["Vendor.Field.CrNumber.Help"]" Required="true" name="Input.CrNumber"
+                       Value="@Input!.CrNumber" Error="@Message(CrDisputeErrors.InvalidCrNumber)" dir="ltr" inputmode="numeric" autocomplete="off" />
+            <TextField Label="@T["Vendor.Dispute.Statement"]" Help="@T["Vendor.Dispute.StatementHelp"]" Required="true" name="Input.Statement"
+                       Value="@Input.Statement" Error="@Message(CrDisputeErrors.StatementRequired)" maxlength="2000" autocomplete="off" />
+
+            <section data-privacy-notice="@VendorPrivacyNotice.CurrentVersion" aria-labelledby="privacy-heading"
+                     class="grid gap-3 rounded-card border border-line bg-surface p-4">
+                <h2 id="privacy-heading" class="text-heading">@T["Vendor.Privacy.Heading"]</h2>
+                <p class="text-body">@T["Vendor.Privacy.V1"]</p>
+                <input type="hidden" name="Input.PrivacyNoticeCulture" value="@ShownCulture" />
+                <label class="flex min-h-11 cursor-pointer items-center gap-3 text-body">
+                    <input type="checkbox" class="size-5 shrink-0 accent-action" name="Input.AcceptedPrivacyNotice"
+                           value="@VendorPrivacyNotice.CurrentVersion" checked="@(Input.AcceptedPrivacyNotice == VendorPrivacyNotice.CurrentVersion)"
+                           aria-invalid="@(Message(CrDisputeErrors.PrivacyNoticeRequired) is null ? null : "true")"
+                           aria-describedby="@(Message(CrDisputeErrors.PrivacyNoticeRequired) is null ? null : "privacy-error")" />
+                    @T["Vendor.Privacy.Accept"]
+                </label>
+                @if (Message(CrDisputeErrors.PrivacyNoticeRequired) is { } privacyError)
+                {
+                    <p id="privacy-error" class="text-small text-danger">@privacyError</p>
+                }
+            </section>
+
+            @if (_formError is not null)
+            {
+                <p role="alert" class="text-body text-danger" data-form-error>@_formError</p>
+            }
+
+            <div>
+                <Button Type="submit" Variant="ButtonVariant.Primary">@T["Vendor.Dispute.Submit"]</Button>
+            </div>
+        </form>
+    }
+
+    @if (_own.Count > 0)
+    {
+        <section aria-labelledby="own-heading" class="grid max-w-2xl gap-2">
+            <h2 id="own-heading" class="text-heading">@T["Vendor.Dispute.Own.Heading"]</h2>
+            <ul class="grid gap-2">
+                @foreach (var dispute in _own)
+                {
+                    <li data-own-dispute="@dispute.CrNumber" class="flex flex-wrap items-center gap-3">
+                        <bdi dir="ltr" class="tabular-nums">@dispute.CrNumber</bdi>
+                        <StatusBadge Tone="@Tone(dispute.Status)" data-own-dispute-status="@dispute.Status">@T[$"Vendor.Dispute.Status.{dispute.Status}"]</StatusBadge>
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+</AppShell>
+
+@code {
+    private readonly Dictionary<string, string> _fieldErrors = new(StringComparer.Ordinal);
+    private IReadOnlyList<OwnCrDispute> _own = [];
+    private string? _formError;
+    private string? _email;
+    private bool _raised;
+
+    [CascadingParameter] private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    [SupplyParameterFromForm(FormName = "vendor-dispute")] private DisputeForm? Input { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Input ??= new DisputeForm();
+        await LoadOwnAsync();
+    }
+
+    private static string ShownCulture =>
+        CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar" ? VendorPrivacyNotice.Arabic : VendorPrivacyNotice.English;
+
+    private async Task SubmitAsync()
+    {
+        _fieldErrors.Clear();
+        _formError = null;
+        var request = Input!.ToRequest();
+        var errors = Disputes.Validate(request);
+        if (errors.Count > 0)
+        {
+            foreach (var error in errors)
+            {
+                _fieldErrors[error.Code] = Text(error.Code);
+            }
+
+            return;
+        }
+
+        var user = AuthenticationState is null ? null : (await AuthenticationState).User;
+        var email = user?.FindFirst(IdentityClaims.Email)?.Value;
+        if (user is null || string.IsNullOrWhiteSpace(email))
+        {
+            _formError = T["Vendor.Dispute.Error.Generic"];
+            return;
+        }
+
+        var name = user.FindFirst("name")?.Value;
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            name = string.Join(' ', new[] { user.FindFirst("given_name")?.Value, user.FindFirst("family_name")?.Value }.Where(p => !string.IsNullOrWhiteSpace(p)));
+        }
+
+        try
+        {
+            var result = await Disputes.RaiseAsync(request, email, string.IsNullOrWhiteSpace(name) ? email : name);
+            if (result.IsSuccess)
+            {
+                _raised = true;
+                _email = email;
+                await LoadOwnAsync();
+                return;
+            }
+
+            if (result.Error.Kind == ErrorKind.Validation)
+            {
+                _fieldErrors[result.Error.Code] = Text(result.Error.Code);
+                return;
+            }
+
+            _formError = Text(result.Error.Code);
+        }
+        catch (Exception ex)
+        {
+            VendorPageLog.DisputeFailed(Logger, ex.GetType().Name);
+            _formError = T["Vendor.Dispute.Error.Generic"];
+        }
+    }
+
+    private async Task LoadOwnAsync()
+    {
+        try
+        {
+            _own = await Disputes.ListOwnAsync();
+        }
+        catch (Exception ex)
+        {
+            // The list is a convenience; the form still works without it.
+            VendorPageLog.DisputeFailed(Logger, ex.GetType().Name);
+            _own = [];
+        }
+    }
+
+    private string? Message(string code) => _fieldErrors.GetValueOrDefault(code);
+
+    private string Text(string code) => code switch
+    {
+        CrDisputeErrors.InvalidCrNumber => T["Vendor.Register.Error.CrNumber"],
+        CrDisputeErrors.StatementRequired => T["Vendor.Dispute.Error.Statement"],
+        CrDisputeErrors.PrivacyNoticeRequired => T["Vendor.Register.Error.Privacy"],
+        CrDisputeErrors.NoCompany => T["Vendor.Dispute.Error.NoCompany"],
+        CrDisputeErrors.AlreadyOpen => T["Vendor.Dispute.Error.AlreadyOpen"],
+        CrDisputeErrors.TooManyOpen => T["Vendor.Dispute.Error.TooManyOpen"],
+        CrDisputeErrors.AlreadyVendor => T["Vendor.Dispute.Error.AlreadyVendor"],
+        CrDisputeErrors.StaffAccount => T["Vendor.Register.Error.StaffAccount"],
+        CrDisputeErrors.Limited => T["Vendor.Dispute.Error.Limited"],
+        _ => T["Vendor.Dispute.Error.Generic"],
+    };
+
+    private static StatusTone Tone(string status) => status switch
+    {
+        "upheld" => StatusTone.Success,
+        "rejected" => StatusTone.Danger,
+        _ => StatusTone.Warning,
+    };
+
+    /// <summary>The posted form, bound by name (<c>Input.CrNumber</c>, ...).</summary>
+    private sealed class DisputeForm
+    {
+        public string? CrNumber { get; set; }
+
+        public string? Statement { get; set; }
+
+        public string? AcceptedPrivacyNotice { get; set; }
+
+        public string? PrivacyNoticeCulture { get; set; }
+
+        public CrDisputeRequest ToRequest() => new(CrNumber, Statement, AcceptedPrivacyNotice, PrivacyNoticeCulture);
+    }
+}

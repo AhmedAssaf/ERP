@@ -1,0 +1,292 @@
+@*
+    W-33: the platform's CR ownership check and the review of disputes. The method (Manual or Wathq) is a platform setting
+    because vendor identity is global (ADR-0008) and the Wathq subscription is the platform's; whether Wathq is configured
+    is shown, never its address or key (N-10). Each open dispute can be upheld, which moves the company to the claimant as
+    its vendor admin, or rejected; both need a note and a confirmation, and both are audited in the platform audit. The
+    policy is checked again at the moment of each action, since the circuit's claims date from when the page opened.
+*@
+@page "/platform/vendors"
+@attribute [Authorize(Policy = PlatformAuthentication.PolicyName)]
+@layout ConsoleLayout
+@rendermode InteractiveServer
+@using Platform.Modules.Identity.Contracts
+@using Platform.Modules.Tenancy.Contracts
+@using Platform.Modules.Vendors.Contracts
+@inject ICrOwnershipAdministration Ownership
+@inject ITenantCatalog Catalog
+@inject IAuthorizationService Authorization
+@inject ToastService Toasts
+@inject ILogger<VendorOwnership> Logger
+@inject IStringLocalizer<SharedResource> T
+
+<PageTitle>@T["Console.Ownership.Title"]</PageTitle>
+
+<h1 class="text-display">@T["Console.Ownership.Title"]</h1>
+
+@if (_settings is null)
+{
+    <p class="text-ink-muted" role="status">@T["Console.Loading"]</p>
+}
+else
+{
+    <section aria-labelledby="method-heading" class="grid max-w-2xl gap-4 rounded-card border border-line bg-surface p-4"
+             data-ownership-method="@Code(_settings.Method)">
+        <h2 id="method-heading" class="text-heading">@T["Console.Ownership.Method.Heading"]</h2>
+        <p class="text-body">@T["Console.Ownership.Method.Intro"]</p>
+        <p>
+            @if (_settings.WathqConfigured)
+            {
+                <StatusBadge Tone="StatusTone.Success" data-wathq-configured="true">@T["Console.Ownership.Wathq.Configured"]</StatusBadge>
+            }
+            else
+            {
+                <StatusBadge Tone="StatusTone.Warning" data-wathq-configured="false">@T["Console.Ownership.Wathq.NotConfigured"]</StatusBadge>
+            }
+        </p>
+        @if (_choice == CrOwnershipMethod.Wathq && !_settings.WathqConfigured)
+        {
+            <p role="note" class="text-small text-warning" data-wathq-fallback>@T["Console.Ownership.Wathq.Fallback"]</p>
+        }
+        <Select Label="@T["Console.Ownership.Method.Label"]" Options="_methods" Value="@Code(_choice)" ValueChanged="ChooseMethod" data-method-select />
+        <div>
+            <Button Variant="ButtonVariant.Primary" Loading="_savingMethod" data-save-method OnClick="SaveMethodAsync">@T["Console.Ownership.Method.Save"]</Button>
+        </div>
+    </section>
+
+    <section aria-labelledby="disputes-heading" class="grid gap-4">
+        <h2 id="disputes-heading" class="text-heading">@T["Console.Ownership.Disputes.Heading"]</h2>
+        <p class="max-w-prose text-body text-ink-muted">@T["Console.Ownership.Disputes.Intro"]</p>
+        <DataTable Items="_disputes" Label="@T["Console.Ownership.Disputes.Heading"]">
+            <ChildContent>
+                <TemplateColumn TGridItem="CrDispute" Title="@T["Console.Ownership.Disputes.Company"]">
+                    <span data-dispute="@context.Id" class="grid">
+                        <span class="font-semibold">@Name(context.CompanyNameAr, context.CompanyNameEn)</span>
+                        <span class="text-small text-ink-muted">@T["Console.Ownership.Disputes.Cr"] <bdi dir="ltr" class="tabular-nums">@context.CrNumber</bdi></span>
+                    </span>
+                </TemplateColumn>
+                <TemplateColumn TGridItem="CrDispute" Title="@T["Console.Ownership.Disputes.Claimant"]">
+                    <span class="grid">
+                        <span>@context.ClaimantName</span>
+                        <bdi dir="ltr" class="text-small text-start">@context.ClaimantEmail</bdi>
+                    </span>
+                </TemplateColumn>
+                <TemplateColumn TGridItem="CrDispute" Title="@T["Console.Ownership.Disputes.Statement"]">
+                    <span class="block max-w-prose whitespace-pre-line text-small">@context.Statement</span>
+                </TemplateColumn>
+                <TemplateColumn TGridItem="CrDispute" Title="@T["Console.Ownership.Disputes.Raised"]">
+                    <span class="grid">
+                        <ConsoleTime At="context.RaisedAt" />
+                        <span class="text-small text-ink-muted">@TenantName(context.RaisedOnTenant)</span>
+                    </span>
+                </TemplateColumn>
+                <TemplateColumn TGridItem="CrDispute" Title="@T["Console.Ownership.Disputes.Current"]">
+                    <span class="grid text-small">
+                        <span dir="ltr" class="text-start">@(context.RegistrantUserId ?? "—")</span>
+                        <span class="text-ink-muted">@(context.OwnershipVerifiedBy is { } by ? T[$"Console.Ownership.Verified.{by}"] : T["Console.Ownership.Verified.None"])</span>
+                    </span>
+                </TemplateColumn>
+                <TemplateColumn TGridItem="CrDispute" Title="@T["Console.Jobs.Action"]">
+                    <span class="flex flex-wrap gap-2">
+                        <Button Variant="ButtonVariant.Primary" data-uphold="@context.Id" OnClick="() => Ask(context, uphold: true)">@T["Console.Ownership.Uphold"]</Button>
+                        <Button Variant="ButtonVariant.Danger" data-reject="@context.Id" OnClick="() => Ask(context, uphold: false)">@T["Console.Ownership.Reject"]</Button>
+                    </span>
+                </TemplateColumn>
+            </ChildContent>
+            <EmptyContent>
+                <EmptyState Title="@T["Console.Ownership.Disputes.EmptyTitle"]" HeadingLevel="3">@T["Console.Ownership.Disputes.EmptyBody"]</EmptyState>
+            </EmptyContent>
+        </DataTable>
+    </section>
+}
+
+@if (_pending is { } pending)
+{
+    <Dialog @bind-Open="_dialogOpen" Busy="_busy" OnConfirm="ResolveAsync"
+            ConfirmVariant="@(_uphold ? ButtonVariant.Primary : ButtonVariant.Danger)"
+            Title="@(_uphold ? T["Console.Ownership.UpholdTitle", Name(pending.CompanyNameAr, pending.CompanyNameEn), pending.ClaimantName] : T["Console.Ownership.RejectTitle", pending.ClaimantName])"
+            ConfirmText="@(_uphold ? T["Console.Ownership.UpholdConfirm"] : T["Console.Ownership.RejectConfirm"])">
+        <p>@(_uphold ? T["Console.Ownership.UpholdBody"] : T["Console.Ownership.RejectBody"])</p>
+        <TextField Label="@T["Console.Ownership.Note"]" Help="@T["Console.Ownership.NoteHelp"]" Required="true" @bind-Value="_note"
+                   Error="@_noteError" data-resolution-note maxlength="1000" autocomplete="off" />
+        @if (_dialogError is not null)
+        {
+            <p role="alert" class="text-small text-danger">@_dialogError</p>
+        }
+    </Dialog>
+}
+
+<ToastRegion />
+
+@code {
+    private CrOwnershipSettings? _settings;
+    private IReadOnlyList<CrDispute> _disputes = [];
+    private IReadOnlyDictionary<Guid, string> _tenants = new Dictionary<Guid, string>();
+    private IReadOnlyList<SelectOption> _methods = [];
+    private CrOwnershipMethod _choice;
+    private bool _savingMethod;
+    private CrDispute? _pending;
+    private bool _uphold;
+    private bool _dialogOpen;
+    private bool _busy;
+    private string? _note;
+    private string? _noteError;
+    private string? _dialogError;
+
+    [CascadingParameter] private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _methods =
+        [
+            new SelectOption(Code(CrOwnershipMethod.Manual), T["Console.Ownership.Method.Manual"]),
+            new SelectOption(Code(CrOwnershipMethod.Wathq), T["Console.Ownership.Method.Wathq"]),
+        ];
+        _tenants = (await Catalog.ListAsync()).ToDictionary(t => t.Id, t => t.PortalName);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _settings = await Ownership.GetSettingsAsync();
+        _choice = _settings.Method;
+        _disputes = await Ownership.ListOpenDisputesAsync();
+    }
+
+    private void ChooseMethod(string value) =>
+        _choice = value == Code(CrOwnershipMethod.Wathq) ? CrOwnershipMethod.Wathq : CrOwnershipMethod.Manual;
+
+    private async Task SaveMethodAsync()
+    {
+        _savingMethod = true;
+        try
+        {
+            if (await ActorAsync() is not { } actor)
+            {
+                Toasts.Show(T["Console.Jobs.NotAllowed"], ToastTone.Danger);
+                return;
+            }
+
+            await Ownership.SetMethodAsync(_choice, actor);
+            Toasts.Show(T["Console.Ownership.Method.Saved", T[$"Console.Ownership.Method.{_choice}"]], ToastTone.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            ConsoleLog.OwnershipActionFailed(Logger, "method", ex.GetType().Name);
+            Toasts.Show(T["Console.Ownership.Failed"], ToastTone.Danger);
+        }
+        finally
+        {
+            _savingMethod = false;
+        }
+    }
+
+    private void Ask(CrDispute dispute, bool uphold)
+    {
+        _pending = dispute;
+        _uphold = uphold;
+        _note = null;
+        _noteError = null;
+        _dialogError = null;
+        _dialogOpen = true;
+    }
+
+    private async Task ResolveAsync()
+    {
+        if (_pending is not { } pending)
+        {
+            return;
+        }
+
+        _busy = true;
+        _noteError = null;
+        _dialogError = null;
+        try
+        {
+            if (await ActorAsync() is not { } actor)
+            {
+                _dialogError = T["Console.Jobs.NotAllowed"];
+                return;
+            }
+
+            var name = Name(pending.CompanyNameAr, pending.CompanyNameEn);
+            if (_uphold)
+            {
+                var upheld = await Ownership.UpholdAsync(pending.Id, _note, actor);
+                if (!upheld.IsSuccess)
+                {
+                    SetError(upheld.Error.Code);
+                    return;
+                }
+
+                Toasts.Show(
+                    upheld.Value.IdentityProviderUpdated
+                        ? T["Console.Ownership.Upheld", name, pending.ClaimantName]
+                        : T["Console.Ownership.UpheldKeycloakFailed", name, pending.ClaimantName],
+                    upheld.Value.IdentityProviderUpdated ? ToastTone.Success : ToastTone.Danger);
+            }
+            else
+            {
+                var rejected = await Ownership.RejectAsync(pending.Id, _note, actor);
+                if (!rejected.IsSuccess)
+                {
+                    SetError(rejected.Error.Code);
+                    return;
+                }
+
+                Toasts.Show(T["Console.Ownership.Rejected", pending.ClaimantName], ToastTone.Success);
+            }
+
+            _dialogOpen = false;
+            _pending = null;
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            ConsoleLog.OwnershipActionFailed(Logger, _uphold ? "uphold" : "reject", ex.GetType().Name);
+            _dialogError = T["Console.Ownership.Failed"];
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void SetError(string code)
+    {
+        if (code == CrDisputeErrors.NoteRequired)
+        {
+            _noteError = T["Console.Ownership.Error.Note"];
+            return;
+        }
+
+        _dialogError = code switch
+        {
+            CrDisputeErrors.NotOpen => T["Console.Ownership.Error.NotOpen"],
+            CrDisputeErrors.AlreadyVendor => T["Console.Ownership.Error.AlreadyVendor"],
+            CrDisputeErrors.StaffAccount => T["Console.Ownership.Error.StaffAccount"],
+            _ => T["Console.Ownership.Failed"],
+        };
+    }
+
+    // The circuit's user was authorized when the page loaded; check again at the moment of the action.
+    private async Task<string?> ActorAsync()
+    {
+        if (AuthenticationState is null)
+        {
+            return null;
+        }
+
+        var user = (await AuthenticationState).User;
+        var allowed = await Authorization.AuthorizeAsync(user, PlatformAuthentication.PolicyName);
+        var actor = user.FindFirst(IdentityClaims.Subject)?.Value;
+        return allowed.Succeeded && !string.IsNullOrWhiteSpace(actor) ? actor : null;
+    }
+
+    private string TenantName(Guid tenantId) => _tenants.TryGetValue(tenantId, out var name) ? name : tenantId.ToString();
+
+    private static string Code(CrOwnershipMethod method) => method == CrOwnershipMethod.Wathq ? "wathq" : "manual";
+
+    private static string Name(string arabic, string english) =>
+        System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar" ? arabic : english;
+}

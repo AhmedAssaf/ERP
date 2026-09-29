@@ -117,7 +117,7 @@ internal static partial class VendorInput
     private static string Trim(string? value) => value?.Trim() ?? string.Empty;
 
     /// <summary>Trimmed, with Arabic-Indic (U+0660-0669) and Extended Arabic-Indic (U+06F0-06F9) digits as ASCII digits.</summary>
-    private static string Digits(string? value)
+    internal static string Digits(string? value)
     {
         var trimmed = Trim(value);
         var builder = new StringBuilder(trimmed.Length);
@@ -163,9 +163,21 @@ internal static partial class VendorInput
         return true;
     }
 
+    /// <summary>A CR number as the registration accepts it, after <see cref="Digits"/>: ten ASCII digits.</summary>
+    internal static bool IsCrNumber(string value) => CrNumber().IsMatch(value);
+
+    /// <summary>
+    /// A free text of 1 to <paramref name="maxLength"/> characters (trimmed) under the address rules: no invisible or bidi
+    /// controls, no control or unassigned characters, no angle brackets. Ownership notes and dispute statements (W-33).
+    /// </summary>
+    internal static bool IsFreeText(string? value, int maxLength) =>
+        Trim(value) is { Length: > 0 } text && text.Length <= maxLength && IsSafeText(text);
+
     private static bool IsAddress(string address) =>
-        address.Length <= MaxAddressLength
-        && !TextSafety.HasInvisibleOrBidiControl(address)
+        address.Length <= MaxAddressLength && IsSafeText(address);
+
+    private static bool IsSafeText(string address) =>
+        !TextSafety.HasInvisibleOrBidiControl(address)
         && !address.EnumerateRunes().Any(r => Rune.GetUnicodeCategory(r) is UnicodeCategory.Control or UnicodeCategory.LineSeparator
             or UnicodeCategory.ParagraphSeparator or UnicodeCategory.PrivateUse or UnicodeCategory.Surrogate or UnicodeCategory.OtherNotAssigned)
         && !address.Contains('<', StringComparison.Ordinal) && !address.Contains('>', StringComparison.Ordinal);

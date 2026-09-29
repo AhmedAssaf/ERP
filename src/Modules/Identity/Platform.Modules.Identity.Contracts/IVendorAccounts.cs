@@ -9,6 +9,9 @@ public sealed record VendorAccessGrant(string UserId, string OrganizationAlias, 
 /// <summary>What the identity provider holds for an account before a registration: the realm role and the organizations.</summary>
 public sealed record VendorAccountState(bool HoldsVendorRole, IReadOnlyList<string> OrganizationAliases);
 
+/// <summary>The name and email the identity provider holds for an account; null parts are not set there.</summary>
+public sealed record VendorAccountProfile(string? FirstName, string? LastName, string? Email, bool EmailVerified);
+
 /// <summary>
 /// The Keycloak side of a vendor account (vendor spec V-3, ADR-0008): the realm role <c>vendor</c> and membership of each
 /// related tenant's organization, through the Keycloak Admin API. Only the application grants the role; self-registration
@@ -31,6 +34,12 @@ public interface IVendorAccounts
 
     /// <summary>Undoes what <paramref name="grant"/> added, and nothing else. Best effort: a step that fails is logged.</summary>
     Task RevokeAsync(VendorAccessGrant grant, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The account's name and email, which an officer compares with the CR certificate before a company's first approval
+    /// (W-33); null when there is no such account.
+    /// </summary>
+    Task<VendorAccountProfile?> ProfileAsync(string userId, CancellationToken cancellationToken = default);
 }
 
 /// <summary>

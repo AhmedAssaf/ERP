@@ -62,6 +62,24 @@ public interface IVendorDirectory
     /// <see cref="VendorDirectoryErrors.AlreadyApproved"/>, and the first approver stays on record.
     /// </summary>
     Task<Result<VendorRelationshipStatus>> ApproveAsync(Guid companyId, string actorId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// What the officer checks before the company's first approval (W-33): whether its ownership is verified already, and
+    /// otherwise the registering person and the lookup of the platform's method (<see cref="CrOwnershipMethod"/>). Null
+    /// when the current tenant has no relationship with the company.
+    /// </summary>
+    Task<OwnershipCheck?> GetOwnershipCheckAsync(Guid companyId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Approves as <see cref="ApproveAsync(Guid, string, CancellationToken)"/> does, first recording the officer's
+    /// <paramref name="confirmation"/> of the company's ownership when it is not verified yet (W-33), in the same
+    /// transaction, audited as <c>vendor.ownership_verified</c> in the tenant's log and the platform audit. Refusals:
+    /// <see cref="CrOwnershipErrors.NoteRequired"/>, <see cref="CrOwnershipErrors.NoCertificate"/>,
+    /// <see cref="CrOwnershipErrors.Disputed"/>, <see cref="CrOwnershipErrors.WathqNotSelected"/>. Without a
+    /// confirmation an unverified company is <see cref="CrOwnershipErrors.Unverified"/>.
+    /// </summary>
+    Task<Result<VendorRelationshipStatus>> ApproveAsync(
+        Guid companyId, string actorId, OwnershipConfirmation confirmation, CancellationToken cancellationToken = default);
 }
 
 /// <summary>Stable error codes of <see cref="IVendorDirectory"/>; pages map them to localized text.</summary>

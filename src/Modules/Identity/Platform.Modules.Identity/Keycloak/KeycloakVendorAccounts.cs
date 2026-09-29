@@ -69,6 +69,20 @@ internal sealed partial class KeycloakVendorAccounts(KeycloakAdminClient keycloa
         }
     }
 
+    public async Task<VendorAccountProfile?> ProfileAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        try
+        {
+            var user = await keycloak.FindUserAsync(userId, cancellationToken);
+            return user is null ? null : new VendorAccountProfile(user.FirstName, user.LastName, user.Email, user.EmailVerified);
+        }
+        catch (Exception ex) when (IsProviderFailure(ex, cancellationToken))
+        {
+            throw new IdentityProviderException("Keycloak did not describe the user's name and email.", ex);
+        }
+    }
+
     // Undoing runs after something already failed; a step that fails here is logged (type only, N-10) for an operator,
     // and the other step still runs. Without the role or without the organization the Vendor policy stays closed.
     private async Task BestEffortAsync(Func<Task> undo, VendorAccessGrant grant, string what)
@@ -104,6 +118,8 @@ internal sealed class UnavailableVendorAccounts : IVendorAccounts
         throw NotConfigured();
 
     public Task RevokeAsync(VendorAccessGrant grant, CancellationToken cancellationToken = default) => throw NotConfigured();
+
+    public Task<VendorAccountProfile?> ProfileAsync(string userId, CancellationToken cancellationToken = default) => throw NotConfigured();
 
     private static InvalidOperationException NotConfigured() =>
         new("The Keycloak Admin API is not registered in this host (IdentityModule.AddKeycloakAdmin).");

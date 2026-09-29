@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Platform.Modules.Identity.Contracts;
 using Platform.Modules.Operations.Contracts;
+using Platform.Modules.Vendors.Contracts;
 
 namespace Platform.UnitTests.Localization;
 
@@ -13,6 +14,9 @@ namespace Platform.UnitTests.Localization;
 /// </summary>
 public partial class ResourceKeyUsageTests
 {
+    // The statuses vendor.cr_disputes stores (W-33, vendors migration 0018), shown on /vendor/dispute.
+    private static readonly string[] DisputeStatuses = ["open", "upheld", "rejected"];
+
     private static readonly string SharedFolder = Path.Combine(TestRepo.Src, "UI", "Platform.UI", "Resources");
 
     public static TheoryData<string> ResourceBases()
@@ -84,6 +88,11 @@ public partial class ResourceKeyUsageTests
             .Concat(Enum.GetNames<HealthStatus>().Append("Unknown").Select(s => $"Console.Status.{s}"))
             .Concat(HealthComponents.Board.Append(HealthComponents.Disk).Select(c => $"Console.Component.{c}"))
             .Append("Console.TenantStatus.active")
+            .Concat(Enum.GetNames<CrLookupOutcome>().Select(o => $"Admin.Vendors.Ownership.Lookup.{o}"))
+            .Concat(Enum.GetNames<OwnershipVerificationMethod>().Select(m => $"Admin.Vendors.Ownership.Method.{m}"))
+            .Concat(Enum.GetNames<CrOwnershipMethod>().Select(m => $"Console.Ownership.Method.{m}"))
+            .Concat(Enum.GetNames<OwnershipVerificationMethod>().Select(m => $"Console.Ownership.Verified.{m}"))
+            .Concat(DisputeStatuses.Select(s => $"Vendor.Dispute.Status.{s}"))
             .ToList();
 
         built.Where(k => !english.ContainsKey(k) || !arabic.ContainsKey(k)).ShouldBeEmpty();
@@ -99,7 +108,11 @@ public partial class ResourceKeyUsageTests
             .Order(StringComparer.Ordinal)
             .ToList();
 
-        families.ShouldBeSubsetOf(["Console.Component.", "Console.Status.", "Console.TenantStatus.", "Staff.Role."]);
+        families.ShouldBeSubsetOf(
+        [
+            "Admin.Vendors.Ownership.Lookup.", "Admin.Vendors.Ownership.Method.", "Console.Component.", "Console.Ownership.Method.",
+            "Console.Ownership.Verified.", "Console.Status.", "Console.TenantStatus.", "Staff.Role.", "Vendor.Dispute.Status.",
+        ]);
     }
 
     private static List<string> ResxFiles() =>

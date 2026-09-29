@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Security.Claims;
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Platform.IntegrationTests.Infrastructure;
 using Platform.Modules.Identity.Contracts;
@@ -14,7 +15,9 @@ namespace Platform.IntegrationTests.Web;
 /// <summary>
 /// <c>/admin/vendors/{id}</c> driven through the component with bUnit (vendor plan task 5, V-7, V-11): the Approve button
 /// opens a dialog, confirming approves through the real directory on the test database, and the card then shows the
-/// company as approved; the action is refused when the officer lost the role since the page opened.
+/// company as approved; the action is refused when the officer lost the role since the page opened. W-33: before a
+/// company's first approval the dialog carries the ownership check (the registering person, what to check, a box and a
+/// note), and approves only once the officer confirmed; a company verified already is approved without it.
 /// </summary>
 [Collection(DatabaseCollection.Name)]
 public sealed class VendorApprovePageTests(DatabaseFixture db) : IDisposable
@@ -27,12 +30,16 @@ public sealed class VendorApprovePageTests(DatabaseFixture db) : IDisposable
     public async Task The_approve_dialog_approves_the_vendor_and_the_card_shows_it()
     {
         var (companyId, officer) = await PendingVendorAsync("Dialog Approved Company");
+        await OwnershipRows.VerifyAsOwnerAsync(db.OwnerConnectionString, companyId, TestTenants.Beta.TenantId, Ct);
         await using var host = new ModuleHost(db.AppConnectionString);
         await using var scope = host.ScopeFor(TestTenants.Acme, actingUserId: officer);
         var page = Render(scope, companyId, officer);
         page.Find($"[data-vendor-status='{companyId}:pending']");
 
         await page.Find("[data-approve]").ClickAsync(new());
+        // Verified already (at another tenant, which the page never names): no check, only what it was verified by.
+        page.WaitForAssertion(() => page.Find("[data-ownership-verified='manual']"));
+        page.FindAll("[data-ownership-check]").ShouldBeEmpty();
         await ConfirmAsync(page);
 
         page.WaitForAssertion(() => page.Find($"[data-vendor-status='{companyId}:approved']"));
@@ -42,15 +49,77 @@ public sealed class VendorApprovePageTests(DatabaseFixture db) : IDisposable
     }
 
     [Fact]
+    public async Task The_dialog_shows_the_ownership_check_and_approves_once_the_officer_confirms_with_a_note()
+    {
+        var (companyId, officer) = await PendingVendorAsync("Dialog Ownership Company");
+        var registrant = (await OwnershipRows.VendorUsersAsync(db.OwnerConnectionString, companyId, Ct)).Single().UserId;
+        await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, companyId, VendorDocumentTypes.CrCertificate, new DateOnly(2031, 1, 1), "clean", isCurrent: true, Ct);
+        var accounts = new FakeVendorAccounts();
+        accounts.Profiles[registrant] = new VendorAccountProfile("Huda", "Alharbi", "huda@ownership.test", EmailVerified: true);
+        await using var host = new ModuleHost(db.AppConnectionString, configure: s => s.Replace(ServiceDescriptor.Scoped<IVendorAccounts>(_ => accounts)));
+        await using var scope = host.ScopeFor(TestTenants.Acme, actingUserId: officer);
+        var page = Render(scope, companyId, officer);
+
+        await page.Find("[data-approve]").ClickAsync(new());
+
+        page.WaitForAssertion(() => page.Find("[data-ownership-check]"));
+        page.Find("[data-ownership-registrant]").TextContent.ShouldContain("Huda Alharbi");
+        page.Find("[data-ownership-registrant]").TextContent.ShouldContain("huda@ownership.test");
+        page.Find("[data-ownership-lookup='manual']").TextContent.ShouldContain("commercial registration certificate names the person");
+
+        // Not confirmed: refused before anything is recorded.
+        await ConfirmAsync(page);
+        page.WaitForAssertion(() => page.Find("[role=dialog] [role=alert]").TextContent.ShouldBe("Tick the box to confirm that you checked the company's ownership."));
+
+        // Confirmed without a note: the note field says what is missing.
+        await page.Find("[data-ownership-confirm]").ChangeAsync(new() { Value = true });
+        await ConfirmAsync(page);
+        page.WaitForAssertion(() => page.Find("[role=dialog]").TextContent.ShouldContain("Write what you checked, in up to 1,000 characters."));
+        (await VendorRows.RelationshipsAsync(db.OwnerConnectionString, companyId, Ct))[TestTenants.Acme.TenantId].ShouldBe("pending");
+
+        await page.Find("[data-ownership-note]").ChangeAsync(new() { Value = "The certificate names Huda Alharbi as the owner." });
+        await ConfirmAsync(page);
+
+        page.WaitForAssertion(() => page.Find($"[data-vendor-status='{companyId}:approved']"));
+        var verification = (await OwnershipRows.VerificationAsync(db.OwnerConnectionString, companyId, Ct)).ShouldNotBeNull();
+        verification.Method.ShouldBe("manual");
+        verification.Note.ShouldBe("The certificate names Huda Alharbi as the owner.");
+        verification.VerifiedBy.ShouldBe(officer);
+    }
+
+    [Fact]
+    public async Task The_dialog_says_when_the_company_has_no_certificate_to_check()
+    {
+        var (companyId, officer) = await PendingVendorAsync("Dialog No Certificate Company");
+        await using var host = new ModuleHost(db.AppConnectionString);
+        await using var scope = host.ScopeFor(TestTenants.Acme, actingUserId: officer);
+        var page = Render(scope, companyId, officer);
+
+        await page.Find("[data-approve]").ClickAsync(new());
+
+        page.WaitForAssertion(() => page.Find("[data-ownership-no-certificate]"));
+        // The identity provider is not wired in this host: the registrant is unknown, and the page says so.
+        page.Find("[data-ownership-registrant]").TextContent.ShouldContain("The sign-in service did not answer");
+        await page.Find("[data-ownership-confirm]").ChangeAsync(new() { Value = true });
+        await page.Find("[data-ownership-note]").ChangeAsync(new() { Value = "Checked." });
+        await ConfirmAsync(page);
+
+        page.WaitForAssertion(() => page.Find("[role=dialog] [role=alert]").TextContent.ShouldStartWith("The company has no current commercial registration certificate"));
+        (await OwnershipRows.VerificationAsync(db.OwnerConnectionString, companyId, Ct)).ShouldBeNull();
+    }
+
+    [Fact]
     public async Task An_officer_who_lost_the_role_since_the_page_opened_is_refused()
     {
         var (companyId, officer) = await PendingVendorAsync("Dialog Refused Company");
+        await OwnershipRows.VerifyAsOwnerAsync(db.OwnerConnectionString, companyId, TestTenants.Acme.TenantId, Ct);
         await using var host = new ModuleHost(db.AppConnectionString);
         await using var scope = host.ScopeFor(TestTenants.Acme, actingUserId: officer);
         var page = Render(scope, companyId, officer);
         await MemberRows.OverwriteRolesAsync(db.AppConnectionString, TestTenants.Acme.TenantId, officer, [TenantRoles.TechnicalEvaluator], Ct);
 
         await page.Find("[data-approve]").ClickAsync(new());
+        page.WaitForAssertion(() => page.Find("[data-ownership-verified]"));
         await ConfirmAsync(page);
 
         page.WaitForAssertion(() => page.Find("[role=dialog] [role=alert]").TextContent.ShouldBe("Only a contracts officer or a tenant administrator can approve a vendor."));
