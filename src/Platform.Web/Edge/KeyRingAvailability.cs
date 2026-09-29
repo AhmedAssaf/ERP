@@ -14,11 +14,18 @@ namespace Platform.Web.Edge;
 /// so the host starts and <c>/health</c> answers Unhealthy until the ring can be read; refusing to start there would turn
 /// a short database outage into a restart loop.</item>
 /// </list>
+/// <c>/health</c> is anonymous and skips tenant resolution, so it never reaches the database per request: the answer
+/// comes from <see cref="KeyRingProbe"/>, at most one database check every <see cref="CacheFor"/>, on a pool of its own
+/// capped at a few connections (<see cref="KeyRing"/>). Every check gives up after <see cref="ProbeTimeout"/>, well inside
+/// the worker's five seconds per check (F-51), so a hung database shows as the Web host reporting Unhealthy.
 /// </summary>
 internal static class KeyRingAvailability
 {
     /// <summary>A cheap read that needs the login, the rights and the table, nothing more.</summary>
     public const string ProbeSql = "select 1 from platform.data_protection_keys limit 1";
+
+    public static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(3);
+    public static readonly TimeSpan CacheFor = TimeSpan.FromSeconds(5);
 
     private static readonly HashSet<string> PermanentStates = new(StringComparer.Ordinal)
     {
@@ -32,11 +39,79 @@ internal static class KeyRingAvailability
 
     public static bool IsPermanent(PostgresException exception) => PermanentStates.Contains(exception.SqlState);
 
+    /// <summary>One database check, cancelled after <see cref="ProbeTimeout"/> or with <paramref name="cancellationToken"/>.</summary>
     public static async Task ProbeAsync(NpgsqlDataSource dataSource, CancellationToken cancellationToken)
     {
-        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(ProbeTimeout);
+        await using var connection = await dataSource.OpenConnectionAsync(timeout.Token);
         await using var probe = new NpgsqlCommand(ProbeSql, connection);
-        await probe.ExecuteScalarAsync(cancellationToken);
+        await probe.ExecuteScalarAsync(timeout.Token);
+    }
+}
+
+/// <summary>
+/// The key ring's health, checked in the database at most once per <see cref="KeyRingAvailability.CacheFor"/>: callers
+/// within that window get the last result, and callers while a check runs share it (single flight). The shared check is
+/// not tied to any caller's cancellation, so one caller giving up does not cancel it for the others.
+/// </summary>
+internal sealed class KeyRingProbe(
+    [FromKeyedServices(KeyRing.DataSourceKey)] NpgsqlDataSource dataSource, TimeProvider clock)
+{
+    private readonly Lock _gate = new();
+    private Task<HealthCheckResult>? _running;
+    private HealthCheckResult _last;
+    private DateTimeOffset _lastAt = DateTimeOffset.MinValue;
+    private int _databaseChecks;
+
+    /// <summary>How many times the database was asked; for tests.</summary>
+    public int DatabaseChecks => Volatile.Read(ref _databaseChecks);
+
+    public Task<HealthCheckResult> CheckAsync(CancellationToken cancellationToken)
+    {
+        Task<HealthCheckResult> running;
+        lock (_gate)
+        {
+            if (clock.GetUtcNow() - _lastAt < KeyRingAvailability.CacheFor)
+            {
+                return Task.FromResult(_last);
+            }
+
+            running = _running ??= RunAsync();
+        }
+
+        return running.WaitAsync(cancellationToken);
+    }
+
+    private async Task<HealthCheckResult> RunAsync()
+    {
+        // Leave the lock before touching the database.
+        await Task.Yield();
+        Interlocked.Increment(ref _databaseChecks);
+        HealthCheckResult result;
+        try
+        {
+            await KeyRingAvailability.ProbeAsync(dataSource, CancellationToken.None);
+            result = HealthCheckResult.Healthy("The key ring can be read.");
+        }
+        catch (NpgsqlException exception)
+        {
+            var reason = exception is PostgresException postgres ? postgres.SqlState : exception.GetType().Name;
+            result = HealthCheckResult.Unhealthy($"The key ring cannot be read ({reason}).");
+        }
+        catch (OperationCanceledException)
+        {
+            result = HealthCheckResult.Unhealthy($"The key ring did not answer within {KeyRingAvailability.ProbeTimeout.TotalSeconds} seconds.");
+        }
+
+        lock (_gate)
+        {
+            _last = result;
+            _lastAt = clock.GetUtcNow();
+            _running = null;
+        }
+
+        return result;
     }
 }
 
@@ -62,6 +137,10 @@ internal sealed partial class KeyRingStartupCheck(
         {
             LogUnreachable(logger, exception.GetType().Name);
         }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            LogUnreachable(logger, "Timeout");
+        }
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
@@ -71,19 +150,8 @@ internal sealed partial class KeyRingStartupCheck(
 }
 
 /// <summary><c>/health</c> is Unhealthy while the key ring cannot be read: every page would fail without it.</summary>
-internal sealed class KeyRingHealthCheck([FromKeyedServices(KeyRing.DataSourceKey)] NpgsqlDataSource dataSource) : IHealthCheck
+internal sealed class KeyRingHealthCheck(KeyRingProbe probe) : IHealthCheck
 {
-    public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            await KeyRingAvailability.ProbeAsync(dataSource, cancellationToken);
-            return HealthCheckResult.Healthy("The key ring can be read.");
-        }
-        catch (NpgsqlException exception)
-        {
-            var reason = exception is PostgresException postgres ? postgres.SqlState : exception.GetType().Name;
-            return HealthCheckResult.Unhealthy($"The key ring cannot be read ({reason}).");
-        }
-    }
+    public Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default) =>
+        probe.CheckAsync(cancellationToken);
 }

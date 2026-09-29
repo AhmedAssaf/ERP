@@ -1,3 +1,4 @@
+using System.Data.Common;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.DataProtection;
@@ -41,6 +42,14 @@ internal static class KeyRing
 
     public const string DataSourceKey = "Platform.Web.KeyRing";
 
+    /// <summary>
+    /// The ring's own pool: Data Protection reads it rarely and /health at most once per cache window, so a few connections
+    /// are plenty, and every pool together must stay below PostgreSQL max_connections (as in the Tenancy module).
+    /// </summary>
+    public const int DefaultMaxPoolSize = 3;
+
+    private static readonly string[] PoolSizeKeywords = ["Maximum Pool Size", "Max Pool Size", "MaxPoolSize"];
+
     public static IServiceCollection AddKeyRing(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
         ArgumentNullException.ThrowIfNull(configuration);
@@ -48,7 +57,14 @@ internal static class KeyRing
 
         var connectionString = KeyRingConnectionString(configuration);
         var certificate = LoadCertificate(configuration, environment);
-        services.AddKeyedSingleton(DataSourceKey, (_, _) => NpgsqlDataSource.Create(connectionString));
+        var pooled = new NpgsqlConnectionStringBuilder(connectionString);
+        if (!PoolSizeKeywords.Any(new DbConnectionStringBuilder { ConnectionString = connectionString }.ContainsKey))
+        {
+            pooled.MaxPoolSize = DefaultMaxPoolSize;
+        }
+
+        services.AddKeyedSingleton(DataSourceKey, (_, _) => NpgsqlDataSource.Create(pooled.ConnectionString));
+        services.AddSingleton<KeyRingProbe>();
         services.AddSingleton(sp => new PostgresXmlRepository(
             sp.GetRequiredKeyedService<NpgsqlDataSource>(DataSourceKey), certificate, sp.GetRequiredService<ILogger<PostgresXmlRepository>>()));
         services.AddOptions<KeyManagementOptions>().Configure<PostgresXmlRepository>((options, repository) => options.XmlRepository = repository);
@@ -62,7 +78,8 @@ internal static class KeyRing
         // First among the hosted services, so they run before Data Protection loads the ring at startup.
         services.Insert(0, ServiceDescriptor.Singleton<IHostedService, KeyRingLoggingGuard>());
         services.Insert(1, ServiceDescriptor.Singleton<IHostedService, KeyRingStartupCheck>());
-        services.AddHealthChecks().AddCheck<KeyRingHealthCheck>("key-ring");
+        // The probe gives up after three seconds on its own; this is the backstop, still inside the worker's five (F-51).
+        services.AddHealthChecks().AddCheck<KeyRingHealthCheck>("key-ring", timeout: TimeSpan.FromSeconds(4));
         return services;
     }
 

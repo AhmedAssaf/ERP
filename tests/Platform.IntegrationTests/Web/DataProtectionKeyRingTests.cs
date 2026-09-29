@@ -15,6 +15,7 @@ using Microsoft.Extensions.Options;
 using Npgsql;
 using Platform.IntegrationTests.Infrastructure;
 using Platform.Migrator;
+using Platform.Web.Edge;
 
 namespace Platform.IntegrationTests.Web;
 
@@ -293,6 +294,107 @@ public sealed class DataProtectionKeyRingTests(DatabaseFixture db) : IAsyncLifet
 
         response.StatusCode.ShouldBe(System.Net.HttpStatusCode.ServiceUnavailable);
         (await response.Content.ReadAsStringAsync(Ct)).ShouldBe("Unhealthy");
+    }
+
+    /// <summary>
+    /// The migrator not re-run after platform/0007: erp_key_ring exists without a login (28000). The host stops and says
+    /// to run the migrator. Tests in the database collection never run in parallel, so the shared role is changed here
+    /// and restored.
+    /// </summary>
+    [Fact]
+    public async Task A_key_ring_role_without_a_login_stops_the_host_and_names_the_migrator()
+    {
+        await ExecuteAsync(OwnerConnectionString, "alter role erp_key_ring nologin");
+        try
+        {
+            using var factory = new PlatformWebFactory(AppConnectionString);
+
+            var refused = Should.Throw<InvalidOperationException>(() => factory.Server);
+
+            refused.Message.ShouldContain("28000");
+            refused.Message.ShouldContain("migrator");
+        }
+        finally
+        {
+            await ExecuteAsync(OwnerConnectionString, "alter role erp_key_ring login");
+        }
+    }
+
+    /// <summary>
+    /// /health is anonymous, unthrottled and skips tenant resolution, so a burst of calls must not reach the database each
+    /// time: at most one check per cache window, on the ring's own pool, capped at a few connections (review of W-24).
+    /// </summary>
+    [Fact]
+    public async Task Many_concurrent_health_calls_make_at_most_one_database_check_per_window_on_a_capped_pool()
+    {
+        await using var factory = new PlatformWebFactory(AppConnectionString);
+        using var client = factory.CreateClient();
+        var probe = factory.Services.GetRequiredService<KeyRingProbe>();
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+
+        var responses = await Task.WhenAll(Enumerable.Range(0, 200).Select(_ => client.GetAsync(new Uri("/health", UriKind.Relative), Ct)));
+        clock.Stop();
+
+        responses.ShouldAllBe(r => r.StatusCode == System.Net.HttpStatusCode.OK);
+        var windows = 1 + (int)(clock.Elapsed / KeyRingAvailability.CacheFor);
+        probe.DatabaseChecks.ShouldBeInRange(1, windows);
+
+        var dataSource = factory.Services.GetRequiredKeyedService<NpgsqlDataSource>(KeyRing.DataSourceKey);
+        new NpgsqlConnectionStringBuilder(dataSource.ConnectionString).MaxPoolSize.ShouldBe(KeyRing.DefaultMaxPoolSize);
+        await using var owner = new NpgsqlConnection(OwnerConnectionString);
+        await owner.OpenAsync(Ct);
+        await using var count = new NpgsqlCommand(
+            "select count(*) from pg_stat_activity where usename = 'erp_key_ring' and datname = current_database()", owner);
+        ((long)(await count.ExecuteScalarAsync(Ct))!).ShouldBeLessThanOrEqualTo(KeyRing.DefaultMaxPoolSize);
+    }
+
+    /// <summary>
+    /// A database that accepts connections and never answers: /health says Unhealthy inside the worker's five seconds per
+    /// check (F-51), so the board shows the Web host reporting Unhealthy rather than the Web host unreachable.
+    /// </summary>
+    [Fact]
+    public async Task A_hung_key_ring_database_makes_health_unhealthy_within_the_workers_limit()
+    {
+        using var hung = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+        hung.Start();
+        var held = new List<System.Net.Sockets.TcpClient>();
+        using var stop = new CancellationTokenSource();
+        var acceptor = Task.Run(async () =>
+        {
+            while (!stop.IsCancellationRequested)
+            {
+                try
+                {
+                    held.Add(await hung.AcceptTcpClientAsync(stop.Token));
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+            }
+        }, Ct);
+        var port = ((System.Net.IPEndPoint)hung.LocalEndpoint).Port;
+        var silent = new NpgsqlConnectionStringBuilder(KeyRingConnectionString) { Host = "127.0.0.1", Port = port }.ConnectionString;
+        try
+        {
+            await using var factory = new PlatformWebFactory(AppConnectionString)
+                .WithWebHostBuilder(builder => builder.UseSetting("ConnectionStrings:KeyRing", silent));
+            using var client = factory.CreateClient();
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+
+            using var response = await client.GetAsync(new Uri("/health", UriKind.Relative), Ct);
+            clock.Stop();
+
+            response.StatusCode.ShouldBe(System.Net.HttpStatusCode.ServiceUnavailable);
+            clock.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(5));
+        }
+        finally
+        {
+            await stop.CancelAsync();
+            hung.Stop();
+            await acceptor;
+            held.ForEach(c => c.Dispose());
+        }
     }
 
     [Fact]

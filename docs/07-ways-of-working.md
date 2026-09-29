@@ -309,6 +309,9 @@ stops at startup with "The Data Protection key ring cannot be read with connecti
 (PostgreSQL 28P01)" (a wrong password), 28000 (the role has no login yet) or 42P01 (platform/0007 not applied); fix the
 secret or re-run the migrator with the same `ConnectionStrings:KeyRing`. If the database is only unreachable, the host
 starts and `/health` answers 503 Unhealthy until the key ring can be read, so the worker's health check reports it.
+`/health` is anonymous, so it never reaches the database per request: the key ring is checked at most once every five
+seconds (callers in between get that answer), on the ring's own pool of at most three connections, and a check gives up
+after three seconds, inside the worker's five-second limit (F-51).
 
 Everywhere else the host refuses to start without these settings:
 
