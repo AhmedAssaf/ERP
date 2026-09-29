@@ -194,6 +194,60 @@ public sealed class CircuitRevalidationTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task An_ended_circuit_that_reconnects_gets_exactly_one_new_reload_and_is_disconnected_if_it_stays()
+    {
+        // Final check: a laptop sleeps, the user is removed, the reload goes to a client that is not there. When the circuit
+        // reconnects within the retention window, that connection gets one reload of its own (not one per activity), and is
+        // dropped if it stays; the first connection, long gone, is never touched.
+        var first = Connection(out var firstLifetime);
+        var accessor = new HttpContextAccessor { HttpContext = first };
+        var navigation = new RecordingNavigationManager("https://acme.localhost/", "https://acme.localhost/admin/staff");
+        var guard = new CircuitSessionGuard(navigation, accessor, NullLogger<CircuitSessionGuard>.Instance, TimeSpan.FromMilliseconds(100));
+        var context = new QueueSynchronizationContext();
+        await OpenOnAsync(context, guard);
+        await guard.OnConnectionUpAsync(null!, Ct);
+        await guard.OnConnectionDownAsync(null!, Ct);
+
+        guard.End();
+        context.RunPending();
+        await Task.Delay(TimeSpan.FromMilliseconds(400), Ct);
+        firstLifetime.Aborted.IsCompleted.ShouldBeFalse("a connection that is already down is not aborted");
+
+        var second = Connection(out var secondLifetime);
+        accessor.HttpContext = second;
+        await guard.OnConnectionUpAsync(null!, Ct);
+        var inbound = guard.CreateInboundActivityHandler(_ => throw new InvalidOperationException("an ended circuit runs nothing"));
+        for (var i = 0; i < 50; i++)
+        {
+            await inbound(null!);
+            context.RunPending();
+        }
+
+        navigation.Navigations.ShouldBe([("https://acme.localhost/admin/staff", true), ("https://acme.localhost/admin/staff", true)],
+            "one reload for the lost connection, one for the new one, none per activity");
+        await secondLifetime.Aborted.WaitAsync(TimeSpan.FromSeconds(10), Ct);
+        firstLifetime.Aborted.IsCompleted.ShouldBeFalse("the abort targets the connection that is up, not the first one");
+    }
+
+    [Fact]
+    public async Task An_abort_that_fails_on_a_disposed_connection_is_logged_not_thrown()
+    {
+        var connection = new DefaultHttpContext();
+        connection.Features.Set<IHttpRequestLifetimeFeature>(new DisposedLifetime());
+        var logger = new CountingLogger<CircuitSessionGuard>();
+        var guard = new CircuitSessionGuard(
+            new RecordingNavigationManager("https://acme.localhost/", "https://acme.localhost/admin/staff"),
+            new HttpContextAccessor { HttpContext = connection }, logger, TimeSpan.FromMilliseconds(50));
+        await OpenOnAsync(new QueueSynchronizationContext(), guard);
+        await guard.OnConnectionUpAsync(null!, Ct);
+
+        guard.End();
+
+        await logger.Warned.WaitAsync(TimeSpan.FromSeconds(10), Ct);
+        logger.Messages.ShouldContain(m => m.Contains("could not be aborted", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void The_host_revalidates_circuits_every_minute_so_a_removal_ends_a_circuit_within_five_minutes()
     {
         // Keycloak up: the confirmation just before the removal is reused for MemberFor, and the circuit's next
@@ -325,6 +379,49 @@ public sealed class CircuitRevalidationTests(DatabaseFixture db)
         }
     }
 
+    private static DefaultHttpContext Connection(out RecordingLifetime lifetime)
+    {
+        var connection = new DefaultHttpContext();
+        lifetime = new RecordingLifetime();
+        connection.Features.Set<IHttpRequestLifetimeFeature>(lifetime);
+        return connection;
+    }
+
+    private sealed class DisposedLifetime : IHttpRequestLifetimeFeature
+    {
+        public CancellationToken RequestAborted { get; set; }
+
+        public void Abort() => throw new ObjectDisposedException("HttpContext");
+    }
+
+    private sealed class CountingLogger<T> : Microsoft.Extensions.Logging.ILogger<T>
+    {
+        private readonly TaskCompletionSource _warned = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public List<string> Messages { get; } = [];
+
+        public Task Warned => _warned.Task;
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
+
+        public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            Microsoft.Extensions.Logging.LogLevel logLevel, Microsoft.Extensions.Logging.EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            lock (Messages)
+            {
+                Messages.Add(formatter(state, exception));
+            }
+
+            if (logLevel >= Microsoft.Extensions.Logging.LogLevel.Warning && formatter(state, exception).Contains("could not be aborted", StringComparison.Ordinal))
+            {
+                _warned.TrySetResult();
+            }
+        }
+    }
+
     private sealed class RecordingLifetime : IHttpRequestLifetimeFeature
     {
         private readonly TaskCompletionSource _aborted = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -379,6 +476,8 @@ public sealed class CircuitRevalidationTests(DatabaseFixture db)
 
             return Task.FromResult(stillMember);
         }
+
+        public bool ClaimsHostOrganization(ClaimsPrincipal user) => user.HasClaim("organization", "acme");
     }
 
     private sealed class RecordingNavigationManager : NavigationManager

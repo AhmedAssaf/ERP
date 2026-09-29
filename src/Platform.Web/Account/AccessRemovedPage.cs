@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Endpoints;
 using Microsoft.AspNetCore.Diagnostics;
-using Platform.Modules.Identity;
+using Platform.Modules.Identity.Contracts;
 using Platform.Shared.Tenancy;
 
 namespace Platform.Web.Account;
@@ -61,8 +61,8 @@ internal static class AccessRemovedPage
         if (HttpMethods.IsGet(http.Request.Method)
             && http.GetEndpoint()?.Metadata.GetMetadata<ComponentTypeMetadata>() is not null
             && http.User.Identity?.IsAuthenticated == true
-            && http.RequestServices.GetService<ITenantAccessor>()?.Current is { } tenant
-            && !IdentityModule.ClaimsOrganizationOf(http.User, tenant)
+            && http.RequestServices.GetService<ITenantAccessor>()?.Current is not null
+            && !http.RequestServices.GetRequiredService<IMembershipRevalidation>().ClaimsHostOrganization(http.User)
             && http.Features.Get<IStatusCodePagesFeature>() is { } statusCodePages)
         {
             statusCodePages.Enabled = true;

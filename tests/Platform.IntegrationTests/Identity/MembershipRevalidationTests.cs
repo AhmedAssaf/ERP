@@ -134,6 +134,23 @@ public sealed class MembershipRevalidationTests(DatabaseFixture db, KeycloakFixt
         (await GetAsync(client, second)).StatusCode.ShouldBe(HttpStatusCode.OK, "Keycloak confirms the membership again");
     }
 
+    [Fact]
+    public async Task Keycloak_ends_the_session_on_a_form_post_to_end_session_with_the_id_token_as_hint()
+    {
+        // The tenant scheme's sign-out posts id_token_hint (never a URL); this proves Keycloak 26.3 accepts that POST.
+        var email = $"w21.logout.{Guid.NewGuid():N}@acme.waslabid.test";
+        var userId = await keycloak.CreateUserAsync(email, KeycloakFixture.UserPassword, emailVerified: true, Ct);
+        var idToken = await keycloak.SignInAsync(email, "openid", Ct);
+        (await keycloak.AdminGetAsync($"users/{userId}/sessions", Ct)).GetArrayLength().ShouldBe(1);
+
+        using var http = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false });
+        using var form = new FormUrlEncodedContent(new Dictionary<string, string> { ["id_token_hint"] = idToken, ["client_id"] = "waslabid-tests" });
+        using var response = await http.PostAsync(new Uri($"{keycloak.Authority}/protocol/openid-connect/logout"), form, Ct);
+
+        ((int)response.StatusCode).ShouldBeLessThan(400, "Keycloak accepts the form post");
+        (await keycloak.AdminGetAsync($"users/{userId}/sessions", Ct)).GetArrayLength().ShouldBe(0, "the Keycloak session ended");
+    }
+
     internal static WebApplicationFactory<Program> Factory(DatabaseFixture db, TestClock clock, string keycloakAdminBaseUrl) =>
         new PlatformWebFactory(db.AppConnectionString, new OidcSettings("https://tenant-realm.invalid/realms/waslabid", "unused-in-tests"))
             .WithWebHostBuilder(builder =>

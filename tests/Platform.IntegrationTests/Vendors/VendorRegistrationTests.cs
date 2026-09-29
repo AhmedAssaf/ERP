@@ -207,10 +207,13 @@ public sealed partial class VendorRegistrationTests(DatabaseFixture db, Keycloak
         done.ShouldContain("data-vendor-registered");
 
         // The page signs the user out so the next token carries the vendor role and the organization.
+        // W-21: the sign-out carries the id token as a hint, in an auto-submitting form post (never in a URL); the browser
+        // submits it, Keycloak ends its session without asking, and the protected state brings the user back to /vendor.
         using var signOut = await PostSignOutAsync(client, done);
-        signOut.StatusCode.ShouldBe(HttpStatusCode.Redirect);
-        var confirm = await browser.NavigateAsync(signOut.Headers.Location.ShouldNotBeNull(), Ct);
-        var loggedOut = confirm.Callback ?? (await browser.SubmitFirstFormAsync(confirm.Page.ShouldNotBeNull(), Ct)).Callback.ShouldNotBeNull();
+        signOut.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var logoutForm = await signOut.Content.ReadAsStringAsync(Ct);
+        logoutForm.ShouldContain("name=\"id_token_hint\"");
+        var loggedOut = (await browser.SubmitFirstFormAsync(logoutForm, Ct)).Callback.ShouldNotBeNull("with the hint Keycloak ends its session without a confirmation page");
         using var afterSignOut = await SendCallbackAsync(client, loggedOut);
         afterSignOut.Headers.Location.ShouldNotBeNull().OriginalString.ShouldBe("/vendor");
 

@@ -264,6 +264,20 @@ public sealed class MembershipRevalidatorTests
     }
 
     [Fact]
+    public void Whether_a_session_claims_the_host_tenants_organization_is_answered_from_its_claims_alone()
+    {
+        // The web host tells a refusal for a missing membership (the access-removed page) from one for a missing role.
+        var world = new World(Acme);
+
+        world.Revalidator().ClaimsHostOrganization(Staff("u1", "acme")).ShouldBeTrue();
+        world.Revalidator().ClaimsHostOrganization(Staff("u1", "beta")).ShouldBeFalse();
+        world.Revalidator().ClaimsHostOrganization(Principal("u1", [], vendorRole: false)).ShouldBeFalse();
+        new World(null).Revalidator().ClaimsHostOrganization(Staff("u1", "acme")).ShouldBeFalse("no tenant, no host organization");
+        world.Source.Calls.ShouldBe(0);
+        world.Source.AccountCalls.ShouldBe(0);
+    }
+
+    [Fact]
     public void At_capacity_the_oldest_confirmations_are_dropped_before_seen_removals()
     {
         var evidence = new MembershipEvidence(capacity: 4);

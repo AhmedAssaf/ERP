@@ -31,4 +31,11 @@ public interface IMembershipRevalidation
     /// </param>
     /// <param name="cancellationToken">Stops waiting; a Keycloak check already started for the same user completes for others.</param>
     Task<bool> IsStillMemberAsync(ClaimsPrincipal user, DateTimeOffset? signedInAt, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Whether the session's token carried the host tenant's organization (matched on the alias), from its claims alone:
+    /// no Keycloak call, no database. False without a tenant. The host uses it to tell a refusal for a missing membership
+    /// (the access-removed page) from a refusal for a missing role.
+    /// </summary>
+    bool ClaimsHostOrganization(ClaimsPrincipal user);
 }

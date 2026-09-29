@@ -10,8 +10,10 @@ namespace Platform.Web.Account;
 /// the access-removed page (the cookie's own revalidation or expiry refuses it); from then on no inbound activity of the
 /// circuit (event, JavaScript callback, navigation, render acknowledgement) runs, and none of it triggers another reload:
 /// the browser's answer to the reload's own JavaScript call is inbound activity too, and answering it with a new reload
-/// looped (QA D1). If the circuit is still connected <see cref="DisconnectAfter"/> after the reload (a client that ignores
-/// it), its connection is aborted, so the circuit ends instead of lingering.
+/// looped (QA D1). The reload is sent once per connection: a circuit whose session ended while it was disconnected (a
+/// laptop asleep) lost that reload, so when it reconnects within the retention window the new connection gets one of its
+/// own. If a connection is still up <see cref="DisconnectAfter"/> after its reload (a client that ignores it), that
+/// connection, never an earlier one, is aborted, so the circuit ends instead of lingering; a failed abort is logged.
 /// <para>
 /// When the circuit opens it remembers from its connection request: the circuit's own synchronization context (circuit
 /// handlers open on the renderer's dispatcher), to which the reload is posted because revalidation runs on a background
@@ -32,7 +34,8 @@ internal sealed partial class CircuitSessionGuard : CircuitHandler
     private volatile HttpContext? _connection;
     private volatile bool _ended;
     private volatile bool _connected;
-    private int _reloadSent;
+    private int _generation;
+    private int _reloadedGeneration = -1;
 
     public CircuitSessionGuard(NavigationManager navigation, IHttpContextAccessor httpContextAccessor, ILogger<CircuitSessionGuard> logger)
         : this(navigation, httpContextAccessor, logger, DisconnectAfter)
@@ -63,9 +66,18 @@ internal sealed partial class CircuitSessionGuard : CircuitHandler
         return Task.CompletedTask;
     }
 
+    /// <summary>A connection (the first, or a reconnection): the one a reload and an abort now go to.</summary>
     public override Task OnConnectionUpAsync(Circuit circuit, CancellationToken cancellationToken)
     {
+        _circuitContext = SynchronizationContext.Current ?? _circuitContext;
+        _connection = _httpContextAccessor.HttpContext ?? _connection;
+        var generation = Interlocked.Increment(ref _generation);
         _connected = true;
+        if (_ended)
+        {
+            ReloadOnce(generation);
+        }
+
         return Task.CompletedTask;
     }
 
@@ -81,15 +93,14 @@ internal sealed partial class CircuitSessionGuard : CircuitHandler
         return Task.CompletedTask;
     }
 
-    /// <summary>Ends the circuit's session: one reload, then every inbound activity refused. Later calls change nothing.</summary>
+    /// <summary>
+    /// Ends the circuit's session: one reload for the current connection, then every inbound activity refused. Later calls
+    /// change nothing; a later connection gets its own reload (<see cref="OnConnectionUpAsync"/>).
+    /// </summary>
     public void End()
     {
         _ended = true;
-        if (Interlocked.Exchange(ref _reloadSent, 1) == 0 && _circuitContext is { } circuitContext)
-        {
-            circuitContext.Post(_ => Reload(), null);
-            _ = DisconnectIfStillConnectedAsync();
-        }
+        ReloadOnce(Volatile.Read(ref _generation));
     }
 
     public override Func<CircuitInboundActivityContext, Task> CreateInboundActivityHandler(Func<CircuitInboundActivityContext, Task> next) =>
@@ -108,13 +119,34 @@ internal sealed partial class CircuitSessionGuard : CircuitHandler
         }
     }
 
-    private async Task DisconnectIfStillConnectedAsync()
+    // One reload per connection generation, and the abort of that same connection if it is still the one up afterwards.
+    private void ReloadOnce(int generation)
+    {
+        if (Interlocked.Exchange(ref _reloadedGeneration, generation) == generation || _circuitContext is not { } circuitContext)
+        {
+            return;
+        }
+
+        circuitContext.Post(_ => Reload(), null);
+        _ = DisconnectIfStillConnectedAsync(generation, _connection);
+    }
+
+    private async Task DisconnectIfStillConnectedAsync(int generation, HttpContext? connection)
     {
         await Task.Delay(_disconnectAfter).ConfigureAwait(false);
-        if (_connected && _connection is { } connection)
+        if (!_connected || connection is null || Volatile.Read(ref _generation) != generation)
+        {
+            return;
+        }
+
+        try
         {
             Disconnecting(_logger);
             connection.Abort();
+        }
+        catch (Exception ex) when (ex is ObjectDisposedException or InvalidOperationException)
+        {
+            AbortFailed(_logger, ex.GetType().Name);
         }
     }
 
@@ -123,4 +155,7 @@ internal sealed partial class CircuitSessionGuard : CircuitHandler
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The circuit of an ended session was still connected after its reload; its connection is aborted.")]
     private static partial void Disconnecting(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The connection of an ended session's circuit could not be aborted ({ErrorType}); the circuit refuses its activity anyway.")]
+    private static partial void AbortFailed(ILogger logger, string errorType);
 }

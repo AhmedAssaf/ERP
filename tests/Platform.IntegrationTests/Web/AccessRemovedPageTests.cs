@@ -141,7 +141,7 @@ public sealed partial class AccessRemovedPageTests(DatabaseFixture db) : IDispos
     }
 
     [Fact]
-    public async Task Signing_out_from_the_page_ends_the_keycloak_session_with_the_id_token_as_hint()
+    public async Task Signing_out_from_the_page_posts_the_id_token_hint_to_keycloak_in_a_form_not_a_url()
     {
         await using var factory = Factory();
         using var client = Client(factory);
@@ -161,10 +161,16 @@ public sealed partial class AccessRemovedPageTests(DatabaseFixture db) : IDispos
         request.Headers.Add("Cookie", $"{TenantCookie}={session}; {antiforgery}");
         using var signOut = await client.SendAsync(request, Ct);
 
-        signOut.StatusCode.ShouldBe(HttpStatusCode.Redirect);
-        var location = signOut.Headers.Location!.AbsoluteUri;
-        location.ShouldStartWith(EndSession);
-        location.ShouldContain("id_token_hint=header.payload.signature");
+        // Final check nit: the id token is personal data, so it goes to Keycloak in a form post, never in a URL that browser
+        // history and access logs keep. The form carries the protected state, so the return path still works.
+        signOut.StatusCode.ShouldBe(HttpStatusCode.OK);
+        signOut.Headers.Location.ShouldBeNull();
+        var form = await signOut.Content.ReadAsStringAsync(Ct);
+        form.ShouldMatch($"(?i)<form[^>]*method=\"post\"[^>]*action=\"{Regex.Escape(EndSession)}\"");
+        form.ShouldContain("name=\"id_token_hint\" value=\"header.payload.signature\"");
+        form.ShouldContain("name=\"state\"");
+        form.ShouldContain("name=\"post_logout_redirect_uri\"");
+        signOut.Headers.GetValues("Cache-Control").ShouldContain(v => v.Contains("no-store", StringComparison.Ordinal));
         signOut.Headers.GetValues("Set-Cookie").ShouldContain(c => c.StartsWith($"{TenantCookie}=;", StringComparison.Ordinal), "the local cookie is deleted");
     }
 

@@ -103,6 +103,12 @@ internal sealed partial class MembershipRevalidator(
         return false;
     }
 
+    public bool ClaimsHostOrganization(ClaimsPrincipal user)
+    {
+        ArgumentNullException.ThrowIfNull(user);
+        return tenants.Current is { } tenant && OrganizationClaims.BelongsTo(user, tenant);
+    }
+
     private async Task<OrganizationMembership> CheckAndRecordAsync(TenantContext tenant, string scope, string userId, string session)
     {
         OrganizationMembership answer;

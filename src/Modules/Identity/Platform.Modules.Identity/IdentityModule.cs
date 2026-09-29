@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Configuration;
@@ -11,7 +10,6 @@ using Platform.Modules.Identity.Keycloak;
 using Platform.Modules.Identity.Members;
 using Platform.Shared;
 using Platform.Shared.Data;
-using Platform.Shared.Tenancy;
 
 namespace Platform.Modules.Identity;
 
@@ -162,18 +160,6 @@ public static class IdentityModule
         }
 
         return options;
-    }
-
-    /// <summary>
-    /// Whether the principal's token carried the Keycloak organization of <paramref name="tenant"/> (matched on the alias,
-    /// spec section 7), the membership the SameTenant requirement checks. The host uses it to tell a refusal for a missing
-    /// membership (the access-removed page, W-21) from a refusal for a missing role.
-    /// </summary>
-    public static bool ClaimsOrganizationOf(ClaimsPrincipal principal, TenantContext tenant)
-    {
-        ArgumentNullException.ThrowIfNull(principal);
-        ArgumentNullException.ThrowIfNull(tenant);
-        return OrganizationClaims.BelongsTo(principal, tenant);
     }
 
     public static Task<IReadOnlyList<string>> MigrateAsync(NpgsqlConnection connection, CancellationToken cancellationToken = default) =>
