@@ -35,6 +35,8 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 
 ## E0 Platform foundation (W-01 to W-12, W-19 to W-30, W-33 to W-39)
 
+Hardening before gate 1 (decided 2026-09-29, document 05 section 8): W-21, W-24, W-10 and W-33 harden what is already built and may proceed before W-31; no new slice does.
+
 | ID | Story | Pri | Size | Status | Depends on |
 |---|---|---|---|---|---|
 | W-01 | Local Compose stack | P0 | S | Done 2026-09-21: all services healthy on Docker Desktop 29 (Keycloak in 50 s, ClamAV within its start period), bucket created, Caddy answering on the override port; second `up -d` clean | |
