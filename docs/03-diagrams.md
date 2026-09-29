@@ -187,7 +187,7 @@ sequenceDiagram
     API->>API: Assert token.org == host tenant, else 403
     loop Each request, and every minute in an open Blazor circuit (W-21)
         API->>KC: Still an enabled member of org customer? (Admin API, answer reused 2 min)
-        Note over API: Removed or disabled: session ends, sign-in page, audited identity.session_revoked.<br/>Keycloak not answering: kept only if confirmed within 3.5 min, else session ends
+        Note over API: Removed or disabled: session ends (a circuit reloads once), audited identity.session_revoked.<br/>Removed: Keycloak signs back in without the org, 403 access-removed page with Sign out.<br/>Keycloak not answering: kept only if confirmed within 3.5 min, else session ends
     end
     Note over API: Deliberate exception: /vendor/join (JoiningVendor policy) skips the org check,<br/>since a signed-in vendor not yet in this tenant joins it there (realm role vendor still required)
     API->>DB: SET app.tenant_id = customer
