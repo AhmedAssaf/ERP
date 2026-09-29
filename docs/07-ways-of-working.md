@@ -87,6 +87,7 @@ them): `WASLABID_WEB_CLIENT_SECRET`, `WASLABID_PLATFORM_CLIENT_SECRET`, `WASLABI
 `MINIO_HEALTH_PROBE_PASSWORD`, `VENDORS_CR_AUDIT_KEY` (base64 of at least 32 bytes; the web host does not start
 without it) and `ERP_KEY_RING_DB_PASSWORD` (the key ring's own database role, W-24; the web host does not start without
 it), run these once from the repository root (Git Bash). The commands read the values from `.env` into shell variables and never print them (N-10); user secrets live outside the repository.
+In a git worktree `infra/compose/.env` does not exist (it is git-ignored), so point `env_value` at the main checkout's file, for example `grep "^$1=" ../ERP/infra/compose/.env` (the e2e scripts take `E2E_ENV_FILE` for the same reason).
 
 ```bash
 env_value() { grep "^$1=" infra/compose/.env | cut -d= -f2- | tr -d '\r'; }
@@ -296,9 +297,18 @@ migrator.
 Row-level security on the table (no tenant, vendor or user context) is defence in depth only, never the protection.
 
 In Development: the host takes only `X-Forwarded-Proto` from the local Caddy, from any address, and keeps the keys
-unencrypted in the database. When this change reaches your machine, add `ERP_KEY_RING_DB_PASSWORD` to `.env`
-(`openssl rand -hex 32`), set the two `ConnectionStrings:KeyRing` user secrets above, and re-run the migrator; the keys
-moved from your user profile to the database, so you are signed out once.
+unencrypted in the database, so its first start logs the expected Data Protection warning "No XML encryptor configured.
+Key {...} may be persisted to storage in unencrypted form." (a key id only, no key material). When this change reaches
+your machine, add `ERP_KEY_RING_DB_PASSWORD` to `.env` (`openssl rand -hex 32`), set the two `ConnectionStrings:KeyRing`
+user secrets above, and re-run the migrator. The keys moved from your user profile to the database, so your old login
+cookie is no longer accepted and you sign in again once; while your Keycloak session is still open, that second sign-in
+may pass with no prompt at all.
+
+If the migrator was not re-run, or the `KeyRing` password differs from the one the migrator was given, the web host
+stops at startup with "The Data Protection key ring cannot be read with connection string 'ConnectionStrings:KeyRing'
+(PostgreSQL 28P01)" (a wrong password), 28000 (the role has no login yet) or 42P01 (platform/0007 not applied); fix the
+secret or re-run the migrator with the same `ConnectionStrings:KeyRing`. If the database is only unreachable, the host
+starts and `/health` answers 503 Unhealthy until the key ring can be read, so the worker's health check reports it.
 
 Everywhere else the host refuses to start without these settings:
 

@@ -232,6 +232,81 @@ public sealed class DataProtectionKeyRingTests(DatabaseFixture db) : IAsyncLifet
         refused.Message.ShouldContain("Microsoft.AspNetCore.DataProtection");
     }
 
+    /// <summary>
+    /// A wrong <c>ConnectionStrings:KeyRing</c> password never heals by itself: the host stops at startup and names the
+    /// setting and the PostgreSQL state, never a password (QA of W-24: it used to start, answer /health with 200, and fail
+    /// every page with 500).
+    /// </summary>
+    [Fact]
+    public void A_key_ring_password_the_database_refuses_stops_the_host()
+    {
+        const string wrongPassword = "not-the-key-ring-password-5b7e";
+        var wrong = new NpgsqlConnectionStringBuilder(KeyRingConnectionString) { Password = wrongPassword }.ConnectionString;
+        using var factory = new PlatformWebFactory(AppConnectionString)
+            .WithWebHostBuilder(builder => builder.UseSetting("ConnectionStrings:KeyRing", wrong));
+
+        var refused = Should.Throw<InvalidOperationException>(() => factory.Server);
+
+        refused.Message.ShouldContain("ConnectionStrings:KeyRing");
+        refused.Message.ShouldContain("28P01");
+        Messages(refused).ShouldNotContain(wrongPassword);
+        Messages(refused).ShouldNotContain(TestSecrets.KeyRingPassword);
+    }
+
+    /// <summary>A database the migrator has not brought to platform/0007 (no key table) stops the host and says to run it.</summary>
+    [Fact]
+    public async Task A_database_without_the_key_table_stops_the_host_and_names_the_migrator()
+    {
+        var empty = $"key_ring_unmigrated_{Guid.NewGuid():N}";
+        await ExecuteAsync(db.OwnerConnectionString, $"create database {empty}");
+        try
+        {
+            var app = new NpgsqlConnectionStringBuilder(db.AppConnectionString) { Database = empty }.ConnectionString;
+            using var factory = new PlatformWebFactory(app);
+
+            var refused = Should.Throw<InvalidOperationException>(() => factory.Server);
+
+            refused.Message.ShouldContain("42P01");
+            refused.Message.ShouldContain("migrator");
+        }
+        finally
+        {
+            NpgsqlConnection.ClearAllPools();
+            await ExecuteAsync(db.OwnerConnectionString, $"drop database if exists {empty} with (force)");
+        }
+    }
+
+    /// <summary>
+    /// A key ring the host cannot reach may come back by itself (the database restarting during a deployment), so the host
+    /// starts, and /health answers Unhealthy until the ring can be read, so the worker's health check and any orchestrator
+    /// see it (QA of W-24: /health said Healthy while every page failed).
+    /// </summary>
+    [Fact]
+    public async Task While_the_key_ring_cannot_be_reached_health_is_unhealthy()
+    {
+        var unreachable = new NpgsqlConnectionStringBuilder(KeyRingConnectionString) { Host = "127.0.0.1", Port = 1, Timeout = 3 }.ConnectionString;
+        await using var factory = new PlatformWebFactory(AppConnectionString)
+            .WithWebHostBuilder(builder => builder.UseSetting("ConnectionStrings:KeyRing", unreachable));
+        using var client = factory.CreateClient();
+
+        using var response = await client.GetAsync(new Uri("/health", UriKind.Relative), Ct);
+
+        response.StatusCode.ShouldBe(System.Net.HttpStatusCode.ServiceUnavailable);
+        (await response.Content.ReadAsStringAsync(Ct)).ShouldBe("Unhealthy");
+    }
+
+    [Fact]
+    public async Task With_a_readable_key_ring_health_is_healthy()
+    {
+        await using var factory = new PlatformWebFactory(AppConnectionString);
+        using var client = factory.CreateClient();
+
+        using var response = await client.GetAsync(new Uri("/health", UriKind.Relative), Ct);
+
+        response.StatusCode.ShouldBe(System.Net.HttpStatusCode.OK);
+        (await response.Content.ReadAsStringAsync(Ct)).ShouldBe("Healthy");
+    }
+
     [Fact]
     public void A_host_without_a_key_ring_connection_string_does_not_start()
     {

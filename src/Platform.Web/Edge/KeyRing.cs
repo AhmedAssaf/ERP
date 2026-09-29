@@ -22,6 +22,8 @@ namespace Platform.Web.Edge;
 /// <c>DataProtection:CertificatePassword</c>, a secret) encrypts every key before it is stored, and keys stored without it
 /// are then ignored. It is required outside Development and Testing; there the keys are stored unencrypted, and Data
 /// Protection says so in a warning.</item>
+/// <item>Availability: a key ring that cannot be read stops the host at startup when the cause never heals by itself, and
+/// makes <c>/health</c> Unhealthy otherwise (<see cref="KeyRingAvailability"/>).</item>
 /// <item>Logging: Data Protection writes whole key elements at Debug and Trace. Its categories are capped at Information
 /// for every provider, and outside Development the host refuses to start if Debug is still enabled for them (N-10).</item>
 /// </list>
@@ -37,7 +39,7 @@ internal static class KeyRing
     public const string LogCategory = "Microsoft.AspNetCore.DataProtection";
     public const string KeyRingRoleName = "erp_key_ring";
 
-    private const string DataSourceKey = "Platform.Web.KeyRing";
+    public const string DataSourceKey = "Platform.Web.KeyRing";
 
     public static IServiceCollection AddKeyRing(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
@@ -57,8 +59,10 @@ internal static class KeyRing
         }
 
         services.PostConfigure<LoggerFilterOptions>(CapDataProtectionLogging);
-        // First among the hosted services, so it runs before Data Protection loads the ring at startup.
+        // First among the hosted services, so they run before Data Protection loads the ring at startup.
         services.Insert(0, ServiceDescriptor.Singleton<IHostedService, KeyRingLoggingGuard>());
+        services.Insert(1, ServiceDescriptor.Singleton<IHostedService, KeyRingStartupCheck>());
+        services.AddHealthChecks().AddCheck<KeyRingHealthCheck>("key-ring");
         return services;
     }
 
