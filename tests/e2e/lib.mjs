@@ -12,8 +12,9 @@ fs.mkdirSync(SHOTS, { recursive: true });
 const STATE_DIR = path.join(DIR, '.state');
 fs.mkdirSync(STATE_DIR, { recursive: true });
 const STATE = path.join(STATE_DIR, 'state-admin.json');
-// Repo root is two levels up from tests/e2e.
-const ENV = path.join(DIR, '..', '..', 'infra', 'compose', '.env');
+// Repo root is two levels up from tests/e2e. E2E_ENV_FILE points elsewhere, for a git worktree that has no .env of its
+// own (the file is git-ignored, so a new worktree starts without one).
+const ENV = process.env.E2E_ENV_FILE || path.join(DIR, '..', '..', 'infra', 'compose', '.env');
 // The Chromium build Playwright installed on this machine; override with E2E_CHROMIUM_PATH if it differs (a different
 // Playwright version, another drive, another OS).
 const CHROMIUM_PATH_DEFAULT = path.join(process.env.LOCALAPPDATA ?? '', 'ms-playwright', 'chromium-1217', 'chrome-win64', 'chrome.exe');

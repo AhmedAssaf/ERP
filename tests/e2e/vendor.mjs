@@ -2,11 +2,14 @@
 // the company with the privacy notice, signs in again, uploads the CR certificate (future expiry) and the VAT certificate
 // (past expiry, shown expired), grants and revokes a consent to the seeded test recipient; acme's admin approves it; the
 // same vendor opens beta's /vendor, lands on /vendor/join, joins, and beta's admin sees it pending only from then on.
-// Secrets come from infra/compose/.env and .state/ at run time and are never printed (N-10).
+// Staff sign in as throwaway tenant admins with their own TOTP seeds (admin.mjs), deleted at the end.
+// Secrets come from infra/compose/.env (E2E_ENV_FILE) and .state/ at run time and are never printed (N-10).
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
-import { launch, newPage, driveKeycloak, envValue, loadState, saveState, mailpit, mailBody, sleep, DIR } from './lib.mjs';
+import { launch, newPage, driveKeycloak, loadState, saveState, mailpit, mailBody, sleep, DIR } from './lib.mjs';
+import { pdf, upload, signInAgain } from './vendorflow.mjs';
+import { throwawayStaff, trackPerson, userIdByEmail, cleanup } from './admin.mjs';
 
 const ACME = 'https://acme.localhost:8443';
 const BETA = 'https://beta.localhost:8443';
@@ -24,7 +27,6 @@ const shot = (page, name) => page.screenshot({ path: path.join(SHOTS, `${name}.p
 const results = [];
 const rec = (step, ok, seen) => { results.push({ step, ok, seen }); console.log(`${ok ? 'PASS' : 'FAIL'} ${step} :: ${JSON.stringify(seen)}`); };
 const state = loadState();
-const devPw = envValue('WASLABID_DEV_USER_PASSWORD');
 
 // A fresh vendor per run: unique email and CR number (10 digits), VAT 15 digits starting and ending with 3.
 const run = Date.now().toString();
@@ -40,43 +42,17 @@ const today = new Date();
 const future = isoDate(new Date(today.getTime() + 365 * 86400000));
 const past = isoDate(new Date(today.getTime() - 30 * 86400000));
 
-// A minimal valid one-page PDF (magic number %PDF), different content per document so the hashes differ.
-function pdf(label) {
-  const objs = [
-    '<< /Type /Catalog /Pages 2 0 R >>',
-    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 144] /Contents 4 0 R >>',
-  ];
-  const stream = `BT /F1 12 Tf 20 70 Td (${label}) Tj ET`;
-  objs.push(`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`);
-  let out = '%PDF-1.4\n'; const offsets = [];
-  objs.forEach((o, i) => { offsets.push(out.length); out += `${i + 1} 0 obj\n${o}\nendobj\n`; });
-  const xref = out.length;
-  out += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n` + offsets.map(o => `${String(o).padStart(10, '0')} 00000 n \n`).join('');
-  out += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
-  return Buffer.from(out, 'latin1');
-}
 const stateDir = path.join(DIR, '.state');
 const crFile = path.join(stateDir, 'cr-certificate.pdf'); fs.writeFileSync(crFile, pdf(`CR ${cr}`));
 const vatFile = path.join(stateDir, 'vat-certificate.pdf'); fs.writeFileSync(vatFile, pdf(`VAT ${vat}`));
 
-// Keycloak's logout confirmation, when it asks, then whatever login steps follow.
-async function signInAgain(page, user, password, log) {
-  for (let i = 0; i < 5; i++) {
-    await page.waitForLoadState('domcontentloaded');
-    const logout = await page.$('#kc-logout');
-    if (logout) { log('confirmed logout'); await Promise.all([page.waitForNavigation(), logout.click()]); continue; }
-    break;
-  }
-  await driveKeycloak(page, { user, password, state, log });
-}
-
-async function staffSignIn(browser, base, user) {
+async function staffSignIn(browser, base, slug) {
+  const admin = await throwawayStaff(slug, 'tenant-admin', `${slug}-admin`, run);
   const { ctx, page } = await newPage(browser);
-  watch(page, user);
+  watch(page, `${slug} admin`);
   await page.goto(`${base}/admin/vendors`);
   const steps = [];
-  await driveKeycloak(page, { user, password: devPw, state, log: s => steps.push(s) });
+  await driveKeycloak(page, { user: admin.email, password: admin.password, state, log: s => steps.push(s) });
   await page.waitForLoadState('networkidle');
   return { ctx, page, steps };
 }
@@ -88,21 +64,6 @@ async function vendorRowOnStaffList(page, base) {
   const id = count ? await link.first().getAttribute('data-vendor') : null;
   const status = id ? await page.locator(`[data-vendor-status^="${id}:"]`).getAttribute('data-vendor-status') : null;
   return { count, id, status };
-}
-
-async function upload(page, type, file, expiry) {
-  const box = page.locator(`[data-upload-type="${type}"]`);
-  await box.locator('input[type=file]').setInputFiles(file);
-  await page.waitForTimeout(800);
-  await box.locator('input[type=date]').fill(expiry);
-  await box.locator('input[type=date]').dispatchEvent('change');
-  await page.waitForTimeout(500);
-  await box.locator('[data-file-upload-start]').click();
-  await page.waitForFunction(t => {
-    const s = document.querySelector(`[data-upload-type="${t}"] [data-file-upload-state]`)?.getAttribute('data-file-upload-state');
-    return s === 'done' || s === 'rejected' || s === 'failed' || s === 'pending';
-  }, type, { timeout: 90000 }).catch(() => null);
-  return box.locator('[data-file-upload-state]').getAttribute('data-file-upload-state');
 }
 
 const browser = await launch();
@@ -170,7 +131,7 @@ try {
   // 4. Sign in again so the token carries the vendor role and the organization; land on /vendor.
   const rsteps = [];
   await Promise.all([vendor.waitForNavigation(), vendor.click('[data-vendor-sign-out] button[type=submit]')]);
-  await signInAgain(vendor, vendorEmail, state.vendorPw, s => rsteps.push(s));
+  await signInAgain(vendor, { user: vendorEmail, password: state.vendorPw, state, log: s => rsteps.push(s) });
   await vendor.waitForSelector('[data-vendor-company]', { timeout: 30000 }).catch(() => null);
   await vendor.waitForTimeout(1500); // circuit up
   const relationship = await vendor.locator('[data-relationship]').getAttribute('data-relationship').catch(() => null);
@@ -214,10 +175,10 @@ try {
   await shot(vendor, '08-consent-revoked');
   rec('consent revoked and listed revoked', afterRevoke.includes(`${grantId}:revoked`), { statuses: afterRevoke });
 
-  // 7. acme's admin sees it pending and approves.
-  const { ctx: actx, page: acme, steps: asteps } = await staffSignIn(browser, ACME, 'acme.admin');
+  // 7. acme's admin (throwaway) sees it pending and approves.
+  const { ctx: actx, page: acme, steps: asteps } = await staffSignIn(browser, ACME, 'acme');
   const acmeBefore = await vendorRowOnStaffList(acme, ACME);
-  rec('acme.admin sees the vendor pending on /admin/vendors', acmeBefore.status?.endsWith(':pending'), { ...acmeBefore, keycloak: asteps });
+  rec('the acme admin sees the vendor pending on /admin/vendors', acmeBefore.status?.endsWith(':pending'), { ...acmeBefore, keycloak: asteps });
   await acme.goto(`${ACME}/admin/vendors/${acmeBefore.id}`); await acme.waitForSelector('[data-approve]'); await acme.waitForTimeout(1500);
   await acme.click('[data-approve]');
   const adlg = acme.locator('[role=dialog]'); await adlg.waitFor();
@@ -233,15 +194,15 @@ try {
   await acme.waitForTimeout(2000); // a circuit that fails on the dialog closing reports it within this time
   const approvedStatus = await acme.locator('[data-vendor-status]').getAttribute('data-vendor-status').catch(() => null);
   await shot(acme, '09-acme-approved');
-  rec('acme.admin approves the vendor', approvedStatus === `${acmeBefore.id}:approved`, { approvedStatus });
+  rec('the acme admin approves the vendor', approvedStatus === `${acmeBefore.id}:approved`, { approvedStatus });
   await vendor.goto(`${ACME}/vendor`); await vendor.waitForSelector('[data-vendor-company]'); await vendor.waitForTimeout(1000);
   const relAfter = await vendor.locator('[data-relationship]').getAttribute('data-relationship').catch(() => null);
   rec('the vendor sees itself approved at acme', relAfter === 'approved', { relationship: relAfter });
 
   // 8. beta's admin does not see the vendor before it joins.
-  const { ctx: bctx, page: beta, steps: bsteps } = await staffSignIn(browser, BETA, 'beta.admin');
+  const { ctx: bctx, page: beta, steps: bsteps } = await staffSignIn(browser, BETA, 'beta');
   const betaBefore = await vendorRowOnStaffList(beta, BETA);
-  rec('beta.admin does not see the vendor before it joins', betaBefore.count === 0, { ...betaBefore, keycloak: bsteps });
+  rec('the beta admin does not see the vendor before it joins', betaBefore.count === 0, { ...betaBefore, keycloak: bsteps });
 
   // 9. The same vendor opens beta's /vendor and is sent to /vendor/join; joins; signs in again.
   const jsteps = [];
@@ -258,7 +219,7 @@ try {
   rec('the vendor joins beta', joined, { joinError });
   const j2 = [];
   await Promise.all([vendor.waitForNavigation(), vendor.click('[data-vendor-sign-out] button[type=submit]')]);
-  await signInAgain(vendor, vendorEmail, state.vendorPw, s => j2.push(s));
+  await signInAgain(vendor, { user: vendorEmail, password: state.vendorPw, state, log: s => j2.push(s) });
   await vendor.waitForSelector('[data-vendor-company]', { timeout: 30000 }).catch(() => null);
   await vendor.waitForTimeout(1000);
   const betaRel = await vendor.locator('[data-relationship]').getAttribute('data-relationship').catch(() => null);
@@ -268,7 +229,7 @@ try {
   // 10. beta's admin sees it pending only now; acme still approved.
   const betaAfter = await vendorRowOnStaffList(beta, BETA);
   await shot(beta, '13-beta-staff-list');
-  rec('beta.admin sees the vendor pending after it joins', betaAfter.count === 1 && betaAfter.status?.endsWith(':pending'), betaAfter);
+  rec('the beta admin sees the vendor pending after it joins', betaAfter.count === 1 && betaAfter.status?.endsWith(':pending'), betaAfter);
   const acmeAfter = await vendorRowOnStaffList(acme, ACME);
   rec('acme still lists the vendor approved', acmeAfter.status?.endsWith(':approved'), acmeAfter);
   rec('no browser console errors (no failed circuit) on any page', consoleErrors.length === 0, { consoleErrors });
@@ -276,8 +237,13 @@ try {
 } catch (e) {
   rec('script error', false, { error: String(e).slice(0, 600) });
 } finally {
-  fs.writeFileSync(path.join(DIR, 'vendor-results.json'), JSON.stringify(results, null, 2));
   await browser.close();
+  // The self-registered vendor's Keycloak user goes too; its company, documents, ledger and audit rows stay (append-only).
+  const vendorUid = await userIdByEmail(vendorEmail).catch(() => undefined);
+  if (vendorUid) trackPerson(vendorUid, vendorEmail);
+  const removed = await cleanup().catch(e => [{ error: String(e).slice(0, 300) }]);
+  rec('cleanup: throwaway staff and the vendor deleted from Keycloak, staff member rows deleted', removed.every(r => r.keycloakDelete === 204 && (r.kind !== 'staff' || r.memberRows === '1')), removed);
+  fs.writeFileSync(path.join(DIR, 'vendor-results.json'), JSON.stringify(results, null, 2));
   // A failed step fails the run, so a shell or a script chaining this one sees it without reading the output.
   if (results.some(r => !r.ok)) {
     process.exitCode = 1;

@@ -1,4 +1,4 @@
-# End-to-end scripts (foundation, admin-ui and vendor slices)
+# End-to-end scripts (foundation, admin-ui and vendor slices, W-33)
 
 Playwright scripts driven from the command line, not a `dotnet test` project. They exercise the real local stack
 (Keycloak, Mailpit, MinIO, the web host, Docker) through a browser, the way the qa-engineer agent ran them by hand
@@ -13,7 +13,9 @@ for the two scenario scripts) to judge the result.
    both Keycloak realms current for the admin slice: docs/07 section "Tenant admin host" and "Platform console host"
    describe deleting and reimporting the `waslabid` and `waslabid-platform` realms, then running the migrator with
    `--seed-dev`. Do this once per stack reset, not before every run.
-3. `infra/compose/.env` populated (`WASLABID_DEV_USER_PASSWORD` at least; `check.mjs` also reads this file directly).
+3. `infra/compose/.env` populated (`WASLABID_DEV_USER_PASSWORD`, and `KEYCLOAK_ADMIN`/`KEYCLOAK_ADMIN_PASSWORD` for the
+   scripts that create throwaway users; `check.mjs` also reads this file directly). In a git worktree, which has no `.env`
+   of its own, set `E2E_ENV_FILE` to the main checkout's file (`E2E_ENV_FILE=/c/Repo/ERP/infra/compose/.env node vendor.mjs`).
 4. The web host and worker running against that stack (`dotnet run` in `src/Platform.Web` and `src/Platform.Worker`,
    or however you normally start them for manual testing).
 5. From this folder: `npm install`.
@@ -32,6 +34,16 @@ for the two scenario scripts) to judge the result.
   to Playwright's form fill, never to `console.log`.
 - `shots-admin/` (git-ignored) collects full-page screenshots per step, overwritten on each run.
 
+## Throwaway users (`admin.mjs`)
+
+`vendor.mjs`, `golden.mjs` and `ownership.mjs` do not sign in as the seeded `acme.admin`, `beta.admin` or
+`platform.admin`, whose TOTP seeds exist only on the machine that enrolled them. `admin.mjs` creates throwaway staff (a
+Keycloak user in the tenant's organization plus an invited `identity.members` row), throwaway platform admins (realm role
+`platform-admin`) and vendor-side people through the Keycloak Admin API as the master admin; each enrols its own TOTP on
+first sign-in, and `cleanup()` deletes the users, their member rows and their seeds at the end of the run. Company,
+dispute, ledger and audit rows stay, as they always have for `vendor.mjs` (append-only). `vendorflow.mjs` holds the
+vendor steps the vendor scripts share (PDF, chunked upload, sign in again, company form).
+
 ## Scripts
 
 - **`tenant.mjs`** — the tenant half of the admin-ui scenario: `acme.admin` signs in and enrols TOTP, invites an
@@ -46,8 +58,9 @@ for the two scenario scripts) to judge the result.
   script stops and restarts a container and waits through several health-check cycles, so it runs for several
   minutes. Run with `node platform.mjs`. Results land in `platform-results.json`.
 - **`golden.mjs`** — the admin subset of the W-06 golden screenshot set: `/dev/gallery` at 360px and 1280px, in both
-  `ar-SA` and `en-US`, signed in as `acme.admin`. Writes PNGs and an overflow report (`noOverflow` per page) to
-  `../Platform.UITests/golden`. Run with `node golden.mjs`.
+  `ar-SA` and `en-US`, signed in as a throwaway acme tenant admin. Writes PNGs and an overflow report (`noOverflow` per page) to
+  `../Platform.UITests/golden`, and checks each textarea fits its panel; any overflow sets a non-zero exit code. Run with
+  `node golden.mjs`.
 - **`vendor.mjs`** — the vendor slice (vendor plan task 7, F-11, F-12, F-10 as narrowed, F-64): a fresh vendor
   (unique email and CR number per run) registers at `acme.localhost:8443/vendor/register`, verifies the email from
   Mailpit, is refused without the privacy notice and then registers the company with it, signs in again, uploads the
@@ -59,6 +72,18 @@ for the two scenario scripts) to judge the result.
   "Vendor slice"), the migrator's `--seed-dev` (the test recipient) and both the web host and the worker. The vendor's
   generated password and the two PDFs live in `.state/`; screenshots in `shots-vendor/`; results in
   `vendor-results.json`. Run with `node vendor.mjs` (about two minutes).
+- **`ownership.mjs`** — W-33 (ADR-0013, vendors spec V-15 to V-17): a squatter registers company A and uploads its CR
+  certificate; acme's officer sees the ownership check in Arabic and English (right to left, no raw keys, self-declared
+  name, verified email), is refused without the box and without a note, and approves with a two-line note after the
+  platform admin switched the method to Wathq while it is not set up (the console and the dialog both show the manual
+  fallback), then back to Manual; beta's officer approves without the check; five decoys dispute A and one disputes a
+  bystander's company B; the real owner is refused at registration with a link to `/vendor/dispute` and raises the sixth
+  dispute on A (flagged over the cap, not refused); the console lists them grouped by company, oldest first; the platform
+  admin accepts it for review, upholds it and rejects B's; the database and Keycloak show the move; the owner reaches
+  `/vendor` on acme and beta without `/vendor/join`; the squatter's open session and a fresh sign-in get 403; one alert
+  email without personal data. Needs the web host and the worker (the alert job runs every five minutes, so the run takes
+  about eight minutes). Screenshots in `shots-ownership/`, results in `ownership-results.json`, non-zero exit on any FAIL.
+  If a run fails before resolving its disputes, `node ownership.mjs sweep` rejects them in the console.
 - **`check.mjs`** — a smaller foundation smoke check: Arabic and RTL rendering on the tenant home page, the language
   switch changing `<html lang>` without a full reload, and that a `beta.admin` token is refused on the `acme` host
   (tenant isolation). Takes the `.env` path and a screenshot output directory as arguments, since it predates the
