@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
@@ -91,9 +92,13 @@ builder.Services
         options.Cookie.SameSite = SameSiteMode.Lax;
         options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
         options.Cookie.HttpOnly = true;
-        // Fixed 30-minute lifetime, no sliding, until W-21 revalidates membership against Keycloak.
+        // Fixed 30-minute lifetime, no sliding: the session length. Membership is revalidated separately (W-21): the
+        // sign-in is stamped, and each request checks the host tenant's organization in Keycloak (cached, see
+        // MembershipRevalidation), so a removed member is challenged within minutes, not at the cookie's expiry.
         options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
         options.SlidingExpiration = false;
+        options.Events.OnSigningIn = MembershipRevalidation.OnSigningIn;
+        options.Events.OnValidatePrincipal = MembershipRevalidation.OnValidatePrincipal;
         options.ForwardChallenge = OpenIdConnectDefaults.AuthenticationScheme;
         options.Events.OnRedirectToAccessDenied = context =>
         {
@@ -150,6 +155,11 @@ builder.Services.AddAuthorization(options =>
 });
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, HostAwareAuthorizationPolicyProvider>();
 builder.Services.AddCascadingAuthenticationState();
+// W-21: open circuits revalidate their user's organization membership every minute; an ended session reloads into the
+// sign-in page and runs no further event.
+builder.Services.AddScoped<CircuitSessionGuard>();
+builder.Services.AddScoped<CircuitHandler>(sp => sp.GetRequiredService<CircuitSessionGuard>());
+builder.Services.AddScoped<AuthenticationStateProvider, MembershipRevalidatingStateProvider>();
 builder.Services.AddPlatformLocalization();
 builder.Services.AddPlatformUI();
 

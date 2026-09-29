@@ -260,6 +260,36 @@ internal sealed class KeycloakAdminClient(HttpClient http, KeycloakAdminState st
     }
 
     /// <summary>
+    /// Whether the user is an enabled member of the organization with <paramref name="alias"/> (W-21), in one call to the
+    /// organization's member endpoint: 200 is a member (disabled when its account is), 404 is not a member or no such user.
+    /// An organization that does not exist has no members. Any other status throws <see cref="KeycloakAdminException"/>.
+    /// </summary>
+    public async Task<OrganizationMembership> MembershipAsync(string alias, string userId, CancellationToken cancellationToken)
+    {
+        var organizationId = await OrganizationIdAsync(alias, cancellationToken);
+        if (organizationId is null)
+        {
+            return OrganizationMembership.NotMember;
+        }
+
+        using var response = await SendAsync(
+            HttpMethod.Get, $"{Realm}/organizations/{organizationId}/members/{Uri.EscapeDataString(userId)}", null, cancellationToken);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            return OrganizationMembership.NotMember;
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new KeycloakAdminException($"Keycloak refused the organization member check ({(int)response.StatusCode}).", response.StatusCode);
+        }
+
+        var member = await response.Content.ReadFromJsonAsync<MemberResponse>(Json, cancellationToken)
+            ?? throw new KeycloakAdminException("Keycloak's organization member response was empty.");
+        return member.Enabled ? OrganizationMembership.Member : OrganizationMembership.Disabled;
+    }
+
+    /// <summary>
     /// The number of the tenant's users in the organization with <paramref name="alias"/> (F-54): its members less those
     /// holding the realm role <c>vendor</c>, who join a tenant's organization as vendors (V-3), not as its users. Null when
     /// there is no such organization. Without any vendor in the realm this is Keycloak's member count; otherwise the
@@ -375,6 +405,10 @@ internal sealed class KeycloakAdminClient(HttpClient http, KeycloakAdminState st
         ?? throw new KeycloakAdminException($"Keycloak has no realm role '{role}'.");
 
     private sealed record IdResponse([property: JsonPropertyName("id")] string Id);
+
+    private sealed record MemberResponse(
+        [property: JsonPropertyName("id")] string Id,
+        [property: JsonPropertyName("enabled")] bool Enabled);
 
     private sealed record CredentialResponse([property: JsonPropertyName("type")] string Type);
 
