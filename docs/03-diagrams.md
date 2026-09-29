@@ -257,6 +257,8 @@ erDiagram
     VENDOR_COMPANY ||--o{ VENDOR_USER : employs
     VENDOR_COMPANY ||--o{ VENDOR_DOCUMENT : uploads
     VENDOR_COMPANY ||--o{ VENDOR_TENANT_APPROVAL : "is approved by"
+    VENDOR_COMPANY ||--o| OWNERSHIP_VERIFICATION : "verified before first approval"
+    VENDOR_COMPANY ||--o{ CR_DISPUTE : "claimed by"
 
     TENDER ||--o{ TENDER_VERSION : "amended as"
     TENDER ||--o{ BOQ_LINE : contains

@@ -109,6 +109,11 @@ dotnet user-secrets set "ObjectStorage:AccessKey" "$(env_value MINIO_ROOT_USER)"
 dotnet user-secrets set "ObjectStorage:SecretKey" "$(env_value MINIO_ROOT_PASSWORD)" --project src/Platform.Web > /dev/null
 # Key of the duplicate-CR audit (V-6, keyed HMAC-SHA256 of the CR number); checked when the web host starts.
 dotnet user-secrets set "Vendors:CrAuditKey" "$(env_value VENDORS_CR_AUDIT_KEY)" --project src/Platform.Web > /dev/null
+# Optional (W-33): Wathq for the CR ownership check, only with a Wathq subscription. Without both settings the console
+# shows Wathq as not set up and officers check the CR certificate by hand. Sandbox base from Wathq's published
+# specification; the key is never kept in the repository or printed.
+# dotnet user-secrets set "Wathq:BaseUrl" "https://api.wathq.sa/sandbox/commercial-registration" --project src/Platform.Web > /dev/null
+# dotnet user-secrets set "Wathq:ApiKey" "$(env_value WATHQ_API_KEY)" --project src/Platform.Web > /dev/null
 unset PGPW WEB_SECRET PLATFORM_SECRET ADMIN_API_SECRET
 ```
 

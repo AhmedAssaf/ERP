@@ -1,0 +1,51 @@
+# ADR-0013: Verify CR ownership before a vendor company's first approval, with a platform dispute path
+
+Date: 2026-09-29
+Status: Proposed (decided by the user 2026-09-29 as "build both checks, Wathq optional, method changeable from the admin"; the interpretation below awaits the user's review)
+Deciders: Ahmed Assaf
+Related: W-33, pentest P-4 (vendor slice, 2026-09-28), F-10, F-11, F-12, F-64, N-10; ADR-0006, ADR-0008, ADR-0010, ADR-0012; vendor slice spec `docs/superpowers/specs/2026-09-27-vendors-design.md` (V-15 to V-17)
+
+## Context
+
+ADR-0008 keys one vendor company across all tenants on its CR number, and the first person to register a number owns the company on every tenant. The pentest of the vendor slice (P-4) showed that a squatter can register a real company's CR number and lock the real company out of every buyer on the platform. Nothing checked the registering person against the commercial registration, and the real company had no way back.
+
+## Decision
+
+```mermaid
+flowchart LR
+    R["Registrant<br/>registers CR"] --> P["Pending at tenant A"]
+    P --> Q{"Ownership<br/>verified?"}
+    Q -- "no" --> C["Officer of A checks:<br/>CR certificate, or Wathq<br/>owners and managers"]
+    C -- "confirms with a note" --> V[("ownership_verifications<br/>one row per company")]
+    Q -- "yes" --> A["Approved"]
+    V --> A
+    X["Real company<br/>/vendor/dispute"] --> D[("cr_disputes<br/>open")]
+    D --> PA["Platform admin<br/>/platform/vendors"]
+    PA -- "uphold" --> M["Company moves to<br/>claimant; verified"]
+    PA -- "reject" --> Z["Closed"]
+    D -. "open dispute holds" .-> Q
+```
+
+1. **A fixed point.** A company's first approval by any tenant needs its ownership verified; the database refuses `vendor.approve_relationship` for an unverified company or one with an open dispute. Once verified, later tenants approve without a check and learn only that it was verified and by which method, never which tenant or officer verified it (ADR-0008).
+2. **Two methods behind one port**, `ICrOwnershipVerifier` in the Vendors module: Manual (the officer reads the CR certificate the vendor uploaded, F-12) and Wathq (the officer also sees the CR's owners and managers from Wathq's commercial registration API). The officer confirms with a box and a note in both; Wathq never decides alone. The registrant's national ID is not collected, so automatic matching is out of scope.
+3. **The method is a platform setting**, Manual by default, changed only in the platform console (ADR-0006) and audited in the platform audit, because vendor identity is global and the Wathq subscription belongs to the platform, not a tenant.
+4. **Wathq fails closed.** Not configured, unreachable, answering with an error or without a record: the dialog says which and the manual check applies. An approval never proceeds unverified. The API key lives in user secrets or the cloud KMS, never in the repository or a log (N-10).
+5. **Dispute path.** A signed-in person without a vendor company or a staff role raises a dispute on a tenant host; a platform admin checks the claimant against the CR certificate outside the platform and upholds or rejects it in the console. Upholding moves the company to the claimant as its vendor admin, removes its vendor users and records ownership as verified (method dispute), in one transaction, audited. The consent ledger, documents and relationships stay with the company (ADR-0010).
+6. **Row-level security** (ADR-0012 point 4): verifications are under the company policy with no grant to the application role; disputes are readable only by a session without a tenant or vendor context; every change goes through a security-definer function that states who may call it.
+
+## Consequences
+
+- A squatter can no longer be approved anywhere without an officer comparing the registrant with the CR certificate, and the real company has a documented way back that WaslaBid staff decide.
+- Every first approval costs the officer one check; with Wathq it also costs one paid Wathq call per dialog opening (owners and managers), so the lookup runs only when the Approve dialog opens.
+- A squatter already approved before this change keeps its approvals; only later tenants' approvals are checked. The pilot has no real vendors yet.
+- Until W-21 lands, a removed squatter's open Blazor circuit keeps its vendor context until the circuit ends; the next request is refused by the Vendor policy.
+- Changes: docs/09 W-33 acceptance and status; docs/03 diagram 7; vendor slice spec V-15 to V-17 and section 2; docs/07 section 4 (optional Wathq secrets); CLAUDE.md's ADR list needs this ADR (left to the user).
+
+## Alternatives considered
+
+| Option | Why not now |
+|---|---|
+| Wathq only | Needs a paid subscription before the pilot and fails when Wathq is down; the manual check works on day one |
+| Match the registrant's national ID against Wathq automatically | Needs national ID collection at registration, a data protection decision the user has not taken |
+| Tenant-level method setting | Vendor identity is global (ADR-0008); a verification by one tenant would mean different things to another |
+| Let the tenant admin resolve disputes | The company is platform-level; one tenant would decide who owns a company for every other tenant |

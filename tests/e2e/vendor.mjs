@@ -221,6 +221,13 @@ try {
   await acme.goto(`${ACME}/admin/vendors/${acmeBefore.id}`); await acme.waitForSelector('[data-approve]'); await acme.waitForTimeout(1500);
   await acme.click('[data-approve]');
   const adlg = acme.locator('[role=dialog]'); await adlg.waitFor();
+  // W-33: the first approval carries the ownership check (manual by default): the box and a note.
+  await adlg.locator('[data-ownership-check]').waitFor({ timeout: 20000 });
+  const registrant = await adlg.locator('[data-ownership-registrant]').innerText().catch(() => '');
+  rec('the approve dialog shows the ownership check with the registering person', registrant.trim().length > 0, { registrant });
+  await adlg.locator('[data-ownership-confirm]').check();
+  await adlg.locator('[data-ownership-note]').fill('The CR certificate names the registering person (e2e).');
+  await adlg.locator('[data-ownership-note]').press('Tab');
   await adlg.locator('button').last().click();
   await acme.waitForSelector(`[data-vendor-status="${acmeBefore.id}:approved"]`, { timeout: 20000 }).catch(() => null);
   await acme.waitForTimeout(2000); // a circuit that fails on the dialog closing reports it within this time
