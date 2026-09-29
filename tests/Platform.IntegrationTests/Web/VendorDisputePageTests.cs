@@ -85,6 +85,27 @@ public sealed partial class VendorDisputePageTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task A_multi_line_statement_posted_from_the_form_is_recorded_with_its_line_breaks()
+    {
+        var crNumber = VendorRows.NewCrNumber();
+        var companyId = await VendorRows.RegisterAsync(db.AppConnectionString, TestTenants.Acme, Guid.NewGuid().ToString(), crNumber, "Multi Line Page Co", Ct);
+        var applicant = Applicant("en");
+        await using var factory = Factory();
+        using var client = factory.CreateClient(new() { BaseAddress = new Uri("http://acme.localhost"), AllowAutoRedirect = false });
+        using var page = await client.SendAsync(new HttpRequestMessage(HttpMethod.Get, "/vendor/dispute").As(applicant), Ct);
+
+        using var response = await PostAsync(client, applicant, await page.Content.ReadAsStringAsync(Ct), crNumber,
+            "I own the company.\r\nMy name is on the certificate.", accepted: true);
+
+        WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync(Ct)).ShouldContain("data-dispute-raised");
+        await using var owner = new Npgsql.NpgsqlConnection(db.OwnerConnectionString);
+        await owner.OpenAsync(Ct);
+        await using var command = new Npgsql.NpgsqlCommand("select statement from vendor.cr_disputes where company_id = @company", owner);
+        command.Parameters.AddWithValue("company", companyId);
+        ((string)(await command.ExecuteScalarAsync(Ct))!).ShouldBe("I own the company.\nMy name is on the certificate.");
+    }
+
+    [Fact]
     public async Task Every_post_counts_toward_the_limit_and_the_sixth_in_fifteen_minutes_is_refused()
     {
         var crNumber = VendorRows.NewCrNumber();

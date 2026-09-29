@@ -78,10 +78,11 @@ public sealed class VendorOwnershipConsolePageTests(DatabaseFixture db) : IDispo
         await ConfirmAsync(page, "Move the company");
         page.WaitForAssertion(() => page.Find("[role=dialog]").TextContent.ShouldContain("Write what you checked, in up to 1,000 characters."));
 
-        await page.Find("[data-resolution-note]").ChangeAsync(new() { Value = "Called the claimant and checked the certificate." });
+        await page.Find("[data-resolution-note]").ChangeAsync(new() { Value = "Called the claimant.\r\nChecked the certificate." });
         await ConfirmAsync(page, "Move the company");
 
         page.WaitForAssertion(() => page.FindAll($"[data-dispute='{disputeId}']").ShouldBeEmpty());
+        (await OwnershipRows.DisputeAsync(db.OwnerConnectionString, disputeId, Ct)).ShouldNotBeNull().ResolutionNote.ShouldBe("Called the claimant.\nChecked the certificate.");
         (await OwnershipRows.VendorUsersAsync(db.OwnerConnectionString, companyId, Ct)).ShouldBe([(claimant, "vendor-admin")]);
         (await OwnershipRows.DisputeAsync(db.OwnerConnectionString, disputeId, Ct)).ShouldNotBeNull().Status.ShouldBe("upheld");
     }

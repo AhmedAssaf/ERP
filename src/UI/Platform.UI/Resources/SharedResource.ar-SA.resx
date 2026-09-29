@@ -442,7 +442,7 @@
   <data name="Console.Ownership.Method.Save" xml:space="preserve"><value>حفظ الطريقة</value></data>
   <data name="Console.Ownership.Method.Saved" xml:space="preserve"><value>الطريقة الآن: {0}.</value></data>
   <data name="Console.Ownership.Disputes.Heading" xml:space="preserve"><value>نزاعات الملكية</value></data>
-  <data name="Console.Ownership.Disputes.Intro" xml:space="preserve"><value>يفيد كل طلب بأن منشأة مسجلة في وصلة بد تعود لشخص آخر. لا يوقف الطلب الجديد شيئًا حتى تقبله للمراجعة، ومن بعدها لا تستطيع أي جهة اعتماد المنشأة. تواصل مع مقدم الطلب، وتحقق من شهادة السجل التجاري وأي تفويض، ثم اقبل الطلب أو ارفضه.</value></data>
+  <data name="Console.Ownership.Disputes.Intro" xml:space="preserve"><value>يفيد كل طلب بأن منشأة مسجلة في وصلة بد تعود لشخص آخر. لا يوقف الطلب الجديد شيئًا حتى تقبله للمراجعة، ومن بعدها لا تستطيع أي جهة اعتماد المنشأة. الطلبات المرسلة بعد أن بلغت طلبات المنشأة المعلّقة خمسة تُدرج بعد غيرها وتُميَّز ولا تُرفض، فقد يكون المالك الحقيقي بينها. تواصل مع مقدم الطلب، وتحقق من شهادة السجل التجاري وأي تفويض، ثم اقبل الطلب أو ارفضه.</value></data>
   <data name="Console.Ownership.Disputes.Company" xml:space="preserve"><value>المنشأة</value></data>
   <data name="Console.Ownership.Disputes.Cr" xml:space="preserve"><value>السجل التجاري</value></data>
   <data name="Console.Ownership.Disputes.Claimant" xml:space="preserve"><value>مقدم الطلب</value></data>
@@ -464,7 +464,7 @@
   <data name="Console.Ownership.UpholdBody" xml:space="preserve"><value>يفقد مستخدمو المورد الحاليون الوصول، ويصبح مقدم الطلب مسؤول المورد. تبقى مستندات المنشأة وسجل موافقاتها وعلاقاتها معها. لا يمكن التراجع عن ذلك من هنا.</value></data>
   <data name="Console.Ownership.RejectBody" xml:space="preserve"><value>يُغلق الطلب ولا يتغير شيء آخر، ويمكن لمقدم الطلب إرسال طلب جديد.</value></data>
   <data name="Console.Ownership.Note" xml:space="preserve"><value>ما الذي تحققت منه</value></data>
-  <data name="Console.Ownership.NoteHelp" xml:space="preserve"><value>حتى 1,000 حرف، ويُحفظ في سجل تدقيق المنصة.</value></data>
+  <data name="Console.Ownership.NoteHelp" xml:space="preserve"><value>حتى 1,000 حرف، ويُحفظ في سجل تدقيق المنصة. لا تكتب أرقام الهوية الوطنية أو الإقامة (نظام حماية البيانات الشخصية).</value></data>
   <data name="Console.Ownership.Upheld" xml:space="preserve"><value>أصبحت {0} تابعة لـ {1}.</value></data>
   <data name="Console.Ownership.UpheldKeycloakFailed" xml:space="preserve"><value>أصبحت {0} تابعة لـ {1}، لكن خدمة تسجيل الدخول لم تُحدَّث. امنح دور المورد في Keycloak.</value></data>
   <data name="Console.Ownership.Rejected" xml:space="preserve"><value>رُفض طلب {0}.</value></data>
@@ -510,10 +510,11 @@
   <data name="Console.Ownership.Idp.Done" xml:space="preserve"><value>أخذت خدمة تسجيل الدخول التغيير الخاص بـ {0}.</value></data>
   <data name="Console.Ownership.Idp.StillFailing" xml:space="preserve"><value>لم تأخذ خدمة تسجيل الدخول التغيير بعد. حاول لاحقًا، أو غيّره في Keycloak.</value></data>
   <data name="Vendor.Dispute.Status.under_review" xml:space="preserve"><value>قيد المراجعة لدى وصلة بد</value></data>
-  <data name="Vendor.Dispute.Error.CompanyLimit" xml:space="preserve"><value>تراجع وصلة بد عدة طلبات لهذه المنشأة. حاول لاحقًا.</value></data>
   <data name="Gallery.Sample.NoteLabel" xml:space="preserve"><value>ما الذي تحققت منه</value></data>
   <data name="Gallery.Sample.NoteHelp" xml:space="preserve"><value>حتى 1,000 حرف.</value></data>
   <data name="Gallery.Sample.Note" xml:space="preserve"><value>خطاب التفويض موقّع من المالك المذكور في الشهادة.</value></data>
   <data name="Gallery.Sample.NoteError" xml:space="preserve"><value>اكتب ما تحققت منه في حدود 1,000 حرف.</value></data>
   <data name="Console.Ownership.Idp.FailedSteps" xml:space="preserve"><value>الخطوات التي تعذرت:</value></data>
+  <data name="Console.Ownership.OverCap" xml:space="preserve"><value>أُرسل والمنشأة لديها خمسة طلبات معلّقة أو أكثر ({0} الآن)</value></data>
+  <data name="Console.Ownership.UpheldNotRecorded" xml:space="preserve"><value>أصبحت {0} تابعة لـ {1}. تعذر تسجيل نتيجة خدمة تسجيل الدخول، والطلب مُدرج أدناه لإعادة المحاولة.</value></data>
 </root>

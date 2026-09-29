@@ -82,7 +82,9 @@ internal sealed partial class CrOwnershipAdministration(
                 r.Id, r.CompanyId, r.CrNumber, r.NameAr, r.NameEn, r.ClaimantUserId, r.ClaimantEmail, r.ClaimantName, r.Statement,
                 r.RaisedOnTenant, r.RaisedAt, r.RegistrantUserId, OwnershipStore.VerificationMethod(r.OwnershipMethod),
                 r.Status == "under_review" ? CrDisputeStatus.UnderReview : CrDisputeStatus.Open,
-                r.RegistrantUserId is { } registrant ? await RegistrantAsync(registrant, cancellationToken) : null));
+                r.RegistrantUserId is { } registrant ? await RegistrantAsync(registrant, cancellationToken) : null,
+                r.OverCap,
+                r.CompanyPending));
         }
 
         return disputes;
@@ -117,7 +119,7 @@ internal sealed partial class CrOwnershipAdministration(
             return Result.Failure<CrDisputeUpheld>(NoteRequired());
         }
 
-        var resolved = await ResolveAsync(disputeId, uphold: true, note!.Trim(), actorId, "vendor.dispute_upheld", cancellationToken);
+        var resolved = await ResolveAsync(disputeId, uphold: true, VendorInput.NormalizeFreeText(note), actorId, "vendor.dispute_upheld", cancellationToken);
         if (!resolved.IsSuccess)
         {
             return Result.Failure<CrDisputeUpheld>(resolved.Error);
@@ -125,8 +127,8 @@ internal sealed partial class CrOwnershipAdministration(
 
         var row = resolved.Value;
         var removed = row.RemovedUserIds ?? [];
-        var updated = await UpdateIdentityProviderAsync(disputeId, row.ClaimantUserId, removed, actorId, retry: false);
-        return Result.Success(new CrDisputeUpheld(row.CompanyId, row.ClaimantUserId, removed, updated));
+        var (updated, recorded) = await UpdateIdentityProviderAsync(disputeId, row.ClaimantUserId, removed, actorId, retry: false);
+        return Result.Success(new CrDisputeUpheld(row.CompanyId, row.ClaimantUserId, removed, updated, recorded));
     }
 
     public async Task<Result<Guid>> RejectAsync(Guid disputeId, string? note, string actorId, CancellationToken cancellationToken = default)
@@ -137,7 +139,7 @@ internal sealed partial class CrOwnershipAdministration(
             return Result.Failure<Guid>(NoteRequired());
         }
 
-        var resolved = await ResolveAsync(disputeId, uphold: false, note!.Trim(), actorId, "vendor.dispute_rejected", cancellationToken);
+        var resolved = await ResolveAsync(disputeId, uphold: false, VendorInput.NormalizeFreeText(note), actorId, "vendor.dispute_rejected", cancellationToken);
         return resolved.IsSuccess ? Result.Success(disputeId) : Result.Failure<Guid>(resolved.Error);
     }
 
@@ -158,7 +160,8 @@ internal sealed partial class CrOwnershipAdministration(
         RequireActor(actorId);
         var failure = (await FailureRowsAsync(cancellationToken)).SingleOrDefault(r => r.Id == disputeId)
             ?? throw new InvalidOperationException("Only an upheld dispute whose identity provider update failed is retried.");
-        return await UpdateIdentityProviderAsync(disputeId, failure.ClaimantUserId, failure.RemovedUserIds ?? [], actorId, retry: true);
+        var (updated, recorded) = await UpdateIdentityProviderAsync(disputeId, failure.ClaimantUserId, failure.RemovedUserIds ?? [], actorId, retry: true);
+        return updated && recorded;
     }
 
     private async Task<Result<ResolvedRow>> ResolveAsync(
@@ -212,7 +215,8 @@ internal sealed partial class CrOwnershipAdministration(
     /// sessions). Each step's outcome is stored on the dispute (<c>idp_details</c>) with the overall one and audited as
     /// <c>vendor.dispute_identity_provider</c>; a failing step is logged and never stops the others.
     /// </summary>
-    private async Task<bool> UpdateIdentityProviderAsync(Guid disputeId, string claimant, IReadOnlyList<string> removed, string actorId, bool retry)
+    private async Task<(bool Updated, bool Recorded)> UpdateIdentityProviderAsync(
+        Guid disputeId, string claimant, IReadOnlyList<string> removed, string actorId, bool retry)
     {
         var steps = new SortedDictionary<string, string>(StringComparer.Ordinal);
         var aliases = await RelatedOrganizationsAsync(disputeId, steps);
@@ -236,14 +240,11 @@ internal sealed partial class CrOwnershipAdministration(
                 () => accounts.RevokeAsync(new VendorAccessGrant(user, string.Empty, RoleAdded: true, OrganizationAdded: false), CancellationToken.None));
         }
 
-        var updated = steps.Values.All(v => v == StepDone);
+        var updated = steps.Values.All(v => v != StepFailed);
 
-        // Recorded after the fact on the committed dispute; if recording itself fails, the dispute stays listed as
-        // needing the identity provider (its outcome is still unknown), which is the safe side.
-        var details = System.Text.Json.JsonSerializer.Serialize(steps);
-        await using var db = await contexts.CreateDbContextAsync(CancellationToken.None);
-        await db.Database.SqlQuery<bool>(
-            $"select vendor.record_dispute_idp_outcome({disputeId}, {updated}, {details}::jsonb) as \"Value\"").SingleAsync(CancellationToken.None);
+        // Recorded after the fact on the committed dispute: the audit entry first, then the outcome on the dispute. If
+        // either fails, the dispute keeps no recorded outcome, so it stays listed for a retry (its outcome is unknown),
+        // and the admin is told so; the uphold itself stands.
         var data = new Dictionary<string, string?>
         {
             ["outcome"] = updated ? "updated" : "failed",
@@ -254,13 +255,28 @@ internal sealed partial class CrOwnershipAdministration(
             data[step] = outcome;
         }
 
-        await audit.WriteAsync(new PlatformAuditEntry(actorId, "vendor.dispute_identity_provider", "cr_dispute", disputeId.ToString(), data), CancellationToken.None);
-        return updated;
+        try
+        {
+            await audit.WriteAsync(new PlatformAuditEntry(actorId, "vendor.dispute_identity_provider", "cr_dispute", disputeId.ToString(), data), CancellationToken.None);
+            var details = System.Text.Json.JsonSerializer.Serialize(steps);
+            await using var db = await contexts.CreateDbContextAsync(CancellationToken.None);
+            await db.Database.SqlQuery<bool>(
+                $"select vendor.record_dispute_idp_outcome({disputeId}, {updated}, {details}::jsonb) as \"Value\"").SingleAsync(CancellationToken.None);
+            return (updated, true);
+        }
+        catch (Exception ex) when (ex is System.Data.Common.DbException or InvalidOperationException or TimeoutException)
+        {
+            OutcomeNotRecorded(logger, disputeId, ex.GetType().Name);
+            return (updated, false);
+        }
     }
 
     private const string StepDone = "done";
 
     private const string StepFailed = "failed";
+
+    /// <summary>A step that could not apply and will not on a retry either, with its reason; never counted as failed.</summary>
+    private const string StepSkippedNotInCatalog = "skipped: the tenant is not in the tenant catalog";
 
     /// <summary>The Keycloak organization aliases of the tenants the dispute's company works with; a failed lookup is a failed step.</summary>
     private async Task<IReadOnlyList<string>> RelatedOrganizationsAsync(Guid disputeId, SortedDictionary<string, string> steps)
@@ -280,7 +296,8 @@ internal sealed partial class CrOwnershipAdministration(
                 }
                 else
                 {
-                    steps[$"organization:lookup:{tenantId:D}"] = StepFailed;
+                    // A tenant the catalog no longer lists has no organization to join; a retry would fail again forever.
+                    steps[$"organization:lookup:{tenantId:D}"] = StepSkippedNotInCatalog;
                 }
             }
 
@@ -342,7 +359,7 @@ internal sealed partial class CrOwnershipAdministration(
         await using var db = await contexts.CreateDbContextAsync(cancellationToken);
         return await db.Database.SqlQuery<OpenDisputeRow>($"""
             select id, company_id, cr_number, name_ar, name_en, claimant_user_id, claimant_email, claimant_name, statement,
-                   raised_on_tenant, raised_at, registrant_user_id, ownership_method, status
+                   raised_on_tenant, raised_at, registrant_user_id, ownership_method, status, over_cap, company_pending
             from vendor.open_cr_disputes()
             """).ToListAsync(cancellationToken);
     }
@@ -394,6 +411,9 @@ internal sealed partial class CrOwnershipAdministration(
     [LoggerMessage(Level = LogLevel.Error, Message = "Dispute {DisputeId} was upheld, but the identity provider step {Step} for user {UserId} failed ({ErrorType}); the console offers a retry.")]
     private static partial void StepFailedLog(ILogger logger, Guid disputeId, string step, string userId, string errorType);
 
+    [LoggerMessage(Level = LogLevel.Error, Message = "Dispute {DisputeId} was upheld, but the identity provider outcome could not be recorded ({ErrorType}); it stays listed for a retry.")]
+    private static partial void OutcomeNotRecorded(ILogger logger, Guid disputeId, string errorType);
+
     [LoggerMessage(Level = LogLevel.Warning, Message = "The identity provider did not describe the current vendor admin {UserId} for the console ({ErrorType}).")]
     private static partial void RegistrantUnknown(ILogger logger, string userId, string errorType);
 
@@ -426,6 +446,10 @@ internal sealed partial class CrOwnershipAdministration(
         public string? OwnershipMethod { get; set; }
 
         public string Status { get; set; } = string.Empty;
+
+        public bool OverCap { get; set; }
+
+        public int CompanyPending { get; set; }
     }
 
     private sealed class FailureRow

@@ -81,13 +81,13 @@ public sealed class VendorApprovePageTests(DatabaseFixture db) : IDisposable
         page.WaitForAssertion(() => page.Find("[role=dialog]").TextContent.ShouldContain("Write what you checked, in up to 1,000 characters."));
         (await VendorRows.RelationshipsAsync(db.OwnerConnectionString, companyId, Ct))[TestTenants.Acme.TenantId].ShouldBe("pending");
 
-        await page.Find("[data-ownership-note]").ChangeAsync(new() { Value = "The certificate names Huda Alharbi as the owner." });
+        await page.Find("[data-ownership-note]").ChangeAsync(new() { Value = "The certificate names Huda Alharbi as the owner.\r\nShe sent an authorisation letter." });
         await ConfirmAsync(page);
 
         page.WaitForAssertion(() => page.Find($"[data-vendor-status='{companyId}:approved']"));
         var verification = (await OwnershipRows.VerificationAsync(db.OwnerConnectionString, companyId, Ct)).ShouldNotBeNull();
         verification.Method.ShouldBe("manual");
-        verification.Note.ShouldBe("The certificate names Huda Alharbi as the owner.");
+        verification.Note.ShouldBe("The certificate names Huda Alharbi as the owner.\nShe sent an authorisation letter.");
         verification.VerifiedBy.ShouldBe(officer);
     }
 

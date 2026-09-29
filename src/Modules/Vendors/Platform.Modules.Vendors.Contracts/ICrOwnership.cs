@@ -104,7 +104,9 @@ public enum CrDisputeStatus
 
 /// <summary>
 /// A pending dispute as the platform console lists it, with the company's current vendor admin as the identity provider
-/// knows them (null parts unknown; the name is self-declared).
+/// knows them (null parts unknown; the name is self-declared). <see cref="OverCap"/>: raised while the company already
+/// had five or more pending disputes; never refused for that (the real owner might be the sixth), only listed after the
+/// others, with <see cref="CompanyPending"/>, the company's pending disputes now.
 /// </summary>
 public sealed record CrDispute(
     Guid Id,
@@ -121,7 +123,9 @@ public sealed record CrDispute(
     string? RegistrantUserId,
     OwnershipVerificationMethod? OwnershipVerifiedBy,
     CrDisputeStatus Status = CrDisputeStatus.Open,
-    VendorRegistrant? Registrant = null);
+    VendorRegistrant? Registrant = null,
+    bool OverCap = false,
+    int CompanyPending = 1);
 
 /// <summary>
 /// An upheld dispute whose identity provider update failed or was never recorded; the console offers a retry.
@@ -133,10 +137,14 @@ public sealed record CrDisputeIdentityProviderFailure(
     string ClaimantName, IReadOnlyList<string> RemovedUserIds, DateTimeOffset UpheldAt, IReadOnlyList<string> FailedSteps);
 
 /// <summary>
-/// An upheld dispute: the company, its new vendor admin, the vendor users removed from it, and whether the identity
-/// provider took the change too (the claimant's realm role <c>vendor</c> granted, the removed users' taken back).
+/// An upheld dispute: the company, its new vendor admin, the vendor users removed from it, whether the identity provider
+/// took the change too (the claimant's realm role <c>vendor</c> and organizations granted, the removed users' taken back),
+/// and whether that outcome was recorded. When it was not (<see cref="IdentityProviderOutcomeRecorded"/> false), the
+/// uphold itself stands and the dispute is listed for a retry, since its outcome is unknown.
 /// </summary>
-public sealed record CrDisputeUpheld(Guid CompanyId, string ClaimantUserId, IReadOnlyList<string> RemovedUserIds, bool IdentityProviderUpdated);
+public sealed record CrDisputeUpheld(
+    Guid CompanyId, string ClaimantUserId, IReadOnlyList<string> RemovedUserIds, bool IdentityProviderUpdated,
+    bool IdentityProviderOutcomeRecorded = true);
 
 /// <summary>
 /// The platform console's side of W-33: the check method (a platform setting, since vendor identity is global, ADR-0008,
@@ -238,9 +246,6 @@ public static class CrDisputeErrors
     public const string NoCompany = "dispute.no_company";
     public const string AlreadyOpen = "dispute.already_open";
     public const string TooManyOpen = "dispute.too_many_open";
-
-    /// <summary>The company already has five pending disputes; WaslaBid reviews those first.</summary>
-    public const string CompanyLimit = "dispute.company_limit";
     public const string AlreadyVendor = "dispute.already_vendor";
     public const string StaffAccount = "dispute.staff_account";
     public const string NotOpen = "dispute.not_open";

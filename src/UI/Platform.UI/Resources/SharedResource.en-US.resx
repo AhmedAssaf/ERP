@@ -442,7 +442,7 @@
   <data name="Console.Ownership.Method.Save" xml:space="preserve"><value>Save method</value></data>
   <data name="Console.Ownership.Method.Saved" xml:space="preserve"><value>The method is now: {0}.</value></data>
   <data name="Console.Ownership.Disputes.Heading" xml:space="preserve"><value>Ownership disputes</value></data>
-  <data name="Console.Ownership.Disputes.Intro" xml:space="preserve"><value>Each request says that a company registered on WaslaBid belongs to someone else. A new request holds nothing until you accept it for review; from then on no organization can approve the company. Contact the claimant, check the commercial registration certificate and any authorisation, then uphold or reject the request.</value></data>
+  <data name="Console.Ownership.Disputes.Intro" xml:space="preserve"><value>Each request says that a company registered on WaslaBid belongs to someone else. A new request holds nothing until you accept it for review; from then on no organization can approve the company. Requests raised while a company already had five pending ones are listed after the others and marked, never refused, since the real owner may be among them. Contact the claimant, check the commercial registration certificate and any authorisation, then uphold or reject the request.</value></data>
   <data name="Console.Ownership.Disputes.Company" xml:space="preserve"><value>Company</value></data>
   <data name="Console.Ownership.Disputes.Cr" xml:space="preserve"><value>Commercial registration</value></data>
   <data name="Console.Ownership.Disputes.Claimant" xml:space="preserve"><value>Claimant</value></data>
@@ -464,7 +464,7 @@
   <data name="Console.Ownership.UpholdBody" xml:space="preserve"><value>The company's current vendor users lose access and the claimant becomes its vendor admin. Its documents, consent ledger and relationships stay with the company. This cannot be undone here.</value></data>
   <data name="Console.Ownership.RejectBody" xml:space="preserve"><value>The request is closed and nothing else changes. The claimant can send a new request.</value></data>
   <data name="Console.Ownership.Note" xml:space="preserve"><value>What you checked</value></data>
-  <data name="Console.Ownership.NoteHelp" xml:space="preserve"><value>Up to 1,000 characters, kept in the platform audit.</value></data>
+  <data name="Console.Ownership.NoteHelp" xml:space="preserve"><value>Up to 1,000 characters, kept in the platform audit. Do not write national ID or iqama numbers (personal data protection law).</value></data>
   <data name="Console.Ownership.Upheld" xml:space="preserve"><value>{0} now belongs to {1}.</value></data>
   <data name="Console.Ownership.UpheldKeycloakFailed" xml:space="preserve"><value>{0} now belongs to {1}, but the sign-in service was not updated. Grant the vendor role in Keycloak.</value></data>
   <data name="Console.Ownership.Rejected" xml:space="preserve"><value>The request from {0} is rejected.</value></data>
@@ -510,10 +510,11 @@
   <data name="Console.Ownership.Idp.Done" xml:space="preserve"><value>The sign-in service now has the change for {0}.</value></data>
   <data name="Console.Ownership.Idp.StillFailing" xml:space="preserve"><value>The sign-in service still did not take the change. Try again later, or change it in Keycloak.</value></data>
   <data name="Vendor.Dispute.Status.under_review" xml:space="preserve"><value>Under review by WaslaBid</value></data>
-  <data name="Vendor.Dispute.Error.CompanyLimit" xml:space="preserve"><value>WaslaBid is already reviewing several requests for this company. Try again later.</value></data>
   <data name="Gallery.Sample.NoteLabel" xml:space="preserve"><value>What you checked</value></data>
   <data name="Gallery.Sample.NoteHelp" xml:space="preserve"><value>Up to 1,000 characters.</value></data>
   <data name="Gallery.Sample.Note" xml:space="preserve"><value>The authorisation letter is signed by the owner named on the certificate.</value></data>
   <data name="Gallery.Sample.NoteError" xml:space="preserve"><value>Write what you checked, in up to 1,000 characters.</value></data>
   <data name="Console.Ownership.Idp.FailedSteps" xml:space="preserve"><value>Failed steps:</value></data>
+  <data name="Console.Ownership.OverCap" xml:space="preserve"><value>Raised while the company had five or more pending requests ({0} now)</value></data>
+  <data name="Console.Ownership.UpheldNotRecorded" xml:space="preserve"><value>{0} now belongs to {1}. The sign-in service outcome could not be recorded; the request is listed below for a retry.</value></data>
 </root>

@@ -92,14 +92,21 @@ else
                     </span>
                 </TemplateColumn>
                 <TemplateColumn TGridItem="CrDispute" Title="@T["Console.Ownership.Disputes.State"]">
-                    @if (context.Status == CrDisputeStatus.UnderReview)
-                    {
-                        <StatusBadge Tone="StatusTone.Warning" data-dispute-status="@($"{context.Id}:under_review")">@T["Console.Ownership.Status.UnderReview"]</StatusBadge>
-                    }
-                    else
-                    {
-                        <StatusBadge Tone="StatusTone.Info" data-dispute-status="@($"{context.Id}:open")">@T["Console.Ownership.Status.Open"]</StatusBadge>
-                    }
+                    <span class="grid justify-items-start gap-1">
+                        @if (context.Status == CrDisputeStatus.UnderReview)
+                        {
+                            <StatusBadge Tone="StatusTone.Warning" data-dispute-status="@($"{context.Id}:under_review")">@T["Console.Ownership.Status.UnderReview"]</StatusBadge>
+                        }
+                        else
+                        {
+                            <StatusBadge Tone="StatusTone.Info" data-dispute-status="@($"{context.Id}:open")">@T["Console.Ownership.Status.Open"]</StatusBadge>
+                        }
+                        @if (context.OverCap)
+                        {
+                            @* Never refused for the cap (the real owner might be the sixth): listed after the others, with the count. *@
+                            <StatusBadge Tone="StatusTone.Neutral" data-over-cap="@($"{context.Id}:{context.CompanyPending}")">@T["Console.Ownership.OverCap", context.CompanyPending]</StatusBadge>
+                        }
+                    </span>
                 </TemplateColumn>
                 <TemplateColumn TGridItem="CrDispute" Title="@T["Console.Ownership.Disputes.Claimant"]">
                     <span class="grid">
@@ -329,10 +336,12 @@ else
                     }
 
                     Toasts.Show(
-                        upheld.Value.IdentityProviderUpdated
-                            ? T["Console.Ownership.Upheld", name, pending.ClaimantName]
-                            : T["Console.Ownership.UpheldKeycloakFailed", name, pending.ClaimantName],
-                        upheld.Value.IdentityProviderUpdated ? ToastTone.Success : ToastTone.Danger);
+                        !upheld.Value.IdentityProviderOutcomeRecorded
+                            ? T["Console.Ownership.UpheldNotRecorded", name, pending.ClaimantName]
+                            : upheld.Value.IdentityProviderUpdated
+                                ? T["Console.Ownership.Upheld", name, pending.ClaimantName]
+                                : T["Console.Ownership.UpheldKeycloakFailed", name, pending.ClaimantName],
+                        upheld.Value.IdentityProviderUpdated && upheld.Value.IdentityProviderOutcomeRecorded ? ToastTone.Success : ToastTone.Danger);
                     break;
                 default:
                     var rejected = await Ownership.RejectAsync(pending.Id, _note, actor);

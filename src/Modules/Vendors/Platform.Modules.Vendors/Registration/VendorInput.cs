@@ -167,11 +167,19 @@ internal static partial class VendorInput
     internal static bool IsCrNumber(string value) => CrNumber().IsMatch(value);
 
     /// <summary>
-    /// A free text of 1 to <paramref name="maxLength"/> characters (trimmed) under the address rules: no invisible or bidi
-    /// controls, no control or unassigned characters, no angle brackets. Ownership notes and dispute statements (W-33).
+    /// A multi-line free text (ownership notes and dispute statements, W-33) as it is stored: trimmed, with every CRLF and
+    /// lone CR turned into LF, so its length is the stored length.
+    /// </summary>
+    internal static string NormalizeFreeText(string? value) =>
+        Trim(value).Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n');
+
+    /// <summary>
+    /// A free text of 1 to <paramref name="maxLength"/> characters after <see cref="NormalizeFreeText"/>, under the address
+    /// rules except that line breaks (LF) are allowed: no invisible or bidi controls, no other control, separator or
+    /// unassigned characters, no angle brackets.
     /// </summary>
     internal static bool IsFreeText(string? value, int maxLength) =>
-        Trim(value) is { Length: > 0 } text && text.Length <= maxLength && IsSafeText(text);
+        NormalizeFreeText(value) is { Length: > 0 } text && text.Length <= maxLength && IsSafeText(text.Replace('\n', ' '));
 
     private static bool IsAddress(string address) =>
         address.Length <= MaxAddressLength && IsSafeText(address);

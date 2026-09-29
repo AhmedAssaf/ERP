@@ -231,7 +231,7 @@ internal sealed partial class VendorDirectory(
             return NoteRequired();
         }
 
-        var note = confirmation.Note!.Trim();
+        var note = VendorInput.NormalizeFreeText(confirmation.Note);
         var method = confirmation.BasedOnWathq ? "wathq" : "manual";
         bool recorded;
         try

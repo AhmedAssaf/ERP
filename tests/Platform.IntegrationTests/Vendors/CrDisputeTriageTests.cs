@@ -98,20 +98,117 @@ public sealed class CrDisputeTriageTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task A_company_has_at_most_five_pending_disputes()
+    public async Task The_real_owners_dispute_after_five_throwaway_ones_is_recorded_flagged_listed_and_can_be_accepted()
     {
-        var (companyId, _, crNumber) = await VendorAsync("Five Claims Co");
+        // Second review: a squatter could fill a verified company's pending slots from throwaway accounts (open disputes
+        // hold nothing). The company's cap never refuses a dispute; it only flags the ones beyond it.
+        var (companyId, _, crNumber) = await VendorAsync("Five Throwaways Co");
+        await OwnershipRows.VerifyAsOwnerAsync(db.OwnerConnectionString, companyId, TestTenants.Acme.TenantId, Ct);
+        var admin = $"platform-admin-{Guid.NewGuid():N}";
         await using var host = Host(new FakeVendorAccounts());
         for (var i = 0; i < 5; i++)
         {
             await RaiseAsync(host, Guid.NewGuid().ToString(), crNumber);
         }
 
-        await using var scope = host.ScopeFor(TestTenants.Acme, actingUserId: Guid.NewGuid().ToString());
-        var sixth = await scope.ServiceProvider.GetRequiredService<ICrDisputes>().RaiseAsync(Request(crNumber), "sixth@example.test", "Sixth", Ct);
+        var realOwner = await RaiseAsync(host, Guid.NewGuid().ToString(), crNumber, email: "real.owner@example.test");
 
-        sixth.Error.ShouldNotBeNull().Code.ShouldBe(CrDisputeErrors.CompanyLimit);
-        ((int)(await OwnerScalarAsync("select count(*)::int from vendor.cr_disputes where company_id = @company", companyId))!).ShouldBe(5);
+        await using var scope = host.PlatformScope(admin);
+        var administration = scope.ServiceProvider.GetRequiredService<ICrOwnershipAdministration>();
+        var listed = (await administration.ListOpenDisputesAsync(Ct)).Where(d => d.CompanyId == companyId).ToList();
+        listed.Count.ShouldBe(6);
+        var flagged = listed.Single(d => d.Id == realOwner);
+        (flagged.OverCap, flagged.CompanyPending).ShouldBe((true, 6));
+        listed.Where(d => d.Id != realOwner).ShouldAllBe(d => !d.OverCap);
+        // Listed after the ones within the cap.
+        listed[^1].Id.ShouldBe(realOwner);
+
+        (await administration.AcceptForReviewAsync(realOwner, admin, Ct)).IsSuccess.ShouldBeTrue();
+        (await OwnershipRows.DisputeAsync(db.OwnerConnectionString, realOwner, Ct)).ShouldNotBeNull().Status.ShouldBe("under_review");
+    }
+
+    [Fact]
+    public async Task When_the_identity_provider_outcome_cannot_be_recorded_the_admin_is_told_and_the_dispute_stays_listed()
+    {
+        var (_, _, crNumber) = await VendorAsync("Recorder Down Co");
+        var admin = $"platform-admin-{Guid.NewGuid():N}";
+        await using var host = new ModuleHost(db.AppConnectionString, configure: services =>
+        {
+            services.Replace(ServiceDescriptor.Scoped<IVendorAccounts>(_ => new FakeVendorAccounts()));
+            var original = services.Last(d => d.ServiceType == typeof(IPlatformAudit));
+            services.Replace(ServiceDescriptor.Scoped<IPlatformAudit>(sp =>
+                new FailingOutcomeAudit((IPlatformAudit)ActivatorUtilities.CreateInstance(sp, original.ImplementationType!))));
+        });
+        var disputeId = await RaiseAsync(host, Guid.NewGuid().ToString(), crNumber);
+
+        await using var scope = host.PlatformScope(admin);
+        var administration = scope.ServiceProvider.GetRequiredService<ICrOwnershipAdministration>();
+        var upheld = await administration.UpholdAsync(disputeId, "Checked.", admin, Ct);
+
+        upheld.IsSuccess.ShouldBeTrue(upheld.Error?.Message);
+        upheld.Value.IdentityProviderUpdated.ShouldBeTrue();
+        upheld.Value.IdentityProviderOutcomeRecorded.ShouldBeFalse();
+        (await OwnershipRows.DisputeAsync(db.OwnerConnectionString, disputeId, Ct)).ShouldNotBeNull().Status.ShouldBe("upheld");
+        (await OwnerScalarAsync("select idp_outcome from vendor.cr_disputes where id = @company", disputeId)).ShouldBe(DBNull.Value);
+        (await administration.ListIdentityProviderFailuresAsync(Ct)).ShouldContain(f => f.DisputeId == disputeId);
+    }
+
+    [Fact]
+    public async Task A_related_tenant_missing_from_the_catalog_is_skipped_with_a_reason_not_failed()
+    {
+        var (companyId, _, crNumber) = await VendorAsync("Gone Tenant Co");
+        var goneTenant = Guid.NewGuid();
+        await VendorRows.RelateAsync(db.OwnerConnectionString, goneTenant, companyId, Ct);
+        var admin = $"platform-admin-{Guid.NewGuid():N}";
+        await using var host = Host(new FakeVendorAccounts());
+        var disputeId = await RaiseAsync(host, Guid.NewGuid().ToString(), crNumber);
+
+        await using (var scope = host.PlatformScope(admin))
+        {
+            var administration = scope.ServiceProvider.GetRequiredService<ICrOwnershipAdministration>();
+            (await administration.UpholdAsync(disputeId, "Checked.", admin, Ct)).Value.IdentityProviderUpdated.ShouldBeTrue();
+            (await administration.ListIdentityProviderFailuresAsync(Ct)).ShouldNotContain(f => f.DisputeId == disputeId);
+        }
+
+        var details = (string)(await OwnerScalarAsync("select idp_details::text from vendor.cr_disputes where id = @company", disputeId))!;
+        details.ShouldContain($"\"organization:lookup:{goneTenant:D}\": \"skipped: the tenant is not in the tenant catalog\"");
+    }
+
+    [Fact]
+    public async Task Multi_line_notes_and_statements_are_stored_with_line_feeds()
+    {
+        var (companyId, _, crNumber) = await VendorAsync("Multi Line Co");
+        var officer = await StaffAsync(TestTenants.Acme, TenantRoles.ContractsOfficer);
+        var admin = $"platform-admin-{Guid.NewGuid():N}";
+        await using var host = Host(new FakeVendorAccounts());
+
+        await using (var scope = host.ScopeFor(TestTenants.Acme, actingUserId: officer))
+        {
+            var approved = await scope.ServiceProvider.GetRequiredService<IVendorDirectory>().ApproveAsync(
+                companyId, officer, new OwnershipConfirmation("Checked the letter.\r\nCalled the company.", false, CrLookupOutcome.Manual), Ct);
+            approved.IsSuccess.ShouldBeTrue(approved.Error?.Message);
+        }
+
+        (await OwnershipRows.VerificationAsync(db.OwnerConnectionString, companyId, Ct)).ShouldNotBeNull().Note.ShouldBe("Checked the letter.\nCalled the company.");
+
+        Guid disputeId;
+        await using (var scope = host.ScopeFor(TestTenants.Acme, actingUserId: Guid.NewGuid().ToString()))
+        {
+            var raised = await scope.ServiceProvider.GetRequiredService<ICrDisputes>().RaiseAsync(
+                new CrDisputeRequest(crNumber, "First paragraph.\r\n\r\nSecond paragraph.", VendorPrivacyNotice.CurrentVersion, VendorPrivacyNotice.English),
+                "multi@example.test", "Multi", Ct);
+            raised.IsSuccess.ShouldBeTrue(raised.Error?.Message);
+            disputeId = raised.Value;
+        }
+
+        ((string)(await OwnerScalarAsync("select statement from vendor.cr_disputes where id = @company", disputeId))!).ShouldBe("First paragraph.\n\nSecond paragraph.");
+
+        await using (var scope = host.PlatformScope(admin))
+        {
+            (await scope.ServiceProvider.GetRequiredService<ICrOwnershipAdministration>().RejectAsync(disputeId, "Line one.\rLine two.", admin, Ct)).IsSuccess.ShouldBeTrue();
+        }
+
+        (await OwnershipRows.DisputeAsync(db.OwnerConnectionString, disputeId, Ct)).ShouldNotBeNull().ResolutionNote.ShouldBe("Line one.\nLine two.");
     }
 
     [Fact]
@@ -421,6 +518,15 @@ public sealed class CrDisputeTriageTests(DatabaseFixture db)
         await using var command = new NpgsqlCommand(sql, connection);
         command.Parameters.AddWithValue("company", value);
         return await command.ExecuteScalarAsync(Ct);
+    }
+
+    /// <summary>The real platform audit, except that the entry recording an identity provider outcome fails.</summary>
+    private sealed class FailingOutcomeAudit(IPlatformAudit inner) : IPlatformAudit
+    {
+        public Task WriteAsync(PlatformAuditEntry entry, CancellationToken cancellationToken = default) =>
+            entry.Action == "vendor.dispute_identity_provider"
+                ? throw new InvalidOperationException("The platform audit is not available.")
+                : inner.WriteAsync(entry, cancellationToken);
     }
 
     private sealed class RecordingAlerts : IPlatformAlerts
