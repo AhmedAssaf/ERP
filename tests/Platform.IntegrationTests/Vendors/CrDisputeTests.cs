@@ -87,6 +87,8 @@ public sealed class CrDisputeTests(DatabaseFixture db)
         var claimant = Guid.NewGuid().ToString();
         var admin = $"platform-admin-{Guid.NewGuid():N}";
         var accounts = new FakeVendorAccounts();
+        accounts.Memberships[(squatter, TestTenants.Acme.KeycloakOrgAlias)] = true;
+        accounts.Memberships[(squatter, TestTenants.Beta.KeycloakOrgAlias)] = true;
         await using var host = Host(accounts);
 
         Guid disputeId;
@@ -150,9 +152,12 @@ public sealed class CrDisputeTests(DatabaseFixture db)
         (await VendorDocumentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct)).ShouldHaveSingleItem();
         (await VendorRows.RelationshipsAsync(db.OwnerConnectionString, companyId, Ct)).Keys.ShouldBe(
             new[] { TestTenants.Acme.TenantId, TestTenants.Beta.TenantId }.Order());
-        // The identity provider: the claimant gets the vendor role, the squatter loses it.
+        // The identity provider: the claimant gets the vendor role and both related tenants' organizations; the squatter
+        // loses the role and both memberships.
         accounts.Granted.ShouldBe([claimant]);
-        accounts.Revoked.ShouldHaveSingleItem().ShouldBe(new VendorAccessGrant(squatter, string.Empty, RoleAdded: true, OrganizationAdded: false));
+        accounts.OrganizationsOf(claimant).ShouldBe([TestTenants.Acme.KeycloakOrgAlias, TestTenants.Beta.KeycloakOrgAlias]);
+        accounts.OrganizationsOf(squatter).ShouldBeEmpty();
+        accounts.Revoked.ShouldContain(new VendorAccessGrant(squatter, string.Empty, RoleAdded: true, OrganizationAdded: false));
         var audit = (await VendorRows.PlatformAuditsAsync(db.OwnerConnectionString, admin, "vendor.dispute_upheld", Ct)).ShouldHaveSingleItem();
         audit.SubjectId.ShouldBe(disputeId.ToString());
         audit.Data.ShouldContain(squatter);

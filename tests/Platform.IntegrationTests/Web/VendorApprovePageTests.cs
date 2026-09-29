@@ -63,8 +63,12 @@ public sealed class VendorApprovePageTests(DatabaseFixture db) : IDisposable
         await page.Find("[data-approve]").ClickAsync(new());
 
         page.WaitForAssertion(() => page.Find("[data-ownership-check]"));
-        page.Find("[data-ownership-registrant]").TextContent.ShouldContain("Huda Alharbi");
-        page.Find("[data-ownership-registrant]").TextContent.ShouldContain("huda@ownership.test");
+        page.Find("[data-registrant-name]").TextContent.ShouldContain("Huda Alharbi (self-declared)");
+        page.Find("[data-registrant-email='verified']").TextContent.ShouldContain("huda@ownership.test");
+        page.Find("[data-registrant-email='verified']").TextContent.ShouldContain("(email verified)");
+        page.Find("[data-ownership-guidance]").TextContent.ShouldContain("authorisation letter");
+        page.Find("[data-ownership-note]").TagName.ShouldBe("TEXTAREA");
+        page.Find("[data-ownership-check]").TextContent.ShouldContain("Do not write national ID or iqama numbers");
         page.Find("[data-ownership-lookup='manual']").TextContent.ShouldContain("commercial registration certificate names the person");
 
         // Not confirmed: refused before anything is recorded.
@@ -126,12 +130,35 @@ public sealed class VendorApprovePageTests(DatabaseFixture db) : IDisposable
         (await VendorRows.RelationshipsAsync(db.OwnerConnectionString, companyId, Ct))[TestTenants.Acme.TenantId].ShouldBe("pending");
     }
 
+    [Fact]
+    public async Task The_ownership_check_renders_in_arabic_without_raw_keys_and_labels_an_unverified_email()
+    {
+        var (companyId, officer) = await PendingVendorAsync("Arabic Dialog Company");
+        var registrant = (await OwnershipRows.VendorUsersAsync(db.OwnerConnectionString, companyId, Ct)).Single().UserId;
+        await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, companyId, VendorDocumentTypes.CrCertificate, new DateOnly(2031, 1, 1), "clean", isCurrent: true, Ct);
+        var accounts = new FakeVendorAccounts();
+        accounts.Profiles[registrant] = new VendorAccountProfile("هدى", "الحربي", "huda@unverified.test", EmailVerified: false);
+        await using var host = new ModuleHost(db.AppConnectionString, configure: s => s.Replace(ServiceDescriptor.Scoped<IVendorAccounts>(_ => accounts)));
+        await using var scope = host.ScopeFor(TestTenants.Acme, actingUserId: officer);
+        var page = Render(scope, companyId, officer, "ar-SA");
+
+        await page.Find("[data-approve]").ClickAsync(new());
+
+        page.WaitForAssertion(() => page.Find("[data-ownership-check]"));
+        var dialog = page.Find("[role=dialog]").TextContent;
+        dialog.ShouldContain("التحقق من الملكية");
+        dialog.ShouldContain("(كما أدخله بنفسه)");
+        page.Find("[data-registrant-email='unverified']").TextContent.ShouldContain("(بريد غير موثَّق)");
+        dialog.ShouldContain("خطاب تفويض");
+        dialog.ShouldNotContain("Admin.Vendors.", Case.Sensitive, "no raw resource key");
+    }
+
     public void Dispose() => _page.Dispose();
 
-    private IRenderedComponent<VendorDetails> Render(AsyncServiceScope scope, Guid companyId, string officer)
+    private IRenderedComponent<VendorDetails> Render(AsyncServiceScope scope, Guid companyId, string officer, string culture = "en-US")
     {
-        CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
-        CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("en-US");
+        CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(culture);
+        CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(culture);
         _page.Services.AddLocalization(o => o.ResourcesPath = "Resources");
         _page.Services.AddPlatformUI();
         _page.Services.AddSingleton(scope.ServiceProvider.GetRequiredService<IVendorDirectory>());

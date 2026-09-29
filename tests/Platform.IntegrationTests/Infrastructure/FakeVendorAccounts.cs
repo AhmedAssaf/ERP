@@ -49,19 +49,52 @@ internal sealed class FakeVendorAccounts : IVendorAccounts
         return !State.HoldsVendorRole;
     }
 
+    /// <summary>Organization memberships (user id, organization alias) this fake holds; tests may seed it.</summary>
+    public ConcurrentDictionary<(string UserId, string Alias), bool> Memberships { get; } = new();
+
+    /// <summary>Organizations whose membership changes fail as Keycloak failing would (adding and removing).</summary>
+    public ConcurrentDictionary<string, bool> FailingOrganizations { get; } = new(StringComparer.Ordinal);
+
     public Task<bool> AddToOrganizationAsync(string userId, string organizationAlias, CancellationToken cancellationToken = default)
     {
         Steps.Enqueue("add-organization");
-        return FailOrganization
-            ? throw new IdentityProviderException("Keycloak did not add the user to the organization.", new HttpRequestException("forced"))
-            : Task.FromResult(!State.OrganizationAliases.Contains(organizationAlias, StringComparer.Ordinal));
+        if (FailOrganization || FailingOrganizations.ContainsKey(organizationAlias))
+        {
+            throw new IdentityProviderException("Keycloak did not add the user to the organization.", new HttpRequestException("forced"));
+        }
+
+        Memberships[(userId, organizationAlias)] = true;
+        return Task.FromResult(!State.OrganizationAliases.Contains(organizationAlias, StringComparer.Ordinal));
     }
 
-    public Task RevokeAsync(VendorAccessGrant grant, CancellationToken cancellationToken = default)
+    /// <summary>The aliases of the organizations the user is a member of here, in alias order.</summary>
+    public IReadOnlyList<string> OrganizationsOf(string userId) =>
+        [.. Memberships.Keys.Where(k => k.UserId == userId).Select(k => k.Alias).Order(StringComparer.Ordinal)];
+
+    /// <summary>When set, taking back access fails as Keycloak failing would (the call throws).</summary>
+    public bool FailRevoke { get; set; }
+
+    public Task<bool> RevokeAsync(VendorAccessGrant grant, CancellationToken cancellationToken = default)
     {
         Steps.Enqueue("revoke");
+        if (FailRevoke)
+        {
+            throw new IdentityProviderException("Keycloak did not remove the vendor role.", new HttpRequestException("forced"));
+        }
+
+        if (grant.OrganizationAdded && FailingOrganizations.ContainsKey(grant.OrganizationAlias))
+        {
+            // As KeycloakVendorAccounts does: the failing step is logged there and reported as not done.
+            return Task.FromResult(false);
+        }
+
+        if (grant.OrganizationAdded)
+        {
+            Memberships.TryRemove((grant.UserId, grant.OrganizationAlias), out _);
+        }
+
         Revoked.Enqueue(grant);
-        return Task.CompletedTask;
+        return Task.FromResult(true);
     }
 
     public Task<VendorAccountProfile?> ProfileAsync(string userId, CancellationToken cancellationToken = default)

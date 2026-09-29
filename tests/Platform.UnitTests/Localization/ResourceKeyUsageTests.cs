@@ -15,7 +15,7 @@ namespace Platform.UnitTests.Localization;
 public partial class ResourceKeyUsageTests
 {
     // The statuses vendor.cr_disputes stores (W-33, vendors migration 0018), shown on /vendor/dispute.
-    private static readonly string[] DisputeStatuses = ["open", "upheld", "rejected"];
+    private static readonly string[] DisputeStatuses = ["open", "under_review", "upheld", "rejected"];
 
     private static readonly string SharedFolder = Path.Combine(TestRepo.Src, "UI", "Platform.UI", "Resources");
 

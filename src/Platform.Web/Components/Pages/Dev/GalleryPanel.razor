@@ -52,6 +52,13 @@
         </div>
     </GallerySection>
 
+    <GallerySection Name="Textarea">
+        <div class="grid gap-4 sm:grid-cols-2">
+            <Textarea Label="@T["Gallery.Sample.NoteLabel"]" Help="@T["Gallery.Sample.NoteHelp"]" Value="@T["Gallery.Sample.Note"]" Required="true" />
+            <Textarea Label="@T["Gallery.Sample.NoteLabel"]" Error="@T["Gallery.Sample.NoteError"]" Required="true" Rows="3" />
+        </div>
+    </GallerySection>
+
     <GallerySection Name="Select">
         <div class="grid gap-4 sm:grid-cols-2">
             <Select Label="@T["Gallery.Sample.RoleLabel"]" Placeholder="@T["Gallery.Sample.RolePlaceholder"]" Options="Roles" />

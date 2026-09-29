@@ -1,9 +1,11 @@
 @*
     W-33: the platform's CR ownership check and the review of disputes. The method (Manual or Wathq) is a platform setting
     because vendor identity is global (ADR-0008) and the Wathq subscription is the platform's; whether Wathq is configured
-    is shown, never its address or key (N-10). Each open dispute can be upheld, which moves the company to the claimant as
-    its vendor admin, or rejected; both need a note and a confirmation, and both are audited in the platform audit. The
-    policy is checked again at the moment of each action, since the circuit's claims date from when the page opened.
+    is shown, never its address or key (N-10). Disputes (ADR-0013 decision 1): a new one holds nothing for a verified
+    company until an admin accepts it for review; each pending one can then be upheld, which moves the company to the
+    claimant as its vendor admin, or rejected, both with a note and a confirmation, all audited in the platform audit. An
+    uphold whose identity provider update failed stays listed with a retry. The policy is checked again at the moment of
+    each action, since the circuit's claims date from when the page opened.
 *@
 @page "/platform/vendors"
 @attribute [Authorize(Policy = PlatformAuthentication.PolicyName)]
@@ -53,6 +55,31 @@ else
         </div>
     </section>
 
+    @if (_failures.Count > 0)
+    {
+        <section aria-labelledby="idp-heading" class="grid gap-3 rounded-card border border-danger bg-surface p-4" data-idp-failures>
+            <h2 id="idp-heading" class="text-heading">@T["Console.Ownership.Idp.Heading"]</h2>
+            <p class="max-w-prose text-body">@T["Console.Ownership.Idp.Intro"]</p>
+            <ul class="grid gap-3">
+                @foreach (var failure in _failures)
+                {
+                    <li data-idp-failure="@failure.DisputeId" class="flex flex-wrap items-center gap-3">
+                        <span class="grid">
+                            <span class="font-semibold">@Name(failure.CompanyNameAr, failure.CompanyNameEn)</span>
+                            <span class="text-small text-ink-muted">@T["Console.Ownership.Idp.Line", failure.ClaimantName] <ConsoleTime At="failure.UpheldAt" /></span>
+                            @if (failure.FailedSteps.Count > 0)
+                            {
+                                <span class="text-small" data-idp-failed-steps>@T["Console.Ownership.Idp.FailedSteps"] <bdi dir="ltr">@string.Join(", ", failure.FailedSteps)</bdi></span>
+                            }
+                        </span>
+                        <Button Variant="ButtonVariant.Secondary" Loading="_retrying == failure.DisputeId" data-idp-retry="@failure.DisputeId"
+                                OnClick="() => RetryAsync(failure)">@T["Console.Ownership.Idp.Retry"]</Button>
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+
     <section aria-labelledby="disputes-heading" class="grid gap-4">
         <h2 id="disputes-heading" class="text-heading">@T["Console.Ownership.Disputes.Heading"]</h2>
         <p class="max-w-prose text-body text-ink-muted">@T["Console.Ownership.Disputes.Intro"]</p>
@@ -64,9 +91,19 @@ else
                         <span class="text-small text-ink-muted">@T["Console.Ownership.Disputes.Cr"] <bdi dir="ltr" class="tabular-nums">@context.CrNumber</bdi></span>
                     </span>
                 </TemplateColumn>
+                <TemplateColumn TGridItem="CrDispute" Title="@T["Console.Ownership.Disputes.State"]">
+                    @if (context.Status == CrDisputeStatus.UnderReview)
+                    {
+                        <StatusBadge Tone="StatusTone.Warning" data-dispute-status="@($"{context.Id}:under_review")">@T["Console.Ownership.Status.UnderReview"]</StatusBadge>
+                    }
+                    else
+                    {
+                        <StatusBadge Tone="StatusTone.Info" data-dispute-status="@($"{context.Id}:open")">@T["Console.Ownership.Status.Open"]</StatusBadge>
+                    }
+                </TemplateColumn>
                 <TemplateColumn TGridItem="CrDispute" Title="@T["Console.Ownership.Disputes.Claimant"]">
                     <span class="grid">
-                        <span>@context.ClaimantName</span>
+                        <span>@context.ClaimantName <span class="text-small text-ink-muted">@T["Admin.Vendors.Ownership.SelfDeclared"]</span></span>
                         <bdi dir="ltr" class="text-small text-start">@context.ClaimantEmail</bdi>
                     </span>
                 </TemplateColumn>
@@ -80,15 +117,37 @@ else
                     </span>
                 </TemplateColumn>
                 <TemplateColumn TGridItem="CrDispute" Title="@T["Console.Ownership.Disputes.Current"]">
-                    <span class="grid text-small">
-                        <span dir="ltr" class="text-start">@(context.RegistrantUserId ?? "—")</span>
+                    <span class="grid text-small" data-dispute-registrant="@context.Id">
+                        @if (context.Registrant is { Name: null, Email: null } || context.Registrant is null)
+                        {
+                            <span class="text-ink-muted">@T["Admin.Vendors.Ownership.RegistrantUnknown"]</span>
+                        }
+                        else
+                        {
+                            @if (context.Registrant.Name is { } registrantName)
+                            {
+                                <span>@registrantName <span class="text-ink-muted">@T["Admin.Vendors.Ownership.SelfDeclared"]</span></span>
+                            }
+                            @if (context.Registrant.Email is { } registrantEmail)
+                            {
+                                <span>
+                                    <bdi dir="ltr">@registrantEmail</bdi>
+                                    <span class="text-ink-muted">@(context.Registrant.EmailVerified ? T["Admin.Vendors.Ownership.EmailVerified"] : T["Admin.Vendors.Ownership.EmailUnverified"])</span>
+                                </span>
+                            }
+                        }
+                        <span dir="ltr" class="text-start text-ink-muted">@(context.RegistrantUserId ?? "—")</span>
                         <span class="text-ink-muted">@(context.OwnershipVerifiedBy is { } by ? T[$"Console.Ownership.Verified.{by}"] : T["Console.Ownership.Verified.None"])</span>
                     </span>
                 </TemplateColumn>
                 <TemplateColumn TGridItem="CrDispute" Title="@T["Console.Jobs.Action"]">
                     <span class="flex flex-wrap gap-2">
-                        <Button Variant="ButtonVariant.Primary" data-uphold="@context.Id" OnClick="() => Ask(context, uphold: true)">@T["Console.Ownership.Uphold"]</Button>
-                        <Button Variant="ButtonVariant.Danger" data-reject="@context.Id" OnClick="() => Ask(context, uphold: false)">@T["Console.Ownership.Reject"]</Button>
+                        @if (context.Status == CrDisputeStatus.Open)
+                        {
+                            <Button Variant="ButtonVariant.Secondary" data-accept="@context.Id" OnClick="() => Ask(context, DisputeAction.Accept)">@T["Console.Ownership.Accept"]</Button>
+                        }
+                        <Button Variant="ButtonVariant.Primary" data-uphold="@context.Id" OnClick="() => Ask(context, DisputeAction.Uphold)">@T["Console.Ownership.Uphold"]</Button>
+                        <Button Variant="ButtonVariant.Danger" data-reject="@context.Id" OnClick="() => Ask(context, DisputeAction.Reject)">@T["Console.Ownership.Reject"]</Button>
                     </span>
                 </TemplateColumn>
             </ChildContent>
@@ -101,13 +160,15 @@ else
 
 @if (_pending is { } pending)
 {
-    <Dialog @bind-Open="_dialogOpen" Busy="_busy" OnConfirm="ResolveAsync"
-            ConfirmVariant="@(_uphold ? ButtonVariant.Primary : ButtonVariant.Danger)"
-            Title="@(_uphold ? T["Console.Ownership.UpholdTitle", Name(pending.CompanyNameAr, pending.CompanyNameEn), pending.ClaimantName] : T["Console.Ownership.RejectTitle", pending.ClaimantName])"
-            ConfirmText="@(_uphold ? T["Console.Ownership.UpholdConfirm"] : T["Console.Ownership.RejectConfirm"])">
-        <p>@(_uphold ? T["Console.Ownership.UpholdBody"] : T["Console.Ownership.RejectBody"])</p>
-        <TextField Label="@T["Console.Ownership.Note"]" Help="@T["Console.Ownership.NoteHelp"]" Required="true" @bind-Value="_note"
-                   Error="@_noteError" data-resolution-note maxlength="1000" autocomplete="off" />
+    <Dialog @bind-Open="_dialogOpen" Busy="_busy" OnConfirm="ActAsync"
+            ConfirmVariant="@(_action == DisputeAction.Reject ? ButtonVariant.Danger : ButtonVariant.Primary)"
+            Title="@DialogTitle(pending)" ConfirmText="@DialogConfirm()">
+        <p>@DialogBody()</p>
+        @if (_action != DisputeAction.Accept)
+        {
+            <Textarea Label="@T["Console.Ownership.Note"]" Help="@T["Console.Ownership.NoteHelp"]" Required="true" Rows="3" @bind-Value="_note"
+                      Error="@_noteError" data-resolution-note maxlength="1000" />
+        }
         @if (_dialogError is not null)
         {
             <p role="alert" class="text-small text-danger">@_dialogError</p>
@@ -120,17 +181,26 @@ else
 @code {
     private CrOwnershipSettings? _settings;
     private IReadOnlyList<CrDispute> _disputes = [];
+    private IReadOnlyList<CrDisputeIdentityProviderFailure> _failures = [];
     private IReadOnlyDictionary<Guid, string> _tenants = new Dictionary<Guid, string>();
     private IReadOnlyList<SelectOption> _methods = [];
     private CrOwnershipMethod _choice;
     private bool _savingMethod;
+    private Guid? _retrying;
     private CrDispute? _pending;
-    private bool _uphold;
+    private DisputeAction _action;
     private bool _dialogOpen;
     private bool _busy;
     private string? _note;
     private string? _noteError;
     private string? _dialogError;
+
+    private enum DisputeAction
+    {
+        Accept,
+        Uphold,
+        Reject,
+    }
 
     [CascadingParameter] private Task<AuthenticationState>? AuthenticationState { get; set; }
 
@@ -150,6 +220,7 @@ else
         _settings = await Ownership.GetSettingsAsync();
         _choice = _settings.Method;
         _disputes = await Ownership.ListOpenDisputesAsync();
+        _failures = await Ownership.ListIdentityProviderFailuresAsync();
     }
 
     private void ChooseMethod(string value) =>
@@ -181,17 +252,44 @@ else
         }
     }
 
-    private void Ask(CrDispute dispute, bool uphold)
+    private async Task RetryAsync(CrDisputeIdentityProviderFailure failure)
+    {
+        _retrying = failure.DisputeId;
+        try
+        {
+            if (await ActorAsync() is not { } actor)
+            {
+                Toasts.Show(T["Console.Jobs.NotAllowed"], ToastTone.Danger);
+                return;
+            }
+
+            var updated = await Ownership.RetryIdentityProviderAsync(failure.DisputeId, actor);
+            Toasts.Show(updated ? T["Console.Ownership.Idp.Done", failure.ClaimantName] : T["Console.Ownership.Idp.StillFailing"],
+                updated ? ToastTone.Success : ToastTone.Danger);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            ConsoleLog.OwnershipActionFailed(Logger, "idp-retry", ex.GetType().Name);
+            Toasts.Show(T["Console.Ownership.Failed"], ToastTone.Danger);
+        }
+        finally
+        {
+            _retrying = null;
+        }
+    }
+
+    private void Ask(CrDispute dispute, DisputeAction action)
     {
         _pending = dispute;
-        _uphold = uphold;
+        _action = action;
         _note = null;
         _noteError = null;
         _dialogError = null;
         _dialogOpen = true;
     }
 
-    private async Task ResolveAsync()
+    private async Task ActAsync()
     {
         if (_pending is not { } pending)
         {
@@ -210,31 +308,42 @@ else
             }
 
             var name = Name(pending.CompanyNameAr, pending.CompanyNameEn);
-            if (_uphold)
+            switch (_action)
             {
-                var upheld = await Ownership.UpholdAsync(pending.Id, _note, actor);
-                if (!upheld.IsSuccess)
-                {
-                    SetError(upheld.Error.Code);
-                    return;
-                }
+                case DisputeAction.Accept:
+                    var accepted = await Ownership.AcceptForReviewAsync(pending.Id, actor);
+                    if (!accepted.IsSuccess)
+                    {
+                        SetError(accepted.Error.Code);
+                        return;
+                    }
 
-                Toasts.Show(
-                    upheld.Value.IdentityProviderUpdated
-                        ? T["Console.Ownership.Upheld", name, pending.ClaimantName]
-                        : T["Console.Ownership.UpheldKeycloakFailed", name, pending.ClaimantName],
-                    upheld.Value.IdentityProviderUpdated ? ToastTone.Success : ToastTone.Danger);
-            }
-            else
-            {
-                var rejected = await Ownership.RejectAsync(pending.Id, _note, actor);
-                if (!rejected.IsSuccess)
-                {
-                    SetError(rejected.Error.Code);
-                    return;
-                }
+                    Toasts.Show(T["Console.Ownership.Accepted", name], ToastTone.Success);
+                    break;
+                case DisputeAction.Uphold:
+                    var upheld = await Ownership.UpholdAsync(pending.Id, _note, actor);
+                    if (!upheld.IsSuccess)
+                    {
+                        SetError(upheld.Error.Code);
+                        return;
+                    }
 
-                Toasts.Show(T["Console.Ownership.Rejected", pending.ClaimantName], ToastTone.Success);
+                    Toasts.Show(
+                        upheld.Value.IdentityProviderUpdated
+                            ? T["Console.Ownership.Upheld", name, pending.ClaimantName]
+                            : T["Console.Ownership.UpheldKeycloakFailed", name, pending.ClaimantName],
+                        upheld.Value.IdentityProviderUpdated ? ToastTone.Success : ToastTone.Danger);
+                    break;
+                default:
+                    var rejected = await Ownership.RejectAsync(pending.Id, _note, actor);
+                    if (!rejected.IsSuccess)
+                    {
+                        SetError(rejected.Error.Code);
+                        return;
+                    }
+
+                    Toasts.Show(T["Console.Ownership.Rejected", pending.ClaimantName], ToastTone.Success);
+                    break;
             }
 
             _dialogOpen = false;
@@ -243,7 +352,7 @@ else
         }
         catch (Exception ex)
         {
-            ConsoleLog.OwnershipActionFailed(Logger, _uphold ? "uphold" : "reject", ex.GetType().Name);
+            ConsoleLog.OwnershipActionFailed(Logger, _action.ToString(), ex.GetType().Name);
             _dialogError = T["Console.Ownership.Failed"];
         }
         finally
@@ -251,6 +360,27 @@ else
             _busy = false;
         }
     }
+
+    private string DialogTitle(CrDispute pending) => _action switch
+    {
+        DisputeAction.Accept => T["Console.Ownership.AcceptTitle", Name(pending.CompanyNameAr, pending.CompanyNameEn)],
+        DisputeAction.Uphold => T["Console.Ownership.UpholdTitle", Name(pending.CompanyNameAr, pending.CompanyNameEn), pending.ClaimantName],
+        _ => T["Console.Ownership.RejectTitle", pending.ClaimantName],
+    };
+
+    private string DialogConfirm() => _action switch
+    {
+        DisputeAction.Accept => T["Console.Ownership.AcceptConfirm"],
+        DisputeAction.Uphold => T["Console.Ownership.UpholdConfirm"],
+        _ => T["Console.Ownership.RejectConfirm"],
+    };
+
+    private string DialogBody() => _action switch
+    {
+        DisputeAction.Accept => T["Console.Ownership.AcceptBody"],
+        DisputeAction.Uphold => T["Console.Ownership.UpholdBody"],
+        _ => T["Console.Ownership.RejectBody"],
+    };
 
     private void SetError(string code)
     {

@@ -131,10 +131,17 @@ internal sealed partial class VendorDirectory(
                 ownership.HasCertificate, Registrant: null, Lookup: null);
         }
 
-        var method = OwnershipStore.Method((await OwnershipStore.SettingsAsync(db, cancellationToken)).Method);
-        var verifier = verifiers.Single(v => v.Method == method);
         var registrant = ownership.RegistrantUserId is { } registrantId ? await RegistrantAsync(registrantId, cancellationToken) : null;
-        var lookup = await verifier.LookupAsync(company.CrNumber, cancellationToken);
+
+        // A held company or one without a current CR certificate cannot be verified now: no lookup, since a Wathq call is
+        // paid and would change nothing.
+        CrOwnershipLookup? lookup = null;
+        if (!ownership.Disputed && ownership.HasCertificate)
+        {
+            var method = OwnershipStore.Method((await OwnershipStore.SettingsAsync(db, cancellationToken)).Method);
+            lookup = await verifiers.Single(v => v.Method == method).LookupAsync(company.CrNumber, cancellationToken);
+        }
+
         return new OwnershipCheck(
             companyId, company.CrNumber, Verified: false, VerifiedMethod: null, ownership.Disputed, ownership.HasCertificate, registrant, lookup);
     }
@@ -281,9 +288,7 @@ internal sealed partial class VendorDirectory(
     {
         try
         {
-            var profile = await accounts.ProfileAsync(userId, cancellationToken);
-            var name = string.Join(' ', new[] { profile?.FirstName, profile?.LastName }.Where(p => !string.IsNullOrWhiteSpace(p)).Select(p => p!.Trim()));
-            return new VendorRegistrant(userId, name.Length == 0 ? null : name, string.IsNullOrWhiteSpace(profile?.Email) ? null : profile.Email);
+            return OwnershipStore.Registrant(userId, await accounts.ProfileAsync(userId, cancellationToken));
         }
         catch (Exception ex) when (ex is IdentityProviderException or InvalidOperationException)
         {

@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
 using System.Net;
 using System.Text;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Platform.Modules.Vendors;
@@ -70,6 +72,48 @@ public sealed class WathqCrOwnershipVerifierTests
         {
             logs.Messages.ShouldContain(m => m.Contains(((int)status).ToString(System.Globalization.CultureInfo.InvariantCulture), StringComparison.Ordinal));
         }
+    }
+
+    [Fact]
+    public async Task A_redirect_is_not_followed_and_the_manual_check_applies()
+    {
+        var handler = new Handler(_ => new HttpResponseMessage(HttpStatusCode.Found) { Headers = { Location = new Uri("https://elsewhere.example/owners/1") } });
+
+        (await Verifier(handler, new Logs()).LookupAsync("1010000001", Ct)).Outcome.ShouldBe(CrLookupOutcome.Unavailable);
+
+        handler.Requests.ShouldHaveSingleItem().Path.ShouldStartWith("/api/");
+    }
+
+    [Theory]
+    [InlineData("https://api.wathq.sa/sandbox/commercial-registration", true)]
+    [InlineData("http://127.0.0.1:5000/", true)]
+    [InlineData("http://localhost:5000/", true)]
+    [InlineData("http://api.wathq.sa/sandbox/commercial-registration", false)]
+    [InlineData("ftp://api.wathq.sa/", false)]
+    [InlineData("not a url", false)]
+    [InlineData(null, true)]
+    public void Only_https_or_a_loopback_test_double_is_a_valid_base_address(string? baseUrl, bool valid)
+    {
+        new WathqOptions { BaseUrl = baseUrl }.HasValidBaseUrl.ShouldBe(valid);
+    }
+
+    [Fact]
+    public void The_web_host_refuses_a_plain_http_wathq_address_when_the_options_are_read()
+    {
+        var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
+        services.AddLogging();
+        services.AddVendorPortal(new Microsoft.Extensions.Configuration.ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Vendors:CrAuditKey"] = Convert.ToBase64String(new byte[32]),
+            ["Wathq:BaseUrl"] = "http://api.wathq.sa/sandbox/commercial-registration",
+            ["Wathq:ApiKey"] = Key,
+        }).Build());
+        using var provider = services.BuildServiceProvider();
+
+        var refused = Should.Throw<OptionsValidationException>(() => provider.GetRequiredService<IOptions<WathqOptions>>().Value);
+
+        refused.Message.ShouldContain("https");
+        refused.Message.ShouldNotContain(Key);
     }
 
     [Fact]

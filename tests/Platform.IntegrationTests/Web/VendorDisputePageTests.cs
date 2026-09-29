@@ -84,6 +84,39 @@ public sealed partial class VendorDisputePageTests(DatabaseFixture db)
         html.ShouldNotContain("Vendor.Dispute.", Case.Sensitive, "no raw resource key");
     }
 
+    [Fact]
+    public async Task Every_post_counts_toward_the_limit_and_the_sixth_in_fifteen_minutes_is_refused()
+    {
+        var crNumber = VendorRows.NewCrNumber();
+        await VendorRows.RegisterAsync(db.AppConnectionString, TestTenants.Acme, Guid.NewGuid().ToString(), crNumber, "Rate Limited Co", Ct);
+        var applicant = Applicant("en");
+        var other = Applicant("en");
+        await using var factory = Factory();
+        using var client = factory.CreateClient(new() { BaseAddress = new Uri("http://acme.localhost"), AllowAutoRedirect = false });
+        using var page = await client.SendAsync(new HttpRequestMessage(HttpMethod.Get, "/vendor/dispute").As(applicant), Ct);
+        var form = await page.Content.ReadAsStringAsync(Ct);
+
+        // Valid, invalid and repeated posts all count; reading the page does not.
+        var statuses = new List<HttpStatusCode>();
+        for (var i = 0; i < 6; i++)
+        {
+            using var response = await PostAsync(client, applicant, form, i % 2 == 0 ? crNumber : "12", "I am the owner.", accepted: true);
+            statuses.Add(response.StatusCode);
+        }
+
+        statuses.Take(5).ShouldAllBe(s => s == HttpStatusCode.OK);
+        statuses[5].ShouldBe(HttpStatusCode.TooManyRequests);
+        using (var again = await client.SendAsync(new HttpRequestMessage(HttpMethod.Get, "/vendor/dispute").As(applicant), Ct))
+        {
+            again.StatusCode.ShouldBe(HttpStatusCode.OK);
+        }
+
+        // Another person is not limited by the first one's posts.
+        using var otherPage = await client.SendAsync(new HttpRequestMessage(HttpMethod.Get, "/vendor/dispute").As(other), Ct);
+        using var otherPost = await PostAsync(client, other, await otherPage.Content.ReadAsStringAsync(Ct), crNumber, "I am the owner.", accepted: true);
+        otherPost.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
     private WebApplicationFactory<Program> Factory() =>
         new PlatformWebFactory(db.AppConnectionString).WithWebHostBuilder(builder =>
             builder.ConfigureTestServices(services => services.Replace(ServiceDescriptor.Scoped<IVendorAccounts>(_ => new FakeVendorAccounts()))));

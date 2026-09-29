@@ -57,14 +57,20 @@ public sealed record CrOwnershipLookup(CrLookupOutcome Outcome, IReadOnlyList<Cr
     public static CrOwnershipLookup Without(CrLookupOutcome outcome) => new(outcome, [], []);
 }
 
-/// <summary>The person who registered the company, as the identity provider knows them; null parts are unknown.</summary>
-public sealed record VendorRegistrant(string UserId, string? Name, string? Email);
+/// <summary>
+/// The person who registered the company, as the identity provider knows them; null parts are unknown. The name is
+/// self-declared at sign-up, never checked by anyone (ADR-0013 residual risk); <see cref="EmailVerified"/> says whether the
+/// identity provider verified the email.
+/// </summary>
+public sealed record VendorRegistrant(string UserId, string? Name, string? Email, bool EmailVerified = false);
 
 /// <summary>
 /// What an officer needs before a company's first approval (W-33). <see cref="Verified"/>: ownership was verified already,
 /// here or at another tenant (which one is never told), and the approval needs no check; <see cref="Registrant"/> and
-/// <see cref="Lookup"/> are then null. Otherwise the registering person and the lookup of the platform's method. A company
-/// with an open dispute (<see cref="Disputed"/>) is neither verified nor approved until WaslaBid closes it.
+/// <see cref="Lookup"/> are then null. Otherwise the registering person and the lookup of the platform's method; no
+/// lookup (null) when the company is held or has no current CR certificate, since the check could not pass anyway and a
+/// Wathq call is paid. <see cref="Disputed"/>: the company is held by a dispute (ADR-0013 decision 1): a verified company
+/// only by one a platform admin accepted for review, a company not verified yet by any pending claim.
 /// </summary>
 public sealed record OwnershipCheck(
     Guid CompanyId,
@@ -86,7 +92,20 @@ public sealed record OwnershipConfirmation(string? Note, bool BasedOnWathq, CrLo
 /// <summary>The platform's check method as the console shows it.</summary>
 public sealed record CrOwnershipSettings(CrOwnershipMethod Method, bool WathqConfigured, string? ChangedBy, DateTimeOffset ChangedAt);
 
-/// <summary>An open dispute as the platform console lists it.</summary>
+/// <summary>Where a dispute stands (ADR-0013 decision 1).</summary>
+public enum CrDisputeStatus
+{
+    /// <summary>Raised; holds nothing for a verified company until a platform admin accepts it for review.</summary>
+    Open,
+
+    /// <summary>Accepted for review by a platform admin: holds the company's approvals until it is closed.</summary>
+    UnderReview,
+}
+
+/// <summary>
+/// A pending dispute as the platform console lists it, with the company's current vendor admin as the identity provider
+/// knows them (null parts unknown; the name is self-declared).
+/// </summary>
 public sealed record CrDispute(
     Guid Id,
     Guid CompanyId,
@@ -100,7 +119,18 @@ public sealed record CrDispute(
     Guid RaisedOnTenant,
     DateTimeOffset RaisedAt,
     string? RegistrantUserId,
-    OwnershipVerificationMethod? OwnershipVerifiedBy);
+    OwnershipVerificationMethod? OwnershipVerifiedBy,
+    CrDisputeStatus Status = CrDisputeStatus.Open,
+    VendorRegistrant? Registrant = null);
+
+/// <summary>
+/// An upheld dispute whose identity provider update failed or was never recorded; the console offers a retry.
+/// <see cref="FailedSteps"/> names each step that failed last time (for example <c>organization:add:acme</c>, or
+/// <c>organization:remove:beta:{user id}</c>); empty when the outcome was never recorded.
+/// </summary>
+public sealed record CrDisputeIdentityProviderFailure(
+    Guid DisputeId, Guid CompanyId, string CrNumber, string CompanyNameAr, string CompanyNameEn, string ClaimantUserId,
+    string ClaimantName, IReadOnlyList<string> RemovedUserIds, DateTimeOffset UpheldAt, IReadOnlyList<string> FailedSteps);
 
 /// <summary>
 /// An upheld dispute: the company, its new vendor admin, the vendor users removed from it, and whether the identity
@@ -121,18 +151,44 @@ public interface ICrOwnershipAdministration
     /// <summary>Sets the method, audited as <c>vendor.ownership_method_changed</c>; returns the method before.</summary>
     Task<Result<CrOwnershipMethod>> SetMethodAsync(CrOwnershipMethod method, string actorId, CancellationToken cancellationToken = default);
 
-    /// <summary>The open disputes, oldest first.</summary>
+    /// <summary>The pending disputes (open and under review), oldest first, with the company's current vendor admin.</summary>
     Task<IReadOnlyList<CrDispute>> ListOpenDisputesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Upholds an open dispute after the admin checked the claimant against the CR certificate: the company moves to the
-    /// claimant as its vendor admin, its vendor users are removed, and its ownership is verified (method dispute),
-    /// audited as <c>vendor.dispute_upheld</c>. Then the identity provider: the claimant gets the realm role
-    /// <c>vendor</c>, the removed users lose it (a failure is logged and reported in the result).
+    /// Accepts an open dispute for review (ADR-0013 decision 1): from then on it holds the company's approvals by every
+    /// tenant until it is closed. Audited as <c>vendor.dispute_accepted</c>. <see cref="CrDisputeErrors.NotOpen"/> when it is
+    /// not open. Throws <see cref="InvalidOperationException"/> when the admin raised the dispute themselves.
+    /// </summary>
+    Task<Result<Guid>> AcceptForReviewAsync(Guid disputeId, string actorId, CancellationToken cancellationToken = default);
+
+    /// <summary>Upheld disputes whose identity provider update failed or was never recorded, oldest first.</summary>
+    Task<IReadOnlyList<CrDisputeIdentityProviderFailure>> ListIdentityProviderFailuresAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Repeats the identity provider update of an upheld dispute (the claimant's realm role <c>vendor</c> granted and
+    /// membership of every related tenant's organization added, the removed users' role and memberships taken back; every
+    /// step is idempotent), stores the outcome on the dispute and audits it as <c>vendor.dispute_identity_provider</c>.
+    /// True when every step succeeded.
+    /// </summary>
+    Task<bool> RetryIdentityProviderAsync(Guid disputeId, string actorId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Upholds a pending dispute after the admin checked the claimant against the CR certificate: the company moves to
+    /// the claimant as its vendor admin, its vendor users are removed, its ownership is verified (method dispute; the
+    /// verification it replaces stays on the dispute) and its other pending disputes close, audited as
+    /// <c>vendor.dispute_upheld</c>. Then the identity provider: the claimant gets the realm role <c>vendor</c>, the
+    /// removed users lose it, and in the organization of every tenant the company works with the claimant is added and the
+    /// removed users are taken out (W-21 no longer lets <c>/vendor/join</c> restore a membership, so this is how the
+    /// rightful owner gets access at once). The outcome of every step is stored on the dispute and audited as
+    /// <c>vendor.dispute_identity_provider</c>, and a failure stays listed in the console for a retry. Throws
+    /// <see cref="InvalidOperationException"/> when the admin raised the dispute themselves.
     /// </summary>
     Task<Result<CrDisputeUpheld>> UpholdAsync(Guid disputeId, string? note, string actorId, CancellationToken cancellationToken = default);
 
-    /// <summary>Rejects an open dispute; nothing else changes. Audited as <c>vendor.dispute_rejected</c>.</summary>
+    /// <summary>
+    /// Rejects a pending dispute; nothing else changes. Audited as <c>vendor.dispute_rejected</c>. Throws
+    /// <see cref="InvalidOperationException"/> when the admin raised the dispute themselves.
+    /// </summary>
     Task<Result<Guid>> RejectAsync(Guid disputeId, string? note, string actorId, CancellationToken cancellationToken = default);
 }
 
@@ -182,6 +238,9 @@ public static class CrDisputeErrors
     public const string NoCompany = "dispute.no_company";
     public const string AlreadyOpen = "dispute.already_open";
     public const string TooManyOpen = "dispute.too_many_open";
+
+    /// <summary>The company already has five pending disputes; WaslaBid reviews those first.</summary>
+    public const string CompanyLimit = "dispute.company_limit";
     public const string AlreadyVendor = "dispute.already_vendor";
     public const string StaffAccount = "dispute.staff_account";
     public const string NotOpen = "dispute.not_open";

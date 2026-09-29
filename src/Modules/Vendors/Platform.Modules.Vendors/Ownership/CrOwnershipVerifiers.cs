@@ -91,11 +91,14 @@ internal sealed partial class WathqCrOwnershipVerifier(
 
         var http = clients.CreateClient(HttpClientName);
         using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        // The path template only: the CR number is not logged (the client's own request log lines are removed).
+        Answered(logger, resource, (int)response.StatusCode);
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
             return null;
         }
 
+        // Anything else, a redirect included (never followed, L-6), is not the documented answer.
         if (response.StatusCode != HttpStatusCode.OK)
         {
             throw new WathqAnswerException($"{resource} answered {(int)response.StatusCode}");
@@ -134,6 +137,9 @@ internal sealed partial class WathqCrOwnershipVerifier(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The CR ownership check method is Wathq, but Wathq:BaseUrl or Wathq:ApiKey is not set; the officer checks by hand.")]
     private static partial void NotConfigured(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Wathq GET /{Resource}/:id answered {Status}.")]
+    private static partial void Answered(ILogger logger, string resource, int status);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Wathq did not answer the CR ownership lookup ({Reason}); the officer checks by hand.")]
     private static partial void Failed(ILogger logger, string reason);

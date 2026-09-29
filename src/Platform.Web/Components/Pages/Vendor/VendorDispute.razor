@@ -9,6 +9,7 @@
 @page "/vendor/dispute"
 @using System.Globalization
 @attribute [Authorize(Policy = VendorPolicies.VendorApplicant)]
+@attribute [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting(Platform.Web.Vendor.DisputeRateLimit.Policy)]
 @inject ICrDisputes Disputes
 @inject ITenantAccessor Tenants
 @inject IStringLocalizer<SharedResource> T
@@ -30,8 +31,8 @@
             <AntiforgeryToken />
             <TextField Label="@T["Vendor.Field.CrNumber"]" Help="@T["Vendor.Field.CrNumber.Help"]" Required="true" name="Input.CrNumber"
                        Value="@Input!.CrNumber" Error="@Message(CrDisputeErrors.InvalidCrNumber)" dir="ltr" inputmode="numeric" autocomplete="off" />
-            <TextField Label="@T["Vendor.Dispute.Statement"]" Help="@T["Vendor.Dispute.StatementHelp"]" Required="true" name="Input.Statement"
-                       Value="@Input.Statement" Error="@Message(CrDisputeErrors.StatementRequired)" maxlength="2000" autocomplete="off" />
+            <Textarea Label="@T["Vendor.Dispute.Statement"]" Help="@T["Vendor.Dispute.StatementHelp"]" Required="true" name="Input.Statement"
+                      Value="@Input.Statement" Error="@Message(CrDisputeErrors.StatementRequired)" maxlength="2000" Rows="5" />
 
             <section data-privacy-notice="@VendorPrivacyNotice.CurrentVersion" aria-labelledby="privacy-heading"
                      class="grid gap-3 rounded-card border border-line bg-surface p-4">
@@ -179,6 +180,7 @@
         CrDisputeErrors.NoCompany => T["Vendor.Dispute.Error.NoCompany"],
         CrDisputeErrors.AlreadyOpen => T["Vendor.Dispute.Error.AlreadyOpen"],
         CrDisputeErrors.TooManyOpen => T["Vendor.Dispute.Error.TooManyOpen"],
+        CrDisputeErrors.CompanyLimit => T["Vendor.Dispute.Error.CompanyLimit"],
         CrDisputeErrors.AlreadyVendor => T["Vendor.Dispute.Error.AlreadyVendor"],
         CrDisputeErrors.StaffAccount => T["Vendor.Register.Error.StaffAccount"],
         CrDisputeErrors.Limited => T["Vendor.Dispute.Error.Limited"],
@@ -189,6 +191,7 @@
     {
         "upheld" => StatusTone.Success,
         "rejected" => StatusTone.Danger,
+        "under_review" => StatusTone.Info,
         _ => StatusTone.Warning,
     };
 

@@ -421,7 +421,7 @@
   <data name="Admin.Vendors.Ownership.Lookup.NotFound" xml:space="preserve"><value>Wathq has no record of this commercial registration number. Check the certificate by hand, and take care: the number may be wrong.</value></data>
   <data name="Admin.Vendors.Ownership.Confirm" xml:space="preserve"><value>I checked that the certificate names this person, or that an authorisation backs them.</value></data>
   <data name="Admin.Vendors.Ownership.Note" xml:space="preserve"><value>What you checked</value></data>
-  <data name="Admin.Vendors.Ownership.NoteHelp" xml:space="preserve"><value>Up to 1,000 characters, kept with the verification. For example: the certificate names this person as the owner.</value></data>
+  <data name="Admin.Vendors.Ownership.NoteHelp" xml:space="preserve"><value>Up to 1,000 characters, kept with the verification. For example: the authorisation letter is signed by the owner named on the certificate. Do not write national ID or iqama numbers (personal data protection law).</value></data>
   <data name="Admin.Vendors.Ownership.Method.Manual" xml:space="preserve"><value>a check of the commercial registration certificate</value></data>
   <data name="Admin.Vendors.Ownership.Method.Wathq" xml:space="preserve"><value>a check against the commercial registry (Wathq)</value></data>
   <data name="Admin.Vendors.Ownership.Method.Dispute" xml:space="preserve"><value>a review by WaslaBid</value></data>
@@ -442,7 +442,7 @@
   <data name="Console.Ownership.Method.Save" xml:space="preserve"><value>Save method</value></data>
   <data name="Console.Ownership.Method.Saved" xml:space="preserve"><value>The method is now: {0}.</value></data>
   <data name="Console.Ownership.Disputes.Heading" xml:space="preserve"><value>Ownership disputes</value></data>
-  <data name="Console.Ownership.Disputes.Intro" xml:space="preserve"><value>Each request says that a company registered on WaslaBid belongs to someone else. Contact the claimant, check the commercial registration certificate and any authorisation, then uphold or reject the request.</value></data>
+  <data name="Console.Ownership.Disputes.Intro" xml:space="preserve"><value>Each request says that a company registered on WaslaBid belongs to someone else. A new request holds nothing until you accept it for review; from then on no organization can approve the company. Contact the claimant, check the commercial registration certificate and any authorisation, then uphold or reject the request.</value></data>
   <data name="Console.Ownership.Disputes.Company" xml:space="preserve"><value>Company</value></data>
   <data name="Console.Ownership.Disputes.Cr" xml:space="preserve"><value>Commercial registration</value></data>
   <data name="Console.Ownership.Disputes.Claimant" xml:space="preserve"><value>Claimant</value></data>
@@ -481,7 +481,7 @@
   <data name="Vendor.Dispute.Submit" xml:space="preserve"><value>Send request</value></data>
   <data name="Vendor.Dispute.Raised" xml:space="preserve"><value>Your request is recorded. WaslaBid will contact you at {0}.</value></data>
   <data name="Vendor.Dispute.Own.Heading" xml:space="preserve"><value>Your requests</value></data>
-  <data name="Vendor.Dispute.Status.open" xml:space="preserve"><value>Under review</value></data>
+  <data name="Vendor.Dispute.Status.open" xml:space="preserve"><value>Received</value></data>
   <data name="Vendor.Dispute.Status.upheld" xml:space="preserve"><value>Company moved to you</value></data>
   <data name="Vendor.Dispute.Status.rejected" xml:space="preserve"><value>Rejected</value></data>
   <data name="Vendor.Dispute.Error.Statement" xml:space="preserve"><value>Explain in up to 2,000 characters why the company is yours.</value></data>
@@ -491,4 +491,29 @@
   <data name="Vendor.Dispute.Error.AlreadyVendor" xml:space="preserve"><value>This account already belongs to a vendor company. Use a separate account for this request.</value></data>
   <data name="Vendor.Dispute.Error.Limited" xml:space="preserve"><value>Too many commercial registration numbers were tried from this account. Try again in an hour.</value></data>
   <data name="Vendor.Dispute.Error.Generic" xml:space="preserve"><value>The request could not be sent. Try again in a moment.</value></data>
+  <data name="Admin.Vendors.Ownership.SelfDeclared" xml:space="preserve"><value>(self-declared)</value></data>
+  <data name="Admin.Vendors.Ownership.EmailVerified" xml:space="preserve"><value>(email verified)</value></data>
+  <data name="Admin.Vendors.Ownership.EmailUnverified" xml:space="preserve"><value>(email not verified)</value></data>
+  <data name="Admin.Vendors.Ownership.Guidance" xml:space="preserve"><value>The name was typed by the person at sign-up and the certificate is public, so neither proves much alone. Before you confirm, ask for an authorisation letter signed by an owner or manager named on the certificate, or contact the company through its registered phone or address.</value></data>
+  <data name="Console.Ownership.Disputes.State" xml:space="preserve"><value>State</value></data>
+  <data name="Console.Ownership.Status.Open" xml:space="preserve"><value>New, not accepted yet</value></data>
+  <data name="Console.Ownership.Status.UnderReview" xml:space="preserve"><value>Accepted for review</value></data>
+  <data name="Console.Ownership.Accept" xml:space="preserve"><value>Accept for review</value></data>
+  <data name="Console.Ownership.AcceptTitle" xml:space="preserve"><value>Accept the request about {0} for review?</value></data>
+  <data name="Console.Ownership.AcceptConfirm" xml:space="preserve"><value>Accept for review</value></data>
+  <data name="Console.Ownership.AcceptBody" xml:space="preserve"><value>While the request is under review, no organization can approve this company, even if its ownership was verified. Accept it only when a first look shows the claim is serious.</value></data>
+  <data name="Console.Ownership.Accepted" xml:space="preserve"><value>The request about {0} is under review.</value></data>
+  <data name="Console.Ownership.Idp.Heading" xml:space="preserve"><value>Sign-in service not updated</value></data>
+  <data name="Console.Ownership.Idp.Intro" xml:space="preserve"><value>These disputes were upheld, but the sign-in service did not take every change. Until it does, the claimant may miss the vendor role or a tenant organization, or a removed user may keep them. Each retry repeats every step.</value></data>
+  <data name="Console.Ownership.Idp.Line" xml:space="preserve"><value>Moved to {0} on</value></data>
+  <data name="Console.Ownership.Idp.Retry" xml:space="preserve"><value>Try again</value></data>
+  <data name="Console.Ownership.Idp.Done" xml:space="preserve"><value>The sign-in service now has the change for {0}.</value></data>
+  <data name="Console.Ownership.Idp.StillFailing" xml:space="preserve"><value>The sign-in service still did not take the change. Try again later, or change it in Keycloak.</value></data>
+  <data name="Vendor.Dispute.Status.under_review" xml:space="preserve"><value>Under review by WaslaBid</value></data>
+  <data name="Vendor.Dispute.Error.CompanyLimit" xml:space="preserve"><value>WaslaBid is already reviewing several requests for this company. Try again later.</value></data>
+  <data name="Gallery.Sample.NoteLabel" xml:space="preserve"><value>What you checked</value></data>
+  <data name="Gallery.Sample.NoteHelp" xml:space="preserve"><value>Up to 1,000 characters.</value></data>
+  <data name="Gallery.Sample.Note" xml:space="preserve"><value>The authorisation letter is signed by the owner named on the certificate.</value></data>
+  <data name="Gallery.Sample.NoteError" xml:space="preserve"><value>Write what you checked, in up to 1,000 characters.</value></data>
+  <data name="Console.Ownership.Idp.FailedSteps" xml:space="preserve"><value>Failed steps:</value></data>
 </root>

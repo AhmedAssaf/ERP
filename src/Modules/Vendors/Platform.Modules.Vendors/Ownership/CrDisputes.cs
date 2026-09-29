@@ -93,6 +93,8 @@ internal sealed class CrDisputes(
                     CrDisputeErrors.StaffAccount, "This account belongs to a staff member. Use a separate account for your company."),
                 "ck_cr_disputes_open_limit" => Error.Refused(
                     CrDisputeErrors.TooManyOpen, "You have three open requests. Wait for WaslaBid to close one."),
+                "ck_cr_disputes_company_limit" => Error.Refused(
+                    CrDisputeErrors.CompanyLimit, "WaslaBid is already reviewing several requests for this company. Try again later."),
                 _ => throw new InvalidOperationException($"The dispute was refused under an unexpected rule ({ex.ConstraintName}).", ex),
             });
         }

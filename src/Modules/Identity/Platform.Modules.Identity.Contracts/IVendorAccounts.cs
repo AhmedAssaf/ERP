@@ -32,8 +32,11 @@ public interface IVendorAccounts
     /// </summary>
     Task<bool> AddToOrganizationAsync(string userId, string organizationAlias, CancellationToken cancellationToken = default);
 
-    /// <summary>Undoes what <paramref name="grant"/> added, and nothing else. Best effort: a step that fails is logged.</summary>
-    Task RevokeAsync(VendorAccessGrant grant, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Undoes what <paramref name="grant"/> added, and nothing else. Best effort: a step that fails is logged and the other
+    /// step still runs. True only when every step asked for succeeded.
+    /// </summary>
+    Task<bool> RevokeAsync(VendorAccessGrant grant, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// The account's name and email, which an officer compares with the CR certificate before a company's first approval

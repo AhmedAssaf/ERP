@@ -177,11 +177,14 @@ else
                             <span class="grid">
                                 @if (registrant.Name is not null)
                                 {
-                                    <span>@registrant.Name</span>
+                                    <span data-registrant-name>@registrant.Name <span class="text-ink-muted">@T["Admin.Vendors.Ownership.SelfDeclared"]</span></span>
                                 }
                                 @if (registrant.Email is not null)
                                 {
-                                    <bdi dir="ltr" class="text-start">@registrant.Email</bdi>
+                                    <span data-registrant-email="@(registrant.EmailVerified ? "verified" : "unverified")">
+                                        <bdi dir="ltr">@registrant.Email</bdi>
+                                        <span class="text-ink-muted">@(registrant.EmailVerified ? T["Admin.Vendors.Ownership.EmailVerified"] : T["Admin.Vendors.Ownership.EmailUnverified"])</span>
+                                    </span>
                                 }
                             </span>
                         }
@@ -221,12 +224,14 @@ else
                         }
                     </div>
                 }
+                @* ADR-0013 residual risk: the name is self-declared and the certificate is public, so the officer asks for more. *@
+                <p role="note" data-ownership-guidance class="text-small">@T["Admin.Vendors.Ownership.Guidance"]</p>
                 <label class="flex min-h-11 cursor-pointer items-center gap-3 text-body">
                     <input type="checkbox" class="size-5 shrink-0 accent-action" data-ownership-confirm @bind="_confirmed" />
                     @T["Admin.Vendors.Ownership.Confirm"]
                 </label>
-                <TextField Label="@T["Admin.Vendors.Ownership.Note"]" Help="@T["Admin.Vendors.Ownership.NoteHelp"]" Required="true"
-                           @bind-Value="_note" Error="@_noteError" data-ownership-note maxlength="1000" autocomplete="off" />
+                <Textarea Label="@T["Admin.Vendors.Ownership.Note"]" Help="@T["Admin.Vendors.Ownership.NoteHelp"]" Required="true" Rows="3"
+                          @bind-Value="_note" Error="@_noteError" data-ownership-note maxlength="1000" />
             </section>
         }
         <p>@T["Admin.Vendors.ApproveBody"]</p>

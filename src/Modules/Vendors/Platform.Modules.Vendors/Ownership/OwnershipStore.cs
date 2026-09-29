@@ -13,6 +13,14 @@ internal static class OwnershipStore
     /// <summary>Longest dispute statement (the database checks the same).</summary>
     public const int MaxStatementLength = 2000;
 
+    /// <summary>The identity provider's profile as the ownership check shows it: the name self-declared, the email with its state.</summary>
+    public static VendorRegistrant Registrant(string userId, Identity.Contracts.VendorAccountProfile? profile)
+    {
+        var name = string.Join(' ', new[] { profile?.FirstName, profile?.LastName }.Where(p => !string.IsNullOrWhiteSpace(p)).Select(p => p!.Trim()));
+        return new VendorRegistrant(
+            userId, name.Length == 0 ? null : name, string.IsNullOrWhiteSpace(profile?.Email) ? null : profile.Email, profile?.EmailVerified ?? false);
+    }
+
     public static async Task<SettingsRow> SettingsAsync(VendorsDbContext db, CancellationToken cancellationToken) =>
         await db.Database.SqlQuery<SettingsRow>($"select method, changed_by, changed_at from vendor.ownership_settings where id")
             .SingleAsync(cancellationToken);

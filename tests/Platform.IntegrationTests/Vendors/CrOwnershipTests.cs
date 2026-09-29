@@ -66,7 +66,7 @@ public sealed class CrOwnershipTests(DatabaseFixture db)
         check.Verified.ShouldBeFalse();
         check.HasCertificate.ShouldBeTrue();
         check.Disputed.ShouldBeFalse();
-        check.Registrant.ShouldBe(new VendorRegistrant(registrant, "Registered Person", "owner@manual-check.test"));
+        check.Registrant.ShouldBe(new VendorRegistrant(registrant, "Registered Person", "owner@manual-check.test", EmailVerified: true));
         check.Lookup.ShouldNotBeNull().Outcome.ShouldBe(CrLookupOutcome.Manual);
 
         var result = await directory.ApproveAsync(companyId, officer, new OwnershipConfirmation(Note, BasedOnWathq: false, CrLookupOutcome.Manual), Ct);

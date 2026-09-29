@@ -66,6 +66,8 @@ builder.Services.AddVendorsModule(platformDb);
 builder.Services.AddVendorPortal(builder.Configuration);
 // V-9: the upload API is limited per vendor company (Vendors:UploadRequestsPerMinute).
 builder.Services.AddVendorUploadRateLimit();
+// W-33: every post of /vendor/dispute counts, per person (DisputeRateLimit).
+builder.Services.AddVendorDisputeRateLimit();
 builder.Services.AddScoped<VendorContextResolver>();
 // The web host only enqueues and reads jobs (D-6): Hangfire storage without a server, plus the dashboard (task 7).
 builder.Services.AddJobClient(platformDb);

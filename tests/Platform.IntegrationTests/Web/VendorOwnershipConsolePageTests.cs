@@ -86,12 +86,74 @@ public sealed class VendorOwnershipConsolePageTests(DatabaseFixture db) : IDispo
         (await OwnershipRows.DisputeAsync(db.OwnerConnectionString, disputeId, Ct)).ShouldNotBeNull().Status.ShouldBe("upheld");
     }
 
+    [Fact]
+    public async Task Accepting_a_dispute_for_review_shows_it_under_review_and_a_failed_uphold_offers_a_retry()
+    {
+        var (companyId, disputeId, admin, accounts, host) = await DisputedAsync("Console Triage Co");
+        await using var owned = host;
+        await using var scope = host.PlatformScope(admin);
+        var page = Render(scope, admin);
+        page.Find($"[data-dispute-status='{disputeId}:open']");
+        page.Find($"[data-dispute-registrant='{disputeId}']").TextContent.ShouldContain("Squatting Person (self-declared)");
+
+        await page.Find($"[data-accept='{disputeId}']").ClickAsync(new());
+        await ConfirmAsync(page, "Accept for review");
+
+        page.WaitForAssertion(() => page.Find($"[data-dispute-status='{disputeId}:under_review']"));
+        page.FindAll($"[data-accept='{disputeId}']").ShouldBeEmpty();
+
+        // Keycloak refuses the claimant's role: the uphold stands and the console keeps a retry until it works.
+        accounts.OnGrantRole = _ => throw new IdentityProviderException("Keycloak did not grant the vendor role.", new HttpRequestException("forced"));
+        await page.Find($"[data-uphold='{disputeId}']").ClickAsync(new());
+        await page.Find("[data-resolution-note]").ChangeAsync(new() { Value = "Called the claimant and checked the certificate." });
+        await ConfirmAsync(page, "Move the company");
+        page.WaitForAssertion(() => page.Find($"[data-idp-failure='{disputeId}']"));
+
+        accounts.OnGrantRole = null;
+        await page.Find($"[data-idp-retry='{disputeId}']").ClickAsync(new());
+        page.WaitForAssertion(() => page.FindAll($"[data-idp-failure='{disputeId}']").ShouldBeEmpty());
+        (await OwnershipRows.VendorUsersAsync(db.OwnerConnectionString, companyId, Ct)).ShouldHaveSingleItem().Role.ShouldBe("vendor-admin");
+    }
+
+    [Fact]
+    public async Task The_console_page_renders_in_arabic_without_raw_keys()
+    {
+        var (_, disputeId, admin, _, host) = await DisputedAsync("Arabic Console Co");
+        await using var owned = host;
+        await using var scope = host.PlatformScope(admin);
+
+        var page = Render(scope, admin, "ar-SA");
+
+        var html = page.Markup;
+        html.ShouldContain("طريقة التحقق من الملكية");
+        html.ShouldContain("نزاعات الملكية");
+        page.Find($"[data-dispute-status='{disputeId}:open']").TextContent.ShouldContain("جديد، لم يُقبل بعد");
+        page.Find($"[data-accept='{disputeId}']").TextContent.ShouldContain("قبول للمراجعة");
+        html.ShouldNotContain("Console.Ownership.", Case.Sensitive, "no raw resource key");
+        html.ShouldNotContain("Admin.Vendors.", Case.Sensitive, "no raw resource key");
+    }
+
     public void Dispose() => _page.Dispose();
 
-    private IRenderedComponent<VendorOwnership> Render(AsyncServiceScope scope, string admin)
+    private async Task<(Guid CompanyId, Guid DisputeId, string Admin, FakeVendorAccounts Accounts, ModuleHost Host)> DisputedAsync(string nameEn)
     {
-        CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
-        CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("en-US");
+        var squatter = Guid.NewGuid().ToString();
+        var crNumber = VendorRows.NewCrNumber();
+        var companyId = await VendorRows.RegisterAsync(db.AppConnectionString, TestTenants.Acme, squatter, crNumber, nameEn, Ct);
+        var accounts = new FakeVendorAccounts();
+        accounts.Profiles[squatter] = new VendorAccountProfile("Squatting", "Person", "squatter@console.test", EmailVerified: true);
+        var host = new ModuleHost(db.AppConnectionString, configure: s => s.Replace(ServiceDescriptor.Scoped<IVendorAccounts>(_ => accounts)));
+        await using var claim = host.ScopeFor(TestTenants.Acme, actingUserId: Guid.NewGuid().ToString());
+        var disputeId = (await claim.ServiceProvider.GetRequiredService<ICrDisputes>().RaiseAsync(
+            new CrDisputeRequest(crNumber, "The certificate names me.", VendorPrivacyNotice.CurrentVersion, VendorPrivacyNotice.English),
+            "claimant@console.test", "Console Claimant", Ct)).Value;
+        return (companyId, disputeId, $"platform-admin-{Guid.NewGuid():N}", accounts, host);
+    }
+
+    private IRenderedComponent<VendorOwnership> Render(AsyncServiceScope scope, string admin, string culture = "en-US")
+    {
+        CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(culture);
+        CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(culture);
         _page.Services.AddLocalization(o => o.ResourcesPath = "Resources");
         _page.Services.AddPlatformUI();
         _page.Services.AddSingleton(scope.ServiceProvider.GetRequiredService<ICrOwnershipAdministration>());

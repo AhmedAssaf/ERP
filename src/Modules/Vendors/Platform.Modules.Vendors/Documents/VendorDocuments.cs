@@ -375,7 +375,7 @@ internal sealed partial class VendorDocuments(
             CancellationToken.None);
 
     private static Task<int> LockCompanyAsync(VendorsDbContext db, Guid companyId, CancellationToken cancellationToken) =>
-        db.Database.ExecuteSqlAsync($"select 1 from vendor.companies where id = {companyId} for update", cancellationToken);
+        CompanyLock.AcquireAsync(db, companyId, cancellationToken);
 
     private static Task<int> ReleaseCurrentAsync(VendorsDbContext db, Guid companyId, string type, CancellationToken cancellationToken) =>
         db.Database.ExecuteSqlAsync(
