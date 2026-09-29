@@ -32,7 +32,8 @@ internal static class AuthCookies
         return Protect(services, scheme, user, new AuthenticationProperties { IssuedUtc = now, ExpiresUtc = now.AddMinutes(30) });
     }
 
-    private static string Protect(IServiceProvider services, string scheme, ClaimsPrincipal user, AuthenticationProperties properties)
+    /// <summary>A cookie with the given ticket properties (tokens stored in it, say), protected as the scheme would.</summary>
+    public static string Protect(IServiceProvider services, string scheme, ClaimsPrincipal user, AuthenticationProperties properties)
     {
         var options = services.GetRequiredService<IOptionsMonitor<CookieAuthenticationOptions>>().Get(scheme);
         return options.TicketDataFormat.Protect(new AuthenticationTicket(user, properties, scheme));

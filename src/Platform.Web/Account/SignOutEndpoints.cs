@@ -32,12 +32,31 @@ internal static class SignOutEndpoints
     }
 
     /// <summary>
-    /// The handlers keep no id token (<c>SaveTokens = false</c>), so the end-session request names the client instead;
-    /// Keycloak needs one of the two to accept <c>post_logout_redirect_uri</c>, and then asks the user to confirm.
+    /// The end-session request always names the client. The tenant scheme also keeps the id token (<see cref="KeepIdToken"/>),
+    /// which the handler sends as <c>id_token_hint</c>, so Keycloak ends its session without asking; the platform scheme
+    /// keeps none, so Keycloak asks the platform admin to confirm.
     /// </summary>
     public static Task NameClientOnEndSession(RedirectContext context)
     {
         context.ProtocolMessage.ClientId = context.Options.ClientId;
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// The tenant scheme's token-validated event (W-21, QA D2): keeps the id token, and only the id token, in the sign-in's
+    /// properties, so the cookie carries it and the OpenID Connect handler's sign-out sends it as <c>id_token_hint</c>.
+    /// With the hint Keycloak ends its own session without asking, so a removed user who signs out is shown the sign-in
+    /// page next instead of being signed straight back in by that session. The access token is never stored.
+    /// </summary>
+    public static Task KeepIdToken(Microsoft.AspNetCore.Authentication.OpenIdConnect.TokenValidatedContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        if ((context.TokenEndpointResponse?.IdToken ?? context.ProtocolMessage?.IdToken) is { Length: > 0 } idToken
+            && context.Properties is { } properties)
+        {
+            properties.StoreTokens([new AuthenticationToken { Name = "id_token", Value = idToken }]);
+        }
+
         return Task.CompletedTask;
     }
 

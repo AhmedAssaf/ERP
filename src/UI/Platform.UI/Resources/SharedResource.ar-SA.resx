@@ -256,6 +256,9 @@
   <data name="Vendor.Privacy.Accept" xml:space="preserve"><value>قرأت إشعار الخصوصية وأوافق عليه.</value></data>
   <data name="Vendor.Home.Title" xml:space="preserve"><value>صفحة المورّد</value></data>
   <data name="AppShell.SupplierPortal" xml:space="preserve"><value>بوابة الموردين</value></data>
+  <data name="Account.AccessRemoved.Title" xml:space="preserve"><value>أُلغي الوصول</value></data>
+  <data name="Account.AccessRemoved.Body" xml:space="preserve"><value>أُلغي وصولك إلى {0}. تواصل مع مسؤول النظام لديك.</value></data>
+  <data name="Account.AccessRemoved.SignOut" xml:space="preserve"><value>تسجيل الخروج</value></data>
   <data name="FileUpload.Help" xml:space="preserve"><value>{0}، بحد أقصى {1} ميجابايت.</value></data>
   <data name="FileUpload.Expiry" xml:space="preserve"><value>تاريخ الانتهاء</value></data>
   <data name="FileUpload.ExpiryRequired" xml:space="preserve"><value>أدخل تاريخ انتهاء المستند.</value></data>

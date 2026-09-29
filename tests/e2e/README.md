@@ -65,12 +65,14 @@ for the two scenario scripts) to judge the result.
   own users through the Keycloak Admin API (the seeded admins are not touched): two tenant admins of acme hold
   `/admin/staff` open, one is removed from the acme organization and the other's account disabled at the same moment,
   and without touching the pages the script measures the seconds until each reloads into a new document, where it
-  lands, how many navigation requests the tab makes (more than 5 is a reload loop), that the session's original cookie
+  lands (the removed admin on the access-removed page, whose Sign out must end the Keycloak session and reach the
+  sign-in page; the disabled one on the sign-in page), how many navigation requests the tab makes (more than 5 is a reload loop), that the session's original cookie
   is challenged on a fresh request, and the `identity.session_revoked` row. A vendor registered on acme and joined to beta
   holds `/vendor` open on both hosts and is removed from acme: the acme tab must reload, `/vendor/join` must refuse it in
   Arabic (right to left) and English with no raw resource key while the membership stays absent
   (`vendor.membership_restore_refused`), and the beta tab must keep its circuit. A control tenant admin with no page
-  open is removed afterwards and navigates afresh every 10 seconds. Access is then restored, both admins sign in again,
+  open is removed afterwards and navigates afresh every 10 seconds, and must land on the access-removed page and sign
+  out from it to the sign-in page. Access is then restored, both admins sign in again,
   the throwaway staff users are deleted and the vendor is put back in acme. Needs the Admin API credentials
   (`KEYCLOAK_ADMIN`, `KEYCLOAK_ADMIN_PASSWORD`) in `.env` and the `erp-postgres` container (member rows and audit reads
   as the Compose user). Screenshots in `shots-revalidation/`, results in `revalidation-results.json`. Run with

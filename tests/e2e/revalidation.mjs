@@ -4,13 +4,18 @@
 //
 //   1. A tenant admin of acme has /admin/staff open (interactive, circuit over a WebSocket). The script removes the user
 //      from the acme organization through the Keycloak Admin API and, touching nothing in the page, measures the seconds
-//      until the page reloads by itself and where it lands; then replays the session's original cookie on a fresh request
-//      (must be challenged, 302 to Keycloak), navigates a fresh tab, and reads the audit row. The ended circuit must reload
-//      once: more than a handful of navigation requests from the tab is a reload loop.
-//   2. The same for a second tenant admin whose account is disabled instead.
+//      until the page reloads by itself and where it lands: Keycloak's live session signs the user straight back in without
+//      the organization, so it must land on the access-removed page (a 403 whose body says the access to the tenant was
+//      removed, QA D2), whose Sign out must end the Keycloak session too and reach the Keycloak sign-in page. Then it replays
+//      the session's original cookie on a fresh request (must be challenged, 302 to Keycloak), navigates a fresh tab, and
+//      reads the audit row. The ended circuit must reload once: more than a handful of navigation requests from the tab is a
+//      reload loop (QA D1).
+//   2. The same for a second tenant admin whose account is disabled instead; Keycloak refuses a disabled account's session,
+//      so this one lands on the Keycloak sign-in page.
 //   Control for 1: a third tenant admin signed in with the others and closed its tab (no circuit); it is removed once the
 //      scenarios above are done and navigates afresh every 10 seconds, which isolates the HTTP path (timing, and where a
-//      removed user with a live Keycloak session lands) from anything an open circuit does.
+//      removed user with a live Keycloak session lands: the access-removed page, then Sign out to the sign-in page) from
+//      anything an open circuit does.
 //   3. A vendor working with acme and beta has /vendor open on both hosts; it is removed from the acme organization. The
 //      acme tab reloads by itself; /vendor/join on acme then refuses to put it back, in Arabic (right to left) and in
 //      English, with no raw resource key on the page, the membership stays absent, and the refusal is audited.
@@ -129,13 +134,28 @@ async function waitForCircuit(page, p) {
 const marker = page => page.evaluate(() => window.__w21 ?? 'absent').catch(() => 'unavailable');
 const visible = async (page, sel) => { try { const e = await page.$(sel); return e ? await e.isVisible() : false; } catch { return false; } };
 const onKeycloakSignIn = async page => page.url().startsWith(`${KC}/realms/${REALM}/`) && (await visible(page, '#username') || await visible(page, '#password'));
+const onAccessRemoved = async page => page.url().startsWith(ACME) && await visible(page, '[data-access-removed]');
+
+// The access-removed page's Sign out: the local cookie and the Keycloak session end, so Keycloak's sign-in page shows
+// (not the page again, which a still-live Keycloak session would bring back).
+async function signOutFromAccessRemoved(page) {
+  const t = Date.now();
+  const text = await page.locator('[data-access-removed]').innerText().catch(() => null);
+  const lang = await page.getAttribute('html', 'lang').catch(() => null);
+  const dir = await page.getAttribute('html', 'dir').catch(() => null);
+  await page.click('[data-access-removed-sign-out] button[type=submit]');
+  let signIn = false;
+  for (let i = 0; i < 30 && !signIn; i++) { await sleep(1000); signIn = await onKeycloakSignIn(page); }
+  return { text, lang, dir, signInPage: signIn, afterS: secs(Date.now() - t), url: page.url().split('?')[0] };
+}
 
 // Watches a page nobody touches after t0 until it shows Keycloak's sign-in form, or a new document committed and the
 // page has been quiet for 5 seconds elsewhere, or WATCH_S passes.
 async function watchUntouched(page, p, t0) {
-  let signInAt = null; let newDocumentAt = null;
+  let signInAt = null; let newDocumentAt = null; let accessRemovedAt = null;
   while (Date.now() - t0 < WATCH_S * 1000) {
     if (await onKeycloakSignIn(page)) { signInAt = Date.now(); newDocumentAt ??= signInAt; break; }
+    if (accessRemovedAt === null && await onAccessRemoved(page)) { accessRemovedAt = Date.now(); newDocumentAt ??= accessRemovedAt; }
     if (newDocumentAt === null && await marker(page) === 'absent') newDocumentAt = Date.now();
     const lastActivity = Math.max(0, ...p.docRequests.filter(r => r.t > t0).map(r => r.t), ...p.docs.filter(d => d.t > t0).map(d => d.t));
     if (newDocumentAt !== null && Date.now() - lastActivity > 5000 && !page.url().startsWith(KC)) break;
@@ -149,6 +169,7 @@ async function watchUntouched(page, p, t0) {
     reloadedAfterS: newDocumentAt ? secs(newDocumentAt - t0) : null,
     firstReloadRequestAfterS: requests[0] ? secs(requests[0].t - t0) : null,
     signInPageAfterS: signInAt ? secs(signInAt - t0) : null,
+    accessRemovedPageAfterS: accessRemovedAt ? secs(accessRemovedAt - t0) : null,
     watchedS: secs(Date.now() - t0),
     landedUrl: page.url().split('?')[0],
     landedStatus: lastDoc?.status ?? null,
@@ -268,16 +289,26 @@ async function vendorSetup(browser) {
 }
 
 // ---- Checks after a staff removal ----
-async function staffAfter(s, t0, reason) {
+async function staffAfter(s, t0, reason, lands) {
   const seen = await watchUntouched(s.page, s.p, t0);
   await shot(s.page, `${s.label}-02-after`);
   rec(`${s.label}: the open /admin/staff page reloads by itself within ${LIMIT_S}s (a new document)`,
     seen.reloadedAfterS !== null && seen.reloadedAfterS <= LIMIT_S, seen);
-  rec(`${s.label}: the reloaded page shows the Keycloak sign-in page`, seen.signInPageAfterS !== null && seen.signInPageAfterS <= LIMIT_S,
-    { signInPageAfterS: seen.signInPageAfterS, landedUrl: seen.landedUrl, landedStatus: seen.landedStatus });
   rec(`${s.label}: the ended circuit reloads once, not repeatedly (at most ${MAX_RELOAD_REQUESTS} navigation requests)`,
     seen.navigationRequests <= MAX_RELOAD_REQUESTS,
     { navigationRequests: seen.navigationRequests, failed: seen.navigationRequestsFailed, failureReasons: seen.failureReasons, watchedS: seen.watchedS });
+  if (lands === 'access-removed') {
+    rec(`${s.label}: the reloaded page is the access-removed page (403) within ${LIMIT_S}s`,
+      seen.accessRemovedPageAfterS !== null && seen.accessRemovedPageAfterS <= LIMIT_S && seen.landedStatus === 403,
+      { accessRemovedPageAfterS: seen.accessRemovedPageAfterS, landedUrl: seen.landedUrl, landedStatus: seen.landedStatus });
+    const out = await signOutFromAccessRemoved(s.page);
+    await shot(s.page, `${s.label}-02b-signed-out`);
+    rec(`${s.label}: Sign out on the access-removed page ends the Keycloak session and shows the Keycloak sign-in page`,
+      out.signInPage && /^ar/.test(out.lang ?? '') === (out.dir === 'rtl') && !!out.text, out);
+  } else {
+    rec(`${s.label}: the reloaded page shows the Keycloak sign-in page`, seen.signInPageAfterS !== null && seen.signInPageAfterS <= LIMIT_S,
+      { signInPageAfterS: seen.signInPageAfterS, landedUrl: seen.landedUrl, landedStatus: seen.landedStatus });
+  }
   const replayed = await replay(s.api, `${ACME}/admin/staff`, s.cookie);
   rec(`${s.label}: the session's original cookie on a fresh request is challenged (302 to Keycloak)`,
     replayed.status === 302 && replayed.location.startsWith(`${KC}/realms/${REALM}/protocol/openid-connect/auth`), replayed);
@@ -309,14 +340,19 @@ async function httpAfter(s, t0) {
     // A navigation that failed proves nothing either way: note it and try again.
     if (gotoError) { inconclusive.push({ afterS: secs(Date.now() - t0), gotoError }); await page.close(); await sleep(10000); continue; }
     if (await page.locator('[data-member]').count() === 0) {
-      seen = { afterS: secs(Date.now() - t0), attempts, inconclusive, url: page.url().split('?')[0], statuses: pp.docs.map(d => `${d.status} ${d.url.split('?')[0]}`), keycloakSignIn: await onKeycloakSignIn(page) };
-      await shot(page, `${s.label}-02-challenged`); await page.close(); break;
+      seen = { afterS: secs(Date.now() - t0), attempts, inconclusive, url: page.url().split('?')[0], statuses: pp.docs.map(d => `${d.status} ${d.url.split('?')[0]}`), accessRemoved: await onAccessRemoved(page), keycloakSignIn: await onKeycloakSignIn(page) };
+      await shot(page, `${s.label}-02-challenged`);
+      if (seen.accessRemoved) { seen.signOut = await signOutFromAccessRemoved(page); await shot(page, `${s.label}-02b-signed-out`); }
+      await page.close(); break;
     }
     await page.close(); await sleep(10000);
   }
   rec(`${s.label}: with no page open, a fresh navigation to /admin/staff is challenged within ${LIMIT_S}s`,
     !!seen && seen.afterS <= LIMIT_S && seen.statuses.some(x => x === `302 ${ACME}/admin/staff`), seen);
-  rec(`${s.label}: the challenged navigation shows the Keycloak sign-in page`, seen?.keycloakSignIn === true, seen);
+  rec(`${s.label}: the challenged navigation lands on the access-removed page (403)`,
+    seen?.accessRemoved === true && seen.statuses.at(-1) === `403 ${ACME}/admin/staff`, seen);
+  rec(`${s.label}: Sign out on the access-removed page ends the Keycloak session and shows the Keycloak sign-in page`,
+    seen?.signOut?.signInPage === true, seen?.signOut ?? null);
   const rows = await auditRowsSoon(ACME_ID, 'identity.session_revoked', `subject_id = ${q(s.uid)}`);
   rec(`${s.label}: one identity.session_revoked row in acme's audit log naming the user, reason removed_from_organization`,
     rows.length === 1 && rows[0].actor === s.uid && rows[0].data.reason === 'removed_from_organization' && rows[0].data.session === 'staff', { tenant: 'acme', rows });
@@ -360,8 +396,8 @@ try {
     stillMember: { staffRemoved: await isMember('acme', staffRemoved.uid), vendor: await isMember('acme', vendor.uid) }, disabledEnabled: await userEnabled(staffDisabled.uid) });
 
   const [, , vendorSeen] = await Promise.all([
-    staffAfter(staffRemoved, t0, 'removed_from_organization'),
-    staffAfter(staffDisabled, t0, 'account_disabled'),
+    staffAfter(staffRemoved, t0, 'removed_from_organization', 'access-removed'),
+    staffAfter(staffDisabled, t0, 'account_disabled', 'sign-in'),
     watchUntouched(vendor.acmePage, vendor.pa, t0),
   ]);
 

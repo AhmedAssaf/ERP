@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Routing;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -126,8 +127,10 @@ public sealed class CircuitRevalidationTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task An_ended_circuit_runs_no_further_event_and_sends_the_browser_to_sign_in_again()
+    public async Task An_ended_circuit_reloads_once_however_many_inbound_activities_follow_and_runs_none_of_them()
     {
+        // QA D1: the browser's reply to the reload's JavaScript call is itself inbound activity; answering every inbound
+        // activity with another reload made a real tab reload thousands of times. One reload per circuit, then refuse.
         var navigation = new RecordingNavigationManager("https://acme.localhost/", "https://acme.localhost/vendor/consent");
         var guard = Guard(navigation);
         var context = new QueueSynchronizationContext();
@@ -141,11 +144,53 @@ public sealed class CircuitRevalidationTests(DatabaseFixture db)
 
         await inbound(null!);
         guard.End();
-        await inbound(null!);
-        context.RunPending();
+        guard.End();
+        for (var i = 0; i < 50; i++)
+        {
+            await inbound(null!);
+            context.RunPending();
+        }
 
-        runs.ShouldBe(1);
-        navigation.Navigations.ShouldBe([("https://acme.localhost/vendor/consent", true), ("https://acme.localhost/vendor/consent", true)]);
+        runs.ShouldBe(1, "only the activity before the end ran");
+        navigation.Navigations.ShouldBe([("https://acme.localhost/vendor/consent", true)]);
+    }
+
+    [Fact]
+    public async Task An_ended_circuit_still_connected_after_the_reload_is_disconnected()
+    {
+        // A client that ignores the reload keeps its connection; the guard drops it instead of reloading again.
+        var connection = new DefaultHttpContext();
+        var lifetime = new RecordingLifetime();
+        connection.Features.Set<IHttpRequestLifetimeFeature>(lifetime);
+        var navigation = new RecordingNavigationManager("https://acme.localhost/", "https://acme.localhost/admin/staff");
+        var guard = new CircuitSessionGuard(
+            navigation, new HttpContextAccessor { HttpContext = connection }, NullLogger<CircuitSessionGuard>.Instance, TimeSpan.FromMilliseconds(50));
+        await OpenOnAsync(new QueueSynchronizationContext(), guard);
+        await guard.OnConnectionUpAsync(null!, Ct);
+
+        guard.End();
+
+        await lifetime.Aborted.WaitAsync(TimeSpan.FromSeconds(10), Ct);
+        CircuitSessionGuard.DisconnectAfter.ShouldBeLessThanOrEqualTo(TimeSpan.FromSeconds(15));
+    }
+
+    [Fact]
+    public async Task An_ended_circuit_whose_browser_left_after_the_reload_is_not_disconnected()
+    {
+        var connection = new DefaultHttpContext();
+        var lifetime = new RecordingLifetime();
+        connection.Features.Set<IHttpRequestLifetimeFeature>(lifetime);
+        var navigation = new RecordingNavigationManager("https://acme.localhost/", "https://acme.localhost/admin/staff");
+        var guard = new CircuitSessionGuard(
+            navigation, new HttpContextAccessor { HttpContext = connection }, NullLogger<CircuitSessionGuard>.Instance, TimeSpan.FromMilliseconds(200));
+        await OpenOnAsync(new QueueSynchronizationContext(), guard);
+        await guard.OnConnectionUpAsync(null!, Ct);
+
+        guard.End();
+        await guard.OnConnectionDownAsync(null!, Ct);
+        await Task.Delay(TimeSpan.FromMilliseconds(600), Ct);
+
+        lifetime.Aborted.IsCompleted.ShouldBeFalse();
     }
 
     [Fact]
@@ -278,6 +323,17 @@ public sealed class CircuitRevalidationTests(DatabaseFixture db)
         {
             SynchronizationContext.SetSynchronizationContext(previous);
         }
+    }
+
+    private sealed class RecordingLifetime : IHttpRequestLifetimeFeature
+    {
+        private readonly TaskCompletionSource _aborted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public Task Aborted => _aborted.Task;
+
+        public CancellationToken RequestAborted { get; set; }
+
+        public void Abort() => _aborted.TrySetResult();
     }
 
     private sealed class ResultFeature(AuthenticateResult result) : IAuthenticateResultFeature
