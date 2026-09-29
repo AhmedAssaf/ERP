@@ -185,6 +185,10 @@ sequenceDiagram
     GW->>API: Forward (TLS terminated)
     API->>KC: Validate token signature and expiry
     API->>API: Assert token.org == host tenant, else 403
+    loop Each request, and every minute in an open Blazor circuit (W-21)
+        API->>KC: Still an enabled member of org customer? (Admin API, answer reused 2 min)
+        Note over API: Removed or disabled: session ends, sign-in page, audited identity.session_revoked
+    end
     Note over API: Deliberate exception: /vendor/join (JoiningVendor policy) skips the org check,<br/>since a signed-in vendor not yet in this tenant joins it there (realm role vendor still required)
     API->>DB: SET app.tenant_id = customer
     alt Staff
