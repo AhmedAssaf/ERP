@@ -103,7 +103,7 @@ else
                         }
                         @if (context.OverCap)
                         {
-                            @* Never refused for the cap (the real owner might be the sixth): listed after the others, with the count. *@
+                            @* Never refused for the cap (the real owner might be the sixth): badged while five older ones of the company are pending. *@
                             <StatusBadge Tone="StatusTone.Neutral" data-over-cap="@($"{context.Id}:{context.CompanyPending}")">@T["Console.Ownership.OverCap", context.CompanyPending]</StatusBadge>
                         }
                     </span>

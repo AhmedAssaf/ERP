@@ -104,9 +104,10 @@ public enum CrDisputeStatus
 
 /// <summary>
 /// A pending dispute as the platform console lists it, with the company's current vendor admin as the identity provider
-/// knows them (null parts unknown; the name is self-declared). <see cref="OverCap"/>: raised while the company already
-/// had five or more pending disputes; never refused for that (the real owner might be the sixth), only listed after the
-/// others, with <see cref="CompanyPending"/>, the company's pending disputes now.
+/// knows them (null parts unknown; the name is self-declared). The console lists disputes grouped by company (the company
+/// with the oldest pending dispute first), oldest first within it. <see cref="OverCap"/>: five older disputes of the
+/// company are still pending now (worked out when listing, so it clears once those close); such a dispute is never
+/// refused (the real owner might be the sixth). <see cref="CompanyPending"/>: the company's pending disputes now.
 /// </summary>
 public sealed record CrDispute(
     Guid Id,

@@ -7,7 +7,7 @@ namespace Platform.Web.Vendor;
 /// <summary>
 /// W-33, ADR-0013 decision 1: every post of <c>/vendor/dispute</c> counts, whatever it asks, per signed-in person (their
 /// <c>sub</c>) or, without one, per client address: <see cref="PermitLimit"/> posts in <see cref="Window"/>, then 429.
-/// Reading the page is not limited. The database's limits (three pending disputes per person, five per company) and the
+/// Reading the page is not limited. The database's limit (three pending disputes per person; a company's count never refuses one) and the
 /// duplicate-CR limit stay as they are; this only slows down someone who posts in a loop.
 /// </summary>
 internal static class DisputeRateLimit

@@ -15,7 +15,7 @@ namespace Platform.IntegrationTests.Vendors;
 /// <summary>
 /// W-33 after review and pentest (ADR-0013 decision 1 and the reviewer's items): a dispute holds a verified company's
 /// approvals only once a platform admin accepted it for review, and then the database itself refuses the approval; a
-/// company has at most five pending disputes; competing upholds leave one vendor admin and the earlier verification stays
+/// company's dispute beyond five pending ones is recorded and badged, never refused; competing upholds leave one vendor admin and the earlier verification stays
 /// on the dispute; an identity provider failure after an uphold is stored, listed and retried; an unchanged method is not
 /// audited; no paid Wathq call is made when the check cannot pass; and the platform admins hear of new disputes once.
 /// </summary>
@@ -106,25 +106,66 @@ public sealed class CrDisputeTriageTests(DatabaseFixture db)
         await OwnershipRows.VerifyAsOwnerAsync(db.OwnerConnectionString, companyId, TestTenants.Acme.TenantId, Ct);
         var admin = $"platform-admin-{Guid.NewGuid():N}";
         await using var host = Host(new FakeVendorAccounts());
+        var fakes = new List<Guid>();
         for (var i = 0; i < 5; i++)
         {
-            await RaiseAsync(host, Guid.NewGuid().ToString(), crNumber);
+            fakes.Add(await RaiseAsync(host, Guid.NewGuid().ToString(), crNumber));
         }
 
         var realOwner = await RaiseAsync(host, Guid.NewGuid().ToString(), crNumber, email: "real.owner@example.test");
+        // Another company's dispute raised after all of them, to see where each company's group sits.
+        var (_, _, laterCr) = await VendorAsync("Later Claim Co");
+        var later = await RaiseAsync(host, Guid.NewGuid().ToString(), laterCr);
 
         await using var scope = host.PlatformScope(admin);
         var administration = scope.ServiceProvider.GetRequiredService<ICrOwnershipAdministration>();
-        var listed = (await administration.ListOpenDisputesAsync(Ct)).Where(d => d.CompanyId == companyId).ToList();
-        listed.Count.ShouldBe(6);
-        var flagged = listed.Single(d => d.Id == realOwner);
-        (flagged.OverCap, flagged.CompanyPending).ShouldBe((true, 6));
-        listed.Where(d => d.Id != realOwner).ShouldAllBe(d => !d.OverCap);
-        // Listed after the ones within the cap.
-        listed[^1].Id.ShouldBe(realOwner);
+        var all = await administration.ListOpenDisputesAsync(Ct);
+        var company = all.Where(d => d.CompanyId == companyId).ToList();
+        company.Select(d => d.Id).ShouldBe([.. fakes, realOwner]);
+        // Listed together with the company's other disputes, oldest first, and badged while five older ones are pending.
+        var index = all.ToList().FindIndex(d => d.Id == realOwner);
+        all.Skip(index - 5).Take(6).Select(d => d.Id).ShouldBe([.. fakes, realOwner]);
+        (company[^1].OverCap, company[^1].CompanyPending).ShouldBe((true, 6));
+        company.Take(5).ShouldAllBe(d => !d.OverCap);
+        ListedInCompanyGroups(all);
+
+        // The throwaway disputes are rejected: the real owner's dispute is no longer badged and sits in its company's
+        // normal place, before the later company's dispute.
+        foreach (var fake in fakes)
+        {
+            (await administration.RejectAsync(fake, "No evidence of ownership.", admin, Ct)).IsSuccess.ShouldBeTrue();
+        }
+
+        all = await administration.ListOpenDisputesAsync(Ct);
+        var alone = all.Single(d => d.Id == realOwner);
+        (alone.OverCap, alone.CompanyPending).ShouldBe((false, 1));
+        all.ToList().FindIndex(d => d.Id == realOwner).ShouldBeLessThan(all.ToList().FindIndex(d => d.Id == later));
+        ListedInCompanyGroups(all);
 
         (await administration.AcceptForReviewAsync(realOwner, admin, Ct)).IsSuccess.ShouldBeTrue();
         (await OwnershipRows.DisputeAsync(db.OwnerConnectionString, realOwner, Ct)).ShouldNotBeNull().Status.ShouldBe("under_review");
+    }
+
+    /// <summary>Each company's disputes are contiguous, oldest first, and the groups follow their oldest dispute.</summary>
+    private static void ListedInCompanyGroups(IReadOnlyList<CrDispute> all)
+    {
+        var groups = new List<Guid>();
+        foreach (var dispute in all)
+        {
+            if (groups.Count == 0 || groups[^1] != dispute.CompanyId)
+            {
+                groups.Contains(dispute.CompanyId).ShouldBeFalse("a company's disputes are listed together");
+                groups.Add(dispute.CompanyId);
+            }
+        }
+
+        var firsts = groups.Select(g => all.Where(d => d.CompanyId == g).Min(d => d.RaisedAt)).ToList();
+        firsts.ShouldBe(firsts.Order().ToList());
+        foreach (var group in groups)
+        {
+            var times = all.Where(d => d.CompanyId == group).Select(d => d.RaisedAt).ToList();
+            times.ShouldBe(times.Order().ToList());
+        }
     }
 
     [Fact]
