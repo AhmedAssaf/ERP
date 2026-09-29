@@ -14,6 +14,8 @@ for the two scenario scripts) to judge the result.
    describe deleting and reimporting the `waslabid` and `waslabid-platform` realms, then running the migrator with
    `--seed-dev`. Do this once per stack reset, not before every run.
 3. `infra/compose/.env` populated (`WASLABID_DEV_USER_PASSWORD` at least; `check.mjs` also reads this file directly).
+   In a git worktree, which starts without the git-ignored `.env`, set `E2E_ENV_FILE` to the full path of the one in
+   use (for example the main checkout's) rather than copying it.
 4. The web host and worker running against that stack (`dotnet run` in `src/Platform.Web` and `src/Platform.Worker`,
    or however you normally start them for manual testing).
 5. From this folder: `npm install`.
@@ -59,6 +61,20 @@ for the two scenario scripts) to judge the result.
   "Vendor slice"), the migrator's `--seed-dev` (the test recipient) and both the web host and the worker. The vendor's
   generated password and the two PDFs live in `.state/`; screenshots in `shots-vendor/`; results in
   `vendor-results.json`. Run with `node vendor.mjs` (about two minutes).
+- **`revalidation.mjs`** — W-21 through Caddy with real SignalR circuits (docs/09 W-21, docs/03 diagram 5). Creates its
+  own users through the Keycloak Admin API (the seeded admins are not touched): two tenant admins of acme hold
+  `/admin/staff` open, one is removed from the acme organization and the other's account disabled at the same moment,
+  and without touching the pages the script measures the seconds until each reloads into a new document, where it
+  lands, how many navigation requests the tab makes (more than 5 is a reload loop), that the session's original cookie
+  is challenged on a fresh request, and the `identity.session_revoked` row. A vendor registered on acme and joined to beta
+  holds `/vendor` open on both hosts and is removed from acme: the acme tab must reload, `/vendor/join` must refuse it in
+  Arabic (right to left) and English with no raw resource key while the membership stays absent
+  (`vendor.membership_restore_refused`), and the beta tab must keep its circuit. A control tenant admin with no page
+  open is removed afterwards and navigates afresh every 10 seconds. Access is then restored, both admins sign in again,
+  the throwaway staff users are deleted and the vendor is put back in acme. Needs the Admin API credentials
+  (`KEYCLOAK_ADMIN`, `KEYCLOAK_ADMIN_PASSWORD`) in `.env` and the `erp-postgres` container (member rows and audit reads
+  as the Compose user). Screenshots in `shots-revalidation/`, results in `revalidation-results.json`. Run with
+  `node revalidation.mjs` (about ten minutes); it exits non-zero when a step fails.
 - **`check.mjs`** — a smaller foundation smoke check: Arabic and RTL rendering on the tenant home page, the language
   switch changing `<html lang>` without a full reload, and that a `beta.admin` token is refused on the `acme` host
   (tenant isolation). Takes the `.env` path and a screenshot output directory as arguments, since it predates the
