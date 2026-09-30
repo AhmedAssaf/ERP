@@ -35,7 +35,7 @@ import fs from 'fs';
 import path from 'path';
 import { execFileSync } from 'child_process';
 import { request } from 'playwright';
-import { launch, newPage, driveKeycloak, envValue, loadState, saveState, sleep, DIR } from './lib.mjs';
+import { launch, newPage, driveKeycloak, envValue, loadState, saveState, sleep, DIR, trackNavigations, waitPastSignOutForm } from './lib.mjs';
 
 const ACME = 'https://acme.localhost:8443';
 const BETA = 'https://beta.localhost:8443';
@@ -94,9 +94,11 @@ const userEnabled = async uid => (await (await kcOk('GET', `/users/${uid}`)).jso
 const userIdByEmail = async email => (await (await kcOk('GET', `/users?email=${encodeURIComponent(email)}&exact=true`)).json())[0]?.id;
 
 // ---- PostgreSQL as the Compose superuser (test data and audit reads only) ----
+// E2E_DB names another database on the same server, for a branch run against a database of its own.
+const DB = process.env.E2E_DB || 'platform';
 const q = s => `'${String(s).replace(/'/g, "''")}'`;
 function sql(query) {
-  return execFileSync('docker', ['exec', '-i', '-e', 'PGCLIENTENCODING=UTF8', 'erp-postgres', 'psql', '-U', 'erp', '-d', 'platform', '-v', 'ON_ERROR_STOP=1', '-q', '-A', '-t', '-F', '\t'],
+  return execFileSync('docker', ['exec', '-i', '-e', 'PGCLIENTENCODING=UTF8', 'erp-postgres', 'psql', '-U', 'erp', '-d', DB, '-v', 'ON_ERROR_STOP=1', '-q', '-A', '-t', '-F', '\t'],
     { input: query, encoding: 'utf8' }).trim();
 }
 const tenantId = slug => sql(`select id from tenancy.tenants where slug = ${q(slug)};`);
@@ -114,7 +116,11 @@ async function auditRowsSoon(tenant, action, where, atLeast = 1) {
 // Blazor's forced reload of the current URL first rewrites the address with history.replaceState (a same-document
 // navigation, which fires framenavigated) and then calls location.replace, so a reload is only proven by the marker
 // being gone from a newly committed document, not by framenavigated alone.
+// Every page the script drives is tracked, so the sign-outs of the run can be checked for id_token_hint in a URL.
+const tracked = [];
+const track = page => { const t = trackNavigations(page); tracked.push(t); return t; };
 function instrument(page) {
+  track(page);
   const p = { navs: [], docs: [], docRequests: [], docFailed: [], sockets: [] };
   const mainNav = r => r.isNavigationRequest() && r.frame() === page.mainFrame();
   page.on('framenavigated', f => { if (f === page.mainFrame()) p.navs.push({ t: Date.now(), url: f.url() }); });
@@ -185,8 +191,10 @@ async function watchUntouched(page, p, t0) {
 // A reload into the sign-in page is one navigation (its redirects do not count); a few allow for Keycloak's own steps.
 const MAX_RELOAD_REQUESTS = 5;
 
-// Keycloak's logout confirmation, when it asks, then whatever login steps follow.
+// The app's auto-submitting end-session form (W-21), Keycloak's logout confirmation if it asks (it should not: the
+// sign-out carries id_token_hint), then whatever login steps follow.
 async function signInAgain(page, user, password, log) {
+  await waitPastSignOutForm(page);
   for (let i = 0; i < 5; i++) {
     await page.waitForLoadState('domcontentloaded');
     const logout = await page.$('#kc-logout');
@@ -238,6 +246,7 @@ async function vendorSetup(browser) {
   const uid = await createUser(email, password, 'فهد', 'العتيبي');
   created.vendor = { uid, email };
   const { ctx, page } = await newPage(browser);
+  track(page);
   const log = [];
   await page.goto(`${ACME}/vendor/register/company`);
   await driveKeycloak(page, { user: email, password, state, log: s => log.push(s) });
@@ -461,6 +470,15 @@ try {
     rec(`${s.label}: after access is restored, signing in again opens /admin/staff (the earlier removal does not refuse it)`, ok, { url: page.url(), keycloak: steps });
     await ctx.close();
   }
+  // W-21: every sign-out of the run (the vendor's two, and Sign out on the access-removed page for the removed staff
+  // member and the control) sent the end-session request as a form post with id_token_hint in the body, and no URL any
+  // tracked page requested or navigated to carried the hint.
+  const endSessions = tracked.flatMap(t => t.endSessions);
+  const hintInNavigationUrls = [...new Set(tracked.flatMap(t => t.hintInNavigationUrls()))];
+  const hintInAnyRequestUrl = [...new Set(tracked.flatMap(t => t.hintInAnyRequestUrl()))];
+  rec('sign-out posts id_token_hint to Keycloak in a form body and never in a URL',
+    endSessions.length >= 4 && endSessions.every(e => e.method === 'POST' && e.hintInBody) && hintInNavigationUrls.length === 0 && hintInAnyRequestUrl.length === 0,
+    { endSessions, hintInNavigationUrls, hintInAnyRequestUrl, navigationsChecked: tracked.reduce((n, t) => n + t.navigations.length, 0) });
 } catch (e) {
   rec('script error', false, { error: String(e).slice(0, 800) });
 } finally {
