@@ -1,0 +1,22 @@
+@* A multi-line text input with label, help and error (docs/08 section 6), for statements and notes. *@
+@inherits FieldBase
+
+<div class="grid gap-1.5">
+    <FieldLabel For="@Id" Label="@Label" Required="Required" />
+    <textarea id="@Id" rows="@Rows" class="@AreaClass" required="@Required" disabled="@Disabled"
+              aria-invalid="@AriaInvalid" aria-describedby="@DescribedBy" @onchange="OnChangeAsync" @attributes="AdditionalAttributes">@Value</textarea>
+    <FieldHints Help="@Help" Error="@ShownError" HelpId="@HelpId" ErrorId="@ErrorId" />
+</div>
+
+@code {
+    private const string AreaClass = ControlClass + " resize-y leading-relaxed";
+
+    [Parameter] public string? Value { get; set; }
+
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+
+    /// <summary>Visible lines before the field scrolls; four by default.</summary>
+    [Parameter] public int Rows { get; set; } = 4;
+
+    private Task OnChangeAsync(ChangeEventArgs e) => ValueChanged.InvokeAsync(e.Value as string ?? string.Empty);
+}

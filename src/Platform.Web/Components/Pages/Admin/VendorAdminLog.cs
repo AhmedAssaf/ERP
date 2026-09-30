@@ -8,4 +8,7 @@ internal static partial class VendorAdminLog
 {
     [LoggerMessage(Level = LogLevel.Error, Message = "Approving a vendor from the vendor card failed ({ErrorType}).")]
     public static partial void ApproveFailed(ILogger logger, string errorType);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Loading the ownership check for the approve dialog failed ({ErrorType}).")]
+    public static partial void OwnershipCheckFailed(ILogger logger, string errorType);
 }

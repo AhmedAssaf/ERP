@@ -53,33 +53,53 @@ internal sealed partial class KeycloakVendorAccounts(KeycloakAdminClient keycloa
         }
     }
 
-    public async Task RevokeAsync(VendorAccessGrant grant, CancellationToken cancellationToken = default)
+    public async Task<bool> RevokeAsync(VendorAccessGrant grant, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(grant);
+        var undone = true;
         if (grant.OrganizationAdded)
         {
-            await BestEffortAsync(
+            undone &= await BestEffortAsync(
                 () => keycloak.RemoveFromOrganizationAsync(grant.OrganizationAlias, grant.UserId, cancellationToken), grant, "organization");
         }
 
         if (grant.RoleAdded)
         {
-            await BestEffortAsync(
+            undone &= await BestEffortAsync(
                 () => keycloak.RemoveRealmRoleAsync(grant.UserId, IdentityClaims.VendorRealmRole, cancellationToken), grant, "role");
+        }
+
+        return undone;
+    }
+
+    public async Task<VendorAccountProfile?> ProfileAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        try
+        {
+            var user = await keycloak.FindUserAsync(userId, cancellationToken);
+            return user is null ? null : new VendorAccountProfile(user.FirstName, user.LastName, user.Email, user.EmailVerified);
+        }
+        catch (Exception ex) when (IsProviderFailure(ex, cancellationToken))
+        {
+            throw new IdentityProviderException("Keycloak did not describe the user's name and email.", ex);
         }
     }
 
     // Undoing runs after something already failed; a step that fails here is logged (type only, N-10) for an operator,
-    // and the other step still runs. Without the role or without the organization the Vendor policy stays closed.
-    private async Task BestEffortAsync(Func<Task> undo, VendorAccessGrant grant, string what)
+    // and the other step still runs. Without the role or without the organization the Vendor policy stays closed. Reports
+    // whether the step succeeded, so a caller never takes a failed removal for a done one.
+    private async Task<bool> BestEffortAsync(Func<Task> undo, VendorAccessGrant grant, string what)
     {
         try
         {
             await undo();
+            return true;
         }
         catch (Exception ex) when (ex is KeycloakAdminException or HttpRequestException or TaskCanceledException or InvalidOperationException)
         {
             RevokeFailed(logger, what, grant.UserId, grant.OrganizationAlias, ex.GetType().Name);
+            return false;
         }
     }
 
@@ -103,7 +123,9 @@ internal sealed class UnavailableVendorAccounts : IVendorAccounts
     public Task<bool> AddToOrganizationAsync(string userId, string organizationAlias, CancellationToken cancellationToken = default) =>
         throw NotConfigured();
 
-    public Task RevokeAsync(VendorAccessGrant grant, CancellationToken cancellationToken = default) => throw NotConfigured();
+    public Task<bool> RevokeAsync(VendorAccessGrant grant, CancellationToken cancellationToken = default) => throw NotConfigured();
+
+    public Task<VendorAccountProfile?> ProfileAsync(string userId, CancellationToken cancellationToken = default) => throw NotConfigured();
 
     private static InvalidOperationException NotConfigured() =>
         new("The Keycloak Admin API is not registered in this host (IdentityModule.AddKeycloakAdmin).");

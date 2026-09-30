@@ -8,16 +8,19 @@ namespace Platform.IntegrationTests.Web;
 
 /// <summary>
 /// QA pass, W-07 on the platform console (F-51, F-54): each console page renders right to left in Arabic and left to
-/// right in English by the culture cookie, with no resource key on the page in either language.
+/// right in English by the culture cookie, with no resource key on the page in either language (W-33 QA: the ownership
+/// page <c>/platform/vendors</c> as well).
 /// </summary>
 public sealed partial class PlatformConsoleTests
 {
     [Theory]
     [InlineData("/platform", "ar-SA", "<html lang=\"ar\" dir=\"rtl\">")]
     [InlineData("/platform/tenants", "ar-SA", "<html lang=\"ar\" dir=\"rtl\">")]
-    [InlineData("/platform/usage", "ar-SA", "<html lang=\"ar\" dir=\"rtl\">")]
+    [InlineData("/platform/vendors", "ar-SA", "<html lang=\"ar\" dir=\"rtl\">")]
     [InlineData("/platform", "en-US", "<html lang=\"en\" dir=\"ltr\">")]
     [InlineData("/platform/tenants", "en-US", "<html lang=\"en\" dir=\"ltr\">")]
+    [InlineData("/platform/vendors", "en-US", "<html lang=\"en\" dir=\"ltr\">")]
+    [InlineData("/platform/usage", "ar-SA", "<html lang=\"ar\" dir=\"rtl\">")]
     [InlineData("/platform/usage", "en-US", "<html lang=\"en\" dir=\"ltr\">")]
     public async Task A_console_page_follows_the_culture_and_shows_no_resource_key(string path, string culture, string htmlTag)
     {

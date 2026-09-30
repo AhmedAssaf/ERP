@@ -438,6 +438,8 @@ public sealed class VendorDirectoryTests(DatabaseFixture db)
     {
         var userId = Guid.NewGuid().ToString();
         var companyId = await VendorRows.RegisterAsync(db.AppConnectionString, TestTenants.Acme, userId, VendorRows.NewCrNumber(), nameEn, Ct);
+        // W-33: approval needs a verified owner; these tests are about approval itself (CrOwnershipTests covers the check).
+        await OwnershipRows.VerifyAsOwnerAsync(db.OwnerConnectionString, companyId, TestTenants.Acme.TenantId, Ct);
         return (companyId, userId);
     }
 

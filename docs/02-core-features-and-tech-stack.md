@@ -44,7 +44,7 @@ This file lists the features that must exist for the product to be sellable to a
 
 | ID | Feature | Acceptance |
 |---|---|---|
-| F-11 | Vendor self-registration | Company name (Arabic and English), CR number, VAT number, address, contact, IBAN, activity categories. Email and phone verified. |
+| F-11 | Vendor self-registration | Company name (Arabic and English), CR number, VAT number, address, contact, IBAN, activity categories. Email and phone verified. Before the company's first approval by any buyer, the approving officer checks that the registering person owns it against the CR certificate, or the CR's owners and managers from Wathq, and the real company can dispute a registration of its CR number (W-33, ADR-0013). |
 | F-12 | Vendor documents with expiry | CR, VAT certificate, GOSI certificate, Zakat certificate, Chamber of Commerce, Saudization (Nitaqat) status, ISO certificates. Each has an expiry date; expired documents block submission and trigger a reminder 30 days before. |
 | F-13 | Local content fields | Local content percentage, Saudi employees count and percentage, and supporting evidence. Shown in comparison sheets. |
 | F-14 | Tenant vendor list | Tenant sees pending, approved, and blocked vendors, can invite by email, and can tag by category. |

@@ -15,7 +15,7 @@ namespace Platform.IntegrationTests.Data;
 
 /// <summary>
 /// ADR-0012 on an existing database, in the real order: from the state before that work (platform up to 0005, audit
-/// 0001, tenancy up to 0006, operations up to 0003, vendors up to 0012), MigrationRunner re-applies every tenant table with
+/// 0001, tenancy up to 0006, identity 0001, operations up to 0003, vendors up to 0012), MigrationRunner re-applies every tenant table with
 /// the staff-only rule (platform 0006) and the module migrations that follow set the explicit exceptions (audit.events
 /// with exactly a SELECT and an INSERT policy, vendor.relationships with the vendor helper). A fresh database in the same container,
 /// so the shared one is not touched.
@@ -42,7 +42,7 @@ public sealed class VendorSessionPolicyUpgradeTests(DatabaseFixture db)
                 await SqlMigrator.ApplyAsync(connection, "platform", await ScriptsAsync(typeof(SharedModule).Assembly, s => Before(s, "0006")), Ct);
                 await SqlMigrator.ApplyAsync(connection, "audit", await ScriptsAsync(typeof(AuditModule).Assembly, s => Before(s, "0002")), Ct);
                 await SqlMigrator.ApplyAsync(connection, "tenancy", await ScriptsAsync(typeof(TenancyModule).Assembly, s => Before(s, "0007")), Ct);
-                await IdentityModule.MigrateAsync(connection, Ct);
+                await SqlMigrator.ApplyAsync(connection, "identity", await ScriptsAsync(typeof(IdentityModule).Assembly, s => Before(s, "0002")), Ct);
                 await WorkflowModule.MigrateAsync(connection, Ct);
                 await SqlMigrator.ApplyAsync(connection, "operations", await ScriptsAsync(typeof(OperationsModule).Assembly, s => Before(s, "0004")), Ct);
                 await SqlMigrator.ApplyAsync(connection, "vendors", await ScriptsAsync(typeof(VendorsModule).Assembly, s => Before(s, "0013")), Ct);
@@ -60,6 +60,7 @@ public sealed class VendorSessionPolicyUpgradeTests(DatabaseFixture db)
                 "audit/0003_audit_actor_and_time.sql",
                 "tenancy/0007_tenancy_function_callers.sql",
                 "tenancy/0008_tenancy_branding_vendor_users_and_owner.sql",
+                "identity/0002_identity_staff_tenants.sql",
                 "operations/0004_operations_platform_audit_access.sql",
                 "operations/0005_operations_owner_guard.sql",
                 "operations/0006_operations_active_user_counts.sql",
@@ -68,6 +69,16 @@ public sealed class VendorSessionPolicyUpgradeTests(DatabaseFixture db)
                 "vendors/0015_vendors_consent_actor_and_start.sql",
                 "vendors/0016_vendors_approver_and_consent_rules.sql",
                 "vendors/0017_vendors_consent_rule_names.sql",
+                "vendors/0018_vendors_cr_ownership.sql",
+                "vendors/0019_vendors_cr_ownership_hardening.sql",
+                "vendors/0020_vendors_dispute_cap_flag.sql",
+                "vendors/0021_vendors_dispute_listing_order.sql",
+                "vendors/0022_vendors_claimant_awaiting_identity_provider.sql",
+                "vendors/0023_vendors_claimant_awaiting_organization.sql",
+                "vendors/0024_vendors_dispute_retry_scope.sql",
+                "vendors/0025_vendors_superseded_dispute_removals.sql",
+                "vendors/0026_vendors_latest_dispute_and_removal_standing.sql",
+                "vendors/0027_vendors_superseded_outcome_kept.sql",
             ]);
             await using (var connection = new NpgsqlConnection(connectionString))
             {

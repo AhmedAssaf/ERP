@@ -117,7 +117,7 @@ internal static partial class VendorInput
     private static string Trim(string? value) => value?.Trim() ?? string.Empty;
 
     /// <summary>Trimmed, with Arabic-Indic (U+0660-0669) and Extended Arabic-Indic (U+06F0-06F9) digits as ASCII digits.</summary>
-    private static string Digits(string? value)
+    internal static string Digits(string? value)
     {
         var trimmed = Trim(value);
         var builder = new StringBuilder(trimmed.Length);
@@ -163,9 +163,29 @@ internal static partial class VendorInput
         return true;
     }
 
+    /// <summary>A CR number as the registration accepts it, after <see cref="Digits"/>: ten ASCII digits.</summary>
+    internal static bool IsCrNumber(string value) => CrNumber().IsMatch(value);
+
+    /// <summary>
+    /// A multi-line free text (ownership notes and dispute statements, W-33) as it is stored: trimmed, with every CRLF and
+    /// lone CR turned into LF, so its length is the stored length.
+    /// </summary>
+    internal static string NormalizeFreeText(string? value) =>
+        Trim(value).Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n');
+
+    /// <summary>
+    /// A free text of 1 to <paramref name="maxLength"/> characters after <see cref="NormalizeFreeText"/>, under the address
+    /// rules except that line breaks (LF) are allowed: no invisible or bidi controls, no other control, separator or
+    /// unassigned characters, no angle brackets.
+    /// </summary>
+    internal static bool IsFreeText(string? value, int maxLength) =>
+        NormalizeFreeText(value) is { Length: > 0 } text && text.Length <= maxLength && IsSafeText(text.Replace('\n', ' '));
+
     private static bool IsAddress(string address) =>
-        address.Length <= MaxAddressLength
-        && !TextSafety.HasInvisibleOrBidiControl(address)
+        address.Length <= MaxAddressLength && IsSafeText(address);
+
+    private static bool IsSafeText(string address) =>
+        !TextSafety.HasInvisibleOrBidiControl(address)
         && !address.EnumerateRunes().Any(r => Rune.GetUnicodeCategory(r) is UnicodeCategory.Control or UnicodeCategory.LineSeparator
             or UnicodeCategory.ParagraphSeparator or UnicodeCategory.PrivateUse or UnicodeCategory.Surrogate or UnicodeCategory.OtherNotAssigned)
         && !address.Contains('<', StringComparison.Ordinal) && !address.Contains('>', StringComparison.Ordinal);

@@ -169,10 +169,13 @@ public sealed class TenantTableCatalogTests(DatabaseFixture db)
 
     /// <summary>
     /// Vendor tables are either tenant-scoped (the relationship) or platform-level and keyed on the vendor company
-    /// (spec section 2). The recipient list is the one exception: platform reference data, readable by everyone.
+    /// (spec section 2). Two exceptions are platform reference data, readable by everyone and without row-level security:
+    /// the recipient list and the CR ownership check method (W-33). The disputes (W-33) belong to no company or tenant
+    /// yet, so they have their own forced policy: only a session without a tenant or vendor context (the platform console)
+    /// reads them.
     /// </summary>
     [Fact]
-    public async Task Every_vendor_table_except_recipients_has_forced_row_level_security_with_the_tenant_or_vendor_policy()
+    public async Task Every_vendor_table_has_forced_row_level_security_with_its_policy_and_the_exceptions_are_explicit()
     {
         await using var connection = new NpgsqlConnection(db.OwnerConnectionString);
         await connection.OpenAsync(Ct);
@@ -184,7 +187,7 @@ public sealed class TenantTableCatalogTests(DatabaseFixture db)
                            where p.polrelid = c.oid and p.polname in ('tenant_isolation', 'tenant_vendor_isolation', 'vendor_isolation'))
             from pg_class c
             join pg_namespace n on n.oid = c.relnamespace
-            where c.relkind in ('r', 'p') and n.nspname = 'vendor' and c.relname <> 'recipients'
+            where c.relkind in ('r', 'p') and n.nspname = 'vendor' and c.relname not in ('recipients', 'ownership_settings', 'cr_disputes')
             order by 1
             """, connection);
 
@@ -197,7 +200,38 @@ public sealed class TenantTableCatalogTests(DatabaseFixture db)
             }
         }
 
-        tables.Select(t => t.Name).ShouldBe(["companies", "consent_events", "documents", "relationships", "uploads", "vendor_users"]);
+        tables.Select(t => t.Name).ShouldBe(
+            ["companies", "consent_events", "documents", "ownership_verifications", "relationships", "uploads", "vendor_users"]);
         tables.Where(t => !(t.Enabled && t.Forced && t.HasPolicy)).Select(t => t.Name).ShouldBeEmpty();
+
+        await using var disputes = new NpgsqlCommand("""
+            select c.relrowsecurity, c.relforcerowsecurity,
+                   (select string_agg(p.polname || ' ' || p.polcmd::text, ', ') from pg_policy p where p.polrelid = c.oid),
+                   has_table_privilege('erp_app', c.oid, 'INSERT') or has_table_privilege('erp_app', c.oid, 'UPDATE')
+                       or has_table_privilege('erp_app', c.oid, 'DELETE')
+            from pg_class c join pg_namespace n on n.oid = c.relnamespace
+            where n.nspname = 'vendor' and c.relname = 'cr_disputes'
+            """, connection);
+        await using (var reader = await disputes.ExecuteReaderAsync(Ct))
+        {
+            (await reader.ReadAsync(Ct)).ShouldBeTrue();
+            reader.GetBoolean(0).ShouldBeTrue();
+            reader.GetBoolean(1).ShouldBeTrue();
+            reader.GetString(2).ShouldBe("cr_dispute_access r");
+            reader.GetBoolean(3).ShouldBeFalse("disputes change only through their security-definer functions");
+        }
+
+        await using var settings = new NpgsqlCommand("""
+            select has_table_privilege('erp_app', 'vendor.ownership_settings', 'SELECT'),
+                   has_table_privilege('erp_app', 'vendor.ownership_settings', 'INSERT')
+                       or has_table_privilege('erp_app', 'vendor.ownership_settings', 'UPDATE')
+                       or has_table_privilege('erp_app', 'vendor.ownership_settings', 'DELETE'),
+                   has_table_privilege('erp_app', 'vendor.ownership_verifications', 'SELECT')
+            """, connection);
+        await using var granted = await settings.ExecuteReaderAsync(Ct);
+        (await granted.ReadAsync(Ct)).ShouldBeTrue();
+        granted.GetBoolean(0).ShouldBeTrue("every session reads the method");
+        granted.GetBoolean(1).ShouldBeFalse("the method changes only through vendor.set_ownership_method");
+        granted.GetBoolean(2).ShouldBeFalse("staff read a verification only through vendor.related_ownership");
     }
 }

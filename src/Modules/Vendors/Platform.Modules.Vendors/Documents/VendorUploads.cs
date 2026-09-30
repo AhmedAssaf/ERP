@@ -18,7 +18,7 @@ namespace Platform.Modules.Vendors.Documents;
 /// another company is simply not found; the chunks are staged in object storage under <c>staging/{upload id}/{index}</c>.
 /// Every chunk but the last is exactly <see cref="VendorDocumentLimits.ChunkBytes"/> long and carries its SHA-256, so a
 /// chunk cut short by a dropped connection is refused and sent again; a chunk sent again replaces the one before.
-/// Two bounds per company, counted under its row lock when an upload starts: at most <see cref="MaxOpenUploads"/> open
+/// Two bounds per company, counted under its lock (<see cref="CompanyLock"/>) when an upload starts: at most <see cref="MaxOpenUploads"/> open
 /// uploads (no outcome yet, with a start or a chunk in the last hour), and at most <c>Vendors:MaxUploadsPerDay</c> starts
 /// in any 24 hours whatever became of them. Completion holds a row lock on the upload (<c>FOR UPDATE NOWAIT</c>), so a
 /// completion retried while the first is still scanning is told to wait; it streams the chunks into a temporary file,
@@ -73,8 +73,8 @@ internal sealed partial class VendorUploads(
         };
         await using var db = await contexts.CreateDbContextAsync(cancellationToken);
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
-        // Under the company's row lock, so two starts in parallel cannot both take the last place.
-        await db.Database.ExecuteSqlAsync($"select 1 from vendor.companies where id = {companyId} for update", cancellationToken);
+        // Under the company's lock, so two starts in parallel cannot both take the last place.
+        await CompanyLock.AcquireAsync(db, companyId, cancellationToken);
         var counts = await db.Database.SqlQuery<UploadCounts>($"""
             select count(*) filter (where outcome is null
                                     and greatest(created_at, coalesce(last_chunk_at, created_at)) > now() - interval '1 hour')::int as open_uploads,

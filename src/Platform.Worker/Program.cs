@@ -36,6 +36,8 @@ internal static class EntryPoint
         builder.Services.AddVirusScanner(builder.Configuration);
         builder.Services.AddVendorJobs();
         builder.Services.AddOperationsHealthChecks(platformDb, builder.Configuration);
+        // W-33: tell the platform admins about new CR ownership disputes (needs the F-60 alerts registered just above).
+        builder.Services.AddVendorDisputeAlerts();
         // W-10 business metrics (spec 6.4): the usage job counts the active users every five minutes, for the console usage
         // page (ops.active_user_counts) and the gauges on meter WaslaBid.Usage.
         builder.Services.AddIdentityActivityCounts(platformDb);

@@ -86,6 +86,13 @@
             {
                 <p role="alert" class="text-body text-danger" data-form-error>@_formError</p>
             }
+            @if (_duplicate)
+            {
+                @* W-33: the real company's way back when someone else registered its CR number first. *@
+                <p class="text-body">
+                    <a href="vendor/dispute" data-dispute-link class="underline underline-offset-4">@T["Vendor.Register.DisputeLink"]</a>
+                </p>
+            }
 
             <div>
                 <Button Type="submit" Variant="ButtonVariant.Primary">@T["Vendor.Register.Submit"]</Button>
@@ -98,6 +105,7 @@
     private readonly Dictionary<string, string> _fieldErrors = new(StringComparer.Ordinal);
     private string? _formError;
     private bool _registered;
+    private bool _duplicate;
     private VendorRegistrationCheck _check = VendorRegistrationCheck.Open;
 
     [CascadingParameter] private Task<AuthenticationState>? AuthenticationState { get; set; }
@@ -156,6 +164,7 @@
                 return;
             }
 
+            _duplicate = result.Error.Code == VendorErrors.DuplicateCr;
             _formError = result.Error.Code switch
             {
                 VendorErrors.DuplicateCr => T["Vendor.Register.Error.Duplicate"],

@@ -14,6 +14,8 @@ using Platform.IntegrationTests.Identity;
 using Platform.IntegrationTests.Infrastructure;
 using Platform.Modules.Identity;
 using Platform.Modules.Identity.Contracts;
+using Platform.Modules.Vendors;
+using Platform.Modules.Vendors.Contracts;
 using Platform.Shared.Tenancy;
 using Platform.Web.Account;
 
@@ -66,6 +68,78 @@ public sealed class CircuitRevalidationTests(DatabaseFixture db)
         (await provider.GetAuthenticationStateAsync()).User.Identity?.IsAuthenticated.ShouldBe(true);
         guard.Ended.ShouldBeFalse();
         navigation.Navigations.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task A_squatters_open_circuit_ends_once_the_company_moved_to_the_claimant()
+    {
+        // W-33 review: an uphold whose Keycloak step taking the squatter out of the organization failed leaves the squatter
+        // a member, so the membership check keeps passing, and the circuit's vendor context was set once when it opened.
+        // The revalidation also asks the database whose company it is now, past what the circuit's scope remembers.
+        var squatter = Guid.NewGuid().ToString();
+        var crNumber = VendorRows.NewCrNumber();
+        var companyId = await VendorRows.RegisterAsync(db.AppConnectionString, TestTenants.Acme, squatter, crNumber, "Circuit Squatter Co", Ct);
+        await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, companyId, VendorDocumentTypes.CrCertificate, new DateOnly(2031, 1, 1), "clean", isCurrent: true, Ct);
+        await using var host = new ModuleHost(db.AppConnectionString, configure: services =>
+            services.Replace(ServiceDescriptor.Scoped<IVendorAccounts>(_ => new FakeVendorAccounts { FailRevoke = true })));
+        await using var circuit = host.ScopeFor(TestTenants.Acme, vendorCompanyId: companyId, actingUserId: squatter);
+        var users = circuit.ServiceProvider.GetRequiredService<IVendorUsers>();
+        (await users.FindCompanyAsync(squatter, Ct)).ShouldBe(companyId, "the circuit's scope now remembers the company");
+        var navigation = new RecordingNavigationManager("https://acme.localhost/", "https://acme.localhost/vendor");
+        var guard = Guard(navigation);
+        var revalidation = new ScriptedRevalidation(stillMember: true);
+        using var provider = Provider(
+            revalidation, guard, TestTenants.Acme, vendors: circuit.ServiceProvider.GetRequiredService<IVendorAccessor>(), users: users);
+
+        provider.SetAuthenticationState(Task.FromResult(new AuthenticationState(VendorUser(squatter))));
+        await revalidation.CalledTwice.WaitAsync(TimeSpan.FromSeconds(10), Ct);
+        guard.Ended.ShouldBeFalse("the squatter still holds the company");
+
+        var signedOut = WaitForSignOutAsync(provider);
+        var claimant = Guid.NewGuid().ToString();
+        var admin = $"platform-admin-{Guid.NewGuid():N}";
+        Guid disputeId;
+        await using (var scope = host.ScopeFor(TestTenants.Acme, actingUserId: claimant))
+        {
+            disputeId = (await scope.ServiceProvider.GetRequiredService<ICrDisputes>().RaiseAsync(
+                new CrDisputeRequest(crNumber, "We own this company.", VendorPrivacyNotice.CurrentVersion, VendorPrivacyNotice.English),
+                $"{claimant}@example.test", "Claimant", Ct)).Value;
+        }
+
+        await using (var scope = host.PlatformScope(admin))
+        {
+            (await scope.ServiceProvider.GetRequiredService<ICrOwnershipAdministration>().UpholdAsync(disputeId, "Checked.", admin, Ct))
+                .Value.IdentityProviderUpdated.ShouldBeFalse("the squatter's organization membership was not taken back");
+        }
+
+        var state = await signedOut;
+
+        state.User.Identity?.IsAuthenticated.ShouldNotBe(true);
+        guard.Ended.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Asking_for_the_current_company_leaves_what_the_circuit_remembers_untouched()
+    {
+        // Second review, m-2: the revalidation loop asks off the render thread, while the circuit's pages read the scope's
+        // answers during render; the answers are a plain dictionary, so the loop must not write to it.
+        var userId = Guid.NewGuid().ToString();
+        var companyId = await VendorRows.RegisterAsync(db.AppConnectionString, TestTenants.Acme, userId, VendorRows.NewCrNumber(), "Circuit Cache Co", Ct);
+        await using var host = new ModuleHost(db.AppConnectionString);
+        await using var circuit = host.ScopeFor(TestTenants.Acme, vendorCompanyId: companyId, actingUserId: userId);
+        var users = circuit.ServiceProvider.GetRequiredService<IVendorUsers>();
+        (await users.FindCompanyAsync(userId, Ct)).ShouldBe(companyId);
+
+        await using (var owner = new Npgsql.NpgsqlConnection(db.OwnerConnectionString))
+        {
+            await owner.OpenAsync(Ct);
+            await using var delete = new Npgsql.NpgsqlCommand("delete from vendor.vendor_users where user_id = @user", owner);
+            delete.Parameters.AddWithValue("user", userId);
+            (await delete.ExecuteNonQueryAsync(Ct)).ShouldBe(1);
+        }
+
+        (await users.FindCurrentCompanyAsync(userId, Ct)).ShouldBeNull("the database is asked");
+        (await users.FindCompanyAsync(userId, Ct)).ShouldBe(companyId, "the scope's answers were not written by the check");
     }
 
     [Fact]
@@ -312,11 +386,20 @@ public sealed class CircuitRevalidationTests(DatabaseFixture db)
     private static ClaimsPrincipal Member() =>
         new(new ClaimsIdentity([new Claim("sub", "acme.member"), new Claim("organization", "acme")], "test"));
 
+    private static ClaimsPrincipal VendorUser(string userId) =>
+        new(new ClaimsIdentity([new Claim("sub", userId), new Claim("organization", "acme"), new Claim("roles", "vendor")], "test"));
+
     private static CircuitSessionGuard Guard(NavigationManager navigation, HttpContext? connection = null) =>
         new(navigation, new HttpContextAccessor { HttpContext = connection }, NullLogger<CircuitSessionGuard>.Instance);
 
     private static MembershipRevalidatingStateProvider Provider(
-        IMembershipRevalidation revalidation, CircuitSessionGuard guard, TenantContext? tenant, bool platform = false, TimeProvider? clock = null)
+        IMembershipRevalidation revalidation,
+        CircuitSessionGuard guard,
+        TenantContext? tenant,
+        bool platform = false,
+        TimeProvider? clock = null,
+        IVendorAccessor? vendors = null,
+        IVendorUsers? users = null)
     {
         var tenants = new TenantAccessor();
         if (tenant is not null)
@@ -331,7 +414,8 @@ public sealed class CircuitRevalidationTests(DatabaseFixture db)
         }
 
         return new MembershipRevalidatingStateProvider(
-            NullLoggerFactory.Instance, revalidation, guard, tenants, platformContext, clock ?? TimeProvider.System, Fast);
+            NullLoggerFactory.Instance, revalidation, guard, tenants, platformContext, vendors ?? new VendorAccessor(), users ?? new NoVendorUsers(),
+            clock ?? TimeProvider.System, Fast);
     }
 
     /// <summary>The /_blazor connection request as the authentication middleware leaves it: the cookie ticket's properties.</summary>
@@ -436,6 +520,16 @@ public sealed class CircuitRevalidationTests(DatabaseFixture db)
     private sealed class ResultFeature(AuthenticateResult result) : IAuthenticateResultFeature
     {
         public AuthenticateResult? AuthenticateResult { get; set; } = result;
+    }
+
+    /// <summary>A circuit without a vendor context never asks for a company.</summary>
+    private sealed class NoVendorUsers : IVendorUsers
+    {
+        public Task<Guid?> FindCompanyAsync(string userId, CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException("A circuit without a vendor context asks for no company.");
+
+        public Task<Guid?> FindCurrentCompanyAsync(string userId, CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException("A circuit without a vendor context asks for no company.");
     }
 
     private sealed class NotMemberSource : IOrganizationMembershipSource

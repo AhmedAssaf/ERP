@@ -27,6 +27,18 @@ internal sealed class VendorUsers(IDbContextFactory<VendorsDbContext> contexts) 
         return company;
     }
 
+    /// <summary>
+    /// Asks the database and leaves the scope's answers alone: an open circuit's revalidation loop calls this off the
+    /// render thread while the circuit's pages read <see cref="FindCompanyAsync"/>'s answers during render, and the
+    /// dictionary holding them is not safe for a writer and a reader at once.
+    /// </summary>
+    public async Task<Guid?> FindCurrentCompanyAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        await using var db = await contexts.CreateDbContextAsync(cancellationToken);
+        return await CompanyOfAsync(db, userId, cancellationToken);
+    }
+
     /// <summary>Forgets what is known about the user, after this scope registered them.</summary>
     public void Forget(string userId) => _known.Remove(userId);
 
