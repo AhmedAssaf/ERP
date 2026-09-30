@@ -127,7 +127,7 @@ internal sealed partial class CrOwnershipAdministration(
 
         var row = resolved.Value;
         var removed = row.RemovedUserIds ?? [];
-        var (updated, recorded) = await UpdateIdentityProviderAsync(disputeId, row.ClaimantUserId, removed, actorId, retry: false);
+        var (updated, recorded) = await UpdateIdentityProviderAsync(disputeId, row.ClaimantUserId, removed, actorId, stored: null);
         return Result.Success(new CrDisputeUpheld(row.CompanyId, row.ClaimantUserId, removed, updated, recorded));
     }
 
@@ -155,13 +155,51 @@ internal sealed partial class CrOwnershipAdministration(
         ];
     }
 
-    public async Task<bool> RetryIdentityProviderAsync(Guid disputeId, string actorId, CancellationToken cancellationToken = default)
+    public async Task<CrDisputeRetry> RetryIdentityProviderAsync(Guid disputeId, string actorId, CancellationToken cancellationToken = default)
     {
         RequireActor(actorId);
         var failure = (await FailureRowsAsync(cancellationToken)).SingleOrDefault(r => r.Id == disputeId)
             ?? throw new InvalidOperationException("Only an upheld dispute whose identity provider update failed is retried.");
-        var (updated, recorded) = await UpdateIdentityProviderAsync(disputeId, failure.ClaimantUserId, failure.RemovedUserIds ?? [], actorId, retry: true);
-        return updated && recorded;
+        if (await SupersedeAsync(failure, actorId, cancellationToken))
+        {
+            return CrDisputeRetry.Superseded;
+        }
+
+        var (updated, recorded) = await UpdateIdentityProviderAsync(
+            disputeId, failure.ClaimantUserId, failure.RemovedUserIds ?? [], actorId, stored: Steps(failure.IdpDetails) ?? []);
+        return updated && recorded ? CrDisputeRetry.Updated : CrDisputeRetry.StillFailing;
+    }
+
+    /// <summary>
+    /// A retry after the company moved on (a later dispute made someone else its vendor admin) would grant the old claimant
+    /// access to the company's tenants again, so nothing runs: the database marks the dispute superseded when its claimant
+    /// is no longer the company's vendor admin (<c>vendor.supersede_dispute_idp</c>, migration 0024), audited before it
+    /// commits. The removed users' steps do not run either: the later uphold took the company's access from them again.
+    /// </summary>
+    private async Task<bool> SupersedeAsync(FailureRow failure, string actorId, CancellationToken cancellationToken)
+    {
+        await using var db = await contexts.CreateDbContextAsync(cancellationToken);
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        var superseded = await db.Database.SqlQuery<bool>($"select vendor.supersede_dispute_idp({failure.Id}) as \"Value\"").SingleAsync(cancellationToken);
+        if (!superseded)
+        {
+            // Still the company's vendor admin: nothing changed, and the transaction rolls back.
+            return false;
+        }
+
+        await audit.WriteAsync(
+            new PlatformAuditEntry(actorId, "vendor.dispute_identity_provider", "cr_dispute", failure.Id.ToString(), new Dictionary<string, string?>
+            {
+                ["outcome"] = "superseded",
+                ["retry"] = "true",
+                ["company_id"] = failure.CompanyId.ToString(),
+                ["claimant"] = failure.ClaimantUserId,
+                ["reason"] = "the claimant is no longer the company's vendor admin",
+            }),
+            cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        SupersededLog(logger, failure.Id);
+        return true;
     }
 
     private async Task<Result<ResolvedRow>> ResolveAsync(
@@ -208,17 +246,28 @@ internal sealed partial class CrOwnershipAdministration(
     }
 
     /// <summary>
-    /// The identity provider side of an uphold, every step idempotent so a retry repeats all of them: the claimant gets the
-    /// realm role <c>vendor</c> and membership of the organization of every tenant the company works with, so the Vendor
-    /// policy opens for them at their next sign-in on each of those hosts (W-21's <c>/vendor/join</c> refuses to restore a
-    /// membership, P-1); every removed user leaves those organizations and loses the role (W-21 then ends their open
-    /// sessions). Each step's outcome is stored on the dispute (<c>idp_details</c>) with the overall one and audited as
+    /// The identity provider side of an uphold: the claimant gets the realm role <c>vendor</c> and membership of the
+    /// organization of every tenant the company worked with when the uphold committed, so the Vendor policy opens for them
+    /// at their next sign-in on each of those hosts (W-21's <c>/vendor/join</c> refuses to restore a membership, P-1); every
+    /// removed user leaves those organizations and loses the role (W-21 then ends their open sessions). Each step's outcome
+    /// is stored on the dispute (<c>idp_details</c>) with the overall one and audited as
     /// <c>vendor.dispute_identity_provider</c>; a failing step is logged and never stops the others.
+    /// A retry passes the <paramref name="stored"/> outcomes: a step already done is kept and never run again, so a
+    /// membership a tenant took away after the uphold stays taken away (only the tenant restores access, W-21 P-1); only the
+    /// failed steps run, and a failed step a retry no longer reaches (its tenant gone from the company) is recorded as
+    /// skipped. Without stored outcomes (the uphold itself) every step runs.
     /// </summary>
     private async Task<(bool Updated, bool Recorded)> UpdateIdentityProviderAsync(
-        Guid disputeId, string claimant, IReadOnlyList<string> removed, string actorId, bool retry)
+        Guid disputeId, string claimant, IReadOnlyList<string> removed, string actorId, IReadOnlyDictionary<string, string>? stored)
     {
+        var retry = stored is not null;
+        var earlier = stored ?? new Dictionary<string, string>();
         var steps = new SortedDictionary<string, string>(StringComparer.Ordinal);
+        foreach (var (step, outcome) in earlier.Where(e => e.Value != StepFailed))
+        {
+            steps[step] = outcome;
+        }
+
         var aliases = await RelatedOrganizationsAsync(disputeId, steps);
 
         await StepAsync(steps, "role:grant", disputeId, claimant, () => accounts.GrantRoleAsync(claimant, CancellationToken.None));
@@ -238,6 +287,12 @@ internal sealed partial class CrOwnershipAdministration(
 
             await StepAsync(steps, $"role:revoke:{user}", disputeId, user,
                 () => accounts.RevokeAsync(new VendorAccessGrant(user, string.Empty, RoleAdded: true, OrganizationAdded: false), CancellationToken.None));
+        }
+
+        // A failed step this run did not reach again: its tenant no longer counts (or, for the lookup, it succeeded now).
+        foreach (var step in earlier.Where(e => e.Value == StepFailed && e.Key != LookupStep).Select(e => e.Key))
+        {
+            steps.TryAdd(step, StepSkippedNoLongerApplies);
         }
 
         var updated = steps.Values.All(v => v != StepFailed);
@@ -278,6 +333,11 @@ internal sealed partial class CrOwnershipAdministration(
     /// <summary>A step that could not apply and will not on a retry either, with its reason; never counted as failed.</summary>
     private const string StepSkippedNotInCatalog = "skipped: the tenant is not in the tenant catalog";
 
+    /// <summary>A step that failed earlier and that a retry no longer reaches, with its reason; never counted as failed.</summary>
+    private const string StepSkippedNoLongerApplies = "skipped: no longer among the tenants of the uphold";
+
+    private const string LookupStep = "organization:lookup";
+
     /// <summary>The Keycloak organization aliases of the tenants the dispute's company works with; a failed lookup is a failed step.</summary>
     private async Task<IReadOnlyList<string>> RelatedOrganizationsAsync(Guid disputeId, SortedDictionary<string, string> steps)
     {
@@ -293,11 +353,12 @@ internal sealed partial class CrOwnershipAdministration(
                 if (byId.TryGetValue(tenantId, out var alias))
                 {
                     aliases.Add(alias);
+                    steps.Remove($"{LookupStep}:{tenantId:D}");
                 }
                 else
                 {
                     // A tenant the catalog no longer lists has no organization to join; a retry would fail again forever.
-                    steps[$"organization:lookup:{tenantId:D}"] = StepSkippedNotInCatalog;
+                    steps[$"{LookupStep}:{tenantId:D}"] = StepSkippedNotInCatalog;
                 }
             }
 
@@ -305,18 +366,24 @@ internal sealed partial class CrOwnershipAdministration(
         }
         catch (Exception ex) when (ex is Npgsql.NpgsqlException or InvalidOperationException or TimeoutException)
         {
-            StepFailedLog(logger, disputeId, "organization:lookup", string.Empty, ex.GetType().Name);
-            steps["organization:lookup"] = StepFailed;
+            StepFailedLog(logger, disputeId, LookupStep, string.Empty, ex.GetType().Name);
+            steps[LookupStep] = StepFailed;
             return [];
         }
     }
 
     /// <summary>
-    /// One identity provider step. A step that throws the provider's failure, or answers false for a removal (which reports
-    /// whether it succeeded), is recorded as failed and logged; a grant or an add answering false means "already there".
+    /// One identity provider step. A step already done (kept from an earlier run) is not run again. A step that throws the
+    /// provider's failure, or answers false for a removal (which reports whether it succeeded), is recorded as failed and
+    /// logged; a grant or an add answering false means "already there".
     /// </summary>
     private async Task StepAsync(SortedDictionary<string, string> steps, string step, Guid disputeId, string userId, Func<Task<bool>> run)
     {
+        if (steps.TryGetValue(step, out var earlier) && earlier == StepDone)
+        {
+            return;
+        }
+
         try
         {
             var answer = await run();
@@ -330,16 +397,12 @@ internal sealed partial class CrOwnershipAdministration(
         }
     }
 
-    private static IReadOnlyList<string> FailedSteps(string? details)
-    {
-        if (string.IsNullOrWhiteSpace(details))
-        {
-            return [];
-        }
+    private static IReadOnlyList<string> FailedSteps(string? details) =>
+        [.. (Steps(details) ?? []).Where(s => s.Value == StepFailed).Select(s => s.Key).Order(StringComparer.Ordinal)];
 
-        var steps = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(details) ?? [];
-        return [.. steps.Where(s => s.Value == StepFailed).Select(s => s.Key).Order(StringComparer.Ordinal)];
-    }
+    /// <summary>The stored outcome of each step, or null when none was recorded.</summary>
+    private static Dictionary<string, string>? Steps(string? details) =>
+        string.IsNullOrWhiteSpace(details) ? null : System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(details) ?? [];
 
     private async Task<VendorRegistrant> RegistrantAsync(string userId, CancellationToken cancellationToken)
     {
@@ -413,6 +476,9 @@ internal sealed partial class CrOwnershipAdministration(
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Dispute {DisputeId} was upheld, but the identity provider outcome could not be recorded ({ErrorType}); it stays listed for a retry.")]
     private static partial void OutcomeNotRecorded(ILogger logger, Guid disputeId, string errorType);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The retry of dispute {DisputeId} ran nothing: its claimant is no longer the company's vendor admin, so it was recorded as superseded.")]
+    private static partial void SupersededLog(ILogger logger, Guid disputeId);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The identity provider did not describe the current vendor admin {UserId} for the console ({ErrorType}).")]
     private static partial void RegistrantUnknown(ILogger logger, string userId, string errorType);

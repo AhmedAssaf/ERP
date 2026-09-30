@@ -338,7 +338,7 @@ public sealed class CrDisputeTriageTests(DatabaseFixture db)
         await using (var scope = host.PlatformScope(admin))
         {
             var administration = scope.ServiceProvider.GetRequiredService<ICrOwnershipAdministration>();
-            (await administration.RetryIdentityProviderAsync(disputeId, admin, Ct)).ShouldBeTrue();
+            (await administration.RetryIdentityProviderAsync(disputeId, admin, Ct)).ShouldBe(CrDisputeRetry.Updated);
             (await administration.ListIdentityProviderFailuresAsync(Ct)).ShouldNotContain(f => f.DisputeId == disputeId);
         }
 
@@ -390,7 +390,7 @@ public sealed class CrDisputeTriageTests(DatabaseFixture db)
         await using (var scope = host.PlatformScope(admin))
         {
             var administration = scope.ServiceProvider.GetRequiredService<ICrOwnershipAdministration>();
-            (await administration.RetryIdentityProviderAsync(disputeId, admin, Ct)).ShouldBeTrue();
+            (await administration.RetryIdentityProviderAsync(disputeId, admin, Ct)).ShouldBe(CrDisputeRetry.Updated);
             (await administration.ListIdentityProviderFailuresAsync(Ct)).ShouldNotContain(f => f.DisputeId == disputeId);
         }
 
@@ -445,7 +445,7 @@ public sealed class CrDisputeTriageTests(DatabaseFixture db)
         accounts.FailingOrganizations.Clear();
         await using (var scope = host.PlatformScope(admin))
         {
-            (await scope.ServiceProvider.GetRequiredService<ICrOwnershipAdministration>().RetryIdentityProviderAsync(disputeId, admin, Ct)).ShouldBeTrue();
+            (await scope.ServiceProvider.GetRequiredService<ICrOwnershipAdministration>().RetryIdentityProviderAsync(disputeId, admin, Ct)).ShouldBe(CrDisputeRetry.Updated);
         }
 
         accounts.OrganizationsOf(claimant).ShouldBe([acme, beta]);

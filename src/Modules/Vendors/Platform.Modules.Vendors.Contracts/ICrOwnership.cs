@@ -102,6 +102,22 @@ public enum CrDisputeStatus
     UnderReview,
 }
 
+/// <summary>What a retry of an upheld dispute's identity provider update came to.</summary>
+public enum CrDisputeRetry
+{
+    /// <summary>Every step has now succeeded, and the outcome is recorded; the dispute leaves the console's list.</summary>
+    Updated,
+
+    /// <summary>A step failed again, or the outcome could not be recorded; the dispute stays listed.</summary>
+    StillFailing,
+
+    /// <summary>
+    /// Nothing was run: the claimant is no longer the company's vendor admin (a later dispute moved it on), so the old
+    /// update would grant access to the wrong person. Recorded and audited; the dispute leaves the list.
+    /// </summary>
+    Superseded,
+}
+
 /// <summary>
 /// A pending dispute as the platform console lists it, with the company's current vendor admin as the identity provider
 /// knows them (null parts unknown; the name is self-declared). The console lists disputes grouped by company (the company
@@ -174,12 +190,14 @@ public interface ICrOwnershipAdministration
     Task<IReadOnlyList<CrDisputeIdentityProviderFailure>> ListIdentityProviderFailuresAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Repeats the identity provider update of an upheld dispute (the claimant's realm role <c>vendor</c> granted and
-    /// membership of every related tenant's organization added, the removed users' role and memberships taken back; every
-    /// step is idempotent), stores the outcome on the dispute and audits it as <c>vendor.dispute_identity_provider</c>.
-    /// True when every step succeeded.
+    /// Repeats the steps of an upheld dispute's identity provider update that failed (the claimant's realm role
+    /// <c>vendor</c> and membership of each tenant's organization the company worked with when the uphold committed, the
+    /// removed users' role and memberships taken back). A step already done is never run again, so a membership a tenant
+    /// took away after the uphold stays taken away (W-21: only the tenant restores access). Each run's results are merged
+    /// into the stored ones and audited as <c>vendor.dispute_identity_provider</c>. When the claimant is no longer the
+    /// company's vendor admin nothing runs, and the dispute is recorded and audited as superseded.
     /// </summary>
-    Task<bool> RetryIdentityProviderAsync(Guid disputeId, string actorId, CancellationToken cancellationToken = default);
+    Task<CrDisputeRetry> RetryIdentityProviderAsync(Guid disputeId, string actorId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Upholds a pending dispute after the admin checked the claimant against the CR certificate: the company moves to

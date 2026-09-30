@@ -508,11 +508,12 @@
   <data name="Console.Ownership.AcceptBody" xml:space="preserve"><value>ما دام الطلب قيد المراجعة لا تستطيع أي جهة اعتماد هذه المنشأة، حتى لو سبق التحقق من ملكيتها. اقبله فقط إذا أظهرت النظرة الأولى أن الادعاء جاد.</value></data>
   <data name="Console.Ownership.Accepted" xml:space="preserve"><value>الطلب الخاص بـ {0} قيد المراجعة.</value></data>
   <data name="Console.Ownership.Idp.Heading" xml:space="preserve"><value>لم تُحدَّث خدمة تسجيل الدخول</value></data>
-  <data name="Console.Ownership.Idp.Intro" xml:space="preserve"><value>قُبلت هذه النزاعات، لكن خدمة تسجيل الدخول لم تأخذ كل التغييرات. وإلى أن تأخذها، قد ينقص مقدمَ الطلب دورُ المورد أو عضويةُ جهة، أو قد يبقيان لدى مستخدم أُزيل. كل محاولة تعيد جميع الخطوات.</value></data>
+  <data name="Console.Ownership.Idp.Intro" xml:space="preserve"><value>قُبلت هذه النزاعات، لكن خدمة تسجيل الدخول لم تأخذ كل التغييرات. وإلى أن تأخذها، قد ينقص مقدمَ الطلب دورُ المورد أو عضويةُ جهة، أو قد يبقيان لدى مستخدم أُزيل. كل محاولة تعيد الخطوات التي تعذرت فقط، ولا تعيد عضوية أزالتها جهة بعد ذلك.</value></data>
   <data name="Console.Ownership.Idp.Line" xml:space="preserve"><value>نُقلت إلى {0} في</value></data>
   <data name="Console.Ownership.Idp.Retry" xml:space="preserve"><value>حاول مرة أخرى</value></data>
   <data name="Console.Ownership.Idp.Done" xml:space="preserve"><value>أخذت خدمة تسجيل الدخول التغيير الخاص بـ {0}.</value></data>
   <data name="Console.Ownership.Idp.StillFailing" xml:space="preserve"><value>لم تأخذ خدمة تسجيل الدخول التغيير بعد. حاول لاحقًا، أو غيّره في Keycloak.</value></data>
+  <data name="Console.Ownership.Idp.Superseded" xml:space="preserve"><value>لم يُغيَّر شيء: لم تعد المنشأة تابعة لـ {0}، لأن طلبًا لاحقًا نقلها. أُغلق الطلب.</value></data>
   <data name="Vendor.Dispute.Status.under_review" xml:space="preserve"><value>قيد المراجعة لدى وصلة بد</value></data>
   <data name="Gallery.Sample.NoteLabel" xml:space="preserve"><value>ما الذي تحققت منه</value></data>
   <data name="Gallery.Sample.NoteHelp" xml:space="preserve"><value>حتى 1,000 حرف.</value></data>

@@ -270,9 +270,19 @@ else
                 return;
             }
 
-            var updated = await Ownership.RetryIdentityProviderAsync(failure.DisputeId, actor);
-            Toasts.Show(updated ? T["Console.Ownership.Idp.Done", failure.ClaimantName] : T["Console.Ownership.Idp.StillFailing"],
-                updated ? ToastTone.Success : ToastTone.Danger);
+            switch (await Ownership.RetryIdentityProviderAsync(failure.DisputeId, actor))
+            {
+                case CrDisputeRetry.Updated:
+                    Toasts.Show(T["Console.Ownership.Idp.Done", failure.ClaimantName], ToastTone.Success);
+                    break;
+                case CrDisputeRetry.Superseded:
+                    Toasts.Show(T["Console.Ownership.Idp.Superseded", failure.ClaimantName], ToastTone.Info);
+                    break;
+                default:
+                    Toasts.Show(T["Console.Ownership.Idp.StillFailing"], ToastTone.Danger);
+                    break;
+            }
+
             await LoadAsync();
         }
         catch (Exception ex)
