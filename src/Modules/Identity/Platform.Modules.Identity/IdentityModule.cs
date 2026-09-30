@@ -101,14 +101,24 @@ public static class IdentityModule
         services.TryAddSingleton<IOrganizationMemberSource, UnavailableOrganizationMembers>();
         services.TryAddSingleton<IOrganizationMembers, CachingOrganizationMembers>();
         services.TryAddScoped<IVendorAccounts, UnavailableVendorAccounts>();
+        // W-21: sessions revalidated against Keycloak organization membership; AddKeycloakAdmin supplies the answers.
+        services.TryAddSingleton<MembershipEvidence>();
+        services.TryAddSingleton<IOrganizationMembershipSource, UnavailableOrganizationMembership>();
+        services.TryAddSingleton<RevocationAuditLog>();
+        services.AddScoped<RevocationAuditWriter>();
+        services.AddScoped<IMembershipRevalidation>(sp =>
+            ActivatorUtilities.CreateInstance<MembershipRevalidator>(sp, sp.GetRequiredService<RevocationAuditWriter>()));
+        services.AddHostedService<RevocationAuditRetry>();
         return services;
     }
 
     /// <summary>
     /// Registers the Keycloak Admin API client (settings <c>KeycloakAdmin:*</c>, plan task 9, spec D-4), the staff service
     /// that invites through it (<see cref="IStaffService"/>, F-06), and the client as the source of organization member
-    /// counts in place of the placeholder. Call after <see cref="AddIdentityModule"/>. Without <c>KeycloakAdmin:BaseUrl</c>
-    /// and <c>KeycloakAdmin:ClientSecret</c> counts stay unknown and invitations fail with a logged error.
+    /// counts and of membership answers (W-21) in place of the placeholders. Call after <see cref="AddIdentityModule"/>.
+    /// Without <c>KeycloakAdmin:BaseUrl</c> and <c>KeycloakAdmin:ClientSecret</c> counts stay unknown, invitations fail with
+    /// a logged error, and membership cannot be revalidated, so tenant sessions end once their sign-in is older than the
+    /// revalidation grace period.
     /// </summary>
     public static IServiceCollection AddKeycloakAdmin(this IServiceCollection services, IConfiguration configuration)
     {
@@ -128,6 +138,7 @@ public static class IdentityModule
             http.Timeout = TimeSpan.FromSeconds(15);
         });
         services.Replace(ServiceDescriptor.Singleton<IOrganizationMemberSource, KeycloakOrganizationMemberSource>());
+        services.Replace(ServiceDescriptor.Singleton<IOrganizationMembershipSource, KeycloakOrganizationMembershipSource>());
         // The notice to an invited person whose account needs no setup goes out through our own SMTP sender (Smtp:*),
         // in both languages from this module's resources.
         services.AddEmail(configuration);

@@ -18,6 +18,12 @@ internal sealed class FakeVendorAccounts : IVendorAccounts
     /// <summary>When set, adding the organization fails as Keycloak failing would.</summary>
     public bool FailOrganization { get; set; }
 
+    /// <summary>
+    /// Runs when the organization is added, before the answer: a parallel join of the same vendor winning the race, say,
+    /// between the caller's relationship check and its database step.
+    /// </summary>
+    public Func<string, Task>? OnAddOrganization { get; set; }
+
     public ConcurrentQueue<VendorAccessGrant> Revoked { get; } = new();
 
     public ConcurrentQueue<string> Steps { get; } = new();
@@ -39,12 +45,20 @@ internal sealed class FakeVendorAccounts : IVendorAccounts
         return !State.HoldsVendorRole;
     }
 
-    public Task<bool> AddToOrganizationAsync(string userId, string organizationAlias, CancellationToken cancellationToken = default)
+    public async Task<bool> AddToOrganizationAsync(string userId, string organizationAlias, CancellationToken cancellationToken = default)
     {
         Steps.Enqueue("add-organization");
-        return FailOrganization
-            ? throw new IdentityProviderException("Keycloak did not add the user to the organization.", new HttpRequestException("forced"))
-            : Task.FromResult(!State.OrganizationAliases.Contains(organizationAlias, StringComparer.Ordinal));
+        if (FailOrganization)
+        {
+            throw new IdentityProviderException("Keycloak did not add the user to the organization.", new HttpRequestException("forced"));
+        }
+
+        if (OnAddOrganization is not null)
+        {
+            await OnAddOrganization(userId);
+        }
+
+        return !State.OrganizationAliases.Contains(organizationAlias, StringComparer.Ordinal);
     }
 
     public Task RevokeAsync(VendorAccessGrant grant, CancellationToken cancellationToken = default)

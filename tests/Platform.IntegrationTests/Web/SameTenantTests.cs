@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Platform.IntegrationTests.Infrastructure;
 using Platform.Modules.Audit;
+using Platform.Web.Account;
 
 namespace Platform.IntegrationTests.Web;
 
@@ -72,8 +73,9 @@ public class SameTenantTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Login_cookie_has_a_fixed_thirty_minute_lifetime_until_membership_is_revalidated()
+    public async Task Login_cookie_keeps_a_fixed_thirty_minute_lifetime_and_revalidates_membership_on_every_request()
     {
+        // W-21 kept the session length; membership is revalidated separately (MembershipRevalidationTests).
         await using var factory = new PlatformWebFactory(db.AppConnectionString);
 
         var cookie = factory.Services.GetRequiredService<IOptionsMonitor<CookieAuthenticationOptions>>()
@@ -81,6 +83,8 @@ public class SameTenantTests(DatabaseFixture db)
 
         cookie.ExpireTimeSpan.ShouldBe(TimeSpan.FromMinutes(30));
         cookie.SlidingExpiration.ShouldBeFalse();
+        cookie.Events.OnValidatePrincipal.ShouldBe(MembershipRevalidation.OnValidatePrincipal);
+        cookie.Events.OnSigningIn.ShouldBe(MembershipRevalidation.OnSigningIn);
     }
 
     private async Task<HttpResponseMessage> GetAuthorizedEndpointAsync(string host, TestUser user)

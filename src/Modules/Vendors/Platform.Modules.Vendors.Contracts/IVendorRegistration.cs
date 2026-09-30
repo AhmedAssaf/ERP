@@ -96,4 +96,10 @@ public static class VendorErrors
 
     /// <summary>The identity provider did not add the vendor to the tenant's organization; nothing was joined.</summary>
     public const string JoinFailed = "vendor.join_failed";
+
+    /// <summary>
+    /// The company already works with the tenant but the user is no longer in its organization: the tenant removed it, and
+    /// only the tenant restores access (W-21). Nothing was changed.
+    /// </summary>
+    public const string MembershipRemoved = "vendor.membership_removed";
 }

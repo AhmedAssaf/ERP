@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using Microsoft.Extensions.Options;
+using Platform.Modules.Identity;
 using Platform.Modules.Identity.Keycloak;
 
 namespace Platform.UnitTests.Identity;
@@ -75,6 +76,36 @@ public sealed class KeycloakAdminClientTests
         request.ShouldContain("redirect_uri=https%3A%2F%2Facme.localhost%3A8443%2F");
         request.ShouldContain("lifespan=259200");
         request.ShouldContain("[\"UPDATE_PASSWORD\",\"CONFIGURE_TOTP\"]");
+    }
+
+    [Fact]
+    public async Task The_membership_check_reads_one_member_of_the_organization_and_its_enabled_flag()
+    {
+        // W-21: 200 with enabled true is a member, enabled false a disabled account, 404 not a member (or no such user),
+        // an organization that does not exist has no members, and any other status is Keycloak failing, never a removal.
+        var handler = new ScriptedHandler { MemberAnswers = { ["u1"] = "true", ["u2"] = "false", ["u9"] = "500" } };
+        var client = Client(handler, new KeycloakAdminState(new ManualClock()));
+
+        (await client.MembershipAsync("acme", "u1", Ct)).ShouldBe(OrganizationMembership.Member);
+        (await client.MembershipAsync("acme", "u2", Ct)).ShouldBe(OrganizationMembership.Disabled);
+        (await client.MembershipAsync("acme", "gone", Ct)).ShouldBe(OrganizationMembership.NotMember);
+        (await client.MembershipAsync("no-such-organization", "u1", Ct)).ShouldBe(OrganizationMembership.NotMember);
+        (await Should.ThrowAsync<KeycloakAdminException>(() => client.MembershipAsync("acme", "u9", Ct))).Status.ShouldBe(HttpStatusCode.InternalServerError);
+        handler.Requests.ShouldContain(r => r.StartsWith("GET /admin/realms/waslabid/organizations/org-1/members/u1 Bearer token-", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task The_account_check_reads_the_users_enabled_flag()
+    {
+        // W-21, P-2: a session that claims no organization of its host is still refused once the account is disabled.
+        var handler = new ScriptedHandler { AccountAnswers = { ["u1"] = "true", ["u2"] = "false", ["u9"] = "503" } };
+        var client = Client(handler, new KeycloakAdminState(new ManualClock()));
+
+        (await client.AccountAsync("u1", Ct)).ShouldBe(OrganizationMembership.Member);
+        (await client.AccountAsync("u2", Ct)).ShouldBe(OrganizationMembership.Disabled);
+        (await client.AccountAsync("gone", Ct)).ShouldBe(OrganizationMembership.NotMember);
+        (await Should.ThrowAsync<KeycloakAdminException>(() => client.AccountAsync("u9", Ct))).Status.ShouldBe(HttpStatusCode.ServiceUnavailable);
+        handler.Requests.ShouldContain(r => r.StartsWith("GET /admin/realms/waslabid/users/u1 Bearer token-", StringComparison.Ordinal));
     }
 
     /// <summary>
@@ -173,6 +204,12 @@ public sealed class KeycloakAdminClientTests
         /// <summary>Ids of the users holding the realm role vendor, served a page at a time.</summary>
         public List<string> VendorUsers { get; init; } = [];
 
+        /// <summary>Per user id: "true" or "false" (its enabled flag), or a status code; any other id is 404.</summary>
+        public Dictionary<string, string> AccountAnswers { get; } = [];
+
+        /// <summary>Per member id: "true" or "false" (its enabled flag), or a status code; any other id is 404.</summary>
+        public Dictionary<string, string> MemberAnswers { get; } = [];
+
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var body = request.Content is null ? string.Empty : await request.Content.ReadAsStringAsync(cancellationToken);
@@ -197,6 +234,28 @@ public sealed class KeycloakAdminClientTests
             if (path.EndsWith("/organizations/org-1/members", StringComparison.Ordinal))
             {
                 return Page(Members, request.RequestUri);
+            }
+
+            const string memberPath = "/organizations/org-1/members/";
+            if (path.Contains(memberPath, StringComparison.Ordinal) && !path.EndsWith("/count", StringComparison.Ordinal))
+            {
+                var id = path[(path.IndexOf(memberPath, StringComparison.Ordinal) + memberPath.Length)..];
+                return MemberAnswers.TryGetValue(id, out var answer)
+                    ? answer is "true" or "false"
+                        ? Json($$"""{"id":"{{id}}","username":"{{id}}","enabled":{{answer}},"membershipType":"MANAGED"}""")
+                        : new HttpResponseMessage((HttpStatusCode)int.Parse(answer, System.Globalization.CultureInfo.InvariantCulture))
+                    : new HttpResponseMessage(HttpStatusCode.NotFound);
+            }
+
+            const string userPath = "/admin/realms/waslabid/users/";
+            if (request.Method == HttpMethod.Get && path.StartsWith(userPath, StringComparison.Ordinal) && !path[userPath.Length..].Contains('/', StringComparison.Ordinal))
+            {
+                var id = path[userPath.Length..];
+                return AccountAnswers.TryGetValue(id, out var answer)
+                    ? answer is "true" or "false"
+                        ? Json($$"""{"id":"{{id}}","username":"{{id}}","enabled":{{answer}}}""")
+                        : new HttpResponseMessage((HttpStatusCode)int.Parse(answer, System.Globalization.CultureInfo.InvariantCulture))
+                    : new HttpResponseMessage(HttpStatusCode.NotFound);
             }
 
             if (path.EndsWith("/roles/vendor/users", StringComparison.Ordinal))

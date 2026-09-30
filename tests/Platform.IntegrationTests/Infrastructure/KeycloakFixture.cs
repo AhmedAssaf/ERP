@@ -177,6 +177,31 @@ public sealed class KeycloakFixture : IAsyncLifetime
         return response.Headers.Location!.Segments[^1].TrimEnd('/');
     }
 
+    /// <summary>
+    /// Sends <paramref name="method"/> to the waslabid realm's Admin API as the container's bootstrap admin, with an optional
+    /// JSON body; <paramref name="path"/> is relative to <c>admin/realms/waslabid/</c>. Fails on any error status.
+    /// </summary>
+    public async Task AdminSendAsync(HttpMethod method, string path, object? body, CancellationToken cancellationToken)
+    {
+        using var http = new HttpClient();
+        using var request = new HttpRequestMessage(method, AdminUri(path));
+        if (body is not null)
+        {
+            request.Content = System.Net.Http.Json.JsonContent.Create(body, body.GetType());
+        }
+
+        request.Headers.Authorization = new("Bearer", await BootstrapTokenAsync(http, cancellationToken));
+        using var response = await http.SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
+    /// <summary>The generated id of the organization with <paramref name="alias"/>.</summary>
+    public async Task<string> OrganizationIdAsync(string alias, CancellationToken cancellationToken)
+    {
+        var organizations = await AdminGetAsync("organizations?briefRepresentation=true&max=100", cancellationToken);
+        return organizations.EnumerateArray().Single(o => o.GetProperty("alias").GetString() == alias).GetProperty("id").GetString()!;
+    }
+
     private Uri AdminUri(string path) =>
         new(new Uri(BaseAddress), path.Length == 0 ? "admin/realms/waslabid" : $"admin/realms/waslabid/{path}");
 
