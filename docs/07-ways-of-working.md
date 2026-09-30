@@ -81,11 +81,13 @@ Reset everything: `docker compose down -v` then `up -d` again. ClamAV takes up t
 
 ### Run the app locally
 
-With the Compose stack up and these six values filled in `infra/compose/.env` (see `.env.example` for how to generate
+With the Compose stack up and these seven values filled in `infra/compose/.env` (see `.env.example` for how to generate
 them): `WASLABID_WEB_CLIENT_SECRET`, `WASLABID_PLATFORM_CLIENT_SECRET`, `WASLABID_ADMIN_API_SECRET`,
 `WASLABID_DEV_USER_PASSWORD` (at least 12 characters, not a user name, or the platform realm import fails),
-`MINIO_HEALTH_PROBE_PASSWORD` and `VENDORS_CR_AUDIT_KEY` (base64 of at least 32 bytes; the web host does not start
-without it), run these once from the repository root (Git Bash). The commands read the values from `.env` into shell variables and never print them (N-10); user secrets live outside the repository.
+`MINIO_HEALTH_PROBE_PASSWORD`, `VENDORS_CR_AUDIT_KEY` (base64 of at least 32 bytes; the web host does not start
+without it) and `ERP_KEY_RING_DB_PASSWORD` (the key ring's own database role, W-24; the web host does not start without
+it), run these once from the repository root (Git Bash). The commands read the values from `.env` into shell variables and never print them (N-10); user secrets live outside the repository.
+In a git worktree `infra/compose/.env` does not exist (it is git-ignored), so point `env_value` at the main checkout's file, for example `grep "^$1=" ../ERP/infra/compose/.env` (the e2e scripts take `E2E_ENV_FILE` for the same reason).
 
 ```bash
 env_value() { grep "^$1=" infra/compose/.env | cut -d= -f2- | tr -d '\r'; }
@@ -95,10 +97,15 @@ PLATFORM_SECRET=$(env_value WASLABID_PLATFORM_CLIENT_SECRET)
 ADMIN_API_SECRET=$(env_value WASLABID_ADMIN_API_SECRET)
 # erp_app's password is the development value from infra/compose/postgres/init/01-databases.sql.
 APP_DB="Host=localhost;Port=5432;Database=platform;Username=erp_app;Password=erp_app_dev_password"
+# W-24: the Data Protection key ring's own role. The migrator gives erp_key_ring its login with this password; the web
+# host's key-ring pool is the only thing that connects with it.
+KEY_RING_DB="Host=localhost;Port=5432;Database=platform;Username=erp_key_ring;Password=$(env_value ERP_KEY_RING_DB_PASSWORD)"
 
 dotnet user-secrets set "ConnectionStrings:Owner" "Host=localhost;Port=5432;Database=platform;Username=erp;Password=$PGPW" --project src/Platform.Migrator > /dev/null
 dotnet user-secrets set "ConnectionStrings:Platform" "$APP_DB" --project src/Platform.Migrator > /dev/null
 dotnet user-secrets set "ConnectionStrings:Platform" "$APP_DB" --project src/Platform.Web > /dev/null
+dotnet user-secrets set "ConnectionStrings:KeyRing" "$KEY_RING_DB" --project src/Platform.Migrator > /dev/null
+dotnet user-secrets set "ConnectionStrings:KeyRing" "$KEY_RING_DB" --project src/Platform.Web > /dev/null
 dotnet user-secrets set "ConnectionStrings:Platform" "$APP_DB" --project src/Platform.Worker > /dev/null
 dotnet user-secrets set "Oidc:ClientSecret" "$WEB_SECRET" --project src/Platform.Web > /dev/null
 dotnet user-secrets set "PlatformOidc:ClientSecret" "$PLATFORM_SECRET" --project src/Platform.Web > /dev/null
@@ -114,7 +121,7 @@ dotnet user-secrets set "Vendors:CrAuditKey" "$(env_value VENDORS_CR_AUDIT_KEY)"
 # specification; the key is never kept in the repository or printed.
 # dotnet user-secrets set "Wathq:BaseUrl" "https://api.wathq.sa/sandbox/commercial-registration" --project src/Platform.Web > /dev/null
 # dotnet user-secrets set "Wathq:ApiKey" "$(env_value WATHQ_API_KEY)" --project src/Platform.Web > /dev/null
-unset PGPW WEB_SECRET PLATFORM_SECRET ADMIN_API_SECRET
+unset PGPW WEB_SECRET PLATFORM_SECRET ADMIN_API_SECRET KEY_RING_DB
 ```
 
 Then migrate, seed the development tenants `acme` and `beta`, and start the app:
@@ -276,6 +283,70 @@ Checked end to end on 2026-09-28 with `tests/e2e/vendor.mjs` (21 of 21 steps pas
    `https://beta.localhost:8443/vendor` is sent to `/vendor/join`. Each tenant host asks Keycloak for its own
    organization only (`organization:<alias>`), so a vendor working with both tenants is not shown an organization
    picker.
+
+#### Edge and Data Protection key ring (W-24)
+
+The login cookie, antiforgery tokens and Blazor's prerendered state are protected with the Data Protection key ring,
+which lives in `platform.data_protection_keys` under the application name `waslabid-web`, so any number of web instances
+and any restart accept the same cookie. Whoever can add a key can forge any session, so the table has its own role,
+`erp_key_ring`, with SELECT and INSERT only, used only by the web host's key-ring pool (`ConnectionStrings:KeyRing`).
+`erp_app`, which every module, the worker and Hangfire use, has no right on it at all, and the host refuses a key-ring
+connection string for any role but `erp_key_ring`. Migration `platform/0007` creates the role without a login; the
+migrator gives it one from its own `ConnectionStrings:KeyRing`, so the password is never in a script (N-10); it sends
+PostgreSQL only a SCRAM-SHA-256 verifier it computed, never the password, so a server log never holds the password
+(keep database connections on TLS outside the host). The password must be printable ASCII (`openssl rand -hex 32`). The migrator's owner role needs CREATEROLE (or
+superuser) to create the role and give it its login: the Compose owner `erp` is a superuser; on the pilot (W-19) grant
+the migration owner CREATEROLE, or have an administrator create `erp_key_ring` and set its password once
+(`\password erp_key_ring` in psql, which also sends only a verifier) and leave `ConnectionStrings:KeyRing` unset for the
+migrator.
+Row-level security on the table (no tenant, vendor or user context) is defence in depth only, never the protection.
+
+In Development: the host takes only `X-Forwarded-Proto` from the local Caddy, from any address, and keeps the keys
+unencrypted in the database, so its first start logs the expected Data Protection warning "No XML encryptor configured.
+Key {...} may be persisted to storage in unencrypted form." (a key id only, no key material). When this change reaches
+your machine, add `ERP_KEY_RING_DB_PASSWORD` to `.env` (`openssl rand -hex 32`), set the two `ConnectionStrings:KeyRing`
+user secrets above, and re-run the migrator. The keys moved from your user profile to the database, so your old login
+cookie is no longer accepted and you sign in again once; while your Keycloak session is still open, that second sign-in
+may pass with no prompt at all.
+
+If the migrator was not re-run, or the `KeyRing` password differs from the one the migrator was given, the web host
+stops at startup with "The Data Protection key ring cannot be read with connection string 'ConnectionStrings:KeyRing'
+(PostgreSQL 28P01)" (a wrong password), 28000 (the role has no login yet) or 42P01 (platform/0007 not applied); fix the
+secret or re-run the migrator with the same `ConnectionStrings:KeyRing`. If the database is only unreachable, the host
+starts and `/health` answers 503 Unhealthy until the key ring can be read, so the worker's health check reports it.
+`/health` is anonymous, so it never reaches the database per request: the key ring is checked at most once every five
+seconds (callers in between get that answer), on the ring's own pool of at most three connections, and a check gives up
+after three seconds, inside the worker's five-second limit (F-51).
+
+Everywhere else the host refuses to start without these settings:
+
+| Setting | What it is | Example |
+|---|---|---|
+| `ConnectionStrings:KeyRing` | The key ring's own role (web host and migrator), a secret | `...;Username=erp_key_ring;Password=...` |
+| `ForwardedHeaders:KnownProxies` | Caddy's address; a list (`ForwardedHeaders__KnownProxies__0`) or comma-separated. Preferred: pin Caddy's address in Compose and name only that | `172.18.0.5` |
+| `ForwardedHeaders:KnownNetworks` | Or a network in CIDR form, when the address cannot be pinned. Refused: host bits set, and networks that together match every address | `172.18.0.0/16` |
+| `DataProtection:CertificatePath` | PFX whose RSA key encrypts every Data Protection key before it is stored | a mounted secret file |
+| `DataProtection:CertificatePassword` | Its password, a secret (N-10) | from the secret store, never a file in the repository |
+
+Forwarded headers are taken only from those addresses, and only the last `X-Forwarded-For` entry counts. Caddy v2
+replaces that header with the client address it sees (it trusts no incoming `X-Forwarded-*` unless configured to), and
+the one-hop limit keeps a client-written address out even if that changes. A whole network trusts every other container
+on it, so prefer `KnownProxies` with Caddy's pinned address (finding of the W-24 edge and key ring pentest). `X-Forwarded-Host` is never taken: the tenant
+always comes from the `Host` header Caddy passes through.
+
+The key ring is in every database backup, which is why it is encrypted with the certificate: keep the certificate out of
+the backup. With a certificate configured, the host ignores any key stored without that encryption. Replacing the
+certificate makes the stored keys unreadable, so the host makes a new key and every user signs in again; reading old
+keys with a previous certificate is not built yet. Two instances starting together on an empty table make one key: the
+store takes an advisory lock and skips a key when a stored one already covers its period.
+
+Data Protection writes whole key elements at Debug and Trace, so the host caps every `Microsoft.AspNetCore.DataProtection`
+category at Information for every logging provider, and outside Development it refuses to start if Debug is still
+enabled there (N-10). Raising another category to Trace to debug a rotation is fine; that one stays capped.
+
+The worker does not load the key ring; it issues and reads no cookie. Make a certificate once with
+`openssl req -x509 -newkey rsa:3072 -nodes -days 1095 -subj "/CN=waslabid-key-ring" -keyout k.pem -out c.pem` and
+`openssl pkcs12 -export -inkey k.pem -in c.pem -out key-ring.pfx`, then delete the PEM files.
 
 #### Operations
 

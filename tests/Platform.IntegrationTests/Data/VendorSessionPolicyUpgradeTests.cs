@@ -55,6 +55,7 @@ public sealed class VendorSessionPolicyUpgradeTests(DatabaseFixture db)
             applied.ShouldBe(
             [
                 "platform/0006_platform_vendor_sessions.sql",
+                "platform/0007_platform_data_protection_keys.sql",
                 "audit/0002_audit_vendor_insert.sql",
                 "audit/0003_audit_actor_and_time.sql",
                 "tenancy/0007_tenancy_function_callers.sql",
