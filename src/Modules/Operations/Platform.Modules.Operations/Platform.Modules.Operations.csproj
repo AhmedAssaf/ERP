@@ -2,6 +2,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\Platform.Shared\Platform.Shared.csproj" />
     <ProjectReference Include="..\Platform.Modules.Operations.Contracts\Platform.Modules.Operations.Contracts.csproj" />
+    <!-- W-10 usage job: the activity counts and the tenant slugs, through the other modules' contracts only. -->
+    <ProjectReference Include="..\..\Identity\Platform.Modules.Identity.Contracts\Platform.Modules.Identity.Contracts.csproj" />
+    <ProjectReference Include="..\..\Tenancy\Platform.Modules.Tenancy.Contracts\Platform.Modules.Tenancy.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="AWSSDK.S3" />

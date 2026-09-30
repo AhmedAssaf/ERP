@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Npgsql;
+using Platform.Modules.Identity.Activity;
 using Platform.Modules.Identity.Contracts;
 using Platform.Modules.Identity.Keycloak;
 using Platform.Modules.Identity.Members;
@@ -13,7 +15,7 @@ using Platform.Shared.Data;
 
 namespace Platform.Modules.Identity;
 
-public static class IdentityModule
+public static partial class IdentityModule
 {
     /// <summary>
     /// Authenticated and a member of the host tenant's organization, staff or vendor. The Vendor policy builds on it; staff
@@ -110,6 +112,31 @@ public static class IdentityModule
         services.AddScoped<IMembershipRevalidation>(sp =>
             ActivatorUtilities.CreateInstance<MembershipRevalidator>(sp, sp.GetRequiredService<RevocationAuditWriter>()));
         services.AddHostedService<RevocationAuditRetry>();
+        // W-10 (spec 6.4): hourly activity buckets for the active-user counts, written through the scope's own connection.
+        // Counting and pruning (IUserActivityCounts) are not registered here: only the worker holds them, through
+        // AddIdentityActivityCounts, since a web-host scope without a request has the worker's "no context" shape (PT-W10-01).
+        services.TryAddSingleton<ActivityThrottle>();
+        services.AddScoped<IUserActivityRecorder, UserActivityRecorder>();
+        return services;
+    }
+
+    /// <summary>
+    /// The worker's part of the active-user counts (W-10, spec 6.4): <see cref="IUserActivityCounts"/> over this module's
+    /// database context, without anything else of the module (no claims transformation, no Keycloak settings). Only the
+    /// worker calls it, instead of <see cref="AddIdentityModule"/>, which does not register the service: the web host must
+    /// not be able to count or prune activity (pentest PT-W10-01).
+    /// </summary>
+    public static IServiceCollection AddIdentityActivityCounts(this IServiceCollection services, string connectionString)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
+        services.TryAddSingleton(TimeProvider.System);
+        if (!services.Any(d => d.ServiceType == typeof(IDbContextFactory<MembersDbContext>)))
+        {
+            services.AddModuleDbContext<MembersDbContext>(connectionString);
+        }
+
+        services.TryAddScoped<IUserActivityCounts, UserActivityCounts>();
         return services;
     }
 

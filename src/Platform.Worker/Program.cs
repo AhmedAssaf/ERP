@@ -1,6 +1,7 @@
 using Hangfire;
 using Hangfire.AspNetCore;
 using Platform.Modules.Audit;
+using Platform.Modules.Identity;
 using Platform.Modules.Operations;
 using Platform.Modules.Tenancy;
 using Platform.Modules.Vendors;
@@ -37,6 +38,10 @@ internal static class EntryPoint
         builder.Services.AddOperationsHealthChecks(platformDb, builder.Configuration);
         // W-33: tell the platform admins about new CR ownership disputes (needs the F-60 alerts registered just above).
         builder.Services.AddVendorDisputeAlerts();
+        // W-10 business metrics (spec 6.4): the usage job counts the active users every five minutes, for the console usage
+        // page (ops.active_user_counts) and the gauges on meter WaslaBid.Usage.
+        builder.Services.AddIdentityActivityCounts(platformDb);
+        builder.Services.AddOperationsUsageMetrics();
         builder.Services.AddJobServer(platformDb, settings => settings.ServerName = "waslabid-worker");
 
         using var host = builder.Build();
@@ -44,6 +49,7 @@ internal static class EntryPoint
         GlobalConfiguration.Configuration.UseLogProvider(new AspNetCoreLogProvider(host.Services.GetRequiredService<ILoggerFactory>()));
         // F-51: the health-check recurring job (task 3) runs every minute from here on.
         OperationsModule.ScheduleHealthCheckJob(host.Services);
+        OperationsModule.ScheduleUsageMetricsJobs(host.Services);
         VendorsModule.ScheduleVendorJobs(host.Services);
         await host.RunAsync();
     }

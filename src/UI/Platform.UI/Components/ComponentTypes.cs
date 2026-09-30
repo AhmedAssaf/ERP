@@ -19,6 +19,9 @@ public enum StatusTone
     Danger,
 }
 
+/// <summary>One line of a <see cref="StatTile"/>'s split: a part's label and its number (null when unknown).</summary>
+public sealed record StatTilePart(string Label, int? Value);
+
 public enum ToastTone
 {
     Success,

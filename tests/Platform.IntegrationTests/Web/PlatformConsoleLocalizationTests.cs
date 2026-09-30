@@ -20,6 +20,8 @@ public sealed partial class PlatformConsoleTests
     [InlineData("/platform", "en-US", "<html lang=\"en\" dir=\"ltr\">")]
     [InlineData("/platform/tenants", "en-US", "<html lang=\"en\" dir=\"ltr\">")]
     [InlineData("/platform/vendors", "en-US", "<html lang=\"en\" dir=\"ltr\">")]
+    [InlineData("/platform/usage", "ar-SA", "<html lang=\"ar\" dir=\"rtl\">")]
+    [InlineData("/platform/usage", "en-US", "<html lang=\"en\" dir=\"ltr\">")]
     public async Task A_console_page_follows_the_culture_and_shows_no_resource_key(string path, string culture, string htmlTag)
     {
         await using var factory = Factory();

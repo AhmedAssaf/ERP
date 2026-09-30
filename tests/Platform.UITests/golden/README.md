@@ -23,6 +23,9 @@ Horizontal overflow check at each size: `document.documentElement.scrollWidth <=
 in any of the four (scroll width 360 at 360 px, 1280 at 1280 px), and every textarea inside its panel, right to left in
 the Arabic panel and left to right in the English one.
 
+Retaken 2026-10-01 for W-10: `StatTile` joined the gallery for the console usage page (a value with its staff and vendor
+split, a value alone, and an unknown value shown as a dash); no horizontal overflow at 360 or 1280 px in either direction.
+
 These are reference images for a human comparison when a component changes, not an automated pixel test yet. Retake
 them in the same way (same tenant branding, same widths) and review the difference in the pull request. `Stepper`,
 `StageTimeline` and `SealedEnvelope` join the gallery, and this set, with the tender slices.

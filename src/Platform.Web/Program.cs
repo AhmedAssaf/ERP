@@ -22,6 +22,7 @@ using Platform.Web.Edge;
 using Platform.Web.Localization;
 using Platform.Web.PlatformHost;
 using Platform.Web.Tenancy;
+using Platform.Web.Usage;
 using Platform.Web.Vendor;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -75,6 +76,9 @@ builder.Services.AddJobClient(platformDb);
 builder.Services.AddJobsDashboard();
 builder.Services.AddOperationsConsole(builder.Configuration);
 builder.Services.AddScoped<TenantOverview>();
+// W-10 (spec 6.6): the console usage page's figures, from the circuit registry and the usage job's stored result.
+builder.Services.AddScoped<UsageOverview>();
+builder.Services.AddSingleton<GrafanaLink>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<CircuitHandler, TenantCircuitHandler>();
 builder.Services.AddScoped<CircuitHandler, VendorCircuitHandler>();
@@ -165,6 +169,10 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<CircuitSessionGuard>();
 builder.Services.AddScoped<CircuitHandler>(sp => sp.GetRequiredService<CircuitSessionGuard>());
 builder.Services.AddScoped<AuthenticationStateProvider, MembershipRevalidatingStateProvider>();
+// W-10 business metrics (spec 6.3): the connected circuits of this instance, counted per tenant slug and kind after the
+// session guard, on meter WaslaBid.Usage and for the console usage page.
+builder.Services.AddSingleton<ConnectedCircuits>();
+builder.Services.AddScoped<CircuitHandler, UsageCircuitHandler>();
 builder.Services.AddPlatformLocalization();
 builder.Services.AddPlatformUI();
 
@@ -212,6 +220,8 @@ app.UseMiddleware<VendorHomeRedirectMiddleware>();
 app.UseAuthorization();
 app.UseMiddleware<PlatformAdminEverywhereMiddleware>();
 app.UseMiddleware<VendorContextMiddleware>();
+// W-10 (spec 6.4): after the vendor context, an authorized staff or vendor request marks its user active for the hour.
+app.UseMiddleware<UserActivityMiddleware>();
 app.UseAntiforgery();
 // After the vendor context: the upload API's limit is partitioned by the vendor company.
 app.UseRateLimiter();

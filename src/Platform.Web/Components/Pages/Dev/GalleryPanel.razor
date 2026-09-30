@@ -97,6 +97,15 @@
         </div>
     </GallerySection>
 
+    <GallerySection Name="StatTile" Title="@T["Gallery.Section.StatTile"]">
+        @* A value with its split, a value alone, and an unknown value (a dash named "Unknown"). *@
+        <div class="grid gap-4 sm:grid-cols-3">
+            <StatTile Label="@T["Gallery.Sample.StatOnline"]" Value="1240" Split="KnownSplit" />
+            <StatTile Label="@T["Gallery.Sample.StatCircuits"]" Value="37" />
+            <StatTile Label="@T["Gallery.Sample.StatToday"]" Value="null" Split="UnknownSplit" />
+        </div>
+    </GallerySection>
+
     <GallerySection Name="Dialog" Title="@T["Gallery.Section.Dialog"]">
         @* The transform makes this box the containing block of the dialog's fixed layers, so it stays inside the gallery. *@
         <div class="relative h-96 transform-gpu overflow-hidden rounded-card border border-line">
@@ -148,6 +157,10 @@
 
     private IReadOnlyList<AuditEntry> Audit { get; set; } = [];
 
+    private IReadOnlyList<StatTilePart> KnownSplit { get; set; } = [];
+
+    private IReadOnlyList<StatTilePart> UnknownSplit { get; set; } = [];
+
     private static readonly string[] UploadTypes = ["application/pdf", "image/png", "image/jpeg"];
 
     protected override void OnInitialized()
@@ -164,6 +177,8 @@
             new(T["Gallery.Sample.SignIn"], T["Gallery.Sample.Slow"], StatusTone.Warning, 288),
             new(T["Gallery.Sample.Storage"], T["Gallery.Sample.Failing"], StatusTone.Danger, 1024),
         ];
+        KnownSplit = [new(T["Gallery.Sample.StatStaff"], 1180), new(T["Gallery.Sample.StatVendors"], 60)];
+        UnknownSplit = [new(T["Gallery.Sample.StatStaff"], null), new(T["Gallery.Sample.StatVendors"], null)];
         Audit =
         [
             new(T["Gallery.Sample.UserName"], T["Gallery.Sample.AuditInvited"], new DateTimeOffset(2026, 9, 26, 11, 5, 0, TimeSpan.Zero)),

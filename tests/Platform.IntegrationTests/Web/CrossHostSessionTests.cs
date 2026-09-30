@@ -32,7 +32,7 @@ public sealed class CrossHostSessionTests(DatabaseFixture db)
     public static TheoryData<string, string> ConsolePagesAndCookieNames()
     {
         var data = new TheoryData<string, string>();
-        foreach (var path in new[] { "/platform", "/platform/tenants", "/platform/jobs" })
+        foreach (var path in new[] { "/platform", "/platform/tenants", "/platform/usage", "/platform/jobs" })
         {
             data.Add(path, TenantCookie);
             data.Add(path, PlatformCookie);
@@ -93,6 +93,29 @@ public sealed class CrossHostSessionTests(DatabaseFixture db)
 
         ShouldBeChallengedBy(response, TenantRealmAuthorize);
         (await TenantRows.BrandingAsync(db.AppConnectionString, tenant, Ct)).LogoUrl.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData(TenantCookie)]
+    [InlineData(PlatformCookie)]
+    public async Task A_vendor_session_on_the_platform_host_cannot_open_the_usage_page(string cookieName)
+    {
+        // W-10 (spec 6.6): a vendor of acme presents its tenant session to the console's usage page and sees no count.
+        await using var factory = Factory();
+        var vendor = AuthCookies.Principal(
+        [
+            new Claim("sub", "acme.vendor"),
+            new Claim("preferred_username", "acme.vendor"),
+            new Claim("organization", "acme"),
+            new Claim("roles", "vendor"),
+        ]);
+        var session = AuthCookies.Protect(factory.Services, CookieAuthenticationDefaults.AuthenticationScheme, vendor);
+        using var client = Client(factory, PlatformWebFactory.PlatformHost);
+
+        using var response = await client.SendAsync(new HttpRequestMessage(HttpMethod.Get, "/platform/usage").WithCookie(cookieName, session), Ct);
+
+        ShouldBeChallengedBy(response, PlatformRealmAuthorize);
+        (await response.Content.ReadAsStringAsync(Ct)).ShouldNotContain("data-tile");
     }
 
     [Fact]

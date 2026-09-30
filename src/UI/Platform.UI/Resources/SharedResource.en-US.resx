@@ -87,6 +87,7 @@
   <data name="Gallery.Sample.AuditDetail" xml:space="preserve"><value>From the link in the invitation email</value></data>
   <data name="Console.Nav.Health" xml:space="preserve"><value>Health</value></data>
   <data name="Console.Nav.Tenants" xml:space="preserve"><value>Tenants and jobs</value></data>
+  <data name="Console.Nav.Usage" xml:space="preserve"><value>Usage</value></data>
   <data name="Console.Nav.Jobs" xml:space="preserve"><value>Job dashboard</value></data>
   <data name="Console.TimeFormat" xml:space="preserve"><value>d MMMM yyyy, HH:mm</value></data>
   <data name="Console.Unknown" xml:space="preserve"><value>Unknown</value></data>
@@ -151,6 +152,28 @@
   <data name="Console.Size.KB" xml:space="preserve"><value>{0} KB</value></data>
   <data name="Console.Size.MB" xml:space="preserve"><value>{0} MB</value></data>
   <data name="Console.Size.GB" xml:space="preserve"><value>{0} GB</value></data>
+  <data name="Console.Usage.Title" xml:space="preserve"><value>Usage</value></data>
+  <data name="Console.Usage.Intro" xml:space="preserve"><value>How many people use the product now and in the last day, week and month. Counts only, never who.</value></data>
+  <data name="Console.Usage.Refresh" xml:space="preserve"><value>Refresh</value></data>
+  <data name="Console.Usage.OnlineNow" xml:space="preserve"><value>Online now</value></data>
+  <data name="Console.Usage.ActiveToday" xml:space="preserve"><value>Active today</value></data>
+  <data name="Console.Usage.Active7Days" xml:space="preserve"><value>Active in 7 days</value></data>
+  <data name="Console.Usage.Active30Days" xml:space="preserve"><value>Active in 30 days</value></data>
+  <data name="Console.Usage.Staff" xml:space="preserve"><value>Staff</value></data>
+  <data name="Console.Usage.Vendors" xml:space="preserve"><value>Vendors</value></data>
+  <data name="Console.Usage.Totals" xml:space="preserve"><value>All tenants</value></data>
+  <data name="Console.Usage.CountedAt" xml:space="preserve"><value>Active users counted at</value></data>
+  <data name="Console.Usage.NotCounted" xml:space="preserve"><value>Active users have not been counted yet. The worker counts them every five minutes.</value></data>
+  <data name="Console.Usage.Stale" xml:space="preserve"><value>The last count is older than 15 minutes, so active users show as unknown. Check the usage-metrics job.</value></data>
+  <data name="Console.Usage.OnceNote" xml:space="preserve"><value>A vendor active on two tenants counts in each tenant&apos;s row and once in the totals.</value></data>
+  <data name="Console.Usage.OnlineNote" xml:space="preserve"><value>Online now counts the sessions connected to this web server.</value></data>
+  <data name="Console.Usage.ByTenant" xml:space="preserve"><value>By tenant</value></data>
+  <data name="Console.Usage.Now" xml:space="preserve"><value>Online now</value></data>
+  <data name="Console.Usage.Today" xml:space="preserve"><value>Today</value></data>
+  <data name="Console.Usage.Days7" xml:space="preserve"><value>7 days</value></data>
+  <data name="Console.Usage.Days30" xml:space="preserve"><value>30 days</value></data>
+  <data name="Console.Usage.OpenGrafana" xml:space="preserve"><value>Open the history in Grafana</value></data>
+  <data name="StatTile.Unknown" xml:space="preserve"><value>Unknown</value></data>
   <data name="Admin.Nav.Staff" xml:space="preserve"><value>Staff</value></data>
   <data name="Staff.Title" xml:space="preserve"><value>Staff</value></data>
   <data name="Staff.Heading" xml:space="preserve"><value>Members</value></data>
@@ -284,6 +307,12 @@
   <data name="Gallery.Sample.UploadLabel" xml:space="preserve"><value>Commercial registration certificate</value></data>
   <data name="Gallery.Sample.UploadRejected" xml:space="preserve"><value>The file contains a virus and was deleted.</value></data>
   <data name="Gallery.Sample.NavCompany" xml:space="preserve"><value>Company and documents</value></data>
+  <data name="Gallery.Section.StatTile" xml:space="preserve"><value>Stat tiles</value></data>
+  <data name="Gallery.Sample.StatOnline" xml:space="preserve"><value>Online now</value></data>
+  <data name="Gallery.Sample.StatToday" xml:space="preserve"><value>Active today</value></data>
+  <data name="Gallery.Sample.StatCircuits" xml:space="preserve"><value>Open sessions</value></data>
+  <data name="Gallery.Sample.StatStaff" xml:space="preserve"><value>Staff</value></data>
+  <data name="Gallery.Sample.StatVendors" xml:space="preserve"><value>Vendors</value></data>
   <data name="Vendor.Nav.Home" xml:space="preserve"><value>Company and documents</value></data>
   <data name="Vendor.Home.Company" xml:space="preserve"><value>Company</value></data>
   <data name="Vendor.Home.Relationship" xml:space="preserve"><value>Status with {0}</value></data>

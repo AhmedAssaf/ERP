@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Platform.Modules.Identity.Contracts;
 
@@ -16,13 +17,19 @@ internal sealed class MinimumAcrRequirement(int level) : AuthorizationHandler<Mi
 
     protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, MinimumAcrRequirement requirement)
     {
-        var values = context.User.FindAll(IdentityClaims.Acr).Select(c => c.Value).ToList();
-        if (values.Count > 0 && values.All(v => MeetsLevel(v, requirement.Level)))
+        if (IsMetBy(context.User, requirement.Level))
         {
             context.Succeed(requirement);
         }
 
         return Task.CompletedTask;
+    }
+
+    /// <summary>The rule of the requirement on its own: at least one acr claim, and every one at <paramref name="level"/> or higher.</summary>
+    internal static bool IsMetBy(ClaimsPrincipal user, int level)
+    {
+        var values = user.FindAll(IdentityClaims.Acr).Select(c => c.Value).ToList();
+        return values.Count > 0 && values.All(v => MeetsLevel(v, level));
     }
 
     private static bool MeetsLevel(string value, int level) =>

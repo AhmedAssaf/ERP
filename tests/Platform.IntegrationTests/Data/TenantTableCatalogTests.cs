@@ -47,8 +47,8 @@ public sealed class TenantTableCatalogTests(DatabaseFixture db)
     /// ADR-0012: every tenant table uses one of the two policies, compared with what the helpers produce on a scratch table:
     /// the staff-only policy of <c>platform.enable_tenant_rls</c> (a session with a vendor context sees nothing), or the
     /// policy of <c>platform.enable_tenant_vendor_rls</c> on its company column (a vendor sees only its own rows), chosen
-    /// explicitly for the tables a vendor reads. <c>audit.events</c> is the one table with two policies: vendors write
-    /// their actions into the tenant's log, and only staff read it.
+    /// explicitly for the tables a vendor reads. <c>audit.events</c> and <c>identity.user_activity</c> (W-10) have two
+    /// policies: vendors write their actions into the tenant's log and their own activity buckets, and only staff read them.
     /// </summary>
     [Fact]
     public async Task Every_tenant_table_uses_the_staff_only_policy_or_the_explicit_vendor_policy()
@@ -81,6 +81,7 @@ public sealed class TenantTableCatalogTests(DatabaseFixture db)
         var byTable = policies.GroupBy(p => p.Table).ToDictionary(g => g.Key, g => g.ToList());
         byTable.Keys.ShouldContain("vendor.relationships");
         byTable.Keys.ShouldContain("identity.members");
+        byTable.Keys.ShouldContain("identity.user_activity");
         var wrong = new List<string>();
         foreach (var (table, rows) in byTable)
         {
@@ -91,6 +92,12 @@ public sealed class TenantTableCatalogTests(DatabaseFixture db)
                     && rows.Any(r => r is { Name: "tenant_isolation", Command: "SELECT" } && r.Using == staff)
                     && rows.Any(r => r is { Name: "tenant_audit_insert", Command: "INSERT" }
                         && r.Check == "((tenant_id = platform.current_tenant()) AND ((platform.current_vendor_company() IS NULL) OR (actor_id = platform.current_user_id())))"),
+                // W-10 (spec 6.4): a session writes only its own hourly bucket, for its host tenant, in the kind its context
+                // allows (ADR-0012); reading is staff-only here and, with no SELECT grant, no request-path session reads at all.
+                "identity.user_activity" => rows.Count == 2
+                    && rows.Any(r => r is { Name: "tenant_isolation", Command: "SELECT" } && r.Using == staff)
+                    && rows.Any(r => r is { Name: "tenant_activity_insert", Command: "INSERT" }
+                        && r.Check == "((tenant_id = platform.current_tenant()) AND (user_id = platform.current_user_id()) AND (((kind = 'staff'::text) AND (platform.current_vendor_company() IS NULL)) OR ((kind = 'vendor'::text) AND (platform.current_vendor_company() IS NOT NULL))))"),
                 _ => rows is [{ Name: "tenant_isolation", Command: "ALL" } one] && one.Using == staff && one.Check == staff,
             };
             if (!ok)

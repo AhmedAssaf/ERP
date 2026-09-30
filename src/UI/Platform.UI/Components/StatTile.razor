@@ -1,0 +1,64 @@
+@*
+    One number with its label and, optionally, its parts on their own lines (W-10 console usage page, spec 6.6). An unknown
+    number is a dash named "Unknown", never a guess. data-value carries the number without formatting for tests; any
+    other attribute (data-tile, say) passes through to the tile. Logical direction utilities only, sentence case.
+*@
+@using System.Globalization
+@inject IStringLocalizer<SharedResource> T
+
+<article class="grid content-start gap-2 rounded-card border border-line bg-surface p-4" @attributes="AdditionalAttributes">
+    @switch (HeadingLevel)
+    {
+        case 2:
+            <h2 class="text-small text-ink-muted">@Label</h2>
+            break;
+        case 4:
+            <h4 class="text-small text-ink-muted">@Label</h4>
+            break;
+        default:
+            <h3 class="text-small text-ink-muted">@Label</h3>
+            break;
+    }
+    <p class="text-display tabular-nums" data-value="@Raw(Value)">@Number(Value)</p>
+    @if (Split is { Count: > 0 })
+    {
+        <dl class="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 text-small">
+            @foreach (var part in Split)
+            {
+                <dt class="text-ink-muted">@part.Label</dt>
+                <dd class="text-end tabular-nums" data-value="@Raw(part.Value)">@Number(part.Value)</dd>
+            }
+        </dl>
+    }
+</article>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+
+    /// <summary>The number; null when it is not known.</summary>
+    [Parameter] public int? Value { get; set; }
+
+    /// <summary>The number's parts, one line each (staff and vendors, say).</summary>
+    [Parameter] public IReadOnlyList<StatTilePart>? Split { get; set; }
+
+    /// <summary>2, 3 (default) or 4, to fit the page's outline.</summary>
+    [Parameter] public int HeadingLevel { get; set; } = 3;
+
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private static string Raw(int? value) => value?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
+
+    private RenderFragment Number(int? value) => builder =>
+    {
+        if (value is { } known)
+        {
+            builder.AddContent(0, known.ToString("N0", CultureInfo.CurrentCulture));
+            return;
+        }
+
+        builder.OpenElement(1, "span");
+        builder.AddAttribute(2, "aria-label", T["StatTile.Unknown"].Value);
+        builder.AddContent(3, "—");
+        builder.CloseElement();
+    };
+}
