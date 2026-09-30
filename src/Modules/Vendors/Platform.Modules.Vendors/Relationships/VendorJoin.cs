@@ -159,6 +159,17 @@ internal sealed partial class VendorJoin(
             return Result.Success(new VendorJoined(RelationshipCreated: false, OrganizationAdded: false));
         }
 
+        // W-33: the claimant of an upheld dispute gets every related organization from the uphold itself; when the add to
+        // this tenant's organization failed (or was never recorded) and waits for the platform admin's retry, say so rather
+        // than "your access was removed". Any other failed step of the dispute does not matter here. Still no membership
+        // from here (P-1).
+        if (await AwaitingOrganizationAsync(tenant.KeycloakOrgAlias, cancellationToken))
+        {
+            return Result.Failure<VendorJoined>(Error.Refused(
+                VendorErrors.MembershipPendingRetry,
+                "WaslaBid is still giving your account access to this organization after moving your company to you. Try again later."));
+        }
+
         try
         {
             await audit.WriteAsync(
@@ -172,6 +183,13 @@ internal sealed partial class VendorJoin(
 
         return Result.Failure<VendorJoined>(Error.Refused(
             VendorErrors.MembershipRemoved, "Your access to this organization was removed. Only the organization can restore it."));
+    }
+
+    private async Task<bool> AwaitingOrganizationAsync(string organizationAlias, CancellationToken cancellationToken)
+    {
+        await using var db = await contexts.CreateDbContextAsync(cancellationToken);
+        return await db.Database.SqlQuery<bool>(
+            $"select vendor.claimant_awaiting_organization({organizationAlias}) as \"Value\"").SingleAsync(cancellationToken);
     }
 
     private static Result<VendorJoined> Failed() =>

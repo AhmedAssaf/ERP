@@ -71,9 +71,12 @@
                 return;
             }
 
-            _error = result.Error.Code == VendorErrors.MembershipRemoved
-                ? T["Vendor.Join.Error.AccessRemoved", TenantName]
-                : T["Vendor.Join.Error.Generic"];
+            _error = result.Error.Code switch
+            {
+                VendorErrors.MembershipRemoved => T["Vendor.Join.Error.AccessRemoved", TenantName],
+                VendorErrors.MembershipPendingRetry => T["Vendor.Join.Error.PendingRetry", TenantName],
+                _ => T["Vendor.Join.Error.Generic"],
+            };
         }
         catch (Exception ex)
         {

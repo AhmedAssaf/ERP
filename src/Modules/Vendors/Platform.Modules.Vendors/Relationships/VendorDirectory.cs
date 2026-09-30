@@ -1,10 +1,14 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 using Platform.Modules.Audit.Contracts;
 using Platform.Modules.Identity.Contracts;
+using Platform.Modules.Operations.Contracts;
 using Platform.Modules.Vendors.Contracts;
 using Platform.Modules.Vendors.Documents;
+using Platform.Modules.Vendors.Ownership;
 using Platform.Modules.Vendors.Persistence;
+using Platform.Modules.Vendors.Registration;
 using Platform.Shared.Results;
 using Platform.Shared.Tenancy;
 
@@ -17,15 +21,22 @@ namespace Platform.Modules.Vendors.Relationships;
 /// relationship row itself is read under the tenant policy. Approval re-checks the actor's role in <c>identity.members</c>
 /// at the moment it runs (the circuit's claims date from when the page opened), and the database records the acting user
 /// of the session as the approver, never an argument. A scope with a vendor context is refused, as the functions refuse it.
+/// W-33: a company's first approval by any tenant needs its ownership verified; the officer confirms it in the same
+/// transaction (<c>vendor.verify_ownership</c>), after seeing the registering person (from the identity provider) and the
+/// lookup of the platform's method (<see cref="ICrOwnershipVerifier"/>). Another tenant learns only that it was verified.
 /// </summary>
-internal sealed class VendorDirectory(
+internal sealed partial class VendorDirectory(
     IDbContextFactory<VendorsDbContext> contexts,
     ITenantAccessor tenants,
     IVendorAccessor vendors,
     IActingUserAccessor actingUser,
     IMemberDirectory members,
     IAuditWriter audit,
-    TimeProvider clock) : IVendorDirectory
+    IPlatformAudit platformAudit,
+    IVendorAccounts accounts,
+    IEnumerable<ICrOwnershipVerifier> verifiers,
+    TimeProvider clock,
+    ILogger<VendorDirectory> logger) : IVendorDirectory
 {
     public async Task<IReadOnlyList<RelatedVendor>> ListRelatedAsync(CancellationToken cancellationToken = default)
     {
@@ -91,7 +102,52 @@ internal sealed class VendorDirectory(
             blocking);
     }
 
-    public async Task<Result<VendorRelationshipStatus>> ApproveAsync(Guid companyId, string actorId, CancellationToken cancellationToken = default)
+    public Task<Result<VendorRelationshipStatus>> ApproveAsync(Guid companyId, string actorId, CancellationToken cancellationToken = default) =>
+        ApproveCoreAsync(companyId, actorId, null, cancellationToken);
+
+    public Task<Result<VendorRelationshipStatus>> ApproveAsync(
+        Guid companyId, string actorId, OwnershipConfirmation confirmation, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(confirmation);
+        return ApproveCoreAsync(companyId, actorId, confirmation, cancellationToken);
+    }
+
+    public async Task<OwnershipCheck?> GetOwnershipCheckAsync(Guid companyId, CancellationToken cancellationToken = default)
+    {
+        RequireTenant();
+        await using var db = await contexts.CreateDbContextAsync(cancellationToken);
+        var ownership = await OwnershipAsync(db, companyId, cancellationToken);
+        var company = ownership is null ? null : await CompanyAsync(db, companyId, cancellationToken);
+        if (ownership is null || company is null)
+        {
+            return null;
+        }
+
+        if (ownership.Verified)
+        {
+            // Verified here or at another tenant: which one, by whom and with what note is never told (ADR-0008).
+            return new OwnershipCheck(
+                companyId, company.CrNumber, Verified: true, OwnershipStore.VerificationMethod(ownership.Method), ownership.Disputed,
+                ownership.HasCertificate, Registrant: null, Lookup: null);
+        }
+
+        var registrant = ownership.RegistrantUserId is { } registrantId ? await RegistrantAsync(registrantId, cancellationToken) : null;
+
+        // A held company or one without a current CR certificate cannot be verified now: no lookup, since a Wathq call is
+        // paid and would change nothing.
+        CrOwnershipLookup? lookup = null;
+        if (!ownership.Disputed && ownership.HasCertificate)
+        {
+            var method = OwnershipStore.Method((await OwnershipStore.SettingsAsync(db, cancellationToken)).Method);
+            lookup = await verifiers.Single(v => v.Method == method).LookupAsync(company.CrNumber, cancellationToken);
+        }
+
+        return new OwnershipCheck(
+            companyId, company.CrNumber, Verified: false, VerifiedMethod: null, ownership.Disputed, ownership.HasCertificate, registrant, lookup);
+    }
+
+    private async Task<Result<VendorRelationshipStatus>> ApproveCoreAsync(
+        Guid companyId, string actorId, OwnershipConfirmation? confirmation, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(actorId);
         RequireTenant();
@@ -108,18 +164,22 @@ internal sealed class VendorDirectory(
 
         await using var db = await contexts.CreateDbContextAsync(cancellationToken);
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
-        var company = await db.Database.SqlQuery<CompanyCardRow>($"""
-            select id, cr_number, name_ar, name_en, vat_number, address, contact_name, contact_phone, contact_email
-            from vendor.related_company({companyId})
-            """).SingleOrDefaultAsync(cancellationToken);
-        if (company is null)
+        var company = await CompanyAsync(db, companyId, cancellationToken);
+        var ownership = company is null ? null : await OwnershipAsync(db, companyId, cancellationToken);
+        if (company is null || ownership is null)
         {
             return NotFound();
         }
 
+        if (!ownership.Verified && confirmation is not null
+            && await VerifyAsync(db, company, confirmation, actorId, cancellationToken) is { } refused)
+        {
+            return refused;
+        }
+
         // Holds the relationship row until the commit, so a second approval waits and then finds it approved. The database
-        // checks the approver again (migration 0016: an active officer or admin of the tenant who is no vendor user); a
-        // refusal there, such as a staff member whose account also belongs to a vendor company, is NotAllowed.
+        // checks the approver again (migration 0016: an active officer or admin of the tenant who is no vendor user), and
+        // since migration 0018 that the company's ownership is verified and not disputed.
         bool approved;
         try
         {
@@ -128,6 +188,14 @@ internal sealed class VendorDirectory(
         catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.InsufficientPrivilege)
         {
             return NotAllowed();
+        }
+        catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.CheckViolation && ex.ConstraintName == "ck_relationships_ownership_verified")
+        {
+            return Refused(CrOwnershipErrors.Unverified, "Confirm the company's ownership against its CR certificate before its first approval.");
+        }
+        catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.CheckViolation && ex.ConstraintName == "ck_relationships_not_disputed")
+        {
+            return Disputed();
         }
 
         if (!approved)
@@ -149,6 +217,110 @@ internal sealed class VendorDirectory(
         await transaction.CommitAsync(cancellationToken);
         return Result.Success(VendorRelationshipStatus.Approved);
     }
+
+    /// <summary>
+    /// Records the officer's confirmation of ownership inside the approval's transaction and audits it in the tenant's log
+    /// and the platform audit (both before the commit, as the approval's own entry). Null when it was recorded, or another
+    /// officer recorded one meanwhile (the first record stays); the refusal otherwise.
+    /// </summary>
+    private async Task<Result<VendorRelationshipStatus>?> VerifyAsync(
+        VendorsDbContext db, CompanyCardRow company, OwnershipConfirmation confirmation, string actorId, CancellationToken cancellationToken)
+    {
+        if (!VendorInput.IsFreeText(confirmation.Note, OwnershipStore.MaxNoteLength))
+        {
+            return NoteRequired();
+        }
+
+        var note = VendorInput.NormalizeFreeText(confirmation.Note);
+        var method = confirmation.BasedOnWathq ? "wathq" : "manual";
+        bool recorded;
+        try
+        {
+            recorded = await db.Database.SqlQuery<bool>(
+                $"select vendor.verify_ownership({company.Id}, {method}, {note}) as \"Value\"").SingleAsync(cancellationToken);
+        }
+        catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.InsufficientPrivilege)
+        {
+            return NotAllowed();
+        }
+        catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.CheckViolation)
+        {
+            return ex.ConstraintName switch
+            {
+                "ck_ownership_certificate" => Refused(
+                    CrOwnershipErrors.NoCertificate, "The company has no current CR certificate to check. Ask the vendor to upload it."),
+                "ck_ownership_not_disputed" => Disputed(),
+                "ck_ownership_method_setting" => Refused(
+                    CrOwnershipErrors.WathqNotSelected, "The platform checks ownership by hand; confirm it against the CR certificate."),
+                "ck_ownership_verifications_note" => NoteRequired(),
+                _ => throw new InvalidOperationException($"Ownership verification refused under an unexpected rule ({ex.ConstraintName}).", ex),
+            };
+        }
+
+        if (!recorded)
+        {
+            return null;
+        }
+
+        var outcome = OwnershipStore.Code(confirmation.LookupOutcome);
+        await audit.WriteAsync(
+            new AuditEntry(actorId, "vendor.ownership_verified", "vendor_company", company.Id.ToString(), new Dictionary<string, string?>
+            {
+                ["cr_number"] = company.CrNumber,
+                ["method"] = method,
+                ["wathq_outcome"] = outcome,
+                ["note"] = note,
+            }),
+            cancellationToken);
+        await platformAudit.WriteAsync(
+            new PlatformAuditEntry(actorId, "vendor.ownership_verified", "vendor_company", company.Id.ToString(), new Dictionary<string, string?>
+            {
+                ["tenant"] = tenants.Current!.Slug,
+                ["method"] = method,
+                ["wathq_outcome"] = outcome,
+            }),
+            cancellationToken);
+        return null;
+    }
+
+    /// <summary>The registering person's name and email from the identity provider; unknown parts when it does not answer.</summary>
+    private async Task<VendorRegistrant> RegistrantAsync(string userId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return OwnershipStore.Registrant(userId, await accounts.ProfileAsync(userId, cancellationToken));
+        }
+        catch (Exception ex) when (ex is IdentityProviderException or InvalidOperationException)
+        {
+            RegistrantUnknown(logger, userId, ex.GetType().Name);
+            return new VendorRegistrant(userId, null, null);
+        }
+    }
+
+    private static async Task<CompanyCardRow?> CompanyAsync(VendorsDbContext db, Guid companyId, CancellationToken cancellationToken) =>
+        await db.Database.SqlQuery<CompanyCardRow>($"""
+            select id, cr_number, name_ar, name_en, vat_number, address, contact_name, contact_phone, contact_email
+            from vendor.related_company({companyId})
+            """).SingleOrDefaultAsync(cancellationToken);
+
+    private static async Task<OwnershipRow?> OwnershipAsync(VendorsDbContext db, Guid companyId, CancellationToken cancellationToken) =>
+        await db.Database.SqlQuery<OwnershipRow>($"""
+            select registrant_user_id, verified, method, disputed, has_certificate
+            from vendor.related_ownership({companyId})
+            """).SingleOrDefaultAsync(cancellationToken);
+
+    private static Result<VendorRelationshipStatus> Refused(string code, string message) =>
+        Result.Failure<VendorRelationshipStatus>(Error.Refused(code, message));
+
+    private static Result<VendorRelationshipStatus> NoteRequired() =>
+        Result.Failure<VendorRelationshipStatus>(Error.Validation(
+            CrOwnershipErrors.NoteRequired, $"Write a note of up to {OwnershipStore.MaxNoteLength} characters on what you checked."));
+
+    private static Result<VendorRelationshipStatus> Disputed() =>
+        Refused(CrOwnershipErrors.Disputed, "WaslaBid is reviewing who owns this company. It can be approved once the review is closed.");
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The identity provider did not describe the registering user {UserId} for the ownership check ({ErrorType}).")]
+    private static partial void RegistrantUnknown(ILogger logger, string userId, string errorType);
 
     // Tenant staff only: a vendor on a tenant host must never read other companies related to that tenant. The database
     // functions refuse a vendor context too (migration 0011); this says so before any query.
@@ -223,6 +395,19 @@ internal sealed class VendorDirectory(
         public string? ContactPhone { get; set; }
 
         public string ContactEmail { get; set; } = string.Empty;
+    }
+
+    private sealed class OwnershipRow
+    {
+        public string? RegistrantUserId { get; set; }
+
+        public bool Verified { get; set; }
+
+        public string? Method { get; set; }
+
+        public bool Disputed { get; set; }
+
+        public bool HasCertificate { get; set; }
     }
 
     private sealed class DocumentListRow

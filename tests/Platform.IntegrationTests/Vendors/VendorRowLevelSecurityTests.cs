@@ -306,6 +306,8 @@ public sealed partial class VendorRowLevelSecurityTests(DatabaseFixture db) : IA
     {
         var userId = NewUserId();
         var companyId = await RegisterAsync(TestTenants.Acme, userId: userId);
+        // W-33: approval needs a verified owner; these tests are about approval itself (CrOwnershipTests covers the check).
+        await OwnershipRows.VerifyAsOwnerAsync(db.OwnerConnectionString, companyId, TestTenants.Acme.TenantId, Ct);
         var officer = await StaffAsync(TestTenants.Acme, TenantRoles.ContractsOfficer);
         (await ApproveAsync(TestTenants.Acme, companyId, officer)).ShouldBeTrue();
 
@@ -318,6 +320,8 @@ public sealed partial class VendorRowLevelSecurityTests(DatabaseFixture db) : IA
     public async Task Approving_records_the_acting_user()
     {
         var companyId = await RegisterAsync(TestTenants.Acme);
+        // W-33: approval needs a verified owner; these tests are about approval itself (CrOwnershipTests covers the check).
+        await OwnershipRows.VerifyAsOwnerAsync(db.OwnerConnectionString, companyId, TestTenants.Acme.TenantId, Ct);
         // Real staff since the database checks the approver's role (migration 0016, pentest P-14).
         var officer = await StaffAsync(TestTenants.Acme, TenantRoles.ContractsOfficer);
         var admin = await StaffAsync(TestTenants.Acme, TenantRoles.TenantAdmin);

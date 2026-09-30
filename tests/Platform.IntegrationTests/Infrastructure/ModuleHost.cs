@@ -87,11 +87,19 @@ internal sealed class ModuleHost : IAsyncDisposable
         return scope;
     }
 
-    /// <summary>A scope marked as the platform console's, as the web host marks a request on the platform host.</summary>
-    public AsyncServiceScope PlatformScope()
+    /// <summary>
+    /// A scope marked as the platform console's, as the web host marks a request on the platform host, acting as the
+    /// platform admin <paramref name="actingUserId"/> when given.
+    /// </summary>
+    public AsyncServiceScope PlatformScope(string? actingUserId = null)
     {
         var scope = _root.CreateAsyncScope();
         scope.ServiceProvider.GetRequiredService<PlatformRequestContext>().MarkPlatform();
+        if (actingUserId is not null)
+        {
+            scope.ServiceProvider.GetRequiredService<ActingUserAccessor>().Set(actingUserId);
+        }
+
         return scope;
     }
 

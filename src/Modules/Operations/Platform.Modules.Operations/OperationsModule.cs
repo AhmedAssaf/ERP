@@ -123,6 +123,8 @@ public static class OperationsModule
 
         services.AddSingleton(_ => AlertSettings.FromConfiguration(configuration));
         services.AddSingleton<IAlertSender, MailKitAlertSender>();
+        // Other modules' alerts through the same path (W-33: a new CR ownership dispute).
+        services.AddSingleton<IPlatformAlerts, PlatformAlerts>();
         services.AddScoped<IncidentNotifier>();
         // A per-job-server filter (Platform.Shared.Jobs.JobsModule.AddJobServer picks up IElectStateFilter /
         // IApplyStateFilter registrations from this same container), never Hangfire's static GlobalJobFilters.

@@ -1,6 +1,7 @@
 using System.Reflection;
 using Npgsql;
 using Platform.IntegrationTests.Infrastructure;
+using Platform.Modules.Identity;
 using Platform.Modules.Operations;
 using Platform.Modules.Tenancy;
 using Platform.Modules.Vendors;
@@ -24,6 +25,8 @@ public sealed class MigrationOwnerGuardTests(DatabaseFixture db)
         { "vendors", "0014_vendors_function_callers.sql" },
         { "tenancy", "0008_tenancy_branding_vendor_users_and_owner.sql" },
         { "operations", "0005_operations_owner_guard.sql" },
+        { "identity", "0002_identity_staff_tenants.sql" },
+        { "vendors", "0027_vendors_superseded_outcome_kept.sql" },
     };
 
     [Theory]
@@ -80,6 +83,7 @@ public sealed class MigrationOwnerGuardTests(DatabaseFixture db)
             "vendors" => typeof(VendorsModule).Assembly,
             "tenancy" => typeof(TenancyModule).Assembly,
             "operations" => typeof(OperationsModule).Assembly,
+            "identity" => typeof(IdentityModule).Assembly,
             _ => throw new ArgumentOutOfRangeException(nameof(module), module, null),
         };
 

@@ -35,6 +35,8 @@ internal static class EntryPoint
         builder.Services.AddVirusScanner(builder.Configuration);
         builder.Services.AddVendorJobs();
         builder.Services.AddOperationsHealthChecks(platformDb, builder.Configuration);
+        // W-33: tell the platform admins about new CR ownership disputes (needs the F-60 alerts registered just above).
+        builder.Services.AddVendorDisputeAlerts();
         builder.Services.AddJobServer(platformDb, settings => settings.ServerName = "waslabid-worker");
 
         using var host = builder.Build();

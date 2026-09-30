@@ -128,6 +128,8 @@ public sealed class VendorFunctionCallerTests(DatabaseFixture db)
     public async Task Approving_still_works_for_a_staff_session()
     {
         var (companyId, _) = await VendorAsync("Approval By Staff");
+        // W-33: approval needs a verified owner; these tests are about approval itself (CrOwnershipTests covers the check).
+        await OwnershipRows.VerifyAsOwnerAsync(db.OwnerConnectionString, companyId, TestTenants.Acme.TenantId, Ct);
         var officer = $"officer-{Guid.NewGuid():N}";
         await MemberRows.InsertAsync(db.AppConnectionString, TestTenants.Acme.TenantId, officer, $"{officer}@acme.test", [TenantRoles.ContractsOfficer], "active", Ct);
 

@@ -9,6 +9,7 @@ using Platform.Modules.Vendors.Access;
 using Platform.Modules.Vendors.Consent;
 using Platform.Modules.Vendors.Contracts;
 using Platform.Modules.Vendors.Documents;
+using Platform.Modules.Vendors.Ownership;
 using Platform.Modules.Vendors.Persistence;
 using Platform.Modules.Vendors.Registration;
 using Platform.Modules.Vendors.Relationships;
@@ -28,6 +29,9 @@ public static class VendorsModule
 
     /// <summary>The recurring job that removes uploads abandoned for more than a day (V-9), hourly.</summary>
     public const string UploadCleanupJobId = "vendor-upload-cleanup";
+
+    /// <summary>The recurring job that tells the platform admins about new CR ownership disputes (W-33), every five minutes.</summary>
+    public const string DisputeAlertJobId = "vendor-dispute-alert";
 
     /// <summary>
     /// The Vendor policy's own requirements (spec section 3), without the same-tenant check: authenticated, a verified
@@ -65,7 +69,8 @@ public static class VendorsModule
     /// audit, and keeps its duplicate-CR limit per process), the user-to-company lookup
     /// (<see cref="IVendorUsers"/>), the current company (<see cref="IVendorCompanies"/>), the Vendor policy's handler, the
     /// staff's vendor directory with approval (<see cref="IVendorDirectory"/>), joining another tenant (<see cref="IVendorJoin"/>)
-    /// and the consent ledger (<see cref="IConsentLedger"/>).
+    /// the consent ledger (<see cref="IConsentLedger"/>), and the CR ownership check and disputes (W-33:
+    /// <see cref="ICrOwnershipAdministration"/>, <see cref="ICrDisputes"/>, the optional Wathq settings <c>Wathq:*</c>).
     /// The settings (<see cref="VendorsOptions"/>, section <c>Vendors</c>) are validated when the host starts: without a
     /// usable <c>Vendors:CrAuditKey</c> the web host does not start, in Development too. The web host calls it; the
     /// worker does not serve vendors.
@@ -94,6 +99,22 @@ public static class VendorsModule
         services.AddScoped<IVendorJoin, VendorJoin>();
         // The consent ledger (vendor plan task 6, F-64, V-12).
         services.AddScoped<IConsentLedger, ConsentLedger>();
+        // W-33: the CR ownership check before a company's first approval, its platform setting and the dispute path. Wathq
+        // (settings Wathq:*) is optional; without it the officer checks the CR certificate by hand.
+        services.AddOptions<WathqOptions>()
+            .Bind(configuration.GetSection(WathqOptions.Section))
+            .Validate(o => o.HasValidBaseUrl, WathqOptions.BaseUrlProblem)
+            .ValidateOnStart();
+        // L-6: never follow a redirect (the apiKey header would go to another host); a 3xx is an answer like any other
+        // non-200 and the officer checks by hand. The default request log lines name the full URL, which carries the CR
+        // number, so they are removed; the verifier logs the path template itself.
+        services.AddHttpClient(WathqCrOwnershipVerifier.HttpClientName)
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { AllowAutoRedirect = false })
+            .RemoveAllLoggers();
+        services.AddScoped<ICrOwnershipVerifier, ManualCrOwnershipVerifier>();
+        services.AddScoped<ICrOwnershipVerifier, WathqCrOwnershipVerifier>();
+        services.AddScoped<ICrOwnershipAdministration, CrOwnershipAdministration>();
+        services.AddScoped<ICrDisputes, CrDisputes>();
         AddVendorDocuments(services);
         return services;
     }
@@ -106,9 +127,9 @@ public static class VendorsModule
         services.GetRequiredService<IOptions<VendorsOptions>>().Value.UploadRequestsPerMinute;
 
     /// <summary>
-    /// The worker's vendor document jobs (vendor plan task 3): the retry scan of pending documents and the cleanup of
-    /// abandoned uploads. They need object storage and the virus scanner configured by the host
-    /// (<c>AddObjectStorage</c>, <c>AddVirusScanner</c>) and the Operations module's platform audit.
+    /// The worker's vendor jobs: the retry scan of pending documents and the cleanup of abandoned uploads (vendor plan
+    /// task 3). They need object storage and the virus scanner configured by the host (<c>AddObjectStorage</c>,
+    /// <c>AddVirusScanner</c>) and the Operations module's platform audit. The dispute alert is <see cref="AddVendorDisputeAlerts"/>.
     /// </summary>
     public static IServiceCollection AddVendorJobs(this IServiceCollection services)
     {
@@ -119,13 +140,32 @@ public static class VendorsModule
         return services;
     }
 
-    /// <summary>Schedules the vendor document jobs (<see cref="AddVendorJobs"/>). Call once after the worker host is built.</summary>
+    /// <summary>
+    /// The worker's alert on new CR ownership disputes (W-33, ADR-0013 decision 1). It needs the Operations module's
+    /// platform alerts (<c>IPlatformAlerts</c>, registered by <c>AddOperationsAlerts</c>), so it is registered on its own,
+    /// by a host that has them; <see cref="ScheduleVendorJobs"/> schedules it only when it is registered.
+    /// </summary>
+    public static IServiceCollection AddVendorDisputeAlerts(this IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        services.TryAddScoped<CrDisputeAlertJob>();
+        return services;
+    }
+
+    /// <summary>
+    /// Schedules the vendor document jobs (<see cref="AddVendorJobs"/>), and the dispute alert when it is registered
+    /// (<see cref="AddVendorDisputeAlerts"/>). Call once after the worker host is built.
+    /// </summary>
     public static void ScheduleVendorJobs(IServiceProvider services)
     {
         ArgumentNullException.ThrowIfNull(services);
         var jobs = new RecurringJobManager(services.GetRequiredService<JobStorage>());
         jobs.AddOrUpdate<VendorDocumentRescanJob>(DocumentRescanJobId, job => job.RunAsync(CancellationToken.None), "*/5 * * * *");
         jobs.AddOrUpdate<VendorUploadCleanupJob>(UploadCleanupJobId, job => job.RunAsync(CancellationToken.None), Cron.Hourly());
+        if (services.GetService<IServiceProviderIsService>()?.IsService(typeof(CrDisputeAlertJob)) == true)
+        {
+            jobs.AddOrUpdate<CrDisputeAlertJob>(DisputeAlertJobId, job => job.RunAsync(CancellationToken.None), "*/5 * * * *");
+        }
     }
 
     /// <summary>

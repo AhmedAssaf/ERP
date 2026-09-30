@@ -16,6 +16,14 @@ internal sealed record KeycloakUser(
     [property: JsonPropertyName("email")] string? Email,
     [property: JsonPropertyName("enabled")] bool Enabled);
 
+/// <summary>A user's name and email as the Admin API returns them (<c>GET /users/{id}</c>).</summary>
+internal sealed record KeycloakUserProfile(
+    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("firstName")] string? FirstName,
+    [property: JsonPropertyName("lastName")] string? LastName,
+    [property: JsonPropertyName("email")] string? Email,
+    [property: JsonPropertyName("emailVerified")] bool EmailVerified);
+
 /// <summary>A user to create: the email is also the username; the locale is Keycloak's (<c>ar</c> or <c>en</c>).</summary>
 internal sealed record NewKeycloakUser(string Email, string FirstName, string LastName, string Locale);
 
@@ -121,6 +129,24 @@ internal sealed class KeycloakAdminClient(HttpClient http, KeycloakAdminState st
     {
         var users = await GetAsync<List<KeycloakUser>>($"{Realm}/users?email={Uri.EscapeDataString(email)}&exact=true", cancellationToken);
         return users?.FirstOrDefault(u => string.Equals(u.Email, email, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>The user with id <paramref name="userId"/> (the <c>sub</c> of its tokens), or null when Keycloak has none.</summary>
+    public async Task<KeycloakUserProfile?> FindUserAsync(string userId, CancellationToken cancellationToken)
+    {
+        var path = $"{Realm}/users/{Uri.EscapeDataString(userId)}";
+        using var response = await SendAsync(HttpMethod.Get, path, null, cancellationToken);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new KeycloakAdminException($"Keycloak refused GET {PathOnly(path)} ({(int)response.StatusCode}).", response.StatusCode);
+        }
+
+        return await response.Content.ReadFromJsonAsync<KeycloakUserProfile>(Json, cancellationToken);
     }
 
     /// <summary>
