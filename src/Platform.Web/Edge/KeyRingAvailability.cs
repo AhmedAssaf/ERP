@@ -55,8 +55,7 @@ internal static class KeyRingAvailability
 /// within that window get the last result, and callers while a check runs share it (single flight). The shared check is
 /// not tied to any caller's cancellation, so one caller giving up does not cancel it for the others.
 /// </summary>
-internal sealed class KeyRingProbe(
-    [FromKeyedServices(KeyRing.DataSourceKey)] NpgsqlDataSource dataSource, TimeProvider clock)
+internal sealed partial class KeyRingProbe(IKeyRingCheck check, TimeProvider clock, ILogger<KeyRingProbe> logger)
 {
     private readonly Lock _gate = new();
     private Task<HealthCheckResult>? _running;
@@ -85,13 +84,15 @@ internal sealed class KeyRingProbe(
 
     private async Task<HealthCheckResult> RunAsync()
     {
-        // Leave the lock before touching the database.
-        await Task.Yield();
-        Interlocked.Increment(ref _databaseChecks);
-        HealthCheckResult result;
+        // Whatever happens below, this window gets an answer and the next caller after it starts a new check: a faulted
+        // task must never stay in _running, or /health would replay it until the host restarts.
+        var result = HealthCheckResult.Unhealthy("The key ring check failed.");
         try
         {
-            await KeyRingAvailability.ProbeAsync(dataSource, CancellationToken.None);
+            // Leave the lock before touching the database.
+            await Task.Yield();
+            Interlocked.Increment(ref _databaseChecks);
+            await check.CheckAsync(CancellationToken.None);
             result = HealthCheckResult.Healthy("The key ring can be read.");
         }
         catch (NpgsqlException exception)
@@ -103,16 +104,41 @@ internal sealed class KeyRingProbe(
         {
             result = HealthCheckResult.Unhealthy($"The key ring did not answer within {KeyRingAvailability.ProbeTimeout.TotalSeconds} seconds.");
         }
-
-        lock (_gate)
+#pragma warning disable CA1031 // Any other failure of the check is reported as Unhealthy for this window, not rethrown.
+        catch (Exception exception)
+#pragma warning restore CA1031
         {
-            _last = result;
-            _lastAt = clock.GetUtcNow();
-            _running = null;
+            // The type only: the message of an unexpected exception is not known to be free of secrets (N-10).
+            LogUnexpected(logger, exception.GetType().Name);
+            result = HealthCheckResult.Unhealthy($"The key ring check failed ({exception.GetType().Name}).");
+        }
+        finally
+        {
+            lock (_gate)
+            {
+                _last = result;
+                _lastAt = clock.GetUtcNow();
+                _running = null;
+            }
         }
 
         return result;
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "The key ring health check failed unexpectedly ({ErrorType}).")]
+    private static partial void LogUnexpected(ILogger logger, string errorType);
+}
+
+/// <summary>One check of the key ring, behind <see cref="KeyRingProbe"/>'s cache.</summary>
+internal interface IKeyRingCheck
+{
+    Task CheckAsync(CancellationToken cancellationToken);
+}
+
+/// <summary>The real check: <see cref="KeyRingAvailability.ProbeAsync"/> on the ring's own pool.</summary>
+internal sealed class DatabaseKeyRingCheck([FromKeyedServices(KeyRing.DataSourceKey)] NpgsqlDataSource dataSource) : IKeyRingCheck
+{
+    public Task CheckAsync(CancellationToken cancellationToken) => KeyRingAvailability.ProbeAsync(dataSource, cancellationToken);
 }
 
 /// <summary>Stops the host at startup when the key ring cannot be read for a reason that never heals by itself.</summary>

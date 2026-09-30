@@ -64,6 +64,7 @@ internal static class KeyRing
         }
 
         services.AddKeyedSingleton(DataSourceKey, (_, _) => NpgsqlDataSource.Create(pooled.ConnectionString));
+        services.AddSingleton<IKeyRingCheck, DatabaseKeyRingCheck>();
         services.AddSingleton<KeyRingProbe>();
         services.AddSingleton(sp => new PostgresXmlRepository(
             sp.GetRequiredKeyedService<NpgsqlDataSource>(DataSourceKey), certificate, sp.GetRequiredService<ILogger<PostgresXmlRepository>>()));

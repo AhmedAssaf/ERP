@@ -397,6 +397,35 @@ public sealed class DataProtectionKeyRingTests(DatabaseFixture db) : IAsyncLifet
         }
     }
 
+    /// <summary>
+    /// A check that fails with an exception nobody expected (not Npgsql's, not a timeout, e.g. a disposed object or a TLS
+    /// error) answers Unhealthy for its window only: the next window checks again and recovers, instead of replaying the
+    /// failed check until the host restarts (final check of W-24).
+    /// </summary>
+    [Fact]
+    public async Task An_unexpected_error_in_a_check_is_unhealthy_for_its_window_and_the_next_window_recovers()
+    {
+        var clock = new ManualClock();
+        await using var factory = new PlatformWebFactory(AppConnectionString).WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+        {
+            services.AddSingleton<TimeProvider>(clock);
+            services.AddSingleton<IKeyRingCheck>(sp => new FailingOnce(
+                new DatabaseKeyRingCheck(sp.GetRequiredKeyedService<NpgsqlDataSource>(KeyRing.DataSourceKey))));
+        }));
+        using var client = factory.CreateClient();
+
+        using (var failed = await client.GetAsync(new Uri("/health", UriKind.Relative), Ct))
+        {
+            failed.StatusCode.ShouldBe(System.Net.HttpStatusCode.ServiceUnavailable);
+        }
+
+        clock.Advance(KeyRingAvailability.CacheFor + TimeSpan.FromSeconds(1));
+
+        using var recovered = await client.GetAsync(new Uri("/health", UriKind.Relative), Ct);
+        recovered.StatusCode.ShouldBe(System.Net.HttpStatusCode.OK, "the next window checks again");
+        factory.Services.GetRequiredService<KeyRingProbe>().DatabaseChecks.ShouldBe(2);
+    }
+
     [Fact]
     public async Task With_a_readable_key_ring_health_is_healthy()
     {
@@ -589,5 +618,25 @@ public sealed class DataProtectionKeyRingTests(DatabaseFixture db) : IAsyncLifet
         public IReadOnlyCollection<XElement> GetAllElements() => _elements.ToList();
 
         public void StoreElement(XElement element, string friendlyName) => _elements.Add(new XElement(element));
+    }
+
+    /// <summary>Throws an unexpected exception on its first check, then checks for real.</summary>
+    private sealed class FailingOnce(IKeyRingCheck real) : IKeyRingCheck
+    {
+        private int _calls;
+
+        public Task CheckAsync(CancellationToken cancellationToken) =>
+            Interlocked.Increment(ref _calls) == 1
+                ? throw new ObjectDisposedException("an unexpected failure of the check itself")
+                : real.CheckAsync(cancellationToken);
+    }
+
+    private sealed class ManualClock : TimeProvider
+    {
+        private DateTimeOffset _now = DateTimeOffset.UtcNow;
+
+        public override DateTimeOffset GetUtcNow() => _now;
+
+        public void Advance(TimeSpan by) => _now += by;
     }
 }
