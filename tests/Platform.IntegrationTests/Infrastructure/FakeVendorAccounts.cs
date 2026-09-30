@@ -85,9 +85,17 @@ internal sealed class FakeVendorAccounts : IVendorAccounts
     /// <summary>When set, taking back access fails as Keycloak failing would (the call throws).</summary>
     public bool FailRevoke { get; set; }
 
-    public Task<bool> RevokeAsync(VendorAccessGrant grant, CancellationToken cancellationToken = default)
+    /// <summary>Runs when access is taken back, before anything else (a parallel retry of the same dispute, say).</summary>
+    public Func<VendorAccessGrant, Task>? OnRevoke { get; set; }
+
+    public async Task<bool> RevokeAsync(VendorAccessGrant grant, CancellationToken cancellationToken = default)
     {
         Steps.Enqueue("revoke");
+        if (OnRevoke is not null)
+        {
+            await OnRevoke(grant);
+        }
+
         if (FailRevoke)
         {
             throw new IdentityProviderException("Keycloak did not remove the vendor role.", new HttpRequestException("forced"));
@@ -96,7 +104,7 @@ internal sealed class FakeVendorAccounts : IVendorAccounts
         if (grant.OrganizationAdded && FailingOrganizations.ContainsKey(grant.OrganizationAlias))
         {
             // As KeycloakVendorAccounts does: the failing step is logged there and reported as not done.
-            return Task.FromResult(false);
+            return false;
         }
 
         if (grant.OrganizationAdded)
@@ -105,7 +113,7 @@ internal sealed class FakeVendorAccounts : IVendorAccounts
         }
 
         Revoked.Enqueue(grant);
-        return Task.FromResult(true);
+        return true;
     }
 
     public Task<VendorAccountProfile?> ProfileAsync(string userId, CancellationToken cancellationToken = default)

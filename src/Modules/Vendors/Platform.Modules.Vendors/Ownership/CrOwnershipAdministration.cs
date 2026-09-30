@@ -23,8 +23,9 @@ namespace Platform.Modules.Vendors.Ownership;
 /// happen (the same trade-off as the approval's audit in <c>VendorDirectory</c>). After an upheld dispute commits, the
 /// identity provider is updated: the claimant gets the realm role <c>vendor</c> and membership of the organization of
 /// every tenant the company works with, the removed users lose the role and those memberships (W-21 then ends their open
-/// sessions). The outcome of each step is stored on the dispute and audited, and a failure stays listed in the console
-/// until a retry succeeds.
+/// sessions), except the organization of a tenant whose staff they are or that their own vendor company works with. The
+/// outcome of each step is stored on the dispute and audited, and a failure stays listed in the console until a retry
+/// succeeds.
 /// </summary>
 internal sealed partial class CrOwnershipAdministration(
     IDbContextFactory<VendorsDbContext> contexts,
@@ -34,6 +35,7 @@ internal sealed partial class CrOwnershipAdministration(
     IActingUserAccessor actingUser,
     IPlatformAudit audit,
     IVendorAccounts accounts,
+    IStaffTenancies staffTenancies,
     ITenantCatalog tenantCatalog,
     IOptions<WathqOptions> wathq,
     ILogger<CrOwnershipAdministration> logger) : ICrOwnershipAdministration
@@ -157,8 +159,8 @@ internal sealed partial class CrOwnershipAdministration(
 
     /// <summary>
     /// Reruns the failed steps of an upheld dispute's identity provider update. When the company has moved on meanwhile (a
-    /// later dispute made someone else its vendor admin, <c>vendor.dispute_claimant_is_admin</c>, migration 0025), the
-    /// retry is superseded: the old claimant is given nothing, but the removed users' failed removals still run, since a
+    /// later dispute of the company was upheld, whoever holds it now, or the claimant is no longer its vendor admin:
+    /// <c>vendor.dispute_claimant_is_admin</c>, migrations 0025 and 0026), the retry is superseded: the old claimant is given nothing, but the removed users' failed removals still run, since a
     /// later uphold removes only the company's vendor users of its own time and so never reaches the users this uphold
     /// removed (ADR-0013 point 5). The dispute leaves the list as superseded once none of those removals fails.
     /// </summary>
@@ -238,10 +240,16 @@ internal sealed partial class CrOwnershipAdministration(
     /// A retry passes the <paramref name="stored"/> outcomes: a step already done or skipped is kept and never run again,
     /// so a membership a tenant took away after the uphold stays taken away (only the tenant restores access, W-21 P-1);
     /// only the failed steps run, and a failed step a retry no longer reaches (its tenant gone from the company) is
-    /// recorded as skipped. Without stored outcomes (the uphold itself) every step runs.
-    /// A removed user who belongs to a vendor company again (registered their own, or won this one back) keeps what they
-    /// hold: their removal steps are recorded as skipped, never run, since they would take the access of that company.
-    /// When <paramref name="claimantIsAdmin"/> is false (the company moved on to a later claimant), the claimant is given
+    /// recorded as skipped, but only when the tenant lookup succeeded in that run: while it fails, the steps stay failed.
+    /// Without stored outcomes (the uphold itself) every step runs.
+    /// A grant or add that answers "already there" is recorded as <see cref="StepAlreadyThere"/>: done for a retry, but
+    /// never taken back, since this run did not give it.
+    /// Before a removed user's (or an undo's) steps run, their standing is read (<see cref="StandingAsync"/>): the
+    /// organization of a tenant whose staff they are (invited or active) or that their current vendor company works with
+    /// is skipped with the reason, and the realm role stays with a user who belongs to a vendor company again; the other
+    /// organizations are still taken. When the standing cannot be read, those steps are recorded as failed and run on a
+    /// retry.
+    /// When <paramref name="claimantIsAdmin"/> is false (the company moved on to a later dispute), the claimant is given
     /// nothing and only the removals run; the outcome is then recorded as superseded once none failed. After granting
     /// anything, the claimant is checked again: a later uphold that committed while the steps ran removed them, so what this
     /// run granted is taken back (<c>undo:</c> steps) and the outcome is superseded.
@@ -258,7 +266,7 @@ internal sealed partial class CrOwnershipAdministration(
             steps[step] = outcome;
         }
 
-        var aliases = await RelatedOrganizationsAsync(disputeId, steps);
+        var organizations = await RelatedOrganizationsAsync(disputeId, steps);
         var superseded = !claimantIsAdmin;
         var undo = new List<string>();
         if (claimantIsAdmin)
@@ -269,7 +277,7 @@ internal sealed partial class CrOwnershipAdministration(
                 granted.Add(GrantStep);
             }
 
-            foreach (var alias in aliases)
+            foreach (var (_, alias) in organizations.Related)
             {
                 if (await StepAsync(steps, AddPrefix + alias, disputeId, claimant, () => accounts.AddToOrganizationAsync(claimant, alias, CancellationToken.None)))
                 {
@@ -312,20 +320,21 @@ internal sealed partial class CrOwnershipAdministration(
             }
         }
 
-        await UndoAsync(steps, disputeId, claimant, undo);
-        await RemoveAsync(steps, disputeId, claimant, removed, aliases);
+        await UndoAsync(steps, disputeId, claimant, undo, organizations);
+        await RemoveAsync(steps, disputeId, claimant, removed, organizations);
 
         // A failed step this run did not reach again: its tenant no longer counts (or, for the lookup, it succeeded now).
+        // Only a lookup that succeeded in this run shows that; while it fails, no organization step was reached, so the
+        // failed ones stay failed for the next retry.
         foreach (var step in earlier.Where(e => e.Value == StepFailed && e.Key != LookupStep).Select(e => e.Key))
         {
-            steps.TryAdd(step, StepSkippedNoLongerApplies);
+            steps.TryAdd(step, organizations.LookupFailed ? StepFailed : StepSkippedNoLongerApplies);
         }
 
         var updated = steps.Values.All(v => v != StepFailed);
 
-        // Recorded after the fact on the committed dispute: the audit entry first, then the outcome on the dispute. If
-        // either fails, the dispute keeps its earlier recorded outcome (or none), so it stays listed for a retry, and the
-        // admin is told so; the uphold itself stands.
+        // Recorded after the fact on the committed dispute. If recording fails, the dispute keeps its earlier recorded
+        // outcome (or none), so it stays listed for a retry, and the admin is told so; the uphold itself stands.
         var data = new Dictionary<string, string?>
         {
             ["outcome"] = !updated ? "failed" : superseded ? "superseded" : "updated",
@@ -345,14 +354,19 @@ internal sealed partial class CrOwnershipAdministration(
 
         try
         {
-            await audit.WriteAsync(new PlatformAuditEntry(actorId, "vendor.dispute_identity_provider", "cr_dispute", disputeId.ToString(), data), CancellationToken.None);
             var details = System.Text.Json.JsonSerializer.Serialize(steps);
             await using var db = await contexts.CreateDbContextAsync(CancellationToken.None);
             if (superseded && updated)
             {
-                // Marked only while the claimant is still not the company's vendor admin (migration 0025).
+                // Marked only while the dispute is still superseded and still needs its outcome (migrations 0025, 0026); a
+                // parallel retry may have marked it first. The mark runs first, in a transaction, so the entry carries the
+                // outcome it really had (F-41), and the mark commits only after its entry was written.
+                await using var transaction = await db.Database.BeginTransactionAsync(CancellationToken.None);
                 var marked = await db.Database.SqlQuery<bool>(
                     $"select vendor.supersede_dispute_idp({disputeId}, {details}::jsonb) as \"Value\"").SingleAsync(CancellationToken.None);
+                data["outcome"] = marked ? "superseded" : "superseded_not_marked";
+                await audit.WriteAsync(new PlatformAuditEntry(actorId, "vendor.dispute_identity_provider", "cr_dispute", disputeId.ToString(), data), CancellationToken.None);
+                await transaction.CommitAsync(CancellationToken.None);
                 if (!marked)
                 {
                     SupersedeNotMarkedLog(logger, disputeId);
@@ -361,6 +375,8 @@ internal sealed partial class CrOwnershipAdministration(
                 return new IdentityProviderRun(updated, marked, Superseded: true);
             }
 
+            // The audit entry first, then the outcome on the dispute.
+            await audit.WriteAsync(new PlatformAuditEntry(actorId, "vendor.dispute_identity_provider", "cr_dispute", disputeId.ToString(), data), CancellationToken.None);
             await db.Database.SqlQuery<bool>(
                 $"select vendor.record_dispute_idp_outcome({disputeId}, {updated}, {details}::jsonb) as \"Value\"").SingleAsync(CancellationToken.None);
             return new IdentityProviderRun(updated, Recorded: true, superseded);
@@ -373,84 +389,155 @@ internal sealed partial class CrOwnershipAdministration(
     }
 
     /// <summary>
-    /// The removed users' steps: each leaves the uphold's organizations and loses the realm role, unless they belong to a
-    /// vendor company again, whose access those steps would take (they are then skipped, with the reason, for good). When
-    /// that cannot be checked, the user's pending steps are recorded as failed and run on a retry.
+    /// The removed users' steps: each leaves the uphold's organizations and loses the realm role, except where their
+    /// standing says otherwise (<see cref="SkipReason"/>, recorded as skipped with the reason, for good): the organization
+    /// of a tenant whose staff they are or that their current vendor company works with stays, and so does the role of a
+    /// user who belongs to a vendor company again. When the standing cannot be read, the user's pending steps are recorded
+    /// as failed and run on a retry.
     /// </summary>
     private async Task RemoveAsync(
-        SortedDictionary<string, string> steps, Guid disputeId, string claimant, IReadOnlyList<string> removed, IReadOnlyList<string> aliases)
+        SortedDictionary<string, string> steps, Guid disputeId, string claimant, IReadOnlyList<string> removed, Organizations organizations)
     {
         foreach (var user in removed.Where(u => !string.Equals(u, claimant, StringComparison.Ordinal)))
         {
-            var pending = aliases.Select(alias => $"organization:remove:{alias}:{user}").Append($"role:revoke:{user}").Where(s => !steps.ContainsKey(s)).ToList();
-            if (pending.Count == 0 || await SkippedAsVendorAsync(steps, disputeId, user, pending))
+            var pending = organizations.Related
+                .Select(o => (o.TenantId, o.Alias, Step: $"organization:remove:{o.Alias}:{user}"))
+                .Where(o => !steps.ContainsKey(o.Step))
+                .ToList();
+            var revoke = $"role:revoke:{user}";
+            var revokePending = !steps.ContainsKey(revoke);
+            if (pending.Count == 0 && !revokePending)
             {
                 continue;
             }
 
-            foreach (var alias in aliases)
+            if (await StandingAsync(disputeId, user) is not { } standing)
             {
-                await StepAsync(steps, $"organization:remove:{alias}:{user}", disputeId, user,
+                foreach (var (_, _, step) in pending)
+                {
+                    steps[step] = StepFailed;
+                }
+
+                if (revokePending)
+                {
+                    steps[revoke] = StepFailed;
+                }
+
+                continue;
+            }
+
+            foreach (var (tenantId, alias, step) in pending)
+            {
+                if (SkipReason(standing, tenantId) is { } reason)
+                {
+                    steps[step] = reason;
+                    continue;
+                }
+
+                await StepAsync(steps, step, disputeId, user,
                     () => accounts.RevokeAsync(new VendorAccessGrant(user, alias, RoleAdded: false, OrganizationAdded: true), CancellationToken.None));
             }
 
-            await StepAsync(steps, $"role:revoke:{user}", disputeId, user,
-                () => accounts.RevokeAsync(new VendorAccessGrant(user, string.Empty, RoleAdded: true, OrganizationAdded: false), CancellationToken.None));
+            if (revokePending && standing.IsVendor)
+            {
+                steps[revoke] = StepSkippedVendorAgain;
+            }
+            else if (revokePending)
+            {
+                await StepAsync(steps, revoke, disputeId, user,
+                    () => accounts.RevokeAsync(new VendorAccessGrant(user, string.Empty, RoleAdded: true, OrganizationAdded: false), CancellationToken.None));
+            }
         }
     }
 
     /// <summary>
     /// Takes back from the claimant what <paramref name="granted"/> names (<c>role:grant</c>, <c>organization:add:*</c>),
-    /// each as an <c>undo:</c> step, unless the claimant belongs to a vendor company again.
+    /// each as an <c>undo:</c> step, under the same standing rules as a removal (<see cref="RemoveAsync"/>). An
+    /// organization whose tenant cannot be told because the tenant lookup failed in this run stays failed for a retry; one
+    /// the catalog no longer lists has no staff or vendor relationship left to keep, so it is taken back.
     /// </summary>
-    private async Task UndoAsync(SortedDictionary<string, string> steps, Guid disputeId, string claimant, IReadOnlyList<string> granted)
+    private async Task UndoAsync(
+        SortedDictionary<string, string> steps, Guid disputeId, string claimant, IReadOnlyList<string> granted, Organizations organizations)
     {
         var pending = granted.Distinct(StringComparer.Ordinal).Select(g => UndoPrefix + g).Where(s => !steps.ContainsKey(s)).ToList();
-        if (pending.Count == 0 || await SkippedAsVendorAsync(steps, disputeId, claimant, pending))
+        if (pending.Count == 0)
         {
+            return;
+        }
+
+        if (await StandingAsync(disputeId, claimant) is not { } standing)
+        {
+            foreach (var step in pending)
+            {
+                steps[step] = StepFailed;
+            }
+
             return;
         }
 
         foreach (var step in pending)
         {
             var grant = step[UndoPrefix.Length..];
-            var access = grant == GrantStep
-                ? new VendorAccessGrant(claimant, string.Empty, RoleAdded: true, OrganizationAdded: false)
-                : new VendorAccessGrant(claimant, grant[AddPrefix.Length..], RoleAdded: false, OrganizationAdded: true);
+            VendorAccessGrant access;
+            if (grant == GrantStep)
+            {
+                if (standing.IsVendor)
+                {
+                    steps[step] = StepSkippedVendorAgain;
+                    continue;
+                }
+
+                access = new VendorAccessGrant(claimant, string.Empty, RoleAdded: true, OrganizationAdded: false);
+            }
+            else
+            {
+                var alias = grant[AddPrefix.Length..];
+                if (organizations.TenantByAlias.TryGetValue(alias, out var tenantId) && SkipReason(standing, tenantId) is { } reason)
+                {
+                    steps[step] = reason;
+                    continue;
+                }
+
+                if (organizations.LookupFailed)
+                {
+                    steps[step] = StepFailed;
+                    continue;
+                }
+
+                access = new VendorAccessGrant(claimant, alias, RoleAdded: false, OrganizationAdded: true);
+            }
+
             await StepAsync(steps, step, disputeId, claimant, () => accounts.RevokeAsync(access, CancellationToken.None));
         }
     }
 
     /// <summary>
-    /// True, with <paramref name="pending"/> recorded as skipped, when the user belongs to a vendor company now; true, with
-    /// them recorded as failed, when that cannot be checked; false when the user has no vendor company.
+    /// What a removal or undo must not take from the user: the tenants they are staff of (invited or active, through the
+    /// Identity module's <see cref="IStaffTenancies"/>), and the vendor company they belong to now with the tenants it works
+    /// with (<c>vendor.user_company_tenants</c>, migration 0026). Null, logged, when either cannot be read.
     /// </summary>
-    private async Task<bool> SkippedAsVendorAsync(SortedDictionary<string, string> steps, Guid disputeId, string userId, IReadOnlyList<string> pending)
+    private async Task<Standing?> StandingAsync(Guid disputeId, string userId)
     {
-        string? outcome;
         try
         {
             await using var db = await contexts.CreateDbContextAsync(CancellationToken.None);
-            outcome = await Access.VendorUsers.CompanyOfAsync(db, userId, CancellationToken.None) is null ? null : StepSkippedVendorAgain;
+            var rows = await db.Database.SqlQuery<CompanyTenantRow>(
+                $"select company_id, tenant_id from vendor.user_company_tenants({userId})").ToListAsync(CancellationToken.None);
+            var staff = await staffTenancies.TenantsOfAsync(userId, CancellationToken.None);
+            return new Standing(rows.Count > 0, rows.Where(r => r.TenantId is not null).Select(r => r.TenantId!.Value).ToHashSet(), staff);
         }
         catch (Exception ex) when (ex is System.Data.Common.DbException or InvalidOperationException or TimeoutException)
         {
-            StepFailedLog(logger, disputeId, "vendor:lookup", userId, ex.GetType().Name);
-            outcome = StepFailed;
+            StepFailedLog(logger, disputeId, "standing:lookup", userId, ex.GetType().Name);
+            return null;
         }
-
-        if (outcome is null)
-        {
-            return false;
-        }
-
-        foreach (var step in pending)
-        {
-            steps[step] = outcome;
-        }
-
-        return true;
     }
+
+    /// <summary>Why the user keeps the tenant's organization, or null when a removal (or undo) takes it.</summary>
+    private static string? SkipReason(Standing standing, Guid tenantId) =>
+        standing.StaffTenants.Contains(tenantId) ? StepSkippedStaff
+        : standing.VendorTenants.Contains(tenantId) ? StepSkippedVendorTenant
+        : null;
 
     /// <summary>
     /// Whether the claimant is still the company's vendor admin after this run's grants (<see cref="RecheckStep"/> done), or
@@ -476,6 +563,16 @@ internal sealed partial class CrOwnershipAdministration(
 
     private readonly record struct IdentityProviderRun(bool Updated, bool Recorded, bool Superseded);
 
+    /// <summary>
+    /// The organizations of the tenants the dispute's company worked with at the uphold (<see cref="Related"/>), every
+    /// catalog tenant by its organization alias, and whether the lookup failed in this run (both are then empty).
+    /// </summary>
+    private sealed record Organizations(
+        IReadOnlyList<(Guid TenantId, string Alias)> Related, IReadOnlyDictionary<string, Guid> TenantByAlias, bool LookupFailed);
+
+    /// <summary>A user's standing when a removal or undo runs (<see cref="StandingAsync"/>).</summary>
+    private sealed record Standing(bool IsVendor, IReadOnlySet<Guid> VendorTenants, IReadOnlySet<Guid> StaffTenants);
+
     private const string GrantStep = "role:grant";
 
     private const string AddPrefix = "organization:add:";
@@ -486,8 +583,17 @@ internal sealed partial class CrOwnershipAdministration(
     /// <summary>The check, after the grants, that the claimant is still the company's vendor admin.</summary>
     private const string RecheckStep = "claimant:recheck";
 
-    /// <summary>A removal (or undo) not run because the user belongs to a vendor company again; final, never counted as failed.</summary>
+    /// <summary>A role revoke (or its undo) not run because the user belongs to a vendor company again; final, never counted as failed.</summary>
     private const string StepSkippedVendorAgain = "skipped: the user belongs to a vendor company again";
+
+    /// <summary>A removal (or undo) from the organization of a tenant the user's current vendor company works with; final.</summary>
+    private const string StepSkippedVendorTenant = "skipped: the tenant works with the user's vendor company";
+
+    /// <summary>A removal (or undo) from the organization of a tenant whose staff the user is (invited or active); final.</summary>
+    private const string StepSkippedStaff = "skipped: the user is the tenant's staff";
+
+    /// <summary>A grant or add that found the access already there: done for a retry, never taken back by an undo.</summary>
+    private const string StepAlreadyThere = "done: already there";
 
     /// <summary>A grant that failed earlier and is not run once the company moved on to a later claimant; final.</summary>
     private const string StepSkippedClaimantMovedOn = "skipped: the claimant is no longer the company's vendor admin";
@@ -504,21 +610,25 @@ internal sealed partial class CrOwnershipAdministration(
 
     private const string LookupStep = "organization:lookup";
 
-    /// <summary>The Keycloak organization aliases of the tenants the dispute's company works with; a failed lookup is a failed step.</summary>
-    private async Task<IReadOnlyList<string>> RelatedOrganizationsAsync(Guid disputeId, SortedDictionary<string, string> steps)
+    /// <summary>
+    /// The Keycloak organizations of the tenants the dispute's company works with, and every catalog tenant by alias; a
+    /// failed lookup is a failed step.
+    /// </summary>
+    private async Task<Organizations> RelatedOrganizationsAsync(Guid disputeId, SortedDictionary<string, string> steps)
     {
         try
         {
             await using var db = await contexts.CreateDbContextAsync(CancellationToken.None);
             var tenantIds = await db.Database.SqlQuery<Guid>(
                 $"select tenant_id as \"Value\" from vendor.dispute_related_tenants({disputeId})").ToListAsync(CancellationToken.None);
-            var byId = (await tenantCatalog.ListAsync(CancellationToken.None)).ToDictionary(t => t.Id, t => t.OrganizationAlias);
-            var aliases = new List<string>(tenantIds.Count);
+            var catalog = await tenantCatalog.ListAsync(CancellationToken.None);
+            var byId = catalog.ToDictionary(t => t.Id, t => t.OrganizationAlias);
+            var related = new List<(Guid TenantId, string Alias)>(tenantIds.Count);
             foreach (var tenantId in tenantIds)
             {
                 if (byId.TryGetValue(tenantId, out var alias))
                 {
-                    aliases.Add(alias);
+                    related.Add((tenantId, alias));
                     steps.Remove($"{LookupStep}:{tenantId:D}");
                 }
                 else
@@ -528,21 +638,21 @@ internal sealed partial class CrOwnershipAdministration(
                 }
             }
 
-            return aliases;
+            return new Organizations(related, catalog.ToDictionary(t => t.OrganizationAlias, t => t.Id, StringComparer.Ordinal), LookupFailed: false);
         }
         catch (Exception ex) when (ex is Npgsql.NpgsqlException or InvalidOperationException or TimeoutException)
         {
             StepFailedLog(logger, disputeId, LookupStep, string.Empty, ex.GetType().Name);
             steps[LookupStep] = StepFailed;
-            return [];
+            return new Organizations([], new Dictionary<string, Guid>(StringComparer.Ordinal), LookupFailed: true);
         }
     }
 
     /// <summary>
     /// One identity provider step; true when this run did it. A step with an outcome other than failed (kept from an earlier
-    /// run: done, or skipped with its reason) is not run again. A step that throws the provider's failure, or answers false
-    /// for a removal (which reports whether it succeeded), is recorded as failed and logged; a grant or an add answering
-    /// false means "already there".
+    /// run: done, already there, or skipped with its reason) is not run again. A step that throws the provider's failure, or
+    /// answers false for a removal (which reports whether it succeeded), is recorded as failed and logged; a grant or an add
+    /// answering false found the access already there (<see cref="StepAlreadyThere"/>), which is not this run's doing.
     /// </summary>
     private async Task<bool> StepAsync(SortedDictionary<string, string> steps, string step, Guid disputeId, string userId, Func<Task<bool>> run)
     {
@@ -557,8 +667,8 @@ internal sealed partial class CrOwnershipAdministration(
             var removal = step.StartsWith("organization:remove:", StringComparison.Ordinal)
                 || step.StartsWith("role:revoke:", StringComparison.Ordinal)
                 || step.StartsWith(UndoPrefix, StringComparison.Ordinal);
-            steps[step] = removal && !answer ? StepFailed : StepDone;
-            return steps[step] == StepDone;
+            steps[step] = answer ? StepDone : removal ? StepFailed : StepAlreadyThere;
+            return answer;
         }
         catch (Exception ex) when (ex is IdentityProviderException or InvalidOperationException)
         {
@@ -716,6 +826,13 @@ internal sealed partial class CrOwnershipAdministration(
         public DateTimeOffset ResolvedAt { get; set; }
 
         public string? IdpDetails { get; set; }
+    }
+
+    private sealed class CompanyTenantRow
+    {
+        public Guid CompanyId { get; set; }
+
+        public Guid? TenantId { get; set; }
     }
 
     private sealed class ResolvedRow

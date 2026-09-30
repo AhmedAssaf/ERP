@@ -513,7 +513,7 @@
   <data name="Console.Ownership.Idp.Retry" xml:space="preserve"><value>حاول مرة أخرى</value></data>
   <data name="Console.Ownership.Idp.Done" xml:space="preserve"><value>أخذت خدمة تسجيل الدخول التغيير الخاص بـ {0}.</value></data>
   <data name="Console.Ownership.Idp.StillFailing" xml:space="preserve"><value>لم تأخذ خدمة تسجيل الدخول التغيير بعد. حاول لاحقًا، أو غيّره في Keycloak.</value></data>
-  <data name="Console.Ownership.Idp.Superseded" xml:space="preserve"><value>لم يُمنح {0} أي وصول: لم تعد المنشأة تابعة له، لأن طلبًا لاحقًا نقلها. وسُحب وصول المستخدمين الذين أزالهم هذا الطلب. أُغلق الطلب.</value></data>
+  <data name="Console.Ownership.Idp.Superseded" xml:space="preserve"><value>لم يُمنح {0} أي وصول: لم تعد المنشأة تابعة له، لأن طلبًا لاحقًا نقلها. وسُحب وصول المستخدمين الذين أزالهم هذا الطلب، إلا حيث أصبح المستخدم المُزال تابعًا لمنشأة موردة مرة أخرى أو من موظفي الجهة. أُغلق الطلب.</value></data>
   <data name="Vendor.Dispute.Status.under_review" xml:space="preserve"><value>قيد المراجعة لدى وصلة بد</value></data>
   <data name="Gallery.Sample.NoteLabel" xml:space="preserve"><value>ما الذي تحققت منه</value></data>
   <data name="Gallery.Sample.NoteHelp" xml:space="preserve"><value>حتى 1,000 حرف.</value></data>

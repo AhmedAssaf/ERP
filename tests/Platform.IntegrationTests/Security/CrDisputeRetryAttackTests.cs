@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
 using Platform.IntegrationTests.Infrastructure;
 using Platform.Modules.Identity.Contracts;
+using Platform.Modules.Tenancy.Contracts;
 using Platform.Modules.Vendors.Contracts;
 using Platform.Shared.Tenancy;
 using Platform.Web.Account;
@@ -19,7 +20,8 @@ namespace Platform.IntegrationTests.Security;
 /// Pentest of the W-33 post-review changes (migrations 0024 and 0025, the retry of an uphold's identity provider steps,
 /// and the circuit's company check): the new functions from every session kind and a forged outcome; what a removed
 /// squatter who registered a company of their own can still reach; and an open circuit whose company moved or whose
-/// company check fails. Every test here is a regression guard; the open findings are reported separately.
+/// company check fails. Every test here is a regression guard. The R1 to R4 proofs were red on <c>ec49c97</c> and turned
+/// green with migration 0026 and the standing check of each removal (the third review round of PR #5).
 /// </summary>
 [Collection(DatabaseCollection.Name)]
 public sealed class CrDisputeRetryAttackTests(DatabaseFixture db)
@@ -36,6 +38,7 @@ public sealed class CrDisputeRetryAttackTests(DatabaseFixture db)
     [InlineData("claimant_awaiting_organization", "text")]
     [InlineData("dispute_related_tenants", "uuid")]
     [InlineData("upheld_disputes_needing_idp", "")]
+    [InlineData("user_company_tenants", "text")]
     public async Task The_retry_functions_run_as_their_owner_with_a_pinned_search_path_and_only_the_app_role_calls_them(string name, string arguments)
     {
         await using var owner = new NpgsqlConnection(db.OwnerConnectionString);
@@ -234,7 +237,225 @@ public sealed class CrDisputeRetryAttackTests(DatabaseFixture db)
         guard.Ended.ShouldBeTrue("a failed company check ends the circuit");
     }
 
+    // Third round of PR #5: the retry pentest's proofs (R1 to R4), now guards -----------------------------------------
+
+    [Fact]
+    public async Task R1_a_retry_whose_tenant_lookup_fails_does_not_turn_the_failed_steps_into_permanent_skips()
+    {
+        // The uphold's add of the claimant to beta and the squatter's removal from beta fail. A retry then meets a transient
+        // failure of the tenant lookup: it reaches none of the organization steps, and must keep the failed ones failed, not
+        // mark them "skipped: no longer among the tenants of the uphold" (a final outcome). The next retry (lookup fine)
+        // runs them: the verified owner gets beta and the squatter leaves it.
+        var (companyId, squatter, crNumber) = await VendorAsync(db, "Lookup Hiccup Co");
+        await VendorRows.RelateAsync(db.OwnerConnectionString, TestTenants.Beta.TenantId, companyId, Ct);
+        var claimant = Guid.NewGuid().ToString();
+        var admin = $"platform-admin-{Guid.NewGuid():N}";
+        var accounts = new FakeVendorAccounts();
+        accounts.Memberships[(squatter, Acme)] = true;
+        accounts.Memberships[(squatter, Beta)] = true;
+        accounts.FailingOrganizations[Beta] = true;
+        var catalog = new Switch();
+        await using var host = new ModuleHost(db.AppConnectionString, configure: services =>
+        {
+            services.Replace(ServiceDescriptor.Scoped<IVendorAccounts>(_ => accounts));
+            var original = services.Last(d => d.ServiceType == typeof(ITenantCatalog));
+            services.Replace(ServiceDescriptor.Scoped<ITenantCatalog>(sp =>
+                new FlakyCatalog((ITenantCatalog)ActivatorUtilities.CreateInstance(sp, original.ImplementationType!), catalog)));
+        });
+        var disputeId = await RaiseAsync(host, claimant, crNumber);
+        (await UpholdAsync(host, disputeId, admin)).IdentityProviderUpdated.ShouldBeFalse();
+
+        accounts.FailingOrganizations.Clear();
+        catalog.Fail = true;
+        (await RetryAsync(host, disputeId, admin)).ShouldBe(CrDisputeRetry.StillFailing, "the lookup failed");
+        catalog.Fail = false;
+        var outcome = await RetryAsync(host, disputeId, admin);
+
+        var details = (string)(await OwnerScalarAsync(db, "select idp_details::text from vendor.cr_disputes where id = @id", ("id", disputeId)))!;
+        accounts.OrganizationsOf(claimant).ShouldContain(Beta, $"the verified owner never got beta; retry answered {outcome}, steps {details}");
+        accounts.OrganizationsOf(squatter).ShouldNotContain(Beta, $"the squatter kept beta; retry answered {outcome}, steps {details}");
+    }
+
+    [Fact]
+    public async Task R2_an_older_disputes_retry_does_not_put_its_claimant_back_into_an_organization_the_tenant_removed_them_from()
+    {
+        // X wins the company (dispute 1; the add to beta fails and is left for a retry), loses it to Y (dispute 2), and wins
+        // it back (dispute 3; the add to beta works). Beta then removes X from its organization (W-21 P-1: only beta restores
+        // access). Dispute 1 is superseded by the later upheld disputes (migration 0026), whoever holds the company now: its
+        // retry gives X nothing, and X's /vendor/join on beta gets the audited refusal, not dispute 1's "pending retry".
+        var (companyId, _, crNumber) = await VendorAsync(db, "Ping Pong Co");
+        await VendorRows.RelateAsync(db.OwnerConnectionString, TestTenants.Beta.TenantId, companyId, Ct);
+        var x = Guid.NewGuid().ToString();
+        var y = Guid.NewGuid().ToString();
+        var admin = $"platform-admin-{Guid.NewGuid():N}";
+        var accounts = new FakeVendorAccounts();
+        accounts.FailingOrganizations[Beta] = true;
+        await using var host = Host(accounts);
+        var first = await RaiseAsync(host, x, crNumber);
+        (await UpholdAsync(host, first, admin)).IdentityProviderUpdated.ShouldBeFalse();
+
+        accounts.FailingOrganizations.Clear();
+        (await UpholdAsync(host, await RaiseAsync(host, y, crNumber), admin)).IdentityProviderUpdated.ShouldBeTrue();
+        (await UpholdAsync(host, await RaiseAsync(host, x, crNumber), admin)).IdentityProviderUpdated.ShouldBeTrue();
+        (await OwnershipRows.VendorUsersAsync(db.OwnerConnectionString, companyId, Ct)).ShouldBe([(x, "vendor-admin")]);
+        accounts.OrganizationsOf(x).ShouldBe([Acme, Beta]);
+
+        // Beta removes X.
+        accounts.Memberships.TryRemove((x, Beta), out _);
+        accounts.State = new VendorAccountState(HoldsVendorRole: true, OrganizationAliases: [Acme]);
+        string? joinCode;
+        await using (var scope = host.ScopeFor(TestTenants.Beta, vendorCompanyId: companyId, actingUserId: x))
+        {
+            joinCode = (await scope.ServiceProvider.GetRequiredService<IVendorJoin>().JoinAsync(Ct)).Error?.Code;
+        }
+
+        var retried = await RetryAsync(host, first, admin);
+
+        var readded = accounts.OrganizationsOf(x).Contains(Beta);
+        (readded, joinCode).ShouldBe(
+            (false, VendorErrors.MembershipRemoved),
+            $"dispute 1's retry ({retried}) put its claimant back into beta: {readded}; the join after beta's removal answered {joinCode}");
+        retried.ShouldBe(CrDisputeRetry.Superseded);
+    }
+
+    [Fact]
+    public async Task R3_a_squatter_with_a_throwaway_company_loses_the_disputed_companys_tenants_its_own_company_does_not_work_with()
+    {
+        // A removed user who belongs to a vendor company again keeps only the organizations of the tenants that company works
+        // with. The squatter's own (throwaway) company works with acme only, so the retry takes beta's organization, which
+        // came from the disputed company alone (ADR-0013 point 5: the removed users lose the memberships).
+        var (companyId, squatter, crNumber) = await VendorAsync(db, "Throwaway Keeps Beta Co");
+        await VendorRows.RelateAsync(db.OwnerConnectionString, TestTenants.Beta.TenantId, companyId, Ct);
+        var claimant = Guid.NewGuid().ToString();
+        var admin = $"platform-admin-{Guid.NewGuid():N}";
+        var accounts = new FakeVendorAccounts { FailRevoke = true };
+        accounts.Memberships[(squatter, Acme)] = true;
+        accounts.Memberships[(squatter, Beta)] = true;
+        await using var host = Host(accounts);
+        var disputeId = await RaiseAsync(host, claimant, crNumber);
+        (await UpholdAsync(host, disputeId, admin)).IdentityProviderUpdated.ShouldBeFalse();
+
+        var throwaway = await VendorRows.RegisterAsync(db.AppConnectionString, TestTenants.Acme, squatter, VendorRows.NewCrNumber(), "Throwaway Acme Only Co", Ct);
+        (await VendorRows.RelationshipsAsync(db.OwnerConnectionString, throwaway, Ct)).Keys.ShouldBe([TestTenants.Acme.TenantId]);
+        accounts.FailRevoke = false;
+        (await RetryAsync(host, disputeId, admin)).ShouldBe(CrDisputeRetry.Updated);
+
+        accounts.OrganizationsOf(squatter).ShouldBe([Acme], "the squatter kept beta's organization, which only the disputed company gave it");
+        accounts.Revoked.ShouldNotContain(g => g.UserId == squatter && g.RoleAdded, "the squatter is a vendor again and keeps the role");
+        var details = (string)(await OwnerScalarAsync(db, "select idp_details::text from vendor.cr_disputes where id = @id", ("id", disputeId)))!;
+        details.ShouldContain($"\"organization:remove:{Acme}:{squatter}\": \"skipped: the tenant works with the user's vendor company\"");
+        details.ShouldContain($"\"organization:remove:{Beta}:{squatter}\": \"done\"");
+        details.ShouldContain($"\"role:revoke:{squatter}\": \"skipped: the user belongs to a vendor company again\"");
+    }
+
+    [Fact]
+    public async Task R4_a_retry_does_not_take_a_tenants_organization_from_a_removed_user_who_is_now_that_tenants_staff()
+    {
+        // The squatter's removal failed; beta then hires the person as staff (identity.members active, same Keycloak
+        // organization). The retry skips beta's organization for them, with the reason, audited; the rest is taken.
+        var (companyId, squatter, crNumber) = await VendorAsync(db, "Squatter Hired Co");
+        await VendorRows.RelateAsync(db.OwnerConnectionString, TestTenants.Beta.TenantId, companyId, Ct);
+        var claimant = Guid.NewGuid().ToString();
+        var admin = $"platform-admin-{Guid.NewGuid():N}";
+        var accounts = new FakeVendorAccounts { FailRevoke = true };
+        accounts.Memberships[(squatter, Acme)] = true;
+        accounts.Memberships[(squatter, Beta)] = true;
+        await using var host = Host(accounts);
+        var disputeId = await RaiseAsync(host, claimant, crNumber);
+        (await UpholdAsync(host, disputeId, admin)).IdentityProviderUpdated.ShouldBeFalse();
+
+        await MemberRows.InsertAsync(db.AppConnectionString, TestTenants.Beta.TenantId, squatter, $"{squatter}@beta.test", [TenantRoles.ContractsOfficer], "active", Ct);
+        accounts.FailRevoke = false;
+        (await RetryAsync(host, disputeId, admin)).ShouldBe(CrDisputeRetry.Updated);
+
+        accounts.OrganizationsOf(squatter).ShouldContain(Beta, "the retry removed beta's own staff member from beta's organization");
+        accounts.OrganizationsOf(squatter).ShouldNotContain(Acme);
+        accounts.Revoked.ShouldContain(g => g.UserId == squatter && g.RoleAdded, "a staff member does not keep the vendor role");
+        (await VendorRows.PlatformAuditsAsync(db.OwnerConnectionString, admin, "vendor.dispute_identity_provider", Ct))
+            .Where(a => a.SubjectId == disputeId.ToString()).Select(a => a.Data)
+            .ShouldContain(d => d.Contains("\"retry\": \"true\"") && d.Contains($"\"organization:remove:{Beta}:{squatter}\": \"skipped: the user is the tenant's staff\""));
+    }
+
+    [Fact]
+    public async Task An_uphold_leaves_a_removed_user_in_the_organization_of_a_tenant_that_invited_them_as_staff()
+    {
+        // Follow-ups (a) and (b) of R4: the uphold's own removal (not only a retry) skips a tenant whose staff the removed
+        // user is, and an invited (not yet active) member counts: StaffService added the membership when it invited them.
+        var (companyId, squatter, crNumber) = await VendorAsync(db, "Squatter Invited Co");
+        await VendorRows.RelateAsync(db.OwnerConnectionString, TestTenants.Beta.TenantId, companyId, Ct);
+        await MemberRows.InsertAsync(db.AppConnectionString, TestTenants.Beta.TenantId, squatter, $"{squatter}@beta.test", [TenantRoles.TechnicalEvaluator], "invited", Ct);
+        var claimant = Guid.NewGuid().ToString();
+        var admin = $"platform-admin-{Guid.NewGuid():N}";
+        var accounts = new FakeVendorAccounts();
+        accounts.Memberships[(squatter, Acme)] = true;
+        accounts.Memberships[(squatter, Beta)] = true;
+        await using var host = Host(accounts);
+        var disputeId = await RaiseAsync(host, claimant, crNumber);
+
+        (await UpholdAsync(host, disputeId, admin)).IdentityProviderUpdated.ShouldBeTrue("a skipped step is not a failure");
+
+        accounts.OrganizationsOf(squatter).ShouldBe([Beta]);
+        accounts.OrganizationsOf(claimant).ShouldBe([Acme, Beta]);
+        var details = (string)(await OwnerScalarAsync(db, "select idp_details::text from vendor.cr_disputes where id = @id", ("id", disputeId)))!;
+        details.ShouldContain($"\"organization:remove:{Beta}:{squatter}\": \"skipped: the user is the tenant's staff\"");
+        details.ShouldContain($"\"role:revoke:{squatter}\": \"done\"");
+    }
+
+    [Fact]
+    public async Task The_standing_lookups_of_a_removed_user_answer_only_a_platform_console_session()
+    {
+        // The company tenants of a user (vendor, 0026) and the tenants a user is staff of (identity, 0002) cross row-level
+        // security as their owner; no tenant or vendor session reaches them.
+        var (companyId, squatter, _) = await VendorAsync(db, "Standing Callers Co");
+        var admin = $"platform-admin-{Guid.NewGuid():N}";
+        await MemberRows.InsertAsync(db.AppConnectionString, TestTenants.Beta.TenantId, squatter, $"{squatter}@beta.test", [TenantRoles.ContractsOfficer], "active", Ct);
+        const string companyTenants = "select count(*)::int from vendor.user_company_tenants(@user)";
+        const string staffTenants = "select count(*)::int from identity.staff_tenants_of(@user)";
+
+        await using (var console = await OwnershipRows.AppSessionAsync(db.AppConnectionString, null, null, admin, Ct))
+        {
+            (await UserCountAsync(console, companyTenants, squatter)).ShouldBe(1, "the console sees the company's acme relationship");
+            (await UserCountAsync(console, staffTenants, squatter)).ShouldBe(1, "the console sees beta's member row");
+        }
+
+        foreach (var (tenant, vendor, user) in new (Guid?, Guid?, string?)[]
+                 {
+                     (TestTenants.Acme.TenantId, null, admin),
+                     (TestTenants.Beta.TenantId, null, squatter),
+                     (TestTenants.Acme.TenantId, companyId, squatter),
+                     (null, companyId, squatter),
+                     (null, null, null),
+                 })
+        {
+            foreach (var sql in new[] { companyTenants, staffTenants })
+            {
+                await using var session = await OwnershipRows.AppSessionAsync(db.AppConnectionString, tenant, vendor, user, Ct);
+                (await Should.ThrowAsync<PostgresException>(() => UserCountAsync(session, sql, squatter)))
+                    .SqlState.ShouldBe(PostgresErrorCodes.InsufficientPrivilege, $"{sql} with tenant {tenant}, vendor {vendor}, user {user}");
+            }
+        }
+
+        await using var owner = new NpgsqlConnection(db.OwnerConnectionString);
+        await owner.OpenAsync(Ct);
+        await using var check = new NpgsqlCommand("""
+            select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+            where n.nspname = 'identity' and p.proname = 'staff_tenants_of' and p.prosecdef
+              and p.proconfig::text like '%search_path=identity, pg_temp%'
+              and has_function_privilege('erp_app', p.oid, 'execute') and not has_function_privilege('public', p.oid, 'execute')
+            """, owner);
+        ((int)(await check.ExecuteScalarAsync(Ct))!).ShouldBe(1, "identity.staff_tenants_of: definer, pinned search_path, erp_app only");
+    }
+
     // Helpers --------------------------------------------------------------------------------------------------------
+
+    private static async Task<int> UserCountAsync(NpgsqlConnection session, string sql, string userId)
+    {
+#pragma warning disable CA2100 // Fixed statements of this class.
+        await using var command = new NpgsqlCommand(sql, session);
+#pragma warning restore CA2100
+        command.Parameters.AddWithValue("user", userId);
+        return (int)(await command.ExecuteScalarAsync(Ct))!;
+    }
 
     private ModuleHost Host(FakeVendorAccounts accounts) =>
         new(db.AppConnectionString, configure: services => services.Replace(ServiceDescriptor.Scoped<IVendorAccounts>(_ => accounts)));
@@ -323,6 +544,18 @@ public sealed class CrDisputeRetryAttackTests(DatabaseFixture db)
 
         public Task<Guid?> FindCurrentCompanyAsync(string userId, CancellationToken cancellationToken = default) =>
             throw new TimeoutException("The database did not answer.");
+    }
+
+    private sealed class Switch
+    {
+        public volatile bool Fail;
+    }
+
+    /// <summary>The real tenant catalog, failing as a database hiccup would while <see cref="Switch.Fail"/> is set.</summary>
+    private sealed class FlakyCatalog(ITenantCatalog inner, Switch state) : ITenantCatalog
+    {
+        public Task<IReadOnlyList<TenantSummary>> ListAsync(CancellationToken cancellationToken = default) =>
+            state.Fail ? throw new InvalidOperationException("The tenant catalog could not be read.") : inner.ListAsync(cancellationToken);
     }
 
     private sealed class FixedNavigationManager : NavigationManager

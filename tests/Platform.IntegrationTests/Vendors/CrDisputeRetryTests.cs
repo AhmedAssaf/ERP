@@ -309,7 +309,7 @@ public sealed class CrDisputeRetryTests(DatabaseFixture db)
         accounts.OrganizationsOf(squatter).ShouldBe([Acme]);
         var details = (string)(await OwnerScalarAsync("select idp_details::text from vendor.cr_disputes where id = @id", firstDispute))!;
         details.ShouldContain($"\"role:revoke:{squatter}\": \"skipped: the user belongs to a vendor company again\"");
-        details.ShouldContain($"\"organization:remove:{Acme}:{squatter}\": \"skipped: the user belongs to a vendor company again\"");
+        details.ShouldContain($"\"organization:remove:{Acme}:{squatter}\": \"skipped: the tenant works with the user's vendor company\"");
     }
 
     [Fact]
@@ -437,6 +437,89 @@ public sealed class CrDisputeRetryTests(DatabaseFixture db)
     {
         await using var scope = host.PlatformScope(admin);
         return [.. (await scope.ServiceProvider.GetRequiredService<ICrOwnershipAdministration>().ListIdentityProviderFailuresAsync(Ct)).Select(f => f.DisputeId)];
+    }
+
+    [Fact]
+    public async Task An_undo_leaves_a_membership_the_claimant_already_had_before_the_run()
+    {
+        // Third review, R-2: an add that answers "already there" was not this run's doing (an invited staff member's
+        // membership from StaffService, say). It is recorded as "done: already there", never run again, and never taken
+        // back when the run finds that a later uphold moved the company while it ran.
+        var (companyId, _, crNumber) = await VendorAsync("Already There Co");
+        await VendorRows.RelateAsync(db.OwnerConnectionString, TestTenants.Beta.TenantId, companyId, Ct);
+        var first = Guid.NewGuid().ToString();
+        var second = Guid.NewGuid().ToString();
+        var admin = $"platform-admin-{Guid.NewGuid():N}";
+        var accounts = new FakeVendorAccounts { State = new VendorAccountState(HoldsVendorRole: false, OrganizationAliases: [Beta]) };
+        accounts.Memberships[(first, Beta)] = true;
+        await using var host = Host(accounts);
+        var firstDispute = await RaiseAsync(host, first, crNumber);
+        var moved = false;
+        accounts.OnGrantRole = async u =>
+        {
+            if (u == first && !moved)
+            {
+                moved = true;
+                // The later uphold's own removal of the first claimant from beta fails, so whatever stays in beta is what
+                // the first claimant held before either uphold.
+                accounts.FailingOrganizations[Beta] = true;
+                await UpholdAsync(host, await RaiseAsync(host, second, crNumber), admin);
+                accounts.FailingOrganizations.Clear();
+            }
+        };
+
+        await UpholdAsync(host, firstDispute, admin);
+
+        moved.ShouldBeTrue();
+        accounts.OrganizationsOf(first).ShouldBe([Beta], "the undo took only what this run added (acme), not beta, which the claimant already had");
+        var details = (string)(await OwnerScalarAsync("select idp_details::text from vendor.cr_disputes where id = @id", firstDispute))!;
+        details.ShouldContain($"\"organization:add:{Beta}\": \"done: already there\"");
+        details.ShouldContain($"\"undo:organization:add:{Acme}\": \"done\"");
+        details.ShouldNotContain($"undo:organization:add:{Beta}");
+        ((string)(await OwnerScalarAsync("select idp_outcome from vendor.cr_disputes where id = @id", firstDispute))!).ShouldBe("superseded");
+    }
+
+    [Fact]
+    public async Task A_retry_whose_supersede_mark_a_parallel_retry_took_audits_that_it_was_not_marked()
+    {
+        // Third review, R-4 (F-41): the entry follows the mark with the outcome it really had. Two admins retry the same
+        // superseded dispute at once (the second inside the first's Keycloak removal): the inner one marks it; the outer
+        // one's mark then changes nothing, and its entry says so instead of "superseded".
+        var (_, squatter, crNumber) = await VendorAsync("Parallel Retry Co");
+        var first = Guid.NewGuid().ToString();
+        var second = Guid.NewGuid().ToString();
+        var admin = $"platform-admin-{Guid.NewGuid():N}";
+        var otherAdmin = $"platform-admin-{Guid.NewGuid():N}";
+        var accounts = new FakeVendorAccounts { FailRevoke = true };
+        accounts.Memberships[(squatter, Acme)] = true;
+        await using var host = Host(accounts);
+        var firstDispute = await RaiseAsync(host, first, crNumber);
+        (await UpholdAsync(host, firstDispute, admin)).IdentityProviderUpdated.ShouldBeFalse();
+        accounts.FailRevoke = false;
+        (await UpholdAsync(host, await RaiseAsync(host, second, crNumber), admin)).IdentityProviderUpdated.ShouldBeTrue();
+
+        CrDisputeRetry? inner = null;
+        accounts.OnRevoke = async g =>
+        {
+            if (g.UserId == squatter && inner is null)
+            {
+                inner = CrDisputeRetry.StillFailing;
+                inner = await RetryAsync(host, firstDispute, otherAdmin);
+            }
+        };
+
+        var outer = await RetryAsync(host, firstDispute, admin);
+
+        inner.ShouldBe(CrDisputeRetry.Superseded);
+        outer.ShouldNotBe(CrDisputeRetry.Superseded, "the outer retry did not mark it");
+        ((string)(await OwnerScalarAsync("select idp_outcome from vendor.cr_disputes where id = @id", firstDispute))!).ShouldBe("superseded");
+        var outerAudits = (await VendorRows.PlatformAuditsAsync(db.OwnerConnectionString, admin, "vendor.dispute_identity_provider", Ct))
+            .Where(a => a.SubjectId == firstDispute.ToString()).Select(a => a.Data).ToList();
+        outerAudits.ShouldContain(d => d.Contains("\"retry\": \"true\"") && d.Contains("\"outcome\": \"superseded_not_marked\""));
+        outerAudits.ShouldNotContain(d => d.Contains("\"outcome\": \"superseded\""));
+        (await VendorRows.PlatformAuditsAsync(db.OwnerConnectionString, otherAdmin, "vendor.dispute_identity_provider", Ct))
+            .Where(a => a.SubjectId == firstDispute.ToString()).Select(a => a.Data)
+            .ShouldContain(d => d.Contains("\"outcome\": \"superseded\""));
     }
 
     private static async Task JoinRefusedAsync(ModuleHost host, Guid companyId, string claimant, string code)

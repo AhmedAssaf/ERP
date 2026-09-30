@@ -93,6 +93,7 @@ public static class IdentityModule
         services.AddModuleDbContext<MembersDbContext>(connectionString);
         services.AddScoped<MemberDirectory>();
         services.AddScoped<IMemberDirectory>(sp => sp.GetRequiredService<MemberDirectory>());
+        services.AddScoped<IStaffTenancies, StaffTenancies>();
         services.TryAddSingleton<MemberRolesCache>();
         services.AddScoped<IClaimsTransformation, MembersClaimsTransformation>();
         services.TryAddSingleton<DenialAuditThrottle>();
