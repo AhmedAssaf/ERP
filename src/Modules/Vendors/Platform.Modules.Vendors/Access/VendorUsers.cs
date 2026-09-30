@@ -27,6 +27,13 @@ internal sealed class VendorUsers(IDbContextFactory<VendorsDbContext> contexts) 
         return company;
     }
 
+    public Task<Guid?> FindCurrentCompanyAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        Forget(userId);
+        return FindCompanyAsync(userId, cancellationToken);
+    }
+
     /// <summary>Forgets what is known about the user, after this scope registered them.</summary>
     public void Forget(string userId) => _known.Remove(userId);
 

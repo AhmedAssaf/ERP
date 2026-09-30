@@ -9,6 +9,12 @@ public interface IVendorUsers
 {
     /// <summary>The company of the user with Keycloak <c>sub</c> <paramref name="userId"/>, or null when they have none.</summary>
     Task<Guid?> FindCompanyAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// As <see cref="FindCompanyAsync"/>, but always asks the database, never what this scope already knows: an open
+    /// circuit re-checks its vendor context with it, since an upheld dispute (W-33) can move the company away meanwhile.
+    /// </summary>
+    Task<Guid?> FindCurrentCompanyAsync(string userId, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
