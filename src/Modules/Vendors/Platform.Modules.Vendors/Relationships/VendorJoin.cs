@@ -159,10 +159,11 @@ internal sealed partial class VendorJoin(
             return Result.Success(new VendorJoined(RelationshipCreated: false, OrganizationAdded: false));
         }
 
-        // W-33: the claimant of an upheld dispute gets every related organization from the uphold itself; when that step
-        // failed and waits for the platform admin's retry, say so rather than "your access was removed". Still no
-        // membership from here (P-1).
-        if (await AwaitingIdentityProviderAsync(cancellationToken))
+        // W-33: the claimant of an upheld dispute gets every related organization from the uphold itself; when the add to
+        // this tenant's organization failed (or was never recorded) and waits for the platform admin's retry, say so rather
+        // than "your access was removed". Any other failed step of the dispute does not matter here. Still no membership
+        // from here (P-1).
+        if (await AwaitingOrganizationAsync(tenant.KeycloakOrgAlias, cancellationToken))
         {
             return Result.Failure<VendorJoined>(Error.Refused(
                 VendorErrors.MembershipPendingRetry,
@@ -184,10 +185,11 @@ internal sealed partial class VendorJoin(
             VendorErrors.MembershipRemoved, "Your access to this organization was removed. Only the organization can restore it."));
     }
 
-    private async Task<bool> AwaitingIdentityProviderAsync(CancellationToken cancellationToken)
+    private async Task<bool> AwaitingOrganizationAsync(string organizationAlias, CancellationToken cancellationToken)
     {
         await using var db = await contexts.CreateDbContextAsync(cancellationToken);
-        return await db.Database.SqlQuery<bool>($"select vendor.claimant_awaiting_identity_provider() as \"Value\"").SingleAsync(cancellationToken);
+        return await db.Database.SqlQuery<bool>(
+            $"select vendor.claimant_awaiting_organization({organizationAlias}) as \"Value\"").SingleAsync(cancellationToken);
     }
 
     private static Result<VendorJoined> Failed() =>

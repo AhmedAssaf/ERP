@@ -459,6 +459,43 @@ public sealed class CrDisputeTriageTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task A_claimant_whose_add_to_this_organization_succeeded_gets_the_normal_refusal_whatever_else_failed()
+    {
+        // Review of 0022: another failed step of the dispute (here the squatter's access not taken back) must not turn a
+        // later removal by beta into "still giving you access"; only beta's own add step decides.
+        var (companyId, _, crNumber) = await VendorAsync("Other Step Failed Co");
+        await VendorRows.RelateAsync(db.OwnerConnectionString, TestTenants.Beta.TenantId, companyId, Ct);
+        var acme = TestTenants.Acme.KeycloakOrgAlias;
+        var beta = TestTenants.Beta.KeycloakOrgAlias;
+        var claimant = Guid.NewGuid().ToString();
+        var admin = $"platform-admin-{Guid.NewGuid():N}";
+        var accounts = new FakeVendorAccounts { FailRevoke = true };
+        await using var host = Host(accounts);
+        var disputeId = await RaiseAsync(host, claimant, crNumber);
+        await using (var scope = host.PlatformScope(admin))
+        {
+            (await scope.ServiceProvider.GetRequiredService<ICrOwnershipAdministration>().UpholdAsync(disputeId, "Checked.", admin, Ct))
+                .Value.IdentityProviderUpdated.ShouldBeFalse();
+        }
+
+        accounts.OrganizationsOf(claimant).ShouldBe([acme, beta]);
+        var details = (string)(await OwnerScalarAsync("select idp_details::text from vendor.cr_disputes where id = @company", disputeId))!;
+        details.ShouldContain($"\"organization:add:{beta}\": \"done\"");
+        details.ShouldContain("\"failed\"");
+
+        // Beta later removes the claimant from its organization.
+        accounts.State = new VendorAccountState(HoldsVendorRole: true, OrganizationAliases: [acme]);
+        await using (var scope = host.ScopeFor(TestTenants.Beta, vendorCompanyId: companyId, actingUserId: claimant))
+        {
+            (await scope.ServiceProvider.GetRequiredService<IVendorJoin>().JoinAsync(Ct)).Error.ShouldNotBeNull()
+                .Code.ShouldBe(VendorErrors.MembershipRemoved);
+        }
+
+        (await VendorRows.AuditsAsync(db.OwnerConnectionString, TestTenants.Beta.TenantId, claimant, "vendor.membership_restore_refused", Ct))
+            .ShouldHaveSingleItem().SubjectId.ShouldBe(companyId.ToString());
+    }
+
+    [Fact]
     public async Task A_platform_admin_cannot_accept_their_own_dispute_for_review()
     {
         var (_, _, crNumber) = await VendorAsync("Self Accept Co");
