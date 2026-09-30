@@ -22,6 +22,7 @@ using Platform.Web.Edge;
 using Platform.Web.Localization;
 using Platform.Web.PlatformHost;
 using Platform.Web.Tenancy;
+using Platform.Web.Usage;
 using Platform.Web.Vendor;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -163,6 +164,10 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<CircuitSessionGuard>();
 builder.Services.AddScoped<CircuitHandler>(sp => sp.GetRequiredService<CircuitSessionGuard>());
 builder.Services.AddScoped<AuthenticationStateProvider, MembershipRevalidatingStateProvider>();
+// W-10 business metrics (spec 6.3): the connected circuits of this instance, counted per tenant slug and kind after the
+// session guard, on meter WaslaBid.Usage and for the console usage page.
+builder.Services.AddSingleton<ConnectedCircuits>();
+builder.Services.AddScoped<CircuitHandler, UsageCircuitHandler>();
 builder.Services.AddPlatformLocalization();
 builder.Services.AddPlatformUI();
 

@@ -13,7 +13,7 @@ using Platform.Shared.Data;
 
 namespace Platform.Modules.Identity;
 
-public static class IdentityModule
+public static partial class IdentityModule
 {
     /// <summary>
     /// Authenticated and a member of the host tenant's organization, staff or vendor. The Vendor policy builds on it; staff
