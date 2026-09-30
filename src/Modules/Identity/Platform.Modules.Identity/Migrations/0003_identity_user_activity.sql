@@ -12,14 +12,18 @@
 --    not even staff of the same tenant). tenant_activity_insert, INSERT only: a session writes only its own row
 --    (user_id = the acting user), for its host tenant, as staff without a vendor context or as a vendor with one.
 --    platform.enable_tenant_rls is not used, since its policy is for all commands.
--- 2. The database's clock: a trigger sets hour = date_trunc('hour', now()) on every insert, so no session chooses its
---    hour (a writer that names one is corrected, not refused: the hour is not evidence, only a bucket).
+-- 2. The database's clock: a trigger sets hour = date_trunc('hour', now(), 'UTC') on every insert, so no session chooses
+--    its hour (a writer that names one is corrected, not refused: the hour is not evidence, only a bucket), not even
+--    through its time zone: the bucket is a UTC hour, since a zone such as Asia/Kathmandu (UTC+05:45) would otherwise
+--    start it at :15 (pentest PT-W10-03).
 -- 3. erp_app holds INSERT only: no UPDATE or DELETE, and pruning goes through identity.prune_activity.
 -- 4. Counting and pruning are security-definer functions that answer only the worker's session: neither a tenant nor
 --    a vendor context (ADR-0012 point 4, as vendor.stale_uploads) and no acting user, which the worker never has and a
 --    platform console session always has (review of W-10, 2026-10-01), so the console cannot call them either. Any other
 --    session is refused with 42501. They return counts, never rows.
 -- Retention: buckets older than 35 days are deleted by the usage job once a day (the 30-day window plus margin; Q7).
+-- identity.prune_activity refuses (22023) a cutoff later than now() - 31 days, so no caller deletes a bucket the 30-day
+-- count still needs (pentest PT-W10-02).
 
 do $$
 begin
@@ -62,7 +66,7 @@ create function identity.user_activity_database_hour()
     set search_path = identity, pg_temp
 as $$
 begin
-    new.hour := date_trunc('hour', now());
+    new.hour := date_trunc('hour', now(), 'UTC');
     return new;
 end
 $$;
@@ -95,12 +99,14 @@ begin
         select a.tenant_id, a.kind, w.time_window, count(distinct a.user_id)::integer
         from identity.user_activity a
         join (values ('1d', interval '24 hours'), ('7d', interval '7 days'), ('30d', interval '30 days')) as w(time_window, span)
-            on a.hour > date_trunc('hour', p_now) - w.span and a.hour <= p_now
+            on a.hour > date_trunc('hour', p_now, 'UTC') - w.span and a.hour <= p_now
         group by grouping sets ((a.tenant_id, a.kind, w.time_window), (a.kind, w.time_window));
 end
 $$;
 
--- Deletes the buckets older than p_before; returns how many.
+-- Deletes the buckets older than p_before; returns how many. A cutoff inside the retention (later than now() - 31 days:
+-- the 30-day window plus a day for the gap between the worker's clock and the database's) or none is refused with 22023,
+-- not clamped: the only caller passes now() - 35 days, so another cutoff is a bug to surface, not a request to reinterpret.
 create function identity.prune_activity(p_before timestamptz)
     returns integer
     language plpgsql
@@ -113,6 +119,10 @@ declare
 begin
     if platform.current_tenant() is not null or platform.current_vendor_company() is not null or platform.current_user_id() is not null then
         raise exception 'Activity is pruned by the worker only.' using errcode = 'insufficient_privilege';
+    end if;
+
+    if p_before is null or p_before > now() - interval '31 days' then
+        raise exception 'Activity is kept for 31 days at least; the cutoff must be earlier.' using errcode = 'invalid_parameter_value';
     end if;
 
     delete from identity.user_activity where hour < p_before;

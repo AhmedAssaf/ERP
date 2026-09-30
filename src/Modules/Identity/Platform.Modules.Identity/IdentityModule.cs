@@ -112,16 +112,18 @@ public static partial class IdentityModule
             ActivatorUtilities.CreateInstance<MembershipRevalidator>(sp, sp.GetRequiredService<RevocationAuditWriter>()));
         services.AddHostedService<RevocationAuditRetry>();
         // W-10 (spec 6.4): hourly activity buckets for the active-user counts, written through the scope's own connection.
+        // Counting and pruning (IUserActivityCounts) are not registered here: only the worker holds them, through
+        // AddIdentityActivityCounts, since a web-host scope without a request has the worker's "no context" shape (PT-W10-01).
         services.TryAddSingleton<ActivityThrottle>();
         services.AddScoped<IUserActivityRecorder, UserActivityRecorder>();
-        services.TryAddScoped<IUserActivityCounts, UserActivityCounts>();
         return services;
     }
 
     /// <summary>
     /// The worker's part of the active-user counts (W-10, spec 6.4): <see cref="IUserActivityCounts"/> over this module's
-    /// database context, without anything else of the module (no claims transformation, no Keycloak settings). The worker
-    /// calls it instead of <see cref="AddIdentityModule"/>; a host that calls both gets one registration.
+    /// database context, without anything else of the module (no claims transformation, no Keycloak settings). Only the
+    /// worker calls it, instead of <see cref="AddIdentityModule"/>, which does not register the service: the web host must
+    /// not be able to count or prune activity (pentest PT-W10-01).
     /// </summary>
     public static IServiceCollection AddIdentityActivityCounts(this IServiceCollection services, string connectionString)
     {

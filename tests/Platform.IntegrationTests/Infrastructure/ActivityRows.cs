@@ -48,7 +48,7 @@ internal static class ActivityRows
         await using var command = new NpgsqlCommand("""
             insert into identity.user_activity (tenant_id, user_id, kind) values (@tenant, @user, @kind);
             update identity.user_activity set hour = hour - make_interval(hours => @hours)
-            where tenant_id = @tenant and user_id = @user and kind = @kind and hour = date_trunc('hour', now());
+            where tenant_id = @tenant and user_id = @user and kind = @kind and hour = date_trunc('hour', now(), 'UTC');
             """, connection);
         command.Parameters.AddWithValue("tenant", tenantId);
         command.Parameters.AddWithValue("user", userId);

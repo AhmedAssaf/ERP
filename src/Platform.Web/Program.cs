@@ -76,6 +76,7 @@ builder.Services.AddOperationsConsole(builder.Configuration);
 builder.Services.AddScoped<TenantOverview>();
 // W-10 (spec 6.6): the console usage page's figures, from the circuit registry and the usage job's stored result.
 builder.Services.AddScoped<UsageOverview>();
+builder.Services.AddSingleton<GrafanaLink>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<CircuitHandler, TenantCircuitHandler>();
 builder.Services.AddScoped<CircuitHandler, VendorCircuitHandler>();

@@ -15,7 +15,8 @@ internal sealed record TenantUsage(TenantSummary Tenant, UsageFigure Online, Usa
 
 /// <summary>
 /// What <c>/platform/usage</c> shows (spec 6.6): the four totals, the per-tenant lines, when the active users were counted
-/// (null before the first count), whether that count is stale, and the Grafana dashboard's address when one is configured.
+/// (null before the first count), whether that count is stale, and the Grafana dashboard's address when a valid one is
+/// configured (<see cref="GrafanaLink"/>).
 /// </summary>
 internal sealed record UsageView(
     UsageFigure Online,
@@ -37,11 +38,8 @@ internal sealed record UsageView(
 /// the registry). Platform users are not shown: they are the readers. Used only by console pages, after PlatformAdmin passed.
 /// </summary>
 internal sealed class UsageOverview(
-    ITenantCatalog catalog, ConnectedCircuits circuits, IUsageLog usage, TimeProvider clock, IConfiguration configuration)
+    ITenantCatalog catalog, ConnectedCircuits circuits, IUsageLog usage, TimeProvider clock, GrafanaLink grafana)
 {
-    /// <summary>The setting that links the page to the Grafana dashboard "WaslaBid usage" (uid <c>waslabid-usage</c>, spec 6.7).</summary>
-    public const string GrafanaUrlSetting = "Observability:GrafanaUrl";
-
     public async Task<UsageView> LoadAsync(CancellationToken cancellationToken = default)
     {
         var tenants = await catalog.ListAsync(cancellationToken);
@@ -72,7 +70,6 @@ internal sealed class UsageOverview(
                 Active(t.Slug, TelemetryNames.Windows.ThirtyDays)))
             .ToList();
 
-        var grafana = configuration[GrafanaUrlSetting];
         return new UsageView(
             new UsageFigure(circuits.DistinctUsers(UsageKind.Staff), circuits.DistinctUsers(UsageKind.Vendor)),
             Active(null, TelemetryNames.Windows.OneDay),
@@ -81,6 +78,6 @@ internal sealed class UsageOverview(
             rows,
             latest?.ComputedAt,
             latest is not null && stale,
-            string.IsNullOrWhiteSpace(grafana) ? null : $"{grafana.TrimEnd('/')}/d/waslabid-usage");
+            grafana.DashboardUrl);
     }
 }

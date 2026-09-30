@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 using Platform.IntegrationTests.Infrastructure;
 using Platform.Web.Usage;
@@ -152,6 +153,42 @@ public sealed partial class PlatformConsoleTests
         var html = await GetPageAsync(with, UsagePath, PlatformAdmin());
 
         Element(html, "a", "data-grafana", "dashboard").ShouldContain("href=\"http://127.0.0.1:3000/d/waslabid-usage\"");
+    }
+
+    [Theory]
+    [InlineData("javascript:alert(document.cookie)//", "javascript")]
+    [InlineData("data:text/html,grafana-secret", "data")]
+    [InlineData("file:///c:/grafana-secret", "file")]
+    [InlineData("ftp://grafana-secret.local", "ftp")]
+    [InlineData("/grafana-secret", "relative")]
+    [InlineData("grafana-secret.local:3000", "other")]
+    public async Task The_grafana_link_is_shown_only_for_an_absolute_http_address(string setting, string scheme)
+    {
+        var logs = new CapturedLogs();
+        await using var factory = Factory().WithWebHostBuilder(builder =>
+        {
+            builder.UseSetting("Observability:GrafanaUrl", setting);
+            builder.ConfigureLogging(logging => logging.AddProvider(logs));
+        });
+
+        foreach (var _ in new[] { 1, 2 })
+        {
+            (await GetPageAsync(factory, UsagePath, PlatformAdmin())).ShouldNotContain("data-grafana", Case.Sensitive, setting);
+        }
+
+        var warnings = logs.Entries.Where(e => e.Level == LogLevel.Warning && e.Category.EndsWith(".GrafanaLink", StringComparison.Ordinal)).ToList();
+        warnings.ShouldHaveSingleItem("one warning per process, not one per page load").Text.ShouldContain($"Scheme={scheme}");
+        logs.Entries.ShouldAllBe(e => !e.Text.Contains("grafana-secret", StringComparison.Ordinal), "the setting's value is never logged");
+    }
+
+    [Fact]
+    public async Task The_grafana_link_accepts_an_https_address()
+    {
+        await using var factory = Factory().WithWebHostBuilder(builder => builder.UseSetting("Observability:GrafanaUrl", "https://grafana.example/base"));
+
+        var html = await GetPageAsync(factory, UsagePath, PlatformAdmin());
+
+        Element(html, "a", "data-grafana", "dashboard").ShouldContain("href=\"https://grafana.example/base/d/waslabid-usage\"");
     }
 
     [Fact]
