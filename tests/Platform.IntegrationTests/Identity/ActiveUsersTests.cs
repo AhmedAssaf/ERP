@@ -1,4 +1,5 @@
 using System.Net;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Npgsql;
@@ -312,18 +313,100 @@ public sealed class ActiveUsersTests(DatabaseFixture db)
     [Fact]
     public async Task A_failed_activity_write_does_not_fail_the_request()
     {
-        // A database that is not there: the write fails, the caller carries on, and the failure is logged by type only.
+        // The table refuses the application role's insert (as a missing table or a lost grant would): the page request and
+        // a circuit event of a staff member both still succeed, and the failure is logged by type only.
+        var (tenant, user) = await StaffTenantAsync();
+        await ExecuteAsOwnerAsync("revoke insert on identity.user_activity from erp_app");
+        try
+        {
+            var logs = new CapturedLogs();
+            await using (var web = new PlatformWebFactory(db.AppConnectionString).WithWebHostBuilder(builder =>
+                builder.ConfigureServices(services => services.AddLogging(b => b.AddProvider(logs)))))
+            using (var client = web.CreateClient(new() { BaseAddress = new Uri($"http://{TenantRows.Host(tenant)}"), AllowAutoRedirect = false }))
+            using (var response = await client.SendAsync(new HttpRequestMessage(HttpMethod.Get, "/").As(new TestUser(user, [tenant.Slug])), Ct))
+            {
+                response.StatusCode.ShouldBe(HttpStatusCode.OK);
+            }
+
+            var failures = logs.Entries.Where(e => e.Level == LogLevel.Warning && e.Text.Contains("ErrorType=", StringComparison.Ordinal)).ToList();
+            failures.ShouldHaveSingleItem().Text.ShouldContain("PostgresException");
+            failures.ShouldAllBe(e => !e.Text.Contains(user, StringComparison.Ordinal) && !e.Text.Contains("Password", StringComparison.OrdinalIgnoreCase));
+
+            await using var host = new ModuleHost(db.AppConnectionString);
+            await using var circuitScope = host.ScopeFor(tenant, actingUserId: user);
+            await using var meterHost = UsageMetrics.NewMeterFactoryHost();
+            var session = UsageSession.Staff(user, tenant);
+            var handler = new UsageCircuitHandler(
+                session.Connection(), session.Tenants, session.Vendor, session.Platform, session.Guard(),
+                new ConnectedCircuits(meterHost.GetRequiredService<System.Diagnostics.Metrics.IMeterFactory>()),
+                circuitScope.ServiceProvider.GetRequiredService<IUserActivityRecorder>());
+            await handler.OnConnectionUpAsync(null!, Ct);
+            var ran = 0;
+
+            await handler.CreateInboundActivityHandler(_ =>
+            {
+                ran++;
+                return Task.CompletedTask;
+            })(null!);
+
+            ran.ShouldBe(1, "the circuit event runs although its activity could not be written");
+        }
+        finally
+        {
+            await ExecuteAsOwnerAsync("grant insert on identity.user_activity to erp_app");
+        }
+
+        (await ActivityRows.ForTenantAsync(db.OwnerConnectionString, tenant.TenantId, Ct)).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task After_a_failed_activity_write_the_next_requests_do_not_touch_the_database_for_a_minute()
+    {
+        // The database is down: the first write fails; every other write of the next minute, for any user, is not tried,
+        // so no request waits on the connection and the log gets one warning per minute, not one per request.
+        using var server = new ClosingTcpServer();
+        var down = new NpgsqlConnectionStringBuilder(db.AppConnectionString) { Host = "127.0.0.1", Port = server.Port, Timeout = 2, Pooling = false }.ConnectionString;
+        var clock = new TestClock();
         var logs = new CapturedLogs();
-        var unreachable = new NpgsqlConnectionStringBuilder(db.AppConnectionString) { Port = 1, Timeout = 2 }.ConnectionString;
-        await using var host = new ModuleHost(unreachable, configure: services => services.AddLogging(b => b.AddProvider(logs)));
+        await using var host = new ModuleHost(down, clock: clock, configure: services => services.AddLogging(b => b.AddProvider(logs)));
         var tenant = MemberRows.NewTenant();
 
-        await RecordAsync(host, tenant, "someone", ActivityKind.Staff);
-        await RecordAsync(host, tenant, "someone", ActivityKind.Staff);
+        await RecordAsync(host, tenant, "first", ActivityKind.Staff);
+        var attempts = server.Attempts;
+        attempts.ShouldBeGreaterThan(0, "the first write reached the database");
 
-        var failures = logs.Entries.Where(e => e.Level == LogLevel.Warning && e.Text.Contains("ErrorType=", StringComparison.Ordinal)).ToList();
-        failures.Count.ShouldBe(2, "a failed write is not remembered as written, so the next call tries again");
-        failures.ShouldAllBe(e => !e.Text.Contains("someone", StringComparison.Ordinal) && !e.Text.Contains("Password", StringComparison.OrdinalIgnoreCase));
+        foreach (var user in new[] { "second", "third", "first" })
+        {
+            await RecordAsync(host, tenant, user, ActivityKind.Staff);
+        }
+
+        clock.Advance(TimeSpan.FromSeconds(59));
+        await RecordAsync(host, tenant, "fourth", ActivityKind.Vendor);
+
+        server.Attempts.ShouldBe(attempts, "nothing touches the database within the minute after a failure");
+        Warnings(logs).Count.ShouldBe(1);
+
+        clock.Advance(TimeSpan.FromSeconds(2));
+        await RecordAsync(host, tenant, "second", ActivityKind.Staff);
+
+        server.Attempts.ShouldBeGreaterThan(attempts, "after the minute the next write tries again");
+        Warnings(logs).Count.ShouldBe(2);
+
+        static List<(LogLevel Level, string Category, string Text)> Warnings(CapturedLogs logs) =>
+            [.. logs.Entries.Where(e => e.Level == LogLevel.Warning && e.Text.Contains("ErrorType=", StringComparison.Ordinal))];
+    }
+
+    [Fact]
+    public async Task The_platform_console_session_can_neither_count_nor_prune_activity()
+    {
+        // Review of W-10: the worker has no acting user; a platform console session always has one.
+        await using var console = await ActivityRows.AppSessionAsync(db.AppConnectionString, null, null, "platform.admin", Ct);
+
+        (await ActivityRows.TryAsync(console, "select * from identity.activity_counts(now())", Ct)).ShouldBe("refused");
+        (await ActivityRows.TryAsync(console, "select identity.prune_activity(now())", Ct)).ShouldBe("refused");
+
+        await using var worker = await ActivityRows.AppSessionAsync(db.AppConnectionString, null, null, null, Ct);
+        (await ActivityRows.TryAsync(worker, "select identity.prune_activity(now() - interval '400 days')", Ct)).ShouldBe("ok");
     }
 
     [Fact]
@@ -347,9 +430,29 @@ public sealed class ActiveUsersTests(DatabaseFixture db)
                 .ShouldBe("refused", label);
         }
 
+        // The platform console reads the counts but, having an acting user, neither writes nor deletes them.
         await using var console = await ActivityRows.AppSessionAsync(db.AppConnectionString, null, null, "platform.admin", Ct);
         await using var all = new NpgsqlCommand("select count(*)::int from ops.active_user_counts", console);
-        ((int)(await all.ExecuteScalarAsync(Ct))!).ShouldBeGreaterThan(0);
+        var stored = (int)(await all.ExecuteScalarAsync(Ct))!;
+        stored.ShouldBeGreaterThan(0);
+        (await ActivityRows.TryAsync(console, "insert into ops.active_user_counts (tenant_slug, kind, time_window, users, computed_at) values ('acme', 'staff', '1d', 99, now())", Ct))
+            .ShouldBe("refused");
+        await using (var delete = new NpgsqlCommand("delete from ops.active_user_counts", console))
+        {
+            (await delete.ExecuteNonQueryAsync(Ct)).ShouldBe(0, "no delete policy admits the console");
+        }
+
+        ((int)(await all.ExecuteScalarAsync(Ct))!).ShouldBe(stored);
+    }
+
+    private async Task ExecuteAsOwnerAsync(string sql)
+    {
+        await using var owner = new NpgsqlConnection(db.OwnerConnectionString);
+        await owner.OpenAsync(CancellationToken.None);
+#pragma warning disable CA2100 // The statements are the tests' own.
+        await using var command = new NpgsqlCommand(sql, owner);
+#pragma warning restore CA2100
+        await command.ExecuteNonQueryAsync(CancellationToken.None);
     }
 
     private static (string, string) Slug(Platform.Shared.Tenancy.TenantContext tenant) => (TelemetryNames.Tags.TenantSlug, tenant.Slug);

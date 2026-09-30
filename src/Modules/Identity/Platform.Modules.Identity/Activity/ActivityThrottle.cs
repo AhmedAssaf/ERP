@@ -14,10 +14,40 @@ internal readonly record struct ActivityEntry(Guid TenantId, string UserId, Acti
 /// </summary>
 internal sealed class ActivityThrottle(TimeProvider clock)
 {
+    /// <summary>After a failed write, no request or circuit event of this process touches the database for this long.</summary>
+    public static TimeSpan RetryAfter { get; } = TimeSpan.FromMinutes(1);
+
     private readonly ConcurrentDictionary<ActivityEntry, byte> _entries = new();
     private long _sweptHourTicks;
+    private long _pausedUntilTicks;
 
     public int Count => _entries.Count;
+
+    /// <summary>True while a recent failure holds every write back (<see cref="RetryAfter"/>).</summary>
+    public bool IsPaused => clock.GetUtcNow().UtcTicks < Interlocked.Read(ref _pausedUntilTicks);
+
+    /// <summary>
+    /// Holds writes back for <see cref="RetryAfter"/> after a failure. True only for the failure that starts a new pause, so
+    /// the caller logs once per window however many writes fail at the same time.
+    /// </summary>
+    public bool Pause()
+    {
+        var now = clock.GetUtcNow().UtcTicks;
+        var until = now + RetryAfter.Ticks;
+        while (true)
+        {
+            var current = Interlocked.Read(ref _pausedUntilTicks);
+            if (now < current)
+            {
+                return false;
+            }
+
+            if (Interlocked.CompareExchange(ref _pausedUntilTicks, until, current) == current)
+            {
+                return true;
+            }
+        }
+    }
 
     /// <summary>True for the first call of the hour; <paramref name="entry"/> can then be forgotten if its write fails.</summary>
     public bool TryEnter(Guid tenantId, string userId, ActivityKind kind, out ActivityEntry entry)

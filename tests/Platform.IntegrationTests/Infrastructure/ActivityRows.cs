@@ -180,3 +180,48 @@ internal sealed class CapturedLogs : ILoggerProvider
         }
     }
 }
+
+/// <summary>
+/// A stand-in for an unavailable PostgreSQL server: accepts each connection and closes it at once, counting the attempts,
+/// so a test can prove how often a component touched the database while it was down.
+/// </summary>
+internal sealed class ClosingTcpServer : IDisposable
+{
+    private readonly System.Net.Sockets.TcpListener _listener = new(System.Net.IPAddress.Loopback, 0);
+    private readonly CancellationTokenSource _stop = new();
+    private int _attempts;
+
+    public ClosingTcpServer()
+    {
+        _listener.Start();
+        _ = AcceptAsync();
+    }
+
+    public int Port => ((System.Net.IPEndPoint)_listener.LocalEndpoint).Port;
+
+    public int Attempts => Volatile.Read(ref _attempts);
+
+    public void Dispose()
+    {
+        _stop.Cancel();
+        _listener.Stop();
+        _stop.Dispose();
+    }
+
+    private async Task AcceptAsync()
+    {
+        try
+        {
+            while (true)
+            {
+                using var client = await _listener.AcceptTcpClientAsync(_stop.Token);
+                Interlocked.Increment(ref _attempts);
+            }
+        }
+        catch (Exception ex) when (ex is OperationCanceledException or ObjectDisposedException or System.Net.Sockets.SocketException)
+        {
+            // Teardown: the listener was stopped.
+            return;
+        }
+    }
+}

@@ -3,10 +3,11 @@
 -- page through IUsageLog (the IHealthLog pattern). A platform aggregate like the rest of the ops schema: no tenant_id and
 -- no personal data, only the tenant slug (null for the across-tenants rows), the kind, the window and the count.
 --
--- Beyond the spec's grants: forced row-level security with one policy for every command, readable and writable only by a
--- session with neither a tenant nor a vendor context (the worker and the platform console), as ops.platform_audit is
--- read (operations 0004, ADR-0012 point 4). The rows are counts, but they are every tenant's counts, and a tenant or
--- vendor session on a tenant host has no business reading its competitors' activity.
+-- Beyond the spec's grants: forced row-level security. Reading needs a session with neither a tenant nor a vendor
+-- context (the worker and the platform console), as ops.platform_audit is read (operations 0004, ADR-0012 point 4): the
+-- rows are counts, but they are every tenant's counts, and a tenant or vendor session on a tenant host has no business
+-- reading its competitors' activity. Writing and deleting need the worker's session as well: no acting user, which the
+-- worker never has and a platform console session always has (review of W-10, 2026-10-01), so the console only reads.
 
 create table ops.active_user_counts (
     tenant_slug text        null,
@@ -19,8 +20,17 @@ create table ops.active_user_counts (
 
 alter table ops.active_user_counts enable row level security;
 alter table ops.active_user_counts force row level security;
-create policy platform_only on ops.active_user_counts
-    using (platform.current_tenant() is null and platform.current_vendor_company() is null)
-    with check (platform.current_tenant() is null and platform.current_vendor_company() is null);
+
+create policy platform_read on ops.active_user_counts
+    for select
+    using (platform.current_tenant() is null and platform.current_vendor_company() is null);
+
+create policy worker_insert on ops.active_user_counts
+    for insert
+    with check (platform.current_tenant() is null and platform.current_vendor_company() is null and platform.current_user_id() is null);
+
+create policy worker_delete on ops.active_user_counts
+    for delete
+    using (platform.current_tenant() is null and platform.current_vendor_company() is null and platform.current_user_id() is null);
 
 grant select, insert, delete on ops.active_user_counts to erp_app;

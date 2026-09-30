@@ -15,10 +15,10 @@
 -- 2. The database's clock: a trigger sets hour = date_trunc('hour', now()) on every insert, so no session chooses its
 --    hour (a writer that names one is corrected, not refused: the hour is not evidence, only a bucket).
 -- 3. erp_app holds INSERT only: no UPDATE or DELETE, and pruning goes through identity.prune_activity.
--- 4. Counting and pruning are security-definer functions that answer only a session with neither a tenant nor a vendor
---    context (the worker's, ADR-0012 point 4, as vendor.stale_uploads), refusing any other with 42501. They return
---    counts, never rows. Until a separate worker role exists, a platform console session also has no context (the known
---    gap pinned in VendorFunctionCallerTests); it serves only platform admins with OTP.
+-- 4. Counting and pruning are security-definer functions that answer only the worker's session: neither a tenant nor
+--    a vendor context (ADR-0012 point 4, as vendor.stale_uploads) and no acting user, which the worker never has and a
+--    platform console session always has (review of W-10, 2026-10-01), so the console cannot call them either. Any other
+--    session is refused with 42501. They return counts, never rows.
 -- Retention: buckets older than 35 days are deleted by the usage job once a day (the 30-day window plus margin; Q7).
 
 do $$
@@ -87,7 +87,7 @@ create function identity.activity_counts(p_now timestamptz)
 as $$
 #variable_conflict use_column
 begin
-    if platform.current_tenant() is not null or platform.current_vendor_company() is not null then
+    if platform.current_tenant() is not null or platform.current_vendor_company() is not null or platform.current_user_id() is not null then
         raise exception 'Activity is counted by the worker only.' using errcode = 'insufficient_privilege';
     end if;
 
@@ -111,7 +111,7 @@ as $$
 declare
     v_deleted integer;
 begin
-    if platform.current_tenant() is not null or platform.current_vendor_company() is not null then
+    if platform.current_tenant() is not null or platform.current_vendor_company() is not null or platform.current_user_id() is not null then
         raise exception 'Activity is pruned by the worker only.' using errcode = 'insufficient_privilege';
     end if;
 

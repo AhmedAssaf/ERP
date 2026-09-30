@@ -374,7 +374,7 @@ erDiagram
 
 ## 8. Application modules and how they depend on each other
 
-Read it as: arrows point from the module that calls to the module it depends on. Nothing points back up, which keeps the monolith splittable later. Boxes with a thick dark border (tenancy, identity, audit, workflow, operations, vendors) exist in code today (`src/Modules/*`, checked against the project references); modules depend on each other only through their `*.Contracts` projects. Solid arrows between built boxes are project references; dotted arrows are planned. Operations (F-51, F-54, F-60) is platform-level, not tenant-level: it depends on no other module, and the hosts (web, worker) wire it in. Vendors (F-10, F-11, F-12, F-64; schema `vendor`) calls Identity for members and the Keycloak vendor accounts, Audit for the tenant's log, and Operations for the platform audit (consent events); object storage and virus scanning live in `Platform.Shared` until a documents module exists, and it reads the tenant from the shared tenant context, not from the Tenancy module.
+Read it as: arrows point from the module that calls to the module it depends on. Nothing points back up, which keeps the monolith splittable later. Boxes with a thick dark border (tenancy, identity, audit, workflow, operations, vendors) exist in code today (`src/Modules/*`, checked against the project references); modules depend on each other only through their `*.Contracts` projects. Solid arrows between built boxes are project references; dotted arrows are planned. Operations (F-51, F-54, F-60, and the W-10 usage metrics) is platform-level, not tenant-level: its only dependencies are the usage job's, on the Identity contracts (active-user counts) and the Tenancy contracts (tenant slugs), and the hosts (web, worker) wire it in. Vendors (F-10, F-11, F-12, F-64; schema `vendor`) calls Identity for members and the Keycloak vendor accounts, Audit for the tenant's log, and Operations for the platform audit (consent events); object storage and virus scanning live in `Platform.Shared` until a documents module exists, and it reads the tenant from the shared tenant context, not from the Tenancy module.
 
 ```mermaid
 flowchart TB
@@ -395,9 +395,10 @@ flowchart TB
     AWD[awards + PO]:::core
     AI[ai review]:::core
     WF[workflow]:::core
-    OPS[operations<br/>health, incidents, platform audit]:::platform
+    OPS[operations<br/>health, incidents, platform audit,<br/>active user counts]:::platform
 
     VEN --> IDN & AUD & OPS
+    OPS --> IDN & TEN
     VEN -.-> DOC & NOT
     TDR --> VEN & TEN & IDN & DOC & NOT & AUD
     EVA --> TDR & IDN & AUD & NOT

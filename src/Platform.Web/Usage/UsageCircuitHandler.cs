@@ -61,6 +61,8 @@ internal sealed class UsageCircuitHandler(
         {
             if (!guard.Ended && Classify() is UsageKind.Staff or UsageKind.Vendor)
             {
+                // No token of the circuit's own to pass: the recorder bounds the write itself (two seconds, the connection
+                // included), never throws for a failed or timed-out write, and pauses writes for a minute after one.
                 await activity.RecordAsync(_kind == UsageKind.Vendor ? ActivityKind.Vendor : ActivityKind.Staff, CancellationToken.None);
             }
 
