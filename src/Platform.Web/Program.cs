@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
-using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Platform.Modules.Audit;
 using Platform.Modules.Identity;
@@ -19,6 +18,7 @@ using Platform.UI;
 using Platform.Web.Account;
 using Platform.Web.Branding;
 using Platform.Web.Components;
+using Platform.Web.Edge;
 using Platform.Web.Localization;
 using Platform.Web.PlatformHost;
 using Platform.Web.Tenancy;
@@ -166,23 +166,14 @@ builder.Services.AddScoped<AuthenticationStateProvider, MembershipRevalidatingSt
 builder.Services.AddPlatformLocalization();
 builder.Services.AddPlatformUI();
 
-if (builder.Environment.IsDevelopment())
-{
-    // Caddy on the local Compose stack terminates TLS and forwards the scheme. Production trusts only its own proxy (W-11).
-    builder.Services.Configure<ForwardedHeadersOptions>(options =>
-    {
-        options.ForwardedHeaders = ForwardedHeaders.XForwardedProto;
-        options.KnownIPNetworks.Clear();
-        options.KnownProxies.Clear();
-    });
-}
+// W-24 (Platform.Web/Edge): forwarded headers only from Caddy (ForwardedHeaders:*), and one Data Protection key ring in
+// PostgreSQL for every instance under its own role (ConnectionStrings:KeyRing), encrypted outside Development (DataProtection:*).
+builder.Services.AddEdgeForwardedHeaders(builder.Configuration, builder.Environment);
+builder.Services.AddKeyRing(builder.Configuration, builder.Environment);
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseForwardedHeaders();
-}
+app.UseForwardedHeaders();
 
 if (!app.Environment.IsDevelopment())
 {

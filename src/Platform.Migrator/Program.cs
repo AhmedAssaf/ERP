@@ -26,6 +26,18 @@ internal static class EntryPoint
         var applied = await MigrationRunner.RunAsync(owner);
         Console.WriteLine(applied.Count == 0 ? "Database is up to date." : $"Applied {applied.Count} scripts: {string.Join(", ", applied)}");
 
+        // W-24: the key ring role gets its login from the same secret the web host connects with.
+        var keyRing = configuration.GetConnectionString("KeyRing");
+        if (string.IsNullOrWhiteSpace(keyRing))
+        {
+            Console.WriteLine($"Connection string 'KeyRing' is not configured: role {KeyRingRole.Name} keeps no login, and the web host cannot start until it has one.");
+        }
+        else
+        {
+            await KeyRingRole.EnableLoginAsync(owner, keyRing);
+            Console.WriteLine($"Role {KeyRingRole.Name} can log in with the password of connection string 'KeyRing'.");
+        }
+
         if (seedDev)
         {
             var app = configuration.GetConnectionString("Platform");

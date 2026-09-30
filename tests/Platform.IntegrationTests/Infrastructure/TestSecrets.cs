@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using Npgsql;
 
 namespace Platform.IntegrationTests.Infrastructure;
 
@@ -18,4 +19,14 @@ internal static class TestSecrets
     /// <summary>The HMAC-SHA256 of the CR number under the test key, in lower-case hex, as the audit stores it.</summary>
     public static string CrAuditHmac(string crNumber) =>
         Convert.ToHexStringLower(HMACSHA256.HashData(CrAuditKey, Encoding.UTF8.GetBytes(crNumber)));
+
+    /// <summary>The password of <c>erp_key_ring</c> (W-24) for this run; the database fixture gives the role its login with it.</summary>
+    public static string KeyRingPassword { get; } = Convert.ToHexString(RandomNumberGenerator.GetBytes(24));
+
+    /// <summary>
+    /// <c>ConnectionStrings:KeyRing</c> for the database of <paramref name="connectionString"/>: the same server and database,
+    /// as the key ring's own role.
+    /// </summary>
+    public static string KeyRingConnectionString(string connectionString) =>
+        new NpgsqlConnectionStringBuilder(connectionString) { Username = "erp_key_ring", Password = KeyRingPassword }.ConnectionString;
 }

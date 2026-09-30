@@ -92,6 +92,19 @@ for the two scenario scripts) to judge the result.
   (tenant isolation). Takes the `.env` path and a screenshot output directory as arguments, since it predates the
   shared `lib.mjs` helpers and does not assume this repository's layout:
   `node check.mjs ../../infra/compose/.env ./shots-admin`.
+- **`keyring.mjs`** — W-24, the shared Data Protection key ring (docs/07 section 4, "Edge and Data Protection key
+  ring"). A throwaway acme tenant admin (Keycloak Admin API, member row as the dev seed makes it) signs in through
+  Caddy; a new browser context with its cookies must open `/admin/staff` with no request to Keycloak and an
+  interactive circuit; the cookie is accepted when replayed and a tampered copy is sent to Keycloak; the key rows stay
+  the ones seen at sign-in. The default run (`node keyring.mjs`, about 15 seconds) then starts a second web instance
+  itself on port 5274 from the built `Platform.Web.dll`, replays the cookie there with the headers Caddy sends (and
+  once with an `X-Forwarded-Host` naming beta, which must be ignored), restarts it, replays again, checks its log holds
+  no key material and no new key, stops it and deletes the throwaway user. To prove a restart of the host behind
+  Caddy: `node keyring.mjs signin`, restart `dotnet run --project src/Platform.Web`, `node keyring.mjs check`
+  (`--direct <url>` adds any other instance), `node keyring.mjs cleanup`. Needs the migrator run with
+  `ConnectionStrings:KeyRing`, `dotnet build src/Platform.Web`, `KEYCLOAK_ADMIN` and `KEYCLOAK_ADMIN_PASSWORD` in
+  `.env` (`E2E_ENV_FILE` for a `.env` outside this checkout) and the `erp-postgres` container. Session cookies in
+  `.state/keyring-session.json` until cleanup; results in `keyring-results.json`; exits non-zero when a step fails.
 
 ## What "run each script" looks like
 

@@ -22,11 +22,17 @@ public sealed class DatabaseFixture : IAsyncLifetime
     public string AppConnectionString =>
         new NpgsqlConnectionStringBuilder(OwnerConnectionString) { Username = "erp_app", Password = AppRolePassword }.ConnectionString;
 
+    /// <summary>The key ring's own role (W-24), <c>erp_key_ring</c>, the only one with rights on the Data Protection keys.</summary>
+    public string KeyRingConnectionString => TestSecrets.KeyRingConnectionString(OwnerConnectionString);
+
     public async ValueTask InitializeAsync()
     {
         await _container.StartAsync();
         await WaitForAppRoleAsync();
         await MigrationRunner.RunAsync(OwnerConnectionString);
+        // As the migrator does when ConnectionStrings:KeyRing is set. The role is cluster-wide, so every database the tests
+        // create in this container shares the login.
+        await KeyRingRole.EnableLoginAsync(OwnerConnectionString, KeyRingConnectionString);
         await DevSeed.SeedTenantsAsync(OwnerConnectionString);
     }
 
