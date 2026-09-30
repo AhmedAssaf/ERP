@@ -1,0 +1,126 @@
+@*
+    W-10 business metrics on the console (spec 6.6; O-23, O-25, O-26): concurrent users of this web instance and active
+    users in the last day, week and month, in total and per tenant, split into staff and vendors. Counts only, never who.
+    Reads the circuit registry and the usage job's stored result (UsageOverview), never Prometheus, so it works without the
+    telemetry stack. A stale or missing count shows as a dash, never a guess. No tender section until the tender slice.
+*@
+@page "/platform/usage"
+@attribute [Authorize(Policy = PlatformAuthentication.PolicyName)]
+@layout ConsoleLayout
+@rendermode InteractiveServer
+@using System.Globalization
+@using Platform.Web.Usage
+@inject UsageOverview Overview
+@inject IStringLocalizer<SharedResource> T
+
+<PageTitle>@T["Console.Usage.Title"]</PageTitle>
+
+<div class="flex flex-wrap items-center justify-between gap-3">
+    <h1 class="text-display">@T["Console.Usage.Title"]</h1>
+    <div class="flex flex-wrap items-center gap-3">
+        @if (_view?.GrafanaDashboardUrl is { } grafana)
+        {
+            <a href="@grafana" data-grafana="dashboard" target="_blank" rel="noopener noreferrer" class="text-action underline underline-offset-4">@T["Console.Usage.OpenGrafana"]</a>
+        }
+        <Button OnClick="LoadAsync" Loading="_loading">@T["Console.Usage.Refresh"]</Button>
+    </div>
+</div>
+
+<p class="max-w-prose text-ink-muted">@T["Console.Usage.Intro"]</p>
+
+@if (_view is null)
+{
+    <p class="text-ink-muted" role="status">@T["Console.Loading"]</p>
+}
+else
+{
+    <section aria-labelledby="totals-heading" class="grid gap-4">
+        <h2 id="totals-heading" class="text-heading">@T["Console.Usage.Totals"]</h2>
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatTile data-tile="now" Label="@T["Console.Usage.OnlineNow"]" Value="_view.Online.Total" Split="Split(_view.Online)" />
+            <StatTile data-tile="1d" Label="@T["Console.Usage.ActiveToday"]" Value="_view.Today.Total" Split="Split(_view.Today)" />
+            <StatTile data-tile="7d" Label="@T["Console.Usage.Active7Days"]" Value="_view.Week.Total" Split="Split(_view.Week)" />
+            <StatTile data-tile="30d" Label="@T["Console.Usage.Active30Days"]" Value="_view.Month.Total" Split="Split(_view.Month)" />
+        </div>
+        <div class="grid gap-1 text-small text-ink-muted">
+            @if (_view.CountedAt is null)
+            {
+                <p data-usage-state="not-counted">@T["Console.Usage.NotCounted"]</p>
+            }
+            else
+            {
+                <p data-usage-state="@(_view.Stale ? "stale" : "fresh")">@T["Console.Usage.CountedAt"] <ConsoleTime At="_view.CountedAt" /></p>
+                @if (_view.Stale)
+                {
+                    <p role="status">@T["Console.Usage.Stale"]</p>
+                }
+            }
+            <p>@T["Console.Usage.OnceNote"]</p>
+            <p>@T["Console.Usage.OnlineNote"]</p>
+        </div>
+    </section>
+
+    <section aria-labelledby="by-tenant-heading" class="grid gap-4">
+        <h2 id="by-tenant-heading" class="text-heading">@T["Console.Usage.ByTenant"]</h2>
+        <DataTable Items="_view.Tenants" Label="@T["Console.Usage.ByTenant"]">
+            <ChildContent>
+                <TemplateColumn TGridItem="TenantUsage" Title="@T["Console.Tenants.Tenant"]">
+                    <span data-tenant="@context.Tenant.Slug" class="grid">
+                        <span class="font-semibold">@context.Tenant.PortalName</span>
+                        <span class="text-small text-ink-muted" dir="ltr">@context.Tenant.Slug</span>
+                    </span>
+                </TemplateColumn>
+                <TemplateColumn TGridItem="TenantUsage" Title="@T["Console.Usage.Now"]">@Cell("now", context.Online)</TemplateColumn>
+                <TemplateColumn TGridItem="TenantUsage" Title="@T["Console.Usage.Today"]">@Cell("1d", context.Today)</TemplateColumn>
+                <TemplateColumn TGridItem="TenantUsage" Title="@T["Console.Usage.Days7"]">@Cell("7d", context.Week)</TemplateColumn>
+                <TemplateColumn TGridItem="TenantUsage" Title="@T["Console.Usage.Days30"]">@Cell("30d", context.Month)</TemplateColumn>
+            </ChildContent>
+            <EmptyContent>
+                <EmptyState Title="@T["Console.Tenants.EmptyTitle"]" HeadingLevel="3">@T["Console.Tenants.EmptyBody"]</EmptyState>
+            </EmptyContent>
+        </DataTable>
+    </section>
+}
+
+@code {
+    private UsageView? _view;
+    private bool _loading;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _view = await Overview.LoadAsync();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private IReadOnlyList<StatTilePart> Split(UsageFigure figure) =>
+    [
+        new(T["Console.Usage.Staff"], figure.Staff),
+        new(T["Console.Usage.Vendors"], figure.Vendors),
+    ];
+
+    // Staff and vendors on two lines, each with its data-* hooks for tests.
+    private RenderFragment Cell(string window, UsageFigure figure) =>
+        @<span class="grid text-small">
+            @Line(window, "staff", T["Console.Usage.Staff"], figure.Staff)
+            @Line(window, "vendor", T["Console.Usage.Vendors"], figure.Vendors)
+        </span>;
+
+    private RenderFragment Line(string window, string kind, string label, int? users) =>
+        @<span data-window="@window" data-kind="@kind" data-users="@(users?.ToString(CultureInfo.InvariantCulture) ?? string.Empty)" class="whitespace-nowrap">
+            <span class="text-ink-muted">@label</span>
+            <span class="tabular-nums">@(users?.ToString("N0", CultureInfo.CurrentCulture))</span>
+            @if (users is null)
+            {
+                <span aria-label="@T["Console.Unknown"]">—</span>
+            }
+        </span>;
+}

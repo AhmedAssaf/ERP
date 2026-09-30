@@ -58,7 +58,7 @@ public class GalleryTests(DatabaseFixture db)
         var html = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync(Ct));
         html.ShouldContain("<section lang=\"ar\" dir=\"rtl\"");
         html.ShouldContain("<section lang=\"en\" dir=\"ltr\"");
-        foreach (var component in new[] { "AppShell", "Button", "TextField", "Select", "ColorField", "DataTable", "StatusBadge", "Dialog", "Toast", "EmptyState", "AuditList", "FileUpload" })
+        foreach (var component in new[] { "AppShell", "Button", "TextField", "Select", "ColorField", "DataTable", "StatusBadge", "Dialog", "Toast", "EmptyState", "AuditList", "FileUpload", "StatTile" })
         {
             html.ShouldContain($"data-gallery=\"{component}\"", Case.Sensitive, $"{component} is missing from the gallery");
         }
@@ -72,6 +72,8 @@ public class GalleryTests(DatabaseFixture db)
         html.ShouldContain("رفع الملف");
         html.ShouldContain("Supplier portal");
         html.ShouldContain("بوابة الموردين");
+        html.ShouldContain("Open sessions");
+        html.ShouldContain("الجلسات المفتوحة");
         // A missing translation renders its key; none may reach the page.
         SharedResourceKeys().Where(key => html.Contains(key, StringComparison.Ordinal)).ShouldBeEmpty();
     }

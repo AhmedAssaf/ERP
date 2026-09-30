@@ -21,6 +21,10 @@ after `networkidle` and `document.fonts.ready`, viewport height 900 px. The cult
 Horizontal overflow check at each size: `document.documentElement.scrollWidth <= window.innerWidth`. Result: no overflow
 in any of the four (scroll width 360 at 360 px, 1280 at 1280 px).
 
+Pending retake (W-10, 2026-10-01): `StatTile` joined the gallery for the console usage page (a value with its staff and
+vendor split, a value alone, and an unknown value shown as a dash). The four images above predate it; retake them with
+`tests/e2e/golden.mjs` against the running stack and compare both directions at 360 and 1280 px before the merge.
+
 These are reference images for a human comparison when a component changes, not an automated pixel test yet. Retake
 them in the same way (same tenant branding, same widths) and review the difference in the pull request. `Stepper`,
 `StageTimeline` and `SealedEnvelope` join the gallery, and this set, with the tender slices.

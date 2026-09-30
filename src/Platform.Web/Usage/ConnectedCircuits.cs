@@ -55,22 +55,34 @@ internal sealed class ConnectedCircuits
     }
 
     /// <summary>Circuits and distinct users per tenant slug and kind now; only groups with a connected circuit.</summary>
-    public IReadOnlyList<ConnectedCount> Snapshot()
+    public IReadOnlyList<ConnectedCount> Snapshot() =>
+        [
+            .. Live()
+                .GroupBy(e => (e.TenantSlug, e.Kind))
+                .Select(g => new ConnectedCount(g.Key.TenantSlug, g.Key.Kind, g.Count(), g.Select(e => e.UserId).Distinct(StringComparer.Ordinal).Count())),
+        ];
+
+    /// <summary>Distinct users of <paramref name="kind"/> connected now across all tenants, each user once (the console's totals).</summary>
+    public int DistinctUsers(UsageKind kind) =>
+        Live().Where(e => e.Kind == kind).Select(e => e.UserId).Distinct(StringComparer.Ordinal).Count();
+
+    // The entries of circuits whose session has not ended; an ended one leaves the registry here.
+    private List<Entry> Live()
     {
+        var live = new List<Entry>();
         foreach (var (circuit, entry) in _circuits)
         {
             if (entry.Ended())
             {
                 _circuits.TryRemove(circuit, out _);
             }
+            else
+            {
+                live.Add(entry);
+            }
         }
 
-        return
-        [
-            .. _circuits.Values
-                .GroupBy(e => (e.TenantSlug, e.Kind))
-                .Select(g => new ConnectedCount(g.Key.TenantSlug, g.Key.Kind, g.Count(), g.Select(e => e.UserId).Distinct(StringComparer.Ordinal).Count())),
-        ];
+        return live;
     }
 
     private List<Measurement<int>> Measure(Func<ConnectedCount, int> value)

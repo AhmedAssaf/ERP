@@ -87,6 +87,7 @@
   <data name="Gallery.Sample.AuditDetail" xml:space="preserve"><value>من الرابط في رسالة الدعوة</value></data>
   <data name="Console.Nav.Health" xml:space="preserve"><value>صحة المنصة</value></data>
   <data name="Console.Nav.Tenants" xml:space="preserve"><value>الجهات والمهام</value></data>
+  <data name="Console.Nav.Usage" xml:space="preserve"><value>الاستخدام</value></data>
   <data name="Console.Nav.Jobs" xml:space="preserve"><value>لوحة المهام</value></data>
   <data name="Console.TimeFormat" xml:space="preserve"><value>d MMMM yyyy، HH:mm</value></data>
   <data name="Console.Unknown" xml:space="preserve"><value>غير معروف</value></data>
@@ -151,6 +152,28 @@
   <data name="Console.Size.KB" xml:space="preserve"><value>{0} ك.بايت</value></data>
   <data name="Console.Size.MB" xml:space="preserve"><value>{0} م.بايت</value></data>
   <data name="Console.Size.GB" xml:space="preserve"><value>{0} ج.بايت</value></data>
+  <data name="Console.Usage.Title" xml:space="preserve"><value>الاستخدام</value></data>
+  <data name="Console.Usage.Intro" xml:space="preserve"><value>عدد من يستخدمون المنتج الآن وخلال آخر يوم وأسبوع وشهر. أعداد فقط، دون ذكر أحد.</value></data>
+  <data name="Console.Usage.Refresh" xml:space="preserve"><value>تحديث</value></data>
+  <data name="Console.Usage.OnlineNow" xml:space="preserve"><value>متصلون الآن</value></data>
+  <data name="Console.Usage.ActiveToday" xml:space="preserve"><value>نشطون اليوم</value></data>
+  <data name="Console.Usage.Active7Days" xml:space="preserve"><value>نشطون خلال 7 أيام</value></data>
+  <data name="Console.Usage.Active30Days" xml:space="preserve"><value>نشطون خلال 30 يومًا</value></data>
+  <data name="Console.Usage.Staff" xml:space="preserve"><value>الموظفون</value></data>
+  <data name="Console.Usage.Vendors" xml:space="preserve"><value>الموردون</value></data>
+  <data name="Console.Usage.Totals" xml:space="preserve"><value>كل الجهات</value></data>
+  <data name="Console.Usage.CountedAt" xml:space="preserve"><value>وقت احتساب المستخدمين النشطين</value></data>
+  <data name="Console.Usage.NotCounted" xml:space="preserve"><value>لم يُحتسب المستخدمون النشطون بعد. يحتسبهم العامل كل خمس دقائق.</value></data>
+  <data name="Console.Usage.Stale" xml:space="preserve"><value>مضى على آخر احتساب أكثر من 15 دقيقة، لذا يظهر عدد النشطين غير معروف. راجع مهمة usage-metrics.</value></data>
+  <data name="Console.Usage.OnceNote" xml:space="preserve"><value>المورد النشط لدى جهتين يُحتسب في صف كل جهة، ومرة واحدة في المجموع.</value></data>
+  <data name="Console.Usage.OnlineNote" xml:space="preserve"><value>يُحتسب المتصلون الآن من الجلسات المتصلة بخادم الويب هذا.</value></data>
+  <data name="Console.Usage.ByTenant" xml:space="preserve"><value>حسب الجهة</value></data>
+  <data name="Console.Usage.Now" xml:space="preserve"><value>متصلون الآن</value></data>
+  <data name="Console.Usage.Today" xml:space="preserve"><value>اليوم</value></data>
+  <data name="Console.Usage.Days7" xml:space="preserve"><value>7 أيام</value></data>
+  <data name="Console.Usage.Days30" xml:space="preserve"><value>30 يومًا</value></data>
+  <data name="Console.Usage.OpenGrafana" xml:space="preserve"><value>عرض السجل في Grafana</value></data>
+  <data name="StatTile.Unknown" xml:space="preserve"><value>غير معروف</value></data>
   <data name="Admin.Nav.Staff" xml:space="preserve"><value>الموظفون</value></data>
   <data name="Staff.Title" xml:space="preserve"><value>الموظفون</value></data>
   <data name="Staff.Heading" xml:space="preserve"><value>الأعضاء</value></data>
@@ -284,6 +307,12 @@
   <data name="Gallery.Sample.UploadLabel" xml:space="preserve"><value>شهادة السجل التجاري</value></data>
   <data name="Gallery.Sample.UploadRejected" xml:space="preserve"><value>يحتوي الملف على فيروس وقد حُذف.</value></data>
   <data name="Gallery.Sample.NavCompany" xml:space="preserve"><value>الشركة والمستندات</value></data>
+  <data name="Gallery.Section.StatTile" xml:space="preserve"><value>بطاقات الأرقام</value></data>
+  <data name="Gallery.Sample.StatOnline" xml:space="preserve"><value>متصلون الآن</value></data>
+  <data name="Gallery.Sample.StatToday" xml:space="preserve"><value>نشطون اليوم</value></data>
+  <data name="Gallery.Sample.StatCircuits" xml:space="preserve"><value>الجلسات المفتوحة</value></data>
+  <data name="Gallery.Sample.StatStaff" xml:space="preserve"><value>الموظفون</value></data>
+  <data name="Gallery.Sample.StatVendors" xml:space="preserve"><value>الموردون</value></data>
   <data name="Vendor.Nav.Home" xml:space="preserve"><value>الشركة والمستندات</value></data>
   <data name="Vendor.Home.Company" xml:space="preserve"><value>الشركة</value></data>
   <data name="Vendor.Home.Relationship" xml:space="preserve"><value>الحالة لدى {0}</value></data>
