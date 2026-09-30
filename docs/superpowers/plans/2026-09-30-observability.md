@@ -161,8 +161,8 @@
 
 **Files:**
 - `docs/07-ways-of-working.md` section 4: five rows in the service table (purpose, port, credentials: `GRAFANA_ADMIN_PASSWORD`), the new `.env` value in the "Run the app locally" list, `Telemetry:*` settings, how to find a failed request (copy `X-Correlation-Id` from the browser's network panel, Grafana Explore, Tempo, search by trace id; Loki `{service_name="waslabid-web"} | trace_id="<id>"`), `/alive` versus `/health`, and that the stack costs about 1.5 GB of memory.
-- `docs/02-core-features-and-tech-stack.md` observability row and the section 4.2 diagram label, `docs/03-diagrams.md` diagram 9 label: per the answers to Q1 and Q2 (for example "OpenTelemetry for .NET, Prometheus, Grafana, Loki for logs, Tempo for traces; Sentry-compatible error tracking later (ADR-0013)"). Render every edited diagram with `npx @mermaid-js/mermaid-cli`.
-- `docs/adr/0013-observability-stack-for-the-pilot.md` from `0000-template.md`, only if Q1 or Q2 changes the stack row: Sentry and Serilog decisions, the pilot memory budget, retention.
+- `docs/02-core-features-and-tech-stack.md` observability row and the section 4.2 diagram label, `docs/03-diagrams.md` diagram 9 label: per the answers to Q1 and Q2 (for example "OpenTelemetry for .NET, Prometheus, Grafana, Loki for logs, Tempo for traces; Sentry-compatible error tracking later (ADR-0014)"). Render every edited diagram with `npx @mermaid-js/mermaid-cli`.
+- `docs/adr/0014-observability-stack-for-the-pilot.md` from `0000-template.md`, only if Q1 or Q2 changes the stack row: Sentry and Serilog decisions, the pilot memory budget, retention.
 - `docs/09-backlog.md`: W-10 status and the acceptance text from spec section 9 (as the user approved it), size per Q6; the F-60 note "W-10 is not Done yet" updated; W-19 dependency per Q4.
 - `README.md` onboarding (the new `.env` value), `CLAUDE.md` "What this repository is" (one sentence: telemetry through the collector to Loki, Tempo and Prometheus, Grafana on port 3000).
 
