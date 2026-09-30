@@ -117,6 +117,32 @@ export function png(width, height, [r, g, b]) {
   return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(Buffer.concat(rows))), chunk('IEND', Buffer.alloc(0))]);
 }
 
+// Every URL the page's main frame requests (redirect hops included) or commits, and every request URL of any kind, so a
+// script can check what reaches browser history and access logs; plus the end-session requests to Keycloak, noting
+// whether each was a POST with id_token_hint in its body (never the token itself: it is personal data).
+export function trackNavigations(page) {
+  const navigations = []; const requests = []; const endSessions = [];
+  page.on('request', r => {
+    requests.push(r.url());
+    if (r.frame() !== page.mainFrame() || !r.isNavigationRequest()) return;
+    navigations.push(r.url());
+    if (/\/protocol\/openid-connect\/logout$/.test(r.url().split('?')[0])) {
+      endSessions.push({ method: r.method(), url: r.url().split('?')[0], hintInBody: (r.postData() ?? '').includes('id_token_hint=') });
+    }
+  });
+  page.on('framenavigated', f => { if (f === page.mainFrame()) navigations.push(f.url()); });
+  const withHint = list => [...new Set(list.filter(u => /id_token_hint/i.test(decodeURIComponent(u))).map(u => u.split('?')[0]))];
+  return { navigations, endSessions, hintInNavigationUrls: () => withHint(navigations), hintInAnyRequestUrl: () => withHint(requests) };
+}
+
+// Sign-out (W-21) answers the POST with an auto-submitting form that posts the end-session request to Keycloak, so the
+// browser first commits a page on the app's own /account/sign-out before it reaches Keycloak. Waits until it has moved
+// on from that page.
+export async function waitPastSignOutForm(page, timeout = 30000) {
+  await page.waitForURL(u => !u.pathname.endsWith('/account/sign-out'), { timeout });
+  await page.waitForLoadState('domcontentloaded');
+}
+
 export async function mailpit(query) {
   const r = await fetch(`http://localhost:8025/api/v1/search?query=${encodeURIComponent(query)}`);
   return (await r.json()).messages || [];

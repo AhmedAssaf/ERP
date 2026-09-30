@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Platform.Modules.Audit;
@@ -91,15 +92,16 @@ builder.Services
         options.Cookie.SameSite = SameSiteMode.Lax;
         options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
         options.Cookie.HttpOnly = true;
-        // Fixed 30-minute lifetime, no sliding, until W-21 revalidates membership against Keycloak.
+        // Fixed 30-minute lifetime, no sliding: the session length. Membership is revalidated separately (W-21): the
+        // sign-in is stamped, and each request checks the host tenant's organization in Keycloak (cached, see
+        // MembershipRevalidation), so a removed member is challenged within minutes, not at the cookie's expiry.
         options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
         options.SlidingExpiration = false;
+        options.Events.OnSigningIn = MembershipRevalidation.OnSigningIn;
+        options.Events.OnValidatePrincipal = MembershipRevalidation.OnValidatePrincipal;
         options.ForwardChallenge = OpenIdConnectDefaults.AuthenticationScheme;
-        options.Events.OnRedirectToAccessDenied = context =>
-        {
-            context.Response.StatusCode = StatusCodes.Status403Forbidden;
-            return Task.CompletedTask;
-        };
+        // A 403, with the access-removed page as its body when the refusal is for a missing organization (W-21, D2).
+        options.Events.OnRedirectToAccessDenied = AccessRemovedPage.OnForbidden;
     })
     .AddOpenIdConnect(options =>
     {
@@ -118,7 +120,11 @@ builder.Services
         // email and email_verified: a member row seeded by email is bound to the user on first sign-in (F-07 dev seed).
         options.Scope.Add("email");
         options.TokenValidationParameters.NameClaimType = IdentityClaims.Username;
+        // W-21: the token's issue time is when Keycloak vouched for the organization; the sign-in stamp uses it.
+        options.ClaimActions.Remove(MembershipRevalidation.IssuedAtClaim);
         options.Events.OnRedirectToIdentityProviderForSignOut = SignOutEndpoints.NameClientOnEndSession;
+        // W-21, D2: the id token rides in the cookie so sign-out ends the Keycloak session too (id_token_hint).
+        options.Events.OnTokenValidated = SignOutEndpoints.KeepIdToken;
         // F-11: /vendor/register goes to the realm's registration endpoint (VendorRegistrationEndpoints).
         options.Events.OnRedirectToIdentityProvider = async context =>
         {
@@ -135,6 +141,8 @@ builder.Services.AddAuthorization(options =>
     options.FallbackPolicy = IdentityModule.TenantStaffPolicy;
     options.DefaultPolicy = IdentityModule.TenantStaffPolicy;
     options.AddPolicy(PlatformAuthentication.PolicyName, PlatformAuthentication.AdminPolicy);
+    // The access-removed page (W-21, D2): signed in, whatever the organization.
+    options.AddPolicy(AccessRemovedPage.PolicyName, AccessRemovedPage.Policy);
     // F-07: TenantAdmin, ContractsOfficer, TechnicalEvaluator, FinanceApprover (same tenant plus the role in identity.members).
     options.AddTenantRolePolicies();
     // Vendor pages (spec section 3, V-3): the vendor's own requirements plus membership of the host tenant's organization.
@@ -150,6 +158,11 @@ builder.Services.AddAuthorization(options =>
 });
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, HostAwareAuthorizationPolicyProvider>();
 builder.Services.AddCascadingAuthenticationState();
+// W-21: open circuits revalidate their user's organization membership every minute; an ended session reloads into the
+// sign-in page and runs no further event.
+builder.Services.AddScoped<CircuitSessionGuard>();
+builder.Services.AddScoped<CircuitHandler>(sp => sp.GetRequiredService<CircuitSessionGuard>());
+builder.Services.AddScoped<AuthenticationStateProvider, MembershipRevalidatingStateProvider>();
 builder.Services.AddPlatformLocalization();
 builder.Services.AddPlatformUI();
 
@@ -186,6 +199,8 @@ if (!app.Environment.IsDevelopment())
     });
 }
 
+// W-21, D2: a refusal for a missing organization re-executes at the access-removed page, keeping its 403.
+app.UseAccessRemovedPage();
 app.UseAuthentication();
 // The acting user (app.user_id) of every connection from here on: the authenticated principal's sub.
 app.UseMiddleware<ActingUserMiddleware>();

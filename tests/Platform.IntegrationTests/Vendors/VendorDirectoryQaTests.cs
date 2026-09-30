@@ -139,17 +139,18 @@ public sealed class VendorDirectoryQaTests(DatabaseFixture db)
             (await scope.ServiceProvider.GetRequiredService<IVendorJoin>().JoinAsync(Ct)).IsSuccess.ShouldBeTrue();
         }
 
-        // Keycloak no longer lists the user in acme's organization: joining acme again only restores the membership.
+        // Keycloak no longer lists the user in acme's organization: joining acme again is refused (W-21 pentest P-1,
+        // restoring access is acme's decision) and the refusal is audited in acme's log.
         accounts.State = new(HoldsVendorRole: true, OrganizationAliases: ["beta"]);
         await using (var scope = host.ScopeFor(TestTenants.Acme, companyId, userId))
         {
-            (await scope.ServiceProvider.GetRequiredService<IVendorJoin>().JoinAsync(Ct)).IsSuccess.ShouldBeTrue();
+            (await scope.ServiceProvider.GetRequiredService<IVendorJoin>().JoinAsync(Ct)).Error.ShouldNotBeNull().Code.ShouldBe(VendorErrors.MembershipRemoved);
         }
 
         (await CompanyAuditTrailAsync(companyId)).ShouldBe(
             [
                 (TestTenants.Acme.TenantId, officer, "vendor.approved"),
-                (TestTenants.Acme.TenantId, userId, "vendor.membership_restored"),
+                (TestTenants.Acme.TenantId, userId, "vendor.membership_restore_refused"),
                 (TestTenants.Beta.TenantId, userId, "vendor.joined"),
             ],
             ignoreOrder: true);

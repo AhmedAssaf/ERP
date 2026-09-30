@@ -6,7 +6,10 @@
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
-import { launch, newPage, driveKeycloak, envValue, loadState, saveState, mailpit, mailBody, sleep, DIR } from './lib.mjs';
+import { launch, newPage, driveKeycloak, loadState, saveState, mailpit, mailBody, sleep, DIR, trackNavigations, waitPastSignOutForm } from './lib.mjs';
+// Staff sign in as throwaway tenant admins with their own TOTP seeds (admin.mjs), deleted at the end: the seeded
+// acme.admin and beta.admin have authenticators enrolled on whichever machine first signed them in.
+import { throwawayStaff, cleanup } from './admin.mjs';
 
 const ACME = 'https://acme.localhost:8443';
 const BETA = 'https://beta.localhost:8443';
@@ -24,7 +27,6 @@ const shot = (page, name) => page.screenshot({ path: path.join(SHOTS, `${name}.p
 const results = [];
 const rec = (step, ok, seen) => { results.push({ step, ok, seen }); console.log(`${ok ? 'PASS' : 'FAIL'} ${step} :: ${JSON.stringify(seen)}`); };
 const state = loadState();
-const devPw = envValue('WASLABID_DEV_USER_PASSWORD');
 
 // A fresh vendor per run: unique email and CR number (10 digits), VAT 15 digits starting and ending with 3.
 const run = Date.now().toString();
@@ -60,8 +62,10 @@ const stateDir = path.join(DIR, '.state');
 const crFile = path.join(stateDir, 'cr-certificate.pdf'); fs.writeFileSync(crFile, pdf(`CR ${cr}`));
 const vatFile = path.join(stateDir, 'vat-certificate.pdf'); fs.writeFileSync(vatFile, pdf(`VAT ${vat}`));
 
-// Keycloak's logout confirmation, when it asks, then whatever login steps follow.
+// The app's auto-submitting end-session form (W-21), Keycloak's logout confirmation if it asks (it should not: the
+// sign-out carries id_token_hint), then whatever login steps follow.
 async function signInAgain(page, user, password, log) {
+  await waitPastSignOutForm(page);
   for (let i = 0; i < 5; i++) {
     await page.waitForLoadState('domcontentloaded');
     const logout = await page.$('#kc-logout');
@@ -71,12 +75,12 @@ async function signInAgain(page, user, password, log) {
   await driveKeycloak(page, { user, password, state, log });
 }
 
-async function staffSignIn(browser, base, user) {
+async function staffSignIn(browser, base, staff) {
   const { ctx, page } = await newPage(browser);
-  watch(page, user);
+  watch(page, staff.email);
   await page.goto(`${base}/admin/vendors`);
   const steps = [];
-  await driveKeycloak(page, { user, password: devPw, state, log: s => steps.push(s) });
+  await driveKeycloak(page, { user: staff.email, password: staff.password, state, log: s => steps.push(s) });
   await page.waitForLoadState('networkidle');
   return { ctx, page, steps };
 }
@@ -110,6 +114,8 @@ try {
   // 1. Register at /vendor/register: Keycloak's self-registration form of the tenant realm.
   const { ctx: vctx, page: vendor } = await newPage(browser);
   watch(vendor, 'vendor');
+  // Every URL the vendor's browser visits, to prove the sign-outs below never put id_token_hint in one (W-21).
+  const vnav = trackNavigations(vendor);
   vendor.on('response', r => { if (r.status() >= 500) console.log('vendor http', r.status(), r.url()); });
   await vendor.goto(`${ACME}/vendor/register`);
   await vendor.waitForLoadState('domcontentloaded');
@@ -215,9 +221,9 @@ try {
   rec('consent revoked and listed revoked', afterRevoke.includes(`${grantId}:revoked`), { statuses: afterRevoke });
 
   // 7. acme's admin sees it pending and approves.
-  const { ctx: actx, page: acme, steps: asteps } = await staffSignIn(browser, ACME, 'acme.admin');
+  const { ctx: actx, page: acme, steps: asteps } = await staffSignIn(browser, ACME, await throwawayStaff('acme', 'tenant-admin', 'acme-admin', run));
   const acmeBefore = await vendorRowOnStaffList(acme, ACME);
-  rec('acme.admin sees the vendor pending on /admin/vendors', acmeBefore.status?.endsWith(':pending'), { ...acmeBefore, keycloak: asteps });
+  rec('the acme admin sees the vendor pending on /admin/vendors', acmeBefore.status?.endsWith(':pending'), { ...acmeBefore, keycloak: asteps });
   await acme.goto(`${ACME}/admin/vendors/${acmeBefore.id}`); await acme.waitForSelector('[data-approve]'); await acme.waitForTimeout(1500);
   await acme.click('[data-approve]');
   const adlg = acme.locator('[role=dialog]'); await adlg.waitFor();
@@ -226,15 +232,15 @@ try {
   await acme.waitForTimeout(2000); // a circuit that fails on the dialog closing reports it within this time
   const approvedStatus = await acme.locator('[data-vendor-status]').getAttribute('data-vendor-status').catch(() => null);
   await shot(acme, '09-acme-approved');
-  rec('acme.admin approves the vendor', approvedStatus === `${acmeBefore.id}:approved`, { approvedStatus });
+  rec('the acme admin approves the vendor', approvedStatus === `${acmeBefore.id}:approved`, { approvedStatus });
   await vendor.goto(`${ACME}/vendor`); await vendor.waitForSelector('[data-vendor-company]'); await vendor.waitForTimeout(1000);
   const relAfter = await vendor.locator('[data-relationship]').getAttribute('data-relationship').catch(() => null);
   rec('the vendor sees itself approved at acme', relAfter === 'approved', { relationship: relAfter });
 
   // 8. beta's admin does not see the vendor before it joins.
-  const { ctx: bctx, page: beta, steps: bsteps } = await staffSignIn(browser, BETA, 'beta.admin');
+  const { ctx: bctx, page: beta, steps: bsteps } = await staffSignIn(browser, BETA, await throwawayStaff('beta', 'tenant-admin', 'beta-admin', run));
   const betaBefore = await vendorRowOnStaffList(beta, BETA);
-  rec('beta.admin does not see the vendor before it joins', betaBefore.count === 0, { ...betaBefore, keycloak: bsteps });
+  rec('the beta admin does not see the vendor before it joins', betaBefore.count === 0, { ...betaBefore, keycloak: bsteps });
 
   // 9. The same vendor opens beta's /vendor and is sent to /vendor/join; joins; signs in again.
   const jsteps = [];
@@ -261,14 +267,27 @@ try {
   // 10. beta's admin sees it pending only now; acme still approved.
   const betaAfter = await vendorRowOnStaffList(beta, BETA);
   await shot(beta, '13-beta-staff-list');
-  rec('beta.admin sees the vendor pending after it joins', betaAfter.count === 1 && betaAfter.status?.endsWith(':pending'), betaAfter);
+  rec('the beta admin sees the vendor pending after it joins', betaAfter.count === 1 && betaAfter.status?.endsWith(':pending'), betaAfter);
   const acmeAfter = await vendorRowOnStaffList(acme, ACME);
   rec('acme still lists the vendor approved', acmeAfter.status?.endsWith(':approved'), acmeAfter);
   rec('no browser console errors (no failed circuit) on any page', consoleErrors.length === 0, { consoleErrors });
+  // W-21: both sign-outs sent the end-session request to Keycloak as a form post carrying id_token_hint, Keycloak asked
+  // no logout confirmation, and no URL the browser requested or navigated to carried the hint.
+  const confirmations = [...rsteps, ...j2].filter(s => s === 'confirmed logout').length;
+  rec('sign-out posts id_token_hint to Keycloak in a form body and never in a URL',
+    vnav.endSessions.length === 2 && vnav.endSessions.every(e => e.method === 'POST' && e.hintInBody)
+      && vnav.hintInNavigationUrls().length === 0 && vnav.hintInAnyRequestUrl().length === 0 && confirmations === 0,
+    { endSessions: vnav.endSessions, hintInNavigationUrls: vnav.hintInNavigationUrls(), hintInAnyRequestUrl: vnav.hintInAnyRequestUrl(), logoutConfirmations: confirmations, navigationsChecked: vnav.navigations.length });
   await Promise.all([vctx.close(), actx.close(), bctx.close()]);
 } catch (e) {
   rec('script error', false, { error: String(e).slice(0, 600) });
 } finally {
+  try {
+    const removed = await cleanup();
+    rec('cleanup: throwaway staff deleted from Keycloak with their member rows', removed.every(r => r.keycloakDelete === 204 && r.memberRows === '1'), removed);
+  } catch (e) {
+    rec('cleanup error', false, { error: String(e).slice(0, 400) });
+  }
   fs.writeFileSync(path.join(DIR, 'vendor-results.json'), JSON.stringify(results, null, 2));
   await browser.close();
   // A failed step fails the run, so a shell or a script chaining this one sees it without reading the output.

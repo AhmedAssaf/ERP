@@ -119,7 +119,8 @@ acme.localhost/admin/vendors: pending and approved vendors related to acme
 beta.localhost/vendor or / (same account, not yet related to beta)
   → sign-in works (realm), host check fails until related: redirected to /vendor/join, which offers "Work with Beta"
   → organization membership, then relationship(beta, pending), audited vendor.joined in beta's log
-  → a related company's user who lost the membership gets it back there (vendor.membership_restored)
+  → a related company's user who lost the membership is refused there (vendor.membership_restore_refused);
+      only the tenant restores access (W-21, amended 2026-09-29 after the pentest)
 ```
 
 - Vendor policy `Vendor`: authenticated, email verified, realm role `vendor`, a `vendor.users` row, and a member of the host tenant's organization. Staff policies (`TenantStaffPolicy`: the tenant default and fallback, and inside the four role policies) refuse any principal holding the realm role `vendor`, since vendors sign in without a second factor (V-4); a signed-in vendor opening `/` is redirected to `/vendor`. The Blazor hub keeps the same-tenant fallback, since each component's page passed its own policy.

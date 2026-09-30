@@ -18,10 +18,11 @@ namespace Platform.Modules.Vendors.Relationships;
 /// whether this call created it. The audit entry is written before that transaction commits, but on the audit writer's
 /// own connection, so it is not part of the transaction: when the audit fails the relationship rolls back; a commit that
 /// fails after it leaves an entry for a join that did not happen, and joining again writes a second one. Only the call
-/// that created the relationship writes <c>vendor.joined</c>, so two joins at the same moment write one; a call that only
-/// put the user back into the organization of a tenant the company already works with writes
-/// <c>vendor.membership_restored</c>. When the database step fails, the membership this call added is taken back unless a
-/// relationship with the tenant exists by then (a parallel join of the same vendor won, or it was a restored membership).
+/// that created the relationship writes <c>vendor.joined</c>, so two joins at the same moment write one; a call that added
+/// the user to the organization while a parallel join created the relationship writes <c>vendor.membership_restored</c>.
+/// When the database step fails, the membership this call added is taken back unless a
+/// relationship with the tenant exists by then (a parallel join of the same vendor won).
+/// A company that already works with the tenant never gets a membership back from here (<see cref="RejoinAsync"/>).
 /// </summary>
 internal sealed partial class VendorJoin(
     IDbContextFactory<VendorsDbContext> contexts,
@@ -38,12 +39,20 @@ internal sealed partial class VendorJoin(
         var vendor = vendors.Current ?? throw new InvalidOperationException("A vendor joins a tenant in its company's vendor context; this scope has none.");
         var userId = actingUser.UserId ?? throw new InvalidOperationException("A vendor joins a tenant as a signed-in user; this scope has none.");
 
+        bool related;
         await using (var db = await contexts.CreateDbContextAsync(cancellationToken))
         {
             if (await VendorUsers.CompanyOfAsync(db, userId, cancellationToken) != vendor.CompanyId)
             {
                 throw new InvalidOperationException("A vendor joins a tenant as a user of the company of its vendor context.");
             }
+
+            related = await db.Relationships.AsNoTracking().AnyAsync(r => r.CompanyId == vendor.CompanyId, cancellationToken);
+        }
+
+        if (related)
+        {
+            return await RejoinAsync(tenant, vendor.CompanyId, userId, cancellationToken);
         }
 
         bool organizationAdded;
@@ -125,6 +134,46 @@ internal sealed partial class VendorJoin(
         }
     }
 
+    /// <summary>
+    /// W-21 pentest P-1: the company already works with this tenant, so joining never adds the user to the organization.
+    /// A user still in it changes nothing (its next sign-in carries the organization); a user no longer in it was removed
+    /// by the tenant, and only the tenant restores access (a staff action), so the join is refused and the refusal audited
+    /// as <c>vendor.membership_restore_refused</c>. A blocked relationship (F-14) is related too, so a block holds here as
+    /// long as it also takes the user out of the organization.
+    /// </summary>
+    private async Task<Result<VendorJoined>> RejoinAsync(TenantContext tenant, Guid companyId, string userId, CancellationToken cancellationToken)
+    {
+        VendorAccountState state;
+        try
+        {
+            state = await accounts.DescribeAsync(userId, cancellationToken);
+        }
+        catch (IdentityProviderException ex)
+        {
+            KeycloakFailed(logger, tenant.Slug, userId, ex.InnerException?.GetType().Name ?? ex.GetType().Name);
+            return Failed();
+        }
+
+        if (state.OrganizationAliases.Contains(tenant.KeycloakOrgAlias, StringComparer.Ordinal))
+        {
+            return Result.Success(new VendorJoined(RelationshipCreated: false, OrganizationAdded: false));
+        }
+
+        try
+        {
+            await audit.WriteAsync(
+                new AuditEntry(userId, "vendor.membership_restore_refused", "vendor_company", companyId.ToString()), cancellationToken);
+        }
+        catch (Exception ex) when (ex is DbException or DbUpdateException or TimeoutException or InvalidOperationException)
+        {
+            // The refusal stands without its audit entry; the log records it.
+            RefusalNotAudited(logger, tenant.Slug, userId, ex.GetType().Name);
+        }
+
+        return Result.Failure<VendorJoined>(Error.Refused(
+            VendorErrors.MembershipRemoved, "Your access to this organization was removed. Only the organization can restore it."));
+    }
+
     private static Result<VendorJoined> Failed() =>
         Result.Failure<VendorJoined>(Error.Refused(VendorErrors.JoinFailed, "Joining this organization could not be completed. Try again in a moment."));
 
@@ -133,6 +182,9 @@ internal sealed partial class VendorJoin(
 
     [LoggerMessage(Level = LogLevel.Error, Message = "The vendor's relationship with tenant {Tenant} was not saved, user {UserId} ({ErrorType}).")]
     private static partial void SaveFailed(ILogger logger, string tenant, string userId, string errorType);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "The refused membership restore of user {UserId} on tenant {Tenant} was not audited ({ErrorType}).")]
+    private static partial void RefusalNotAudited(ILogger logger, string tenant, string userId, string errorType);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "After a failed join of tenant {Tenant} by user {UserId} the relationship was not re-checked, so the organization membership was left in place ({ErrorType}).")]
     private static partial void RecheckFailed(ILogger logger, string tenant, string userId, string errorType);

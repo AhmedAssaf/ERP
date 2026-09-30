@@ -1,0 +1,46 @@
+@*
+    W-21, QA D2: the body of the 403 a signed-in user gets on a tenant host whose organization their token does not
+    carry (AccessRemovedPage re-executes the refused request here, keeping the 403). Static server rendering: nothing on
+    it needs a circuit, and a circuit would be refused to this user anyway. Sign out posts to /account/sign-out, which
+    deletes this host's cookie and ends the Keycloak session with the id token as hint, so the next visit shows the
+    sign-in page rather than signing the user straight back in. Opened directly (not as a refusal) it goes home.
+*@
+@page "/account/access-removed"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Diagnostics
+@using Platform.Web.Account
+@attribute [Authorize(Policy = AccessRemovedPage.PolicyName)]
+@inject IStringLocalizer<SharedResource> T
+@inject ITenantAccessor Tenants
+@inject NavigationManager Navigation
+
+<PageTitle>@T["Account.AccessRemoved.Title"]</PageTitle>
+
+<AppShell Variant="AppShellVariant.Tenant" PortalName="@PortalName" LogoUrl="@Tenants.Current?.Branding.LogoUrl">
+    <section data-access-removed class="mx-auto grid w-full max-w-2xl gap-4">
+        <EmptyState Title="@T["Account.AccessRemoved.Title"]" HeadingLevel="2">
+            <ChildContent>@T["Account.AccessRemoved.Body", PortalName]</ChildContent>
+            <Action>
+                <form method="post" action="/account/sign-out" data-access-removed-sign-out>
+                    <AntiforgeryToken />
+                    <Button Type="submit" Variant="ButtonVariant.Primary">@T["Account.AccessRemoved.SignOut"]</Button>
+                </form>
+            </Action>
+        </EmptyState>
+    </section>
+</AppShell>
+
+@code {
+    [CascadingParameter] private HttpContext? HttpContext { get; set; }
+
+    private string PortalName => Tenants.Current?.Branding.PortalName ?? string.Empty;
+
+    protected override void OnInitialized()
+    {
+        // Only as the body of a refusal; a member typing the address has nothing removed.
+        if (HttpContext is not null && HttpContext.Features.Get<IStatusCodeReExecuteFeature>() is null)
+        {
+            Navigation.NavigateTo("/");
+        }
+    }
+}
