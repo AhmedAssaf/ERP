@@ -237,6 +237,208 @@ public sealed class CrDisputeRetryTests(DatabaseFixture db)
         }
     }
 
+    [Fact]
+    public async Task A_superseded_retry_still_takes_the_squatters_role_and_memberships_when_its_removal_had_failed()
+    {
+        // Second review, B-1: the later uphold removes only the company's vendor users of its own time (the first
+        // claimant); the squatter the first uphold removed has no row by then, so only the first dispute's retry can
+        // still take the squatter's realm role and memberships.
+        var (_, squatter, crNumber) = await VendorAsync("Squatter Kept Access Co");
+        var first = Guid.NewGuid().ToString();
+        var second = Guid.NewGuid().ToString();
+        var admin = $"platform-admin-{Guid.NewGuid():N}";
+        var accounts = new FakeVendorAccounts { FailRevoke = true };
+        accounts.Memberships[(squatter, Acme)] = true;
+        await using var host = Host(accounts);
+        var firstDispute = await RaiseAsync(host, first, crNumber);
+        (await UpholdAsync(host, firstDispute, admin)).IdentityProviderUpdated.ShouldBeFalse("the squatter's access was not taken back");
+
+        accounts.FailRevoke = false;
+        var secondDispute = await RaiseAsync(host, second, crNumber);
+        (await UpholdAsync(host, secondDispute, admin)).IdentityProviderUpdated.ShouldBeTrue();
+        accounts.OrganizationsOf(squatter).ShouldBe([Acme], "the later uphold never touches the squatter");
+        var grantsBefore = accounts.Granted.Count;
+        var addsBefore = accounts.Steps.Count(s => s == "add-organization");
+
+        // While Keycloak still fails, the superseded retry grants nothing, and the dispute stays listed.
+        accounts.FailRevoke = true;
+        (await RetryAsync(host, firstDispute, admin)).ShouldBe(CrDisputeRetry.StillFailing);
+        ((string)(await OwnerScalarAsync("select idp_outcome from vendor.cr_disputes where id = @id", firstDispute))!).ShouldBe("failed");
+        (await ListedAsync(host, admin)).ShouldContain(firstDispute);
+
+        accounts.FailRevoke = false;
+        (await RetryAsync(host, firstDispute, admin)).ShouldBe(CrDisputeRetry.Superseded);
+
+        accounts.OrganizationsOf(squatter).ShouldBeEmpty();
+        accounts.Revoked.ShouldContain(g => g.UserId == squatter && g.RoleAdded && !g.OrganizationAdded);
+        accounts.Granted.Count.ShouldBe(grantsBefore, "the first claimant gets nothing back");
+        accounts.Steps.Count(s => s == "add-organization").ShouldBe(addsBefore);
+        accounts.OrganizationsOf(first).ShouldBeEmpty();
+        accounts.OrganizationsOf(second).ShouldBe([Acme]);
+        ((string)(await OwnerScalarAsync("select idp_outcome from vendor.cr_disputes where id = @id", firstDispute))!).ShouldBe("superseded");
+        var details = (string)(await OwnerScalarAsync("select idp_details::text from vendor.cr_disputes where id = @id", firstDispute))!;
+        details.ShouldContain($"\"role:revoke:{squatter}\": \"done\"");
+        details.ShouldContain($"\"organization:remove:{Acme}:{squatter}\": \"done\"");
+        (await ListedAsync(host, admin)).ShouldNotContain(firstDispute);
+        var audits = (await VendorRows.PlatformAuditsAsync(db.OwnerConnectionString, admin, "vendor.dispute_identity_provider", Ct))
+            .Where(a => a.SubjectId == firstDispute.ToString()).Select(a => a.Data).ToList();
+        audits.ShouldContain(d => d.Contains("\"outcome\": \"superseded\"") && d.Contains($"\"role:revoke:{squatter}\": \"done\""));
+    }
+
+    [Fact]
+    public async Task A_superseded_retry_leaves_a_removed_user_who_is_a_vendor_again_untouched()
+    {
+        // B-1: the squatter's removal failed, then the squatter won the company back with a dispute of their own.
+        var (companyId, squatter, crNumber) = await VendorAsync("Squatter Won Back Co");
+        var first = Guid.NewGuid().ToString();
+        var admin = $"platform-admin-{Guid.NewGuid():N}";
+        var accounts = new FakeVendorAccounts { FailRevoke = true };
+        accounts.Memberships[(squatter, Acme)] = true;
+        await using var host = Host(accounts);
+        var firstDispute = await RaiseAsync(host, first, crNumber);
+        (await UpholdAsync(host, firstDispute, admin)).IdentityProviderUpdated.ShouldBeFalse();
+
+        accounts.FailRevoke = false;
+        var secondDispute = await RaiseAsync(host, squatter, crNumber);
+        (await UpholdAsync(host, secondDispute, admin)).IdentityProviderUpdated.ShouldBeTrue();
+        (await OwnershipRows.VendorUsersAsync(db.OwnerConnectionString, companyId, Ct)).ShouldBe([(squatter, "vendor-admin")]);
+
+        (await RetryAsync(host, firstDispute, admin)).ShouldBe(CrDisputeRetry.Superseded);
+
+        accounts.Revoked.ShouldNotContain(g => g.UserId == squatter);
+        accounts.OrganizationsOf(squatter).ShouldBe([Acme]);
+        var details = (string)(await OwnerScalarAsync("select idp_details::text from vendor.cr_disputes where id = @id", firstDispute))!;
+        details.ShouldContain($"\"role:revoke:{squatter}\": \"skipped: the user belongs to a vendor company again\"");
+        details.ShouldContain($"\"organization:remove:{Acme}:{squatter}\": \"skipped: the user belongs to a vendor company again\"");
+    }
+
+    [Fact]
+    public async Task A_retry_does_not_remove_a_former_squatter_who_now_belongs_to_another_company()
+    {
+        // Second review, m-3: the squatter's removal failed; they then register a company of their own with acme, whose
+        // organization they hold again. A retry must not take it (W-21 would then refuse their /vendor/join).
+        var (_, squatter, crNumber) = await VendorAsync("Squatter Registers Own Co");
+        var claimant = Guid.NewGuid().ToString();
+        var admin = $"platform-admin-{Guid.NewGuid():N}";
+        var accounts = new FakeVendorAccounts { FailRevoke = true };
+        accounts.Memberships[(squatter, Acme)] = true;
+        await using var host = Host(accounts);
+        var disputeId = await RaiseAsync(host, claimant, crNumber);
+        (await UpholdAsync(host, disputeId, admin)).IdentityProviderUpdated.ShouldBeFalse();
+
+        await VendorRows.RegisterAsync(db.AppConnectionString, TestTenants.Acme, squatter, VendorRows.NewCrNumber(), "Squatters Own Co", Ct);
+        accounts.FailRevoke = false;
+        (await RetryAsync(host, disputeId, admin)).ShouldBe(CrDisputeRetry.Updated);
+
+        accounts.Revoked.ShouldNotContain(g => g.UserId == squatter);
+        accounts.OrganizationsOf(squatter).ShouldBe([Acme]);
+        accounts.OrganizationsOf(claimant).ShouldBe([Acme]);
+        var details = (string)(await OwnerScalarAsync("select idp_details::text from vendor.cr_disputes where id = @id", disputeId))!;
+        details.ShouldContain($"\"role:revoke:{squatter}\": \"skipped: the user belongs to a vendor company again\"");
+        (await VendorRows.PlatformAuditsAsync(db.OwnerConnectionString, admin, "vendor.dispute_identity_provider", Ct))
+            .Where(a => a.SubjectId == disputeId.ToString()).Select(a => a.Data)
+            .ShouldContain(d => d.Contains("\"retry\": \"true\"") && d.Contains($"\"role:revoke:{squatter}\": \"skipped: the user belongs to a vendor company again\""));
+    }
+
+    [Fact]
+    public async Task A_retry_takes_back_what_it_granted_when_a_later_uphold_moved_the_company_while_it_ran()
+    {
+        // Second review, m-1: the retry's check finds the claimant still the vendor admin; a later dispute is upheld while
+        // the retry's Keycloak steps run (here: inside its role grant), and its removal of the first claimant lands before
+        // the retry's grant and add. The retry checks again after its steps and takes back what it granted.
+        var (_, squatter, crNumber) = await VendorAsync("Moved During Retry Co");
+        var first = Guid.NewGuid().ToString();
+        var second = Guid.NewGuid().ToString();
+        var admin = $"platform-admin-{Guid.NewGuid():N}";
+        var accounts = new FakeVendorAccounts
+        {
+            OnGrantRole = u => u == first
+                ? throw new IdentityProviderException("Keycloak did not grant the vendor role.", new HttpRequestException("forced"))
+                : Task.CompletedTask,
+        };
+        accounts.FailingOrganizations[Acme] = true;
+        await using var host = Host(accounts);
+        var firstDispute = await RaiseAsync(host, first, crNumber);
+        (await UpholdAsync(host, firstDispute, admin)).IdentityProviderUpdated.ShouldBeFalse();
+        accounts.OrganizationsOf(first).ShouldBeEmpty();
+
+        accounts.FailingOrganizations.Clear();
+        var secondDispute = await RaiseAsync(host, second, crNumber);
+        var moved = false;
+        accounts.OnGrantRole = async u =>
+        {
+            if (u == first && !moved)
+            {
+                moved = true;
+                (await UpholdAsync(host, secondDispute, admin)).IdentityProviderUpdated.ShouldBeTrue();
+            }
+        };
+
+        (await RetryAsync(host, firstDispute, admin)).ShouldBe(CrDisputeRetry.Superseded);
+
+        moved.ShouldBeTrue();
+        accounts.OrganizationsOf(first).ShouldBeEmpty("the retry's add after the later uphold is taken back");
+        accounts.Revoked.Count(g => g.UserId == first && g.RoleAdded).ShouldBe(2, "the later uphold's revoke, then the retry's own");
+        accounts.OrganizationsOf(second).ShouldBe([Acme]);
+        accounts.OrganizationsOf(squatter).ShouldBeEmpty();
+        ((string)(await OwnerScalarAsync("select idp_outcome from vendor.cr_disputes where id = @id", firstDispute))!).ShouldBe("superseded");
+        var details = (string)(await OwnerScalarAsync("select idp_details::text from vendor.cr_disputes where id = @id", firstDispute))!;
+        details.ShouldContain("\"undo:role:grant\": \"done\"");
+        details.ShouldContain($"\"undo:organization:add:{Acme}\": \"done\"");
+        (await VendorRows.PlatformAuditsAsync(db.OwnerConnectionString, admin, "vendor.dispute_identity_provider", Ct))
+            .Where(a => a.SubjectId == firstDispute.ToString()).Select(a => a.Data)
+            .ShouldContain(d => d.Contains("\"outcome\": \"superseded\"") && d.Contains("\"undo:role:grant\": \"done\""));
+    }
+
+    [Fact]
+    public async Task Only_a_platform_console_session_checks_or_supersedes_a_disputes_identity_provider_update()
+    {
+        // Second review, m-4 (ADR-0012 point 4): a tenant or vendor session never reaches these functions.
+        var (companyId, _, crNumber) = await VendorAsync("Supersede Caller Co");
+        var claimant = Guid.NewGuid().ToString();
+        var admin = $"platform-admin-{Guid.NewGuid():N}";
+        await using var host = Host(new FakeVendorAccounts { FailRevoke = true });
+        var disputeId = await RaiseAsync(host, claimant, crNumber);
+        (await UpholdAsync(host, disputeId, admin)).IdentityProviderUpdated.ShouldBeFalse();
+
+        // Make the dispute one the function would mark: its claimant is no longer the company's vendor admin.
+        await using (var owner = new NpgsqlConnection(db.OwnerConnectionString))
+        {
+            await owner.OpenAsync(Ct);
+            await using var delete = new NpgsqlCommand("delete from vendor.vendor_users where user_id = @user", owner);
+            delete.Parameters.AddWithValue("user", claimant);
+            (await delete.ExecuteNonQueryAsync(Ct)).ShouldBe(1);
+        }
+
+        foreach (var (tenant, vendor, user) in new (Guid?, Guid?, string?)[]
+                 {
+                     (TestTenants.Acme.TenantId, null, admin),
+                     (TestTenants.Acme.TenantId, companyId, claimant),
+                     (null, companyId, claimant),
+                     (null, null, null),
+                 })
+        {
+            foreach (var sql in new[] { "select vendor.supersede_dispute_idp(@id, '{}'::jsonb)", "select vendor.dispute_claimant_is_admin(@id)" })
+            {
+                await using var session = await OwnershipRows.AppSessionAsync(db.AppConnectionString, tenant, vendor, user, Ct);
+#pragma warning disable CA2100 // One of two fixed statements.
+                await using var command = new NpgsqlCommand(sql, session);
+#pragma warning restore CA2100
+                command.Parameters.AddWithValue("id", disputeId);
+                (await Should.ThrowAsync<PostgresException>(() => command.ExecuteScalarAsync(Ct)))
+                    .SqlState.ShouldBe(PostgresErrorCodes.InsufficientPrivilege, $"{sql} with tenant {tenant}, vendor {vendor}, user {user}");
+            }
+        }
+
+        ((string)(await OwnerScalarAsync("select idp_outcome from vendor.cr_disputes where id = @id", disputeId))!).ShouldBe("failed");
+    }
+
+    private static async Task<IReadOnlyList<Guid>> ListedAsync(ModuleHost host, string admin)
+    {
+        await using var scope = host.PlatformScope(admin);
+        return [.. (await scope.ServiceProvider.GetRequiredService<ICrOwnershipAdministration>().ListIdentityProviderFailuresAsync(Ct)).Select(f => f.DisputeId)];
+    }
+
     private static async Task JoinRefusedAsync(ModuleHost host, Guid companyId, string claimant, string code)
     {
         await using var scope = host.ScopeFor(TestTenants.Beta, vendorCompanyId: companyId, actingUserId: claimant);

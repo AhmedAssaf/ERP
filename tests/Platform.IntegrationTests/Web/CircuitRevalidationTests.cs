@@ -119,6 +119,30 @@ public sealed class CircuitRevalidationTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Asking_for_the_current_company_leaves_what_the_circuit_remembers_untouched()
+    {
+        // Second review, m-2: the revalidation loop asks off the render thread, while the circuit's pages read the scope's
+        // answers during render; the answers are a plain dictionary, so the loop must not write to it.
+        var userId = Guid.NewGuid().ToString();
+        var companyId = await VendorRows.RegisterAsync(db.AppConnectionString, TestTenants.Acme, userId, VendorRows.NewCrNumber(), "Circuit Cache Co", Ct);
+        await using var host = new ModuleHost(db.AppConnectionString);
+        await using var circuit = host.ScopeFor(TestTenants.Acme, vendorCompanyId: companyId, actingUserId: userId);
+        var users = circuit.ServiceProvider.GetRequiredService<IVendorUsers>();
+        (await users.FindCompanyAsync(userId, Ct)).ShouldBe(companyId);
+
+        await using (var owner = new Npgsql.NpgsqlConnection(db.OwnerConnectionString))
+        {
+            await owner.OpenAsync(Ct);
+            await using var delete = new Npgsql.NpgsqlCommand("delete from vendor.vendor_users where user_id = @user", owner);
+            delete.Parameters.AddWithValue("user", userId);
+            (await delete.ExecuteNonQueryAsync(Ct)).ShouldBe(1);
+        }
+
+        (await users.FindCurrentCompanyAsync(userId, Ct)).ShouldBeNull("the database is asked");
+        (await users.FindCompanyAsync(userId, Ct)).ShouldBe(companyId, "the scope's answers were not written by the check");
+    }
+
+    [Fact]
     public async Task A_circuit_ends_once_its_connection_cookie_has_expired()
     {
         // Review: a circuit must not outlive the cookie that opened it. The cookie expires in 30 minutes; the membership

@@ -11,8 +11,9 @@ public interface IVendorUsers
     Task<Guid?> FindCompanyAsync(string userId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// As <see cref="FindCompanyAsync"/>, but always asks the database, never what this scope already knows: an open
-    /// circuit re-checks its vendor context with it, since an upheld dispute (W-33) can move the company away meanwhile.
+    /// As <see cref="FindCompanyAsync"/>, but always asks the database, never what this scope already knows, and never
+    /// changes what it knows: an open circuit re-checks its vendor context with it from its revalidation loop, off the render
+    /// thread, since an upheld dispute (W-33) can move the company away meanwhile.
     /// </summary>
     Task<Guid?> FindCurrentCompanyAsync(string userId, CancellationToken cancellationToken = default);
 }
