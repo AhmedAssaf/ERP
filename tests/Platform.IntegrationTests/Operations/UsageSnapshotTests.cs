@@ -55,6 +55,25 @@ public sealed class UsageSnapshotTests : IDisposable
     }
 
     [Fact]
+    public void A_usage_result_fifteen_minutes_old_is_still_reported()
+    {
+        // Spec 6.4: only a result older than 15 minutes is dropped, so the gauges keep reporting across two missed
+        // five-minute runs; a shorter limit would open gaps between healthy runs.
+        var clock = new TestClock();
+        var meters = _meterHost.GetRequiredService<System.Diagnostics.Metrics.IMeterFactory>();
+        var snapshot = new UsageSnapshot(meters, clock);
+        using var metrics = new UsageMetrics(meters);
+        snapshot.Set(new UsageCounts(clock.GetUtcNow(), [new ActiveUserCount("acme", "staff", "1d", 3)]));
+
+        clock.Advance(TimeSpan.FromMinutes(15));
+
+        metrics.Value(
+            TelemetryNames.UsersActive,
+            (TelemetryNames.Tags.TenantSlug, "acme"), (TelemetryNames.Tags.UserKind, "staff"), (TelemetryNames.Tags.Window, "1d")).ShouldBe(3);
+        snapshot.Current.ShouldNotBeNull();
+    }
+
+    [Fact]
     public void Before_the_first_run_nothing_is_reported()
     {
         var meters = _meterHost.GetRequiredService<System.Diagnostics.Metrics.IMeterFactory>();
