@@ -521,4 +521,5 @@
   <data name="Console.Ownership.Idp.FailedSteps" xml:space="preserve"><value>الخطوات التي تعذرت:</value></data>
   <data name="Console.Ownership.OverCap" xml:space="preserve"><value>لا تزال خمسة طلبات أقدم لهذه المنشأة معلّقة ({0} إجمالًا)</value></data>
   <data name="Console.Ownership.UpheldNotRecorded" xml:space="preserve"><value>أصبحت {0} تابعة لـ {1}. تعذر تسجيل نتيجة خدمة تسجيل الدخول، والطلب مُدرج أدناه لإعادة المحاولة.</value></data>
+  <data name="Vendor.Join.Error.PendingRetry" xml:space="preserve"><value>نقلت وصلة بد منشأتك إلى حسابك وما زالت تمنحك الوصول إلى {0}. حاول لاحقًا، ولا يلزمك أي إجراء.</value></data>
 </root>

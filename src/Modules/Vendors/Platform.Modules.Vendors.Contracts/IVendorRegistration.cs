@@ -102,4 +102,10 @@ public static class VendorErrors
     /// only the tenant restores access (W-21). Nothing was changed.
     /// </summary>
     public const string MembershipRemoved = "vendor.membership_removed";
+
+    /// <summary>
+    /// The user is the claimant of an upheld CR dispute whose organization memberships WaslaBid has not been able to give
+    /// yet (W-33); the platform admin retries it. Nothing was changed.
+    /// </summary>
+    public const string MembershipPendingRetry = "vendor.membership_pending_retry";
 }

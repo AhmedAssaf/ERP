@@ -521,4 +521,5 @@
   <data name="Console.Ownership.Idp.FailedSteps" xml:space="preserve"><value>Failed steps:</value></data>
   <data name="Console.Ownership.OverCap" xml:space="preserve"><value>Five older requests for this company are still pending ({0} in all)</value></data>
   <data name="Console.Ownership.UpheldNotRecorded" xml:space="preserve"><value>{0} now belongs to {1}. The sign-in service outcome could not be recorded; the request is listed below for a retry.</value></data>
+  <data name="Vendor.Join.Error.PendingRetry" xml:space="preserve"><value>WaslaBid moved your company to your account and is still giving you access to {0}. Try again later; there is nothing for you to do.</value></data>
 </root>

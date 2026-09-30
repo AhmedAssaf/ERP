@@ -399,6 +399,66 @@ public sealed class CrDisputeTriageTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task An_upheld_claimant_needs_no_join_and_a_join_while_the_retry_is_pending_says_so_not_access_removed()
+    {
+        // W-21's /vendor/join never gives a related company's user a membership back (P-1). The uphold gives the claimant
+        // every related organization itself; while one of those failed and waits for a retry, the join says so.
+        var (companyId, _, crNumber) = await VendorAsync("Join After Uphold Co");
+        await VendorRows.RelateAsync(db.OwnerConnectionString, TestTenants.Beta.TenantId, companyId, Ct);
+        var acme = TestTenants.Acme.KeycloakOrgAlias;
+        var beta = TestTenants.Beta.KeycloakOrgAlias;
+        var claimant = Guid.NewGuid().ToString();
+        var admin = $"platform-admin-{Guid.NewGuid():N}";
+        var accounts = new FakeVendorAccounts();
+        accounts.FailingOrganizations[beta] = true;
+        await using var host = Host(accounts);
+        var disputeId = await RaiseAsync(host, claimant, crNumber);
+        await using (var scope = host.PlatformScope(admin))
+        {
+            (await scope.ServiceProvider.GetRequiredService<ICrOwnershipAdministration>().UpholdAsync(disputeId, "Checked.", admin, Ct))
+                .Value.IdentityProviderUpdated.ShouldBeFalse();
+        }
+
+        accounts.OrganizationsOf(claimant).ShouldBe([acme]);
+        // What Keycloak now holds for the claimant, as W-21's join reads it.
+        accounts.State = new VendorAccountState(HoldsVendorRole: true, OrganizationAliases: [acme]);
+
+        // Acme: already a member from the uphold; the join changes nothing and needs no restore.
+        await using (var scope = host.ScopeFor(TestTenants.Acme, vendorCompanyId: companyId, actingUserId: claimant))
+        {
+            (await scope.ServiceProvider.GetRequiredService<IVendorJoin>().JoinAsync(Ct)).Value
+                .ShouldBe(new VendorJoined(RelationshipCreated: false, OrganizationAdded: false));
+        }
+
+        // Beta: the uphold's step failed and waits for the retry: "WaslaBid is still giving you access", no membership.
+        var addsBefore = accounts.Steps.Count(s => s == "add-organization");
+        await using (var scope = host.ScopeFor(TestTenants.Beta, vendorCompanyId: companyId, actingUserId: claimant))
+        {
+            (await scope.ServiceProvider.GetRequiredService<IVendorJoin>().JoinAsync(Ct)).Error.ShouldNotBeNull()
+                .Code.ShouldBe(VendorErrors.MembershipPendingRetry);
+        }
+
+        accounts.Steps.Count(s => s == "add-organization").ShouldBe(addsBefore);
+        (await VendorRows.AuditsAsync(db.OwnerConnectionString, TestTenants.Beta.TenantId, claimant, "vendor.membership_restore_refused", Ct)).ShouldBeEmpty();
+
+        // The retry succeeds: the claimant is in beta's organization without any join.
+        accounts.FailingOrganizations.Clear();
+        await using (var scope = host.PlatformScope(admin))
+        {
+            (await scope.ServiceProvider.GetRequiredService<ICrOwnershipAdministration>().RetryIdentityProviderAsync(disputeId, admin, Ct)).ShouldBeTrue();
+        }
+
+        accounts.OrganizationsOf(claimant).ShouldBe([acme, beta]);
+
+        // Later, beta removes the claimant: W-21's refusal applies as for anyone else.
+        await using (var scope = host.ScopeFor(TestTenants.Beta, vendorCompanyId: companyId, actingUserId: claimant))
+        {
+            (await scope.ServiceProvider.GetRequiredService<IVendorJoin>().JoinAsync(Ct)).Error.ShouldNotBeNull()
+                .Code.ShouldBe(VendorErrors.MembershipRemoved);
+        }
+    }
+
+    [Fact]
     public async Task A_platform_admin_cannot_accept_their_own_dispute_for_review()
     {
         var (_, _, crNumber) = await VendorAsync("Self Accept Co");

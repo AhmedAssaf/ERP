@@ -70,6 +70,7 @@ public sealed class VendorSessionPolicyUpgradeTests(DatabaseFixture db)
                 "vendors/0019_vendors_cr_ownership_hardening.sql",
                 "vendors/0020_vendors_dispute_cap_flag.sql",
                 "vendors/0021_vendors_dispute_listing_order.sql",
+                "vendors/0022_vendors_claimant_awaiting_identity_provider.sql",
             ]);
             await using (var connection = new NpgsqlConnection(connectionString))
             {
