@@ -47,9 +47,11 @@ export const userIdByEmail = async (email, realm = TENANT_REALM) => (await (awai
 export const deleteUser = async (uid, realm = TENANT_REALM) => (await kc('DELETE', `/users/${uid}`, undefined, realm)).status;
 
 // ---- PostgreSQL as the Compose superuser (test data and reads only) ----
+// E2E_DB names another database on the same server, for a branch run against a database of its own.
+const DB = process.env.E2E_DB || 'platform';
 export const q = s => `'${String(s).replace(/'/g, "''")}'`;
 export function sql(query) {
-  return execFileSync('docker', ['exec', '-i', '-e', 'PGCLIENTENCODING=UTF8', 'erp-postgres', 'psql', '-U', 'erp', '-d', 'platform', '-v', 'ON_ERROR_STOP=1', '-q', '-A', '-t', '-F', '\t'],
+  return execFileSync('docker', ['exec', '-i', '-e', 'PGCLIENTENCODING=UTF8', 'erp-postgres', 'psql', '-U', 'erp', '-d', DB, '-v', 'ON_ERROR_STOP=1', '-q', '-A', '-t', '-F', '\t'],
     { input: query, encoding: 'utf8' }).trim();
 }
 export const tenantId = slug => sql(`select id from tenancy.tenants where slug = ${q(slug)};`);

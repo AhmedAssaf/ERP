@@ -1,6 +1,6 @@
 // Vendor-side steps shared by vendor.mjs and ownership.mjs: a minimal PDF, the chunked upload on /vendor, signing in again
 // after sign-out, and the company form on /vendor/register/company.
-import { driveKeycloak } from './lib.mjs';
+import { driveKeycloak, waitPastSignOutForm } from './lib.mjs';
 
 // A minimal valid one-page PDF (magic number %PDF), different content per document so the hashes differ.
 export function pdf(label) {
@@ -37,6 +37,9 @@ export async function upload(page, type, file, expiry) {
 
 /** Keycloak's logout confirmation, when it asks, then whatever login steps follow. */
 export async function signInAgain(page, { user, password, state, log }) {
+  // The app's auto-submitting end-session form first (W-21); Keycloak should then ask no logout confirmation, since the
+  // sign-out carries id_token_hint, but one is confirmed (and logged) if it appears.
+  await waitPastSignOutForm(page);
   for (let i = 0; i < 5; i++) {
     await page.waitForLoadState('domcontentloaded');
     const logout = await page.$('#kc-logout');

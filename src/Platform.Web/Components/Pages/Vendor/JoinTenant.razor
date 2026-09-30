@@ -7,8 +7,9 @@
     the vendor is not a member of this tenant's organization yet, so no interactive circuit would be authorized for it.
     The JoiningVendor policy (the Vendor policy without the host check) guards it, and the host sets the vendor context
     after it passed; the company and user come from that context and the principal, never from the form. A company that
-    already works with this tenant is told so, and keeps the button: a user who lost the organization membership gets it
-    back from here (audited as vendor.membership_restored).
+    already works with this tenant is told so, and keeps the button for a user still in the organization whose token does
+    not carry it yet; a user the tenant removed is refused (W-21: only the tenant restores access, audited as
+    vendor.membership_restore_refused).
 *@
 @page "/vendor/join"
 @attribute [Authorize(Policy = VendorPolicies.JoiningVendor)]
@@ -32,7 +33,7 @@
     }
     else if (_company?.Relationship is not null)
     {
-        @* The button stays: a user of a related company who lost the organization membership gets it back here. *@
+        @* The button stays for a member whose token lacks the organization; a removed user is refused (W-21). *@
         <section data-vendor-already-joined class="grid max-w-2xl gap-4">
             <p role="status">@T["Vendor.Join.Already", TenantName]</p>
             <p><a href="vendor" class="underline underline-offset-4">@T["Vendor.Register.GoToVendorHome"]</a></p>
@@ -70,7 +71,9 @@
                 return;
             }
 
-            _error = T["Vendor.Join.Error.Generic"];
+            _error = result.Error.Code == VendorErrors.MembershipRemoved
+                ? T["Vendor.Join.Error.AccessRemoved", TenantName]
+                : T["Vendor.Join.Error.Generic"];
         }
         catch (Exception ex)
         {

@@ -7,7 +7,7 @@
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
-import { launch, newPage, driveKeycloak, loadState, saveState, mailpit, mailBody, sleep, DIR } from './lib.mjs';
+import { launch, newPage, driveKeycloak, loadState, saveState, mailpit, mailBody, sleep, DIR, trackNavigations } from './lib.mjs';
 import { pdf, upload, signInAgain } from './vendorflow.mjs';
 import { throwawayStaff, trackPerson, userIdByEmail, cleanup } from './admin.mjs';
 
@@ -70,6 +70,8 @@ const browser = await launch();
 try {
   // 1. Register at /vendor/register: Keycloak's self-registration form of the tenant realm.
   const { ctx: vctx, page: vendor } = await newPage(browser);
+  // Every URL the vendor's browser visits, to prove the sign-outs below never put id_token_hint in one (W-21).
+  const vnav = trackNavigations(vendor);
   watch(vendor, 'vendor');
   vendor.on('response', r => { if (r.status() >= 500) console.log('vendor http', r.status(), r.url()); });
   await vendor.goto(`${ACME}/vendor/register`);
@@ -233,6 +235,13 @@ try {
   const acmeAfter = await vendorRowOnStaffList(acme, ACME);
   rec('acme still lists the vendor approved', acmeAfter.status?.endsWith(':approved'), acmeAfter);
   rec('no browser console errors (no failed circuit) on any page', consoleErrors.length === 0, { consoleErrors });
+  // W-21: both sign-outs sent the end-session request to Keycloak as a form post carrying id_token_hint, Keycloak asked
+  // no logout confirmation, and no URL the browser requested or navigated to carried the hint.
+  const confirmations = [...rsteps, ...j2].filter(s => s === 'confirmed logout').length;
+  rec('sign-out posts id_token_hint to Keycloak in a form body and never in a URL',
+    vnav.endSessions.length === 2 && vnav.endSessions.every(e => e.method === 'POST' && e.hintInBody)
+      && vnav.hintInNavigationUrls().length === 0 && vnav.hintInAnyRequestUrl().length === 0 && confirmations === 0,
+    { endSessions: vnav.endSessions, hintInNavigationUrls: vnav.hintInNavigationUrls(), hintInAnyRequestUrl: vnav.hintInAnyRequestUrl(), logoutConfirmations: confirmations, navigationsChecked: vnav.navigations.length });
   await Promise.all([vctx.close(), actx.close(), bctx.close()]);
 } catch (e) {
   rec('script error', false, { error: String(e).slice(0, 600) });

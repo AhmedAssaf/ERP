@@ -162,8 +162,9 @@ public sealed partial class VendorStaffPagesTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task A_related_vendor_that_lost_its_membership_restores_it_from_the_join_page()
+    public async Task A_related_vendor_that_lost_its_membership_is_refused_on_the_join_page_and_nothing_is_restored()
     {
+        // W-21 pentest P-1: losing the membership means the tenant removed the user; only the tenant restores it.
         var (companyId, userId) = await VendorAsync("Lost Membership Company");
         // Related to acme, but the token (and Keycloak) no longer carry acme's organization.
         var vendor = Vendor(userId) with { Organizations = [] };
@@ -178,10 +179,13 @@ public sealed partial class VendorStaffPagesTests(DatabaseFixture db)
 
         using var joined = await PostJoinAsync(client, vendor, html);
 
-        (await joined.Content.ReadAsStringAsync(Ct)).ShouldContain("data-vendor-joined");
-        accounts.Steps.ShouldContain("add-organization");
+        var joinedHtml = await joined.Content.ReadAsStringAsync(Ct);
+        joinedHtml.ShouldNotContain("data-vendor-joined");
+        joinedHtml.ShouldContain("data-form-error");
+        accounts.Steps.ShouldNotContain("add-organization");
         (await VendorRows.RelationshipsAsync(db.OwnerConnectionString, companyId, Ct)).Keys.ShouldBe([TestTenants.Acme.TenantId]);
-        (await VendorRows.AuditsAsync(db.OwnerConnectionString, TestTenants.Acme.TenantId, userId, "vendor.membership_restored", Ct)).ShouldHaveSingleItem();
+        (await VendorRows.AuditsAsync(db.OwnerConnectionString, TestTenants.Acme.TenantId, userId, "vendor.membership_restored", Ct)).ShouldBeEmpty();
+        (await VendorRows.AuditsAsync(db.OwnerConnectionString, TestTenants.Acme.TenantId, userId, "vendor.membership_restore_refused", Ct)).ShouldHaveSingleItem();
     }
 
     [Fact]

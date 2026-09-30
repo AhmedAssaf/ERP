@@ -98,8 +98,10 @@ public sealed record VendorJoined(bool RelationshipCreated, bool OrganizationAdd
 /// ADR-0008): membership of the tenant's Keycloak organization and a pending relationship (V-7), audited as
 /// <c>vendor.joined</c> in that tenant's log. The company is the current vendor context's, the user the acting user; the
 /// host sets both after the JoiningVendor policy passed. Only the call that creates the relationship writes
-/// <c>vendor.joined</c>; a call that only puts the user back into the organization of a tenant the company already works
-/// with writes <c>vendor.membership_restored</c>; a call that changes nothing writes nothing.
+/// <c>vendor.joined</c>; a call that changes nothing writes nothing. A company that already works with the tenant never
+/// gets a membership back from here (W-21): a user still in the organization changes nothing, a user the tenant removed
+/// is refused with <see cref="VendorErrors.MembershipRemoved"/> and the refusal is audited as
+/// <c>vendor.membership_restore_refused</c>.
 /// </summary>
 public interface IVendorJoin
 {

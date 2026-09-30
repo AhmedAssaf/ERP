@@ -27,6 +27,12 @@ internal sealed class FakeVendorAccounts : IVendorAccounts
     /// <summary>The users granted the realm role <c>vendor</c> by <see cref="GrantRoleAsync"/>.</summary>
     public ConcurrentQueue<string> Granted { get; } = new();
 
+    /// <summary>
+    /// Runs when the organization is added, before the answer: a parallel join of the same vendor winning the race, say,
+    /// between the caller's relationship check and its database step.
+    /// </summary>
+    public Func<string, Task>? OnAddOrganization { get; set; }
+
     public ConcurrentQueue<VendorAccessGrant> Revoked { get; } = new();
 
     public ConcurrentQueue<string> Steps { get; } = new();
@@ -55,7 +61,7 @@ internal sealed class FakeVendorAccounts : IVendorAccounts
     /// <summary>Organizations whose membership changes fail as Keycloak failing would (adding and removing).</summary>
     public ConcurrentDictionary<string, bool> FailingOrganizations { get; } = new(StringComparer.Ordinal);
 
-    public Task<bool> AddToOrganizationAsync(string userId, string organizationAlias, CancellationToken cancellationToken = default)
+    public async Task<bool> AddToOrganizationAsync(string userId, string organizationAlias, CancellationToken cancellationToken = default)
     {
         Steps.Enqueue("add-organization");
         if (FailOrganization || FailingOrganizations.ContainsKey(organizationAlias))
@@ -63,8 +69,13 @@ internal sealed class FakeVendorAccounts : IVendorAccounts
             throw new IdentityProviderException("Keycloak did not add the user to the organization.", new HttpRequestException("forced"));
         }
 
+        if (OnAddOrganization is not null)
+        {
+            await OnAddOrganization(userId);
+        }
+
         Memberships[(userId, organizationAlias)] = true;
-        return Task.FromResult(!State.OrganizationAliases.Contains(organizationAlias, StringComparer.Ordinal));
+        return !State.OrganizationAliases.Contains(organizationAlias, StringComparer.Ordinal);
     }
 
     /// <summary>The aliases of the organizations the user is a member of here, in alias order.</summary>

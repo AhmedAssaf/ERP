@@ -1,2 +1,4 @@
 # W-33 ownership screenshots, overwritten on each run (the repository .gitignore covers the other scripts' folders).
 shots-ownership/
+# W-21 revalidation screenshots, overwritten on each run (the repository .gitignore covers the other scripts' folders).
+shots-revalidation/
