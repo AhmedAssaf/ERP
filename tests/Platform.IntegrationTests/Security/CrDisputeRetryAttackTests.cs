@@ -39,6 +39,8 @@ public sealed class CrDisputeRetryAttackTests(DatabaseFixture db)
     [InlineData("dispute_related_tenants", "uuid")]
     [InlineData("upheld_disputes_needing_idp", "")]
     [InlineData("user_company_tenants", "text")]
+    [InlineData("record_dispute_idp_outcome", "uuid, boolean, jsonb")]
+    [InlineData("dispute_idp_outcome", "uuid")]
     public async Task The_retry_functions_run_as_their_owner_with_a_pinned_search_path_and_only_the_app_role_calls_them(string name, string arguments)
     {
         await using var owner = new NpgsqlConnection(db.OwnerConnectionString);

@@ -376,7 +376,7 @@ erDiagram
 
 ## 8. Application modules and how they depend on each other
 
-Read it as: arrows point from the module that calls to the module it depends on. Nothing points back up, which keeps the monolith splittable later. Boxes with a thick dark border (tenancy, identity, audit, workflow, operations, vendors) exist in code today (`src/Modules/*`, checked against the project references); modules depend on each other only through their `*.Contracts` projects. Solid arrows between built boxes are project references; dotted arrows are planned. Operations (F-51, F-54, F-60) is platform-level, not tenant-level: it depends on no other module, and the hosts (web, worker) wire it in. Vendors (F-10, F-11, F-12, F-64; schema `vendor`) calls Identity for members and the Keycloak vendor accounts, Audit for the tenant's log, and Operations for the platform audit (consent events); object storage and virus scanning live in `Platform.Shared` until a documents module exists, and it reads the tenant from the shared tenant context, not from the Tenancy module.
+Read it as: arrows point from the module that calls to the module it depends on. Nothing points back up, which keeps the monolith splittable later. Boxes with a thick dark border (tenancy, identity, audit, workflow, operations, vendors) exist in code today (`src/Modules/*`, checked against the project references); modules depend on each other only through their `*.Contracts` projects. Solid arrows between built boxes are project references; dotted arrows are planned. Operations (F-51, F-54, F-60) is platform-level, not tenant-level: it depends on no other module, and the hosts (web, worker) wire it in. Vendors (F-10, F-11, F-12, F-64, W-33; schema `vendor`) calls Identity for members, the Keycloak vendor accounts and the tenants a user is staff of (`IStaffTenancies`), Tenancy for the tenant catalog (`ITenantCatalog`: the Keycloak organization of each tenant an upheld CR dispute touches), Audit for the tenant's log, and Operations for the platform audit (consent events, CR disputes); object storage and virus scanning live in `Platform.Shared` until a documents module exists, and the current tenant of a request still comes from the shared tenant context.
 
 ```mermaid
 flowchart TB
@@ -399,7 +399,7 @@ flowchart TB
     WF[workflow]:::core
     OPS[operations<br/>health, incidents, platform audit]:::platform
 
-    VEN --> IDN & AUD & OPS
+    VEN --> TEN & IDN & AUD & OPS
     VEN -.-> DOC & NOT
     TDR --> VEN & TEN & IDN & DOC & NOT & AUD
     EVA --> TDR & IDN & AUD & NOT

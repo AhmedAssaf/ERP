@@ -73,8 +73,8 @@ public sealed class VendorOwnershipConsoleQaPageTests(DatabaseFixture db) : IDis
     }
 
     [Theory]
-    [InlineData("en-US", "Khalid Al-Otaibi", "Khalid Al-Otaibi was given no access: the company no longer belongs to them, because a later request moved it.")]
-    [InlineData("ar-SA", "خالد العتيبي", "لم يُمنح خالد العتيبي أي وصول: لم تعد المنشأة تابعة له، لأن طلبًا لاحقًا نقلها.")]
+    [InlineData("en-US", "Khalid Al-Otaibi", "Khalid Al-Otaibi was given no access: a later upheld request for the company decides its access.")]
+    [InlineData("ar-SA", "خالد العتيبي", "لم يُمنح خالد العتيبي أي وصول: فطلبٌ لاحق قُبل بشأن المنشأة هو الذي يحدد وصولها.")]
     public async Task A_retry_after_a_later_uphold_moved_the_company_says_it_was_superseded_and_leaves_the_list(string culture, string claimantName, string expected)
     {
         var accounts = new FakeVendorAccounts { FailRevoke = true };

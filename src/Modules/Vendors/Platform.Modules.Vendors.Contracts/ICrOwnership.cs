@@ -112,9 +112,10 @@ public enum CrDisputeRetry
     StillFailing,
 
     /// <summary>
-    /// The claimant is no longer the company's vendor admin (a later dispute moved it on), so they were given nothing (and
-    /// anything this run granted before it saw the move was taken back); the removed users' failed removals ran, except for
-    /// a user who belongs to a vendor company again, and none failed. Recorded and audited; the dispute leaves the list.
+    /// A later upheld dispute of the company decides its access (whoever holds the company now, this claimant included), so
+    /// the claimant was given nothing (and anything this run granted before it saw the move was taken back); the removed
+    /// users' failed removals ran, except where a removed user keeps access, and none failed. Recorded and audited, by this
+    /// run or by a parallel retry that marked it first; the dispute leaves the list.
     /// </summary>
     Superseded,
 }

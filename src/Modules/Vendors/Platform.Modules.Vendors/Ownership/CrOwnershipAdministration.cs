@@ -160,9 +160,11 @@ internal sealed partial class CrOwnershipAdministration(
     /// <summary>
     /// Reruns the failed steps of an upheld dispute's identity provider update. When the company has moved on meanwhile (a
     /// later dispute of the company was upheld, whoever holds it now, or the claimant is no longer its vendor admin:
-    /// <c>vendor.dispute_claimant_is_admin</c>, migrations 0025 and 0026), the retry is superseded: the old claimant is given nothing, but the removed users' failed removals still run, since a
-    /// later uphold removes only the company's vendor users of its own time and so never reaches the users this uphold
-    /// removed (ADR-0013 point 5). The dispute leaves the list as superseded once none of those removals fails.
+    /// <c>vendor.dispute_claimant_is_admin</c>, migrations 0025 and 0026), the retry is superseded: the old claimant is
+    /// given nothing, but the removed users' failed removals still run, since a later uphold removes only the company's
+    /// vendor users of its own time and so never reaches the users this uphold removed (ADR-0013 point 5). The dispute
+    /// leaves the list as superseded once none of those removals fails. A retry that finds the dispute already marked
+    /// superseded by a parallel retry answers superseded too, and never writes its own outcome over it (migration 0027).
     /// </summary>
     public async Task<CrDisputeRetry> RetryIdentityProviderAsync(Guid disputeId, string actorId, CancellationToken cancellationToken = default)
     {
@@ -344,7 +346,7 @@ internal sealed partial class CrOwnershipAdministration(
         {
             data["company_id"] = companyId.ToString();
             data["claimant"] = claimant;
-            data["reason"] = "the claimant is no longer the company's vendor admin";
+            data["reason"] = SupersededReason;
         }
 
         foreach (var (step, outcome) in steps)
@@ -356,30 +358,42 @@ internal sealed partial class CrOwnershipAdministration(
         {
             var details = System.Text.Json.JsonSerializer.Serialize(steps);
             await using var db = await contexts.CreateDbContextAsync(CancellationToken.None);
-            if (superseded && updated)
-            {
-                // Marked only while the dispute is still superseded and still needs its outcome (migrations 0025, 0026); a
-                // parallel retry may have marked it first. The mark runs first, in a transaction, so the entry carries the
-                // outcome it really had (F-41), and the mark commits only after its entry was written.
-                await using var transaction = await db.Database.BeginTransactionAsync(CancellationToken.None);
-                var marked = await db.Database.SqlQuery<bool>(
-                    $"select vendor.supersede_dispute_idp({disputeId}, {details}::jsonb) as \"Value\"").SingleAsync(CancellationToken.None);
-                data["outcome"] = marked ? "superseded" : "superseded_not_marked";
-                await audit.WriteAsync(new PlatformAuditEntry(actorId, "vendor.dispute_identity_provider", "cr_dispute", disputeId.ToString(), data), CancellationToken.None);
-                await transaction.CommitAsync(CancellationToken.None);
-                if (!marked)
-                {
-                    SupersedeNotMarkedLog(logger, disputeId);
-                }
 
-                return new IdentityProviderRun(updated, marked, Superseded: true);
+            // The outcome is written first, in a transaction, so the entry carries what the dispute really got (F-41), and
+            // it commits only after its entry was written. A superseded run marks it only while the dispute is still
+            // superseded and still needs its outcome (migrations 0025, 0026); any other run never replaces a superseded
+            // outcome (migration 0027). Either write matches nothing when a parallel retry got there first.
+            var supersedeRun = superseded && updated;
+            await using var transaction = await db.Database.BeginTransactionAsync(CancellationToken.None);
+            var written = supersedeRun
+                ? await db.Database.SqlQuery<bool>(
+                    $"select vendor.supersede_dispute_idp({disputeId}, {details}::jsonb) as \"Value\"").SingleAsync(CancellationToken.None)
+                : await db.Database.SqlQuery<bool>(
+                    $"select vendor.record_dispute_idp_outcome({disputeId}, {updated}, {details}::jsonb) as \"Value\"").SingleAsync(CancellationToken.None);
+
+            // Not written: read what the dispute holds now. When a parallel retry marked it superseded, so is this run: that
+            // mark needs a run in which no step failed, so the dispute is settled and leaves the list.
+            var supersededMeanwhile = !written && await db.Database.SqlQuery<string?>(
+                $"select vendor.dispute_idp_outcome({disputeId}) as \"Value\"").SingleAsync(CancellationToken.None) == "superseded";
+            if (!written)
+            {
+                data["outcome"] = supersedeRun ? "superseded_not_marked" : supersededMeanwhile ? "not_recorded_superseded" : "not_recorded";
             }
 
-            // The audit entry first, then the outcome on the dispute.
             await audit.WriteAsync(new PlatformAuditEntry(actorId, "vendor.dispute_identity_provider", "cr_dispute", disputeId.ToString(), data), CancellationToken.None);
-            await db.Database.SqlQuery<bool>(
-                $"select vendor.record_dispute_idp_outcome({disputeId}, {updated}, {details}::jsonb) as \"Value\"").SingleAsync(CancellationToken.None);
-            return new IdentityProviderRun(updated, Recorded: true, superseded);
+            await transaction.CommitAsync(CancellationToken.None);
+            if (supersededMeanwhile)
+            {
+                SupersededMeanwhileLog(logger, disputeId);
+                return new IdentityProviderRun(Updated: true, Recorded: true, Superseded: true);
+            }
+
+            if (!written)
+            {
+                OutcomeNotWrittenLog(logger, disputeId);
+            }
+
+            return new IdentityProviderRun(updated, written, superseded);
         }
         catch (Exception ex) when (ex is System.Data.Common.DbException or InvalidOperationException or TimeoutException)
         {
@@ -595,8 +609,11 @@ internal sealed partial class CrOwnershipAdministration(
     /// <summary>A grant or add that found the access already there: done for a retry, never taken back by an undo.</summary>
     private const string StepAlreadyThere = "done: already there";
 
-    /// <summary>A grant that failed earlier and is not run once the company moved on to a later claimant; final.</summary>
-    private const string StepSkippedClaimantMovedOn = "skipped: the claimant is no longer the company's vendor admin";
+    /// <summary>Why a superseded run gives the claimant nothing (audited as its reason).</summary>
+    private const string SupersededReason = "a later upheld dispute of the company decides its access";
+
+    /// <summary>A grant that failed earlier and is not run once the dispute is superseded; final.</summary>
+    private const string StepSkippedClaimantMovedOn = "skipped: " + SupersededReason;
 
     private const string StepDone = "done";
 
@@ -758,14 +775,17 @@ internal sealed partial class CrOwnershipAdministration(
     [LoggerMessage(Level = LogLevel.Error, Message = "Dispute {DisputeId} was upheld, but the identity provider outcome could not be recorded ({ErrorType}); it stays listed for a retry.")]
     private static partial void OutcomeNotRecorded(ILogger logger, Guid disputeId, string errorType);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "The retry of dispute {DisputeId} gave its claimant nothing: they are no longer the company's vendor admin; the removed users' steps ran and it was recorded as superseded.")]
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The retry of dispute {DisputeId} gave its claimant nothing: a later upheld dispute of the company decides its access; the removed users' steps ran and it is recorded as superseded.")]
     private static partial void SupersededLog(ILogger logger, Guid disputeId);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The claimant of dispute {DisputeId} lost the company while its identity provider update ran; the {Count} grants of this run are taken back.")]
     private static partial void MovedDuringRunLog(ILogger logger, Guid disputeId, int count);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Dispute {DisputeId} was not marked superseded: its claimant is the company's vendor admin again, or its outcome changed meanwhile; it stays listed.")]
-    private static partial void SupersedeNotMarkedLog(ILogger logger, Guid disputeId);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The outcome of dispute {DisputeId} was not written: its claimant is the company's vendor admin again, or its outcome changed meanwhile; it stays listed.")]
+    private static partial void OutcomeNotWrittenLog(ILogger logger, Guid disputeId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "A parallel retry marked dispute {DisputeId} superseded while this run's steps ran; this run's outcome is not written over it.")]
+    private static partial void SupersededMeanwhileLog(ILogger logger, Guid disputeId);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The identity provider did not describe the current vendor admin {UserId} for the console ({ErrorType}).")]
     private static partial void RegistrantUnknown(ILogger logger, string userId, string errorType);

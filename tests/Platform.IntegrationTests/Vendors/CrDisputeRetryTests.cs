@@ -89,7 +89,14 @@ public sealed class CrDisputeRetryTests(DatabaseFixture db)
         }
 
         (await VendorRows.PlatformAuditsAsync(db.OwnerConnectionString, admin, "vendor.dispute_identity_provider", Ct))
-            .Where(a => a.SubjectId == firstDispute.ToString()).Select(a => a.Data).ShouldContain(d => d.Contains("\"outcome\": \"superseded\""));
+            .Where(a => a.SubjectId == firstDispute.ToString()).Select(a => a.Data)
+            .ShouldContain(d => d.Contains("\"outcome\": \"superseded\"")
+                && d.Contains("\"reason\": \"a later upheld dispute of the company decides its access\""));
+
+        // Fourth review, finding 3: the reason names the later uphold, not a claimant who lost the company (the same
+        // claimant may have won it back since).
+        var details = (string)(await OwnerScalarAsync("select idp_details::text from vendor.cr_disputes where id = @id", firstDispute))!;
+        details.ShouldContain("\"role:grant\": \"skipped: a later upheld dispute of the company decides its access\"");
     }
 
     [Fact]
@@ -418,10 +425,14 @@ public sealed class CrDisputeRetryTests(DatabaseFixture db)
                      (null, null, null),
                  })
         {
-            foreach (var sql in new[] { "select vendor.supersede_dispute_idp(@id, '{}'::jsonb)", "select vendor.dispute_claimant_is_admin(@id)" })
+            foreach (var sql in new[]
+                     {
+                         "select vendor.supersede_dispute_idp(@id, '{}'::jsonb)", "select vendor.dispute_claimant_is_admin(@id)",
+                         "select vendor.record_dispute_idp_outcome(@id, true, '{}'::jsonb)", "select vendor.dispute_idp_outcome(@id)",
+                     })
             {
                 await using var session = await OwnershipRows.AppSessionAsync(db.AppConnectionString, tenant, vendor, user, Ct);
-#pragma warning disable CA2100 // One of two fixed statements.
+#pragma warning disable CA2100 // One of four fixed statements.
                 await using var command = new NpgsqlCommand(sql, session);
 #pragma warning restore CA2100
                 command.Parameters.AddWithValue("id", disputeId);
@@ -511,7 +522,10 @@ public sealed class CrDisputeRetryTests(DatabaseFixture db)
         var outer = await RetryAsync(host, firstDispute, admin);
 
         inner.ShouldBe(CrDisputeRetry.Superseded);
-        outer.ShouldNotBe(CrDisputeRetry.Superseded, "the outer retry did not mark it");
+
+        // Fourth review, finding 2: the outer retry did not mark it, but the dispute is superseded all the same, so the
+        // admin is told so, not "still failing, change it in Keycloak".
+        outer.ShouldBe(CrDisputeRetry.Superseded);
         ((string)(await OwnerScalarAsync("select idp_outcome from vendor.cr_disputes where id = @id", firstDispute))!).ShouldBe("superseded");
         var outerAudits = (await VendorRows.PlatformAuditsAsync(db.OwnerConnectionString, admin, "vendor.dispute_identity_provider", Ct))
             .Where(a => a.SubjectId == firstDispute.ToString()).Select(a => a.Data).ToList();
@@ -520,6 +534,47 @@ public sealed class CrDisputeRetryTests(DatabaseFixture db)
         (await VendorRows.PlatformAuditsAsync(db.OwnerConnectionString, otherAdmin, "vendor.dispute_identity_provider", Ct))
             .Where(a => a.SubjectId == firstDispute.ToString()).Select(a => a.Data)
             .ShouldContain(d => d.Contains("\"outcome\": \"superseded\""));
+    }
+
+    [Fact]
+    public async Task A_slower_retry_does_not_overwrite_a_superseded_outcome()
+    {
+        // Fourth review, finding 1: a retry that started while its claimant was still the vendor admin runs its removals;
+        // meanwhile a later uphold moves the company and a parallel retry marks the dispute superseded. The slower retry's
+        // outcome ("updated") must not replace "superseded" (migration 0027); it is told the dispute was superseded, and its
+        // entry says the outcome was not recorded.
+        var (_, squatter, crNumber) = await VendorAsync("Slower Retry Co");
+        var first = Guid.NewGuid().ToString();
+        var second = Guid.NewGuid().ToString();
+        var admin = $"platform-admin-{Guid.NewGuid():N}";
+        var otherAdmin = $"platform-admin-{Guid.NewGuid():N}";
+        var accounts = new FakeVendorAccounts { FailRevoke = true };
+        accounts.Memberships[(squatter, Acme)] = true;
+        await using var host = Host(accounts);
+        var firstDispute = await RaiseAsync(host, first, crNumber);
+        (await UpholdAsync(host, firstDispute, admin)).IdentityProviderUpdated.ShouldBeFalse("the squatter's access was not taken back");
+        accounts.FailRevoke = false;
+
+        CrDisputeRetry? inner = null;
+        accounts.OnRevoke = async g =>
+        {
+            if (g.UserId == squatter && inner is null)
+            {
+                inner = CrDisputeRetry.StillFailing;
+                (await UpholdAsync(host, await RaiseAsync(host, second, crNumber), admin)).IdentityProviderUpdated.ShouldBeTrue();
+                inner = await RetryAsync(host, firstDispute, otherAdmin);
+            }
+        };
+
+        var outer = await RetryAsync(host, firstDispute, admin);
+
+        inner.ShouldBe(CrDisputeRetry.Superseded);
+        outer.ShouldBe(CrDisputeRetry.Superseded);
+        ((string)(await OwnerScalarAsync("select idp_outcome from vendor.cr_disputes where id = @id", firstDispute))!).ShouldBe("superseded");
+        (await ListedAsync(host, admin)).ShouldNotContain(firstDispute);
+        var outerAudits = (await VendorRows.PlatformAuditsAsync(db.OwnerConnectionString, admin, "vendor.dispute_identity_provider", Ct))
+            .Where(a => a.SubjectId == firstDispute.ToString() && a.Data.Contains("\"retry\": \"true\"")).Select(a => a.Data).ToList();
+        outerAudits.ShouldHaveSingleItem().ShouldContain("\"outcome\": \"not_recorded_superseded\"");
     }
 
     private static async Task JoinRefusedAsync(ModuleHost host, Guid companyId, string claimant, string code)
