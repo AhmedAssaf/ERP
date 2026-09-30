@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Npgsql;
+using Platform.Modules.Identity.Activity;
 using Platform.Modules.Identity.Contracts;
 using Platform.Modules.Identity.Keycloak;
 using Platform.Modules.Identity.Members;
@@ -109,6 +111,29 @@ public static partial class IdentityModule
         services.AddScoped<IMembershipRevalidation>(sp =>
             ActivatorUtilities.CreateInstance<MembershipRevalidator>(sp, sp.GetRequiredService<RevocationAuditWriter>()));
         services.AddHostedService<RevocationAuditRetry>();
+        // W-10 (spec 6.4): hourly activity buckets for the active-user counts, written through the scope's own connection.
+        services.TryAddSingleton<ActivityThrottle>();
+        services.AddScoped<IUserActivityRecorder, UserActivityRecorder>();
+        services.TryAddScoped<IUserActivityCounts, UserActivityCounts>();
+        return services;
+    }
+
+    /// <summary>
+    /// The worker's part of the active-user counts (W-10, spec 6.4): <see cref="IUserActivityCounts"/> over this module's
+    /// database context, without anything else of the module (no claims transformation, no Keycloak settings). The worker
+    /// calls it instead of <see cref="AddIdentityModule"/>; a host that calls both gets one registration.
+    /// </summary>
+    public static IServiceCollection AddIdentityActivityCounts(this IServiceCollection services, string connectionString)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
+        services.TryAddSingleton(TimeProvider.System);
+        if (!services.Any(d => d.ServiceType == typeof(IDbContextFactory<MembersDbContext>)))
+        {
+            services.AddModuleDbContext<MembersDbContext>(connectionString);
+        }
+
+        services.TryAddScoped<IUserActivityCounts, UserActivityCounts>();
         return services;
     }
 

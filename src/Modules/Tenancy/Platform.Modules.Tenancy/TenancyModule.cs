@@ -31,6 +31,8 @@ public static class TenancyModule
         services.AddSingleton<ITenantDirectory, TenantDirectory>();
         // Scoped: it reads the scope's platform mark (IPlatformRequestContext from AddPlatformShared).
         services.AddScoped<ITenantCatalog, TenantCatalog>();
+        // W-10: slugs by id for the worker's usage job, which is not a platform console request (ITenantSlugs).
+        services.AddScoped<ITenantSlugs, TenantSlugs>();
         // F-02: needs IAuditWriter (Audit module) and IObjectStorage (AddPlatformShared, configured by AddObjectStorage).
         services.AddScoped<IBrandingService, BrandingService>();
         return services;

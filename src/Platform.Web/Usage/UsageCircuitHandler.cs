@@ -13,6 +13,11 @@ namespace Platform.Web.Usage;
 /// connection. A disconnected circuit held for reconnection does not count; a reconnection counts again; a circuit whose
 /// session W-21 ended does not count, and a reconnection of it does not count either. One handler per circuit scope, so
 /// the handler itself is the circuit's key in the registry.
+/// <para>
+/// Active users (spec 6.4): every inbound activity of a counted staff or vendor circuit (an event, a navigation) records
+/// the circuit's user as active through <see cref="IUserActivityRecorder"/>, at most once an hour, so a user working in one
+/// long circuit counts; the recorder never throws, and the activity itself always runs.
+/// </para>
 /// </summary>
 internal sealed class UsageCircuitHandler(
     IHttpContextAccessor httpContextAccessor,
@@ -20,7 +25,8 @@ internal sealed class UsageCircuitHandler(
     IVendorAccessor vendor,
     IPlatformRequestContext platform,
     CircuitSessionGuard guard,
-    ConnectedCircuits registry) : CircuitHandler
+    ConnectedCircuits registry,
+    IUserActivityRecorder activity) : CircuitHandler
 {
     private bool _classified;
     private UsageKind? _kind;
@@ -49,6 +55,17 @@ internal sealed class UsageCircuitHandler(
         registry.Remove(this);
         return Task.CompletedTask;
     }
+
+    public override Func<CircuitInboundActivityContext, Task> CreateInboundActivityHandler(Func<CircuitInboundActivityContext, Task> next) =>
+        async context =>
+        {
+            if (!guard.Ended && Classify() is UsageKind.Staff or UsageKind.Vendor)
+            {
+                await activity.RecordAsync(_kind == UsageKind.Vendor ? ActivityKind.Vendor : ActivityKind.Staff, CancellationToken.None);
+            }
+
+            await next(context);
+        };
 
     /// <summary>The circuit's kind, or null when it is not counted; classified once, on the first connection request seen.</summary>
     private UsageKind? Classify()

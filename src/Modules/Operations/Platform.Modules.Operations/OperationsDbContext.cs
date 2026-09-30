@@ -4,8 +4,9 @@ namespace Platform.Modules.Operations;
 
 /// <summary>
 /// Platform-level tables (ops schema): no tenant_id, no query filter. The tenant connection interceptor still runs
-/// (AddModuleDbContext) and sets an empty tenant when none is set, which is harmless here since there is no RLS
-/// policy on these tables (spec section 6): access is guarded by grants only.
+/// (AddModuleDbContext) and sets an empty tenant when none is set. Health results and incidents are guarded by grants
+/// only (spec section 6); the platform audit (operations 0004) and the active-user counts (0006, W-10) are also under
+/// forced row-level security that admits only a session with neither a tenant nor a vendor context.
 /// </summary>
 internal sealed class OperationsDbContext(DbContextOptions<OperationsDbContext> options) : DbContext(options)
 {
@@ -14,6 +15,8 @@ internal sealed class OperationsDbContext(DbContextOptions<OperationsDbContext> 
     public DbSet<IncidentRow> Incidents => Set<IncidentRow>();
 
     public DbSet<PlatformAuditRow> PlatformAudit => Set<PlatformAuditRow>();
+
+    public DbSet<Usage.ActiveUserCountRow> ActiveUserCounts => Set<Usage.ActiveUserCountRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -40,6 +43,13 @@ internal sealed class OperationsDbContext(DbContextOptions<OperationsDbContext> 
             e.HasKey(x => x.Id);
             e.Property(x => x.Id).ValueGeneratedNever();
             e.Property(x => x.Data).HasColumnType("jsonb");
+        });
+
+        // W-10 (operations 0006): no key; the usage job replaces every row with raw SQL, the console only reads.
+        modelBuilder.Entity<Usage.ActiveUserCountRow>(e =>
+        {
+            e.ToTable("active_user_counts");
+            e.HasNoKey();
         });
     }
 }

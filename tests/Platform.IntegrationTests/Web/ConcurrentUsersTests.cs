@@ -209,6 +209,12 @@ public sealed class ConcurrentUsersTests : IDisposable
     private (UsageCircuitHandler Handler, CircuitSessionGuard Guard) Circuit(UsageSession session)
     {
         var guard = session.Guard();
-        return (new UsageCircuitHandler(session.Connection(), session.Tenants, session.Vendor, session.Platform, guard, _registry), guard);
+        return (new UsageCircuitHandler(session.Connection(), session.Tenants, session.Vendor, session.Platform, guard, _registry, new NoActivity()), guard);
+    }
+
+    /// <summary>Concurrent users only; recording activity is the active-user tests' concern.</summary>
+    private sealed class NoActivity : Platform.Modules.Identity.Contracts.IUserActivityRecorder
+    {
+        public Task RecordAsync(Platform.Modules.Identity.Contracts.ActivityKind kind, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 }

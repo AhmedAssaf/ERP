@@ -24,6 +24,7 @@ public sealed class MigrationOwnerGuardTests(DatabaseFixture db)
         { "vendors", "0014_vendors_function_callers.sql" },
         { "tenancy", "0008_tenancy_branding_vendor_users_and_owner.sql" },
         { "operations", "0005_operations_owner_guard.sql" },
+        { "identity", "0003_identity_user_activity.sql" },
     };
 
     [Theory]
@@ -80,6 +81,7 @@ public sealed class MigrationOwnerGuardTests(DatabaseFixture db)
             "vendors" => typeof(VendorsModule).Assembly,
             "tenancy" => typeof(TenancyModule).Assembly,
             "operations" => typeof(OperationsModule).Assembly,
+            "identity" => typeof(Platform.Modules.Identity.IdentityModule).Assembly,
             _ => throw new ArgumentOutOfRangeException(nameof(module), module, null),
         };
 

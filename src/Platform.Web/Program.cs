@@ -215,6 +215,8 @@ app.UseMiddleware<VendorHomeRedirectMiddleware>();
 app.UseAuthorization();
 app.UseMiddleware<PlatformAdminEverywhereMiddleware>();
 app.UseMiddleware<VendorContextMiddleware>();
+// W-10 (spec 6.4): after the vendor context, an authorized staff or vendor request marks its user active for the hour.
+app.UseMiddleware<UserActivityMiddleware>();
 app.UseAntiforgery();
 // After the vendor context: the upload API's limit is partitioned by the vendor company.
 app.UseRateLimiter();

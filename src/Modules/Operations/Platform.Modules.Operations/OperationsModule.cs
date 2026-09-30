@@ -2,12 +2,14 @@ using Hangfire;
 using Hangfire.States;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Npgsql;
 using Platform.Modules.Operations.Alerts;
 using Platform.Modules.Operations.Contracts;
 using Platform.Modules.Operations.PlatformConsole;
 using Platform.Modules.Operations.Health;
+using Platform.Modules.Operations.Usage;
 using Platform.Shared;
 using Platform.Shared.Data;
 
@@ -18,6 +20,11 @@ public static class OperationsModule
     /// <summary>The recurring job id used by <see cref="ScheduleHealthCheckJob"/> (plan task 3).</summary>
     public const string HealthCheckJobId = "health-check";
 
+    /// <summary>The recurring job ids of the usage metrics (W-10, <see cref="ScheduleUsageMetricsJobs"/>).</summary>
+    public const string UsageMetricsJobId = "usage-metrics";
+
+    public const string UsageActivityPruneJobId = "usage-activity-prune";
+
     public static IServiceCollection AddOperationsModule(this IServiceCollection services, string connectionString)
     {
         ArgumentNullException.ThrowIfNull(services);
@@ -25,7 +32,36 @@ public static class OperationsModule
         services.AddModuleDbContext<OperationsDbContext>(connectionString);
         services.AddScoped<IHealthLog, HealthLog>();
         services.AddScoped<IPlatformAudit, PlatformAuditWriter>();
+        // W-10 (spec 6.6): the usage job's stored result, read by the console usage page.
+        services.AddScoped<UsageLog>();
+        services.AddScoped<IUsageLog>(sp => sp.GetRequiredService<UsageLog>());
         return services;
+    }
+
+    /// <summary>
+    /// The usage job of the worker (W-10, spec 6.4): <see cref="UsageMetricsJob"/> and the <see cref="UsageSnapshot"/> whose
+    /// gauges publish its result on meter <c>WaslaBid.Usage</c>. Needs the Identity module's activity counts
+    /// (<c>AddIdentityActivityCounts</c>), the Tenancy module (slugs) and the host's meter factory.
+    /// </summary>
+    public static IServiceCollection AddOperationsUsageMetrics(this IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        services.TryAddSingleton(TimeProvider.System);
+        services.AddSingleton<UsageSnapshot>();
+        services.AddScoped<UsageMetricsJob>();
+        return services;
+    }
+
+    /// <summary>
+    /// Schedules "usage-metrics" every five minutes and "usage-activity-prune" once a day (spec 6.4). Call once after the
+    /// worker host is built.
+    /// </summary>
+    public static void ScheduleUsageMetricsJobs(IServiceProvider services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        var jobs = new RecurringJobManager(services.GetRequiredService<JobStorage>());
+        jobs.AddOrUpdate<UsageMetricsJob>(UsageMetricsJobId, job => job.RunAsync(CancellationToken.None), "*/5 * * * *");
+        jobs.AddOrUpdate<UsageMetricsJob>(UsageActivityPruneJobId, job => job.PruneAsync(CancellationToken.None), Cron.Daily());
     }
 
     /// <summary>
