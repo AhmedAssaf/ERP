@@ -25,6 +25,7 @@ internal sealed class JobServerHost : IAsyncDisposable
         string appConnectionString,
         Action<IServiceCollection>? configure = null,
         Action<JobServerSettings>? configureJobServer = null,
+        Action<IHostApplicationBuilder>? configureHost = null,
         CancellationToken cancellationToken = default)
     {
         var serverName = $"test-{Guid.NewGuid():N}";
@@ -38,6 +39,8 @@ internal sealed class JobServerHost : IAsyncDisposable
             options.WorkerCount = 4;
             configureJobServer?.Invoke(options);
         });
+        // The worker's own host-level registrations, such as AddPlatformTelemetry (W-10), before the test's services.
+        configureHost?.Invoke(builder);
         configure?.Invoke(builder.Services);
 
         var host = builder.Build();

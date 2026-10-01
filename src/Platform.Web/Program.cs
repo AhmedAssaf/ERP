@@ -14,6 +14,7 @@ using Platform.Modules.Vendors.Contracts;
 using Platform.Modules.Workflow;
 using Platform.Shared;
 using Platform.Shared.Jobs;
+using Platform.Shared.Telemetry;
 using Platform.UI;
 using Platform.Web.Account;
 using Platform.Web.Branding;
@@ -21,6 +22,7 @@ using Platform.Web.Components;
 using Platform.Web.Edge;
 using Platform.Web.Localization;
 using Platform.Web.PlatformHost;
+using Platform.Web.Telemetry;
 using Platform.Web.Tenancy;
 using Platform.Web.Usage;
 using Platform.Web.Vendor;
@@ -46,6 +48,12 @@ if (!builder.Environment.IsDevelopment() && !builder.Environment.IsEnvironment("
         }
     }
 }
+
+// W-10 (spec O-3 to O-6, O-16): traces and metrics through OpenTelemetry, logs through Serilog as a logging provider, all
+// over OTLP only when Telemetry:OtlpEndpoint is set; outside Development and Testing no console output. Requests to /health,
+// /alive, the framework's files and static assets get no span.
+builder.AddPlatformTelemetry(TelemetryNames.Services.Web);
+builder.AddWebTelemetry();
 
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 builder.Services.AddProblemDetails();

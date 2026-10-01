@@ -1,10 +1,11 @@
 namespace Platform.Shared.Telemetry;
 
 /// <summary>
-/// Names of the telemetry the platform emits (W-10, spec <c>docs/superpowers/specs/2026-09-30-observability-design.md</c>).
-/// This file holds the business metrics of spec 6.1 on meter <see cref="UsageMeter"/>: every instrument, tag and tag value,
-/// the tender ones included, so the tender slices publish under the same constants. The pipeline's own names (resource,
-/// trace and log attributes of spec 5 and O-9) join this class with plan task 1.
+/// Names of the telemetry the platform emits (W-10, spec <c>docs/superpowers/specs/2026-09-30-observability-design.md</c>):
+/// the pipeline's own names (resource, sources and meters, trace and log attributes, technical metrics; spec section 5 and
+/// O-9) in <see cref="Services"/>, <see cref="Resource"/>, <see cref="Sources"/>, <see cref="Attributes"/>,
+/// <see cref="Metrics"/> and <see cref="MetricTags"/>, and the business metrics of spec 6.1 on meter <see cref="UsageMeter"/>:
+/// every instrument, tag and tag value, the tender ones included, so the tender slices publish under the same constants.
 /// </summary>
 /// <remarks>
 /// Label rules (O-19): tags take the tenant slug and the small fixed value sets below only; never a user id, a vendor
@@ -13,6 +14,106 @@ namespace Platform.Shared.Telemetry;
 /// </remarks>
 public static class TelemetryNames
 {
+    /// <summary>The <c>service.name</c> of each host (spec 5.1).</summary>
+    public static class Services
+    {
+        public const string Web = "waslabid-web";
+        public const string Worker = "waslabid-worker";
+    }
+
+    /// <summary>Resource attributes every record carries (spec 5.1; OpenTelemetry semantic conventions).</summary>
+    public static class Resource
+    {
+        public const string ServiceName = "service.name";
+
+        /// <summary>The host assembly's informational version: the git commit in CI builds.</summary>
+        public const string ServiceVersion = "service.version";
+
+        public const string ServiceInstanceId = "service.instance.id";
+
+        /// <summary><c>development</c>, <c>pilot</c>: setting <c>Telemetry:Environment</c>, by default the host environment in lower case.</summary>
+        public const string DeploymentEnvironment = "deployment.environment.name";
+    }
+
+    /// <summary>
+    /// The platform's own activity sources and meters (spec 5.2, 5.4). Both hosts register every name under
+    /// <see cref="OwnPrefix"/>, so a new <c>WaslaBid.*</c> source or meter is exported without touching the registration.
+    /// </summary>
+    public static class Sources
+    {
+        /// <summary>The wildcard both hosts register for traces and metrics.</summary>
+        public const string OwnPrefix = "WaslaBid.*";
+
+        /// <summary>Hangfire job spans and the job metrics (plan task 2).</summary>
+        public const string Jobs = "WaslaBid.Jobs";
+
+        /// <summary>The health job's run and check spans and the health metrics (plan task 4).</summary>
+        public const string Operations = "WaslaBid.Operations";
+
+        /// <summary>Npgsql's built-in activity source and meter: statement text only, never parameter values.</summary>
+        public const string Npgsql = "Npgsql";
+    }
+
+    /// <summary>
+    /// Context on every span and log record (O-9): pseudonymous ids only, never an email, a name, a CR or national id
+    /// number, a file name or offer content.
+    /// </summary>
+    public static class Attributes
+    {
+        /// <summary>The host tenant's id (tenant hosts).</summary>
+        public const string TenantId = "waslabid.tenant.id";
+
+        /// <summary>The host tenant's slug (tenant hosts); the same key as the business metrics' <see cref="Tags.TenantSlug"/>.</summary>
+        public const string TenantSlug = Tags.TenantSlug;
+
+        /// <summary>The Keycloak <c>sub</c> of the signed-in user, after sign-in (Q7: pseudonymous ids kept).</summary>
+        public const string UserId = "user.id";
+
+        /// <summary>The vendor company of a vendor request.</summary>
+        public const string VendorCompanyId = "waslabid.vendor_company.id";
+
+        /// <summary>The Hangfire job id (worker).</summary>
+        public const string JobId = "waslabid.job.id";
+
+        /// <summary>The job's <c>Type.Method</c> (worker).</summary>
+        public const string JobType = "waslabid.job.type";
+
+        /// <summary>The component F-53 groups errors by, derived from the logger category (spec 5.3).</summary>
+        public const string Component = "waslabid.component";
+
+        /// <summary>The exception's type on a failed span or job (OpenTelemetry semantic conventions).</summary>
+        public const string ExceptionType = "exception.type";
+    }
+
+    /// <summary>The technical metrics of spec 5.4; they never carry a tenant label.</summary>
+    public static class Metrics
+    {
+        /// <summary>Hangfire job duration, tag <see cref="MetricTags.JobType"/>.</summary>
+        public const string JobsDuration = "waslabid.jobs.duration";
+
+        /// <summary>Hangfire job failures, tag <see cref="MetricTags.JobType"/>.</summary>
+        public const string JobsFailed = "waslabid.jobs.failed";
+
+        /// <summary>Each health result: 0 Healthy, 1 Degraded, 2 Unhealthy; tag <see cref="MetricTags.Component"/>.</summary>
+        public const string HealthStatus = "waslabid.health.status";
+
+        /// <summary>Each health check's duration; tag <see cref="MetricTags.Component"/>.</summary>
+        public const string HealthCheckDuration = "waslabid.health.check.duration";
+    }
+
+    /// <summary>
+    /// Tag keys of the technical metrics, as spec 5.4 writes them. Spec 5.4 names the job metrics' tag <c>job.type</c>
+    /// while O-9 names the span and log attribute <see cref="Attributes.JobType"/>; both are kept as written until the
+    /// spec settles one.
+    /// </summary>
+    public static class MetricTags
+    {
+        public const string JobType = "job.type";
+
+        /// <summary>A <c>HealthComponents</c> name.</summary>
+        public const string Component = "component";
+    }
+
     /// <summary>The meter of the business metrics (spec 6.1).</summary>
     public const string UsageMeter = "WaslaBid.Usage";
 
