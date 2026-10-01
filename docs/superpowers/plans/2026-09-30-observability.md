@@ -2,49 +2,55 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** draft for the user's review (2026-09-30). Do not start until the user has answered the open questions in spec section 11, or has said to build on the recommendations. Where an answer changes a task, the task says how.
+**Status:** approved by the user on 2026-10-01 with the answers to spec section 11 (Q1 to Q8; ADR-0014). Tasks 5 to 7 were built on branch `w-10-observability` and merged in PR #6 on 2026-10-01. The rest (tasks 1 to 4, 7b and 8 to 10) is being built on branch `w-10-pipeline`, worktree `C:\Repo\ERP-w10-pipeline`. Task 11 is dropped (Q1: no Sentry).
 
-**Goal:** The web host and the worker emit redacted logs, traces and metrics with tenant, user, job and trace ids through an OpenTelemetry Collector to Loki, Tempo and Prometheus, readable in Grafana; `/alive` beside `/health`; a dead pipeline alerts through F-60; concurrent and active users per tenant and kind on a console page `/platform/usage` and a provisioned Grafana dashboard "WaslaBid usage", with the tender and opportunity metrics named for the tender slices (spec section 6).
+**Goal:** The web host and the worker emit redacted logs (Serilog as a `Microsoft.Extensions.Logging` provider, OTLP sink) and traces and metrics (OpenTelemetry SDK) with tenant, user, job and trace ids through an OpenTelemetry Collector to Elasticsearch, readable in Kibana; `/alive` beside `/health`; a dead pipeline alerts through F-60; concurrent and active users per tenant and kind on a console page `/platform/usage` and a Kibana dashboard "WaslaBid usage" linked from it, with the tender and opportunity metrics named for the tender slices (spec section 6).
 
-**Architecture:** Shared telemetry registration in `Platform.Shared/Telemetry` (resource, log provider, redaction processors, job telemetry), web-only parts in `Platform.Web/Telemetry` (ASP.NET Core instrumentation, request and circuit context, inbound trace context, correlation header, `/alive`), the Telemetry health check in the Operations module, five services in `infra/compose`. Business metrics: the circuit registry, the activity middleware and the usage page in `Platform.Web/Usage` and `Components/Pages/Console`, the activity table and its counting functions in the Identity module, the usage job and `ops.active_user_counts` in the Operations module, `StatTile` in `Platform.UI`. No new module or schema; two tables and one console page (spec Q11).
+**Architecture:** Shared telemetry registration in `Platform.Shared/Telemetry` (resource, the Serilog logger and its provider registration, the redaction enricher, destructuring policy and span processor, job telemetry), web-only parts in `Platform.Web/Telemetry` (ASP.NET Core instrumentation, request and circuit context, inbound trace context, correlation header, `/alive`), the Telemetry health check in the Operations module, four services in `infra/compose` (collector, Elasticsearch, Kibana, the one-shot `elastic-setup`). Business metrics: the circuit registry, the activity middleware and the usage page in `Platform.Web/Usage` and `Components/Pages/Console`, the activity table and its counting functions in the Identity module, the usage job and `ops.active_user_counts` in the Operations module, `StatTile` in `Platform.UI`. No new module or schema; two tables and one console page (spec Q11).
 
-**Tech Stack:** as the vendor slice, plus the OpenTelemetry .NET SDK (`OpenTelemetry.Extensions.Hosting`, `OpenTelemetry.Exporter.OpenTelemetryProtocol`, `OpenTelemetry.Instrumentation.AspNetCore`, `OpenTelemetry.Instrumentation.Http`; tests: `OpenTelemetry.Exporter.InMemory`), Npgsql's built-in `Npgsql` activity source and meter, the OpenTelemetry Collector, Loki 3, Tempo, Prometheus 3, Grafana. No Serilog and no Sentry SDK unless the user decides otherwise (spec Q1, Q2).
+**Tech Stack:** as the vendor slice, plus the OpenTelemetry .NET SDK for traces and metrics (`OpenTelemetry.Extensions.Hosting`, `OpenTelemetry.Exporter.OpenTelemetryProtocol`, `OpenTelemetry.Instrumentation.AspNetCore`, `OpenTelemetry.Instrumentation.Http`; tests: `OpenTelemetry.Exporter.InMemory`), Serilog for logs (`Serilog`, `Serilog.Extensions.Logging`, `Serilog.Sinks.OpenTelemetry`), Npgsql's built-in `Npgsql` activity source and meter, the OpenTelemetry Collector (contrib distribution, for the `elasticsearch` exporter), Elasticsearch 9.x and Kibana 9.x on the free Basic licence. No Sentry SDK, no OpenTelemetry log provider, no Logstash (ADR-0014).
 
-**Spec:** `docs/superpowers/specs/2026-09-30-observability-design.md` (decisions O-1 to O-26, open questions Q1 to Q12).
+**Spec:** `docs/superpowers/specs/2026-09-30-observability-design.md` (decisions O-1 to O-26, answers Q1 to Q12).
 
 **Style:** like the admin and vendor plans: each task gives files, contracts and the exact tests with their assertions; the implementer writes the code test-first to make them pass and reports every design choice it had to make. Anything that changes an O-decision, a contract, or an existing test's assertion is escalated, not decided.
 
-**Conventions:** worktree `C:\Repo\ERP-w10`, branch `w-10-observability`; commit per task, no AI attribution; test first; `TestContext.Current.CancellationToken` in tests; after each task `dotnet build WaslaBid.slnx -warnaserror`, `dotnet test WaslaBid.slnx` and `dotnet format WaslaBid.slnx --verify-no-changes` are green (Docker running for Testcontainers); new packages pinned in `Directory.Packages.props` at the current stable version with an OSV advisory check recorded in a comment, as the existing entries do; images pinned by version and digest, as Mailpit is; no secret value in any output (N-10).
+**Conventions:** worktree `C:\Repo\ERP-w10-pipeline`, branch `w-10-pipeline` (tasks 5 to 7 were built in `C:\Repo\ERP-w10` on `w-10-observability`); commit per task, no AI attribution; test first; `TestContext.Current.CancellationToken` in tests; after each task `dotnet build WaslaBid.slnx -warnaserror`, `dotnet test WaslaBid.slnx` and `dotnet format WaslaBid.slnx --verify-no-changes` are green (Docker running for Testcontainers); new packages pinned in `Directory.Packages.props` at the current stable version with an OSV advisory check recorded in a comment, as the existing entries do; images pinned by version and digest, as Mailpit is; no secret value in any output (N-10).
 
-**Order:** tasks 1 to 7 (developer) in sequence; task 8 (devops) can run beside them; task 9 after 1 to 8; task 10 (qa-engineer) last; task 11 only if Q1 keeps a Sentry-protocol service. Reviewer after each developer task; pentester after task 10, before the merge (redaction, the new endpoints, the activity table's row-level security and the usage page are security-sensitive). Delivery in two pull requests (spec Q6): the pipeline (tasks 1 to 4 and 8, with their parts of 9 and 10), then the business metrics (tasks 5 to 7 and the rest of 8 to 10).
+**Order:** tasks 1 to 4 and 7b (developer) in sequence; task 8 (devops) can run beside them; task 9 after 1 to 8; task 10 (qa-engineer) last; task 11 dropped. Reviewer after each developer task; pentester after task 10, before the merge (redaction, the new endpoints, the Elasticsearch users and roles, and the changed link are security-sensitive). Delivery in two pull requests (spec Q6): PR #6 carried the business metrics (tasks 5 to 7, merged 2026-10-01); the second carries the pipeline (tasks 1 to 4, 7b and 8 to 10).
 
-**Size:** about six days (spec Q6): tasks 1 to 4, 8, 9 and 10 about two and a half days as first drafted; task 5 half a day; task 6 one and a half days; task 7 one day; the usage parts of tasks 8 to 10 half a day. W-10 is re-sized from S to L when the user accepts Q6.
+**Size:** L (spec Q6, 2026-10-01), about six days in all: tasks 5 to 7 (about three days) are done; tasks 1 to 4, 7b and 8 to 10 are about three days, the Elastic setup container included.
 
 ---
 
-### Task 1: Telemetry registration in both hosts (O-3, O-5, O-6, O-15 exclusions, O-16)
+### Task 1: Telemetry registration in both hosts (O-2, O-3, O-5, O-6, O-15 exclusions, O-16)
 
 **Agent:** developer.
 
 **Files:**
-- `src/Platform.Shared/Telemetry/TelemetryModule.cs`: `AddPlatformTelemetry(this IHostApplicationBuilder builder, string serviceName)` registering the resource (`service.name`, `service.version` from `AssemblyInformationalVersionAttribute`, `service.instance.id`, `deployment.environment.name` from `Telemetry:Environment`, default the host environment name in lower case), tracing (sources `Npgsql`, `WaslaBid.*`; `System.Net.Http` through `AddHttpClientInstrumentation`), metrics (meters `System.Runtime`, `Npgsql`, `System.Net.Http`, `WaslaBid.*`), logging (`builder.Logging.AddOpenTelemetry(o => { o.IncludeScopes = true; o.IncludeFormattedMessage = true; })`), and the OTLP exporter only when `Telemetry:OtlpEndpoint` (or the standard `OTEL_EXPORTER_OTLP_ENDPOINT`) is set. `TelemetryNames` constants for every attribute name in spec O-9 and section 5.
+- `src/Platform.Shared/Telemetry/TelemetryModule.cs`: `AddPlatformTelemetry(this IHostApplicationBuilder builder, string serviceName)` registering:
+  - the resource (`service.name`, `service.version` from `AssemblyInformationalVersionAttribute`, `service.instance.id`, `deployment.environment.name` from `Telemetry:Environment`, default the host environment name in lower case), given to both the OpenTelemetry SDK and Serilog's OTLP sink;
+  - tracing (sources `Npgsql`, `WaslaBid.*`; `System.Net.Http` through `AddHttpClientInstrumentation`) and metrics (meters `System.Runtime`, `Npgsql`, `System.Net.Http`, `WaslaBid.*`), with the OTLP exporter only when `Telemetry:OtlpEndpoint` (or the standard `OTEL_EXPORTER_OTLP_ENDPOINT`) is set;
+  - logging through Serilog: a `Logger` built with `MinimumLevel.Verbose()` (the MEL filter rules, W-24's `KeyRing.CapDataProtectionLogging` included, stay the only level gate), `Enrich.FromLogContext()`, the enrichers and destructuring policy of task 3 (task 1 leaves the place for them), `WriteTo.Sink(TelemetryLogSinks)` and, only when the OTLP endpoint is set, `WriteTo.OpenTelemetry(...)` (gRPC, the resource attributes, trace and span ids included); registered only as `builder.Logging.AddSerilog(logger, dispose: true)`. Never `UseSerilog()`, `builder.Host.UseSerilog()` or `services.AddSerilog()`; no `AddOpenTelemetry()` on the logging builder;
+  - `TelemetryLogSinks`: a thread-safe fan-out `ILogEventSink`, a singleton in DI, empty in production; tests add their capture sink to it after the host builds (the hook that keeps `AddSerilog(logger, dispose: true)` literal; another hook is fine if reported);
+  - `TelemetryNames` constants for every attribute name in spec O-9 and section 5.
 - `src/Platform.Web/Telemetry/WebTelemetry.cs`: `AddWebTelemetry()` adding ASP.NET Core instrumentation (filter: no span for `/health`, `/alive`, `/_framework/*`, `/_content/*`, `/_blazor/negotiate` and static asset endpoints) and meters `Microsoft.AspNetCore.Hosting`, `Microsoft.AspNetCore.Server.Kestrel`; `Microsoft.AspNetCore.Components*` sources and meters if .NET 10 publishes them (report which names exist).
-- `src/Platform.Web/Program.cs`, `src/Platform.Worker/Program.cs`: call the registration; outside Development and Testing remove the console provider (`builder.Logging.ClearProviders()` before adding OpenTelemetry, then nothing else) per O-16. Startup failures before the host builds still reach stderr.
+- `src/Platform.Web/Program.cs`, `src/Platform.Worker/Program.cs`: call the registration; outside Development and Testing call `builder.Logging.ClearProviders()` before it, so Serilog is the only provider (O-16, Q8); in Development and Testing MEL's console provider stays beside Serilog. Startup failures before the host builds still reach stderr.
 - `src/Platform.Web/appsettings.Development.json`, `src/Platform.Worker/appsettings.Development.json`: `Telemetry:OtlpEndpoint` = `http://localhost:4317`.
 - `Directory.Packages.props`: the packages named in the header.
-- `tests/Platform.IntegrationTests/Infrastructure/CapturedTelemetry.cs`: a helper that adds in-memory exporters for spans, log records and metrics to a host through `ConfigureTestServices` (`ConfigureOpenTelemetryTracerProvider`, `ConfigureOpenTelemetryMeterProvider`, `ConfigureOpenTelemetryLoggerProvider`), used by tasks 1 to 7.
-
-**If Q2 keeps Serilog:** add `Serilog.Extensions.Logging` and `Serilog.Sinks.OpenTelemetry` and register Serilog only through `builder.Logging.AddSerilog(logger, dispose: true)`; add the test `Serilog_is_a_logging_provider_and_never_replaces_the_logger_factory` (the resolved `ILoggerFactory` is `Microsoft.Extensions.Logging.LoggerFactory`).
+- `tests/Platform.IntegrationTests/Infrastructure/CapturedTelemetry.cs`: a helper for a host: spans and metrics through the OpenTelemetry in-memory exporters (`ConfigureOpenTelemetryTracerProvider`, `ConfigureOpenTelemetryMeterProvider` in `ConfigureTestServices`); logs through `CapturingLogSink`, an in-memory Serilog `ILogEventSink` (a thread-safe list of `LogEvent`) added to `TelemetryLogSinks`, so a test sees each event after the redaction enricher, as the OTLP sink does. Used by tasks 1 to 7b.
 
 **Tests (integration unless noted):**
+- `Serilog_is_a_logging_provider_and_never_replaces_the_logger_factory`: in the web host and the worker (through `JobServerHost`), the resolved `ILoggerFactory` is `Microsoft.Extensions.Logging.LoggerFactory`; the registered `ILoggerProvider`s include `SerilogLoggerProvider` exactly once and no `OpenTelemetryLoggerProvider`.
+- Unit: `No_code_replaces_the_logger_factory_with_serilog`: scans every `*.cs` under `src/` (with `TestRepo`): `UseSerilog(` appears nowhere, and the only `AddSerilog(` is `builder.Logging.AddSerilog(` in `TelemetryModule.cs`.
+- `The_mel_filter_rules_are_the_only_level_gate`: with `Logging:LogLevel:Default` = `Warning`, an Information record is not captured; with `Debug` for one category, a Debug record of that category is captured.
 - `A_tenant_request_produces_one_server_span_with_its_route_and_status`: GET a tenant page on acme; exactly one server span, `http.route` set, `http.response.status_code` 200.
 - `Health_alive_and_framework_requests_produce_no_span`.
 - `A_database_call_during_a_request_is_a_child_span_without_parameter_values`: a staff page that queries; a child span from source `Npgsql` exists; no tag value contains the test tenant's id as a literal parameter (the statement text uses placeholders).
-- `Both_hosts_name_their_service_version_and_environment_in_the_resource`: web and worker (through `JobServerHost`) resources carry `service.name` `waslabid-web` and `waslabid-worker`, a non-empty `service.version`, and `deployment.environment.name`.
-- `Without_an_otlp_endpoint_the_host_starts_and_registers_no_otlp_exporter`.
+- `Both_hosts_name_their_service_version_and_environment_in_the_resource`: web and worker resources carry `service.name` `waslabid-web` and `waslabid-worker`, a non-empty `service.version`, and `deployment.environment.name`.
+- `Without_an_otlp_endpoint_the_host_starts_and_registers_no_otlp_exporter` (neither the OpenTelemetry exporter nor Serilog's OTLP sink).
 - `With_the_collector_unreachable_requests_still_succeed`: endpoint set to an unused local port; 20 requests all 200; the host does not throw on shutdown.
 - `Outside_development_no_console_log_provider_is_registered` (environment `Production` through `PlatformWebFactory`); `In_development_the_console_log_provider_stays`.
-- Unchanged and green: `A_host_that_would_log_the_key_ring_below_information_does_not_start`, `The_worker_and_the_projects_it_is_built_from_do_not_load_the_key_ring`, `The_worker_does_not_reference_the_web_host` (the worker must not gain an ASP.NET Core framework reference through `Platform.Shared`; the ASP.NET Core instrumentation stays in `Platform.Web`).
+- Unchanged and green: `A_host_that_would_log_the_key_ring_below_information_does_not_start`, `A_key_the_host_cannot_decrypt_is_never_written_whole_to_a_log_even_at_trace_level`, `The_worker_and_the_projects_it_is_built_from_do_not_load_the_key_ring`, `The_worker_does_not_reference_the_web_host` (the worker must not gain an ASP.NET Core framework reference through `Platform.Shared`; the ASP.NET Core instrumentation stays in `Platform.Web`).
 
 **Verify:** `dotnet build WaslaBid.slnx -warnaserror`, `dotnet test WaslaBid.slnx`, `dotnet format WaslaBid.slnx --verify-no-changes`.
 
@@ -55,7 +61,7 @@
 **Agent:** developer.
 
 **Files:**
-- `src/Platform.Web/Telemetry/RequestTelemetryMiddleware.cs`: runs right after `TenantMiddleware`; when a tenant is set, tags the server span (`waslabid.tenant.id`, `waslabid.tenant.slug`) and opens a log scope with the same pair for the rest of the request; registers `Response.OnStarting` to add `X-Correlation-Id` = `Activity.Current.TraceId` (hex, 32 characters) on every response, platform host and `/health` included.
+- `src/Platform.Web/Telemetry/RequestTelemetryMiddleware.cs`: runs right after `TenantMiddleware`; when a tenant is set, tags the server span (`waslabid.tenant.id`, `waslabid.tenant.slug`) and opens a log scope with the same pair for the rest of the request (the Serilog provider turns scope entries into event properties); registers `Response.OnStarting` to add `X-Correlation-Id` = `Activity.Current.TraceId` (hex, 32 characters) on every response, platform host and `/health` included.
 - `src/Platform.Web/Telemetry/UserTelemetryMiddleware.cs`: runs after `ActingUserMiddleware`; adds `user.id` (the `sub` claim, never `email`, `preferred_username` or `name`) to the span and a nested scope; after `VendorContextMiddleware`, `waslabid.vendor_company.id` when a vendor context is set (one middleware with two entry points is fine; report the choice).
 - `src/Platform.Web/Telemetry/UntrustedTraceContextPropagator.cs`: a `DistributedContextPropagator` registered in DI for the web host that extracts nothing from inbound requests (so every request starts its own trace) and injects normally on outbound calls.
 - `src/Platform.Web/Telemetry/CircuitTelemetryHandler.cs`: a `CircuitHandler` ordered after `TenantCircuitHandler`, using `CreateInboundActivityHandler` to open the same tenant, user and vendor scope around every inbound circuit activity.
@@ -65,16 +71,16 @@
 - `src/Platform.Web/Program.cs`: the middleware in the order above; `app.UseMiddleware<RequestTelemetryMiddleware>()` directly after `TenantMiddleware`.
 - `src/Platform.Web/Components/Pages/Dev/Throw.razor` or a minimal endpoint `GET /dev/throw` (Development only, behind the existing `/dev` 404 outside Development) that throws `InvalidOperationException("Deliberate failure for the W-10 checks.")`, used by task 10.
 
-**Tests (integration; logs through the in-memory log exporter):**
-- `A_log_written_during_a_tenant_request_carries_the_tenant_id_slug_and_trace_id`.
-- `A_log_written_after_sign_in_carries_the_user_id_and_never_the_email`: test principal with `sub` and `email`; the record has `user.id` = sub; no attribute or message contains the email.
-- `A_vendor_request_log_carries_the_vendor_company_id`.
+**Tests (integration; logs as events captured by `CapturingLogSink`, asserting on their properties and `TraceId`):**
+- `A_log_written_during_a_tenant_request_carries_the_tenant_id_slug_and_trace_id`: the event has properties `waslabid.tenant.id` and `waslabid.tenant.slug`, and its `TraceId` equals the server span's.
+- `A_log_written_after_sign_in_carries_the_user_id_and_never_the_email`: test principal with `sub` and `email`; the event has property `user.id` = sub; no property value or rendered message contains the email.
+- `A_vendor_request_log_carries_the_vendor_company_id` (property `waslabid.vendor_company.id`).
 - `A_platform_host_request_carries_no_tenant_id`.
 - `Every_response_carries_its_trace_id_as_the_correlation_id`: tenant page, platform page, `/health`, and a 404 on an unknown host all carry `X-Correlation-Id`; for the tenant page it equals the captured server span's trace id.
 - `A_traceparent_sent_by_a_client_does_not_become_the_request_trace_id`.
 - `A_log_written_inside_a_circuit_event_carries_the_tenant_id`: invoke the handler's inbound activity delegate around a logging call (the pattern of `CircuitRevalidationTests`).
 - `A_job_enqueued_during_a_request_continues_that_requests_trace`: enqueue from an acme request scope in the web factory, run it on a `JobServerHost` against the same database; the job span's trace id equals the request's.
-- `A_log_written_inside_a_job_carries_the_job_id_type_and_tenant_id`.
+- `A_log_written_inside_a_job_carries_the_job_id_type_and_tenant_id` (properties `waslabid.job.id`, `waslabid.job.type`, `waslabid.tenant.id`).
 - `A_failed_job_marks_its_span_as_an_error_with_the_exception_type_and_no_arguments`.
 - `A_recurring_job_without_a_request_starts_its_own_trace`.
 - `The_deliberate_failure_endpoint_is_not_served_outside_development` (404 in `Testing` and `Production`).
@@ -90,21 +96,22 @@
 
 **Files:**
 - `src/Platform.Shared/Telemetry/TelemetryRedactor.cs`: `string Redact(string value)`, pure and allocation-light: emails to `[email]`; runs of ten or more digits not inside a hexadecimal or dashed run to `[digits]` (Western and Arabic-Indic digits); JWTs (`eyJ` base64url with two dots) and `Bearer <token>` to `[token]`; `password=`, `pwd=`, `secret=`, `apikey=` key-value pairs (case-insensitive, up to `;`, `&` or whitespace) to `key=[secret]`.
-- `src/Platform.Shared/Telemetry/RedactingLogProcessor.cs`: `BaseProcessor<LogRecord>`: redacts `FormattedMessage`, `Body` and string attribute values; for an exception, replaces `LogRecord.Exception` with attributes `exception.type`, `exception.message` (redacted) and `exception.stacktrace` (redacted), so the exporter never serialises the raw message (if the SDK version does not allow that, stop and report).
-- `src/Platform.Shared/Telemetry/RedactingSpanProcessor.cs`: `OnEnd`: removes `url.query`, redacts `url.full` (query part dropped) and every string tag and exception event message.
-- `src/Platform.Shared/Telemetry/ComponentAttribute.cs` plus a log processor adding `waslabid.component` from the category by the table in spec section 5.3 (the category is `LogRecord.CategoryName`).
-- Registered last in both pipelines, so they run just before export.
+- `src/Platform.Shared/Telemetry/RedactingEnricher.cs`: a Serilog `ILogEventEnricher`, registered after every other enricher: redacts every string scalar property value (also inside structure, sequence and dictionary values); for an event with an exception, adds `exception.type` (full type name), `exception.message` and `exception.stacktrace` (both redacted; the stack from `Exception.ToString()`).
+- `src/Platform.Shared/Telemetry/RedactingDestructuringPolicy.cs`: a Serilog `IDestructuringPolicy`: a value logged with `{@...}` is destructured with every string member redacted; `HttpRequest`, `HttpContext`, `IFormCollection`, `IHeaderDictionary`, `ClaimsPrincipal` and `Stream` are refused (logged as their type name only); the logger also sets `Destructure.ToMaximumDepth(4)`, `ToMaximumStringLength(4096)` and `ToMaximumCollectionCount(32)`.
+- `src/Platform.Shared/Telemetry/RedactedEventSink.cs`: wraps both the OTLP sink and `TelemetryLogSinks`. An enricher cannot replace Serilog's `LogEvent.Exception`, and the OTLP sink would export the raw message from it; so the wrapper passes a copy of each event with `Exception` null (the enricher's `exception.*` properties carry type, masked message and masked stack) and, when the message template has no property tokens (library text logged as a literal), with the template text redacted. The exported record never carries the raw exception message. If the Serilog version does not allow that, stop and report.
+- `src/Platform.Shared/Telemetry/ComponentEnricher.cs`: adds `waslabid.component` from `SourceContext` (the MEL category) by the table in spec section 5.3.
+- `src/Platform.Shared/Telemetry/RedactingSpanProcessor.cs`: `BaseProcessor<Activity>`, `OnEnd`: removes `url.query`, redacts `url.full` (query part dropped) and every string tag and exception event message; registered last in the tracer pipeline.
 - `tests/Platform.UnitTests/Architecture/LogTemplateTests.cs`: scans every `*.cs` under `src/` (with `TestRepo`) for `[LoggerMessage(... Message = "...")]` templates and for `Log*(` calls with a literal template.
-
-**If Q2 keeps Serilog:** the same `TelemetryRedactor` runs in a Serilog enricher and a destructuring policy instead of the log processor; the span processor is unchanged.
 
 **Tests:**
 - Unit: `Emails_long_digit_runs_jwts_and_password_pairs_are_masked` (theory: English and Arabic sentences, `ahmad@example.sa`, a CR `1010123456`, an iqama `2123456789`, `0551234567`, `SA0380000000608010167519`, a JWT, `Host=db;Password=abc;`); `Trace_ids_guids_and_short_numbers_are_kept` (a 32-hex trace id, a GUID whose last group is twelve digits, `404`, `2026-09-30`); `Arabic_indic_digit_runs_are_masked_too`.
-- Unit: `No_log_template_names_a_personal_or_secret_value`: placeholders refused (case-insensitive): `Email`, `Name`, `DisplayName`, `Phone`, `Cr`, `CrNumber`, `NationalId`, `Iqama`, `Iban`, `FileName`, `Password`, `Secret`, `Token`, `ConnectionString`, `Price`, `Amount`, `Total`, `Offer`, `Envelope`; the test lists the offending file and line. It must pass on today's 64 templates; if one fails, stop and report it rather than editing the template silently.
-- Integration: `A_logged_exception_leaves_with_its_type_and_stack_and_a_masked_message` (an exception whose message holds an email).
-- Integration: `A_keycloak_admin_lookup_by_email_leaves_no_email_in_any_span_or_log`: `KeycloakAdminClient.FindUserByEmail` against `FakeHttpServer`; no exported span tag, log message or attribute contains the address (`url.full` of `/users?email=...&exact=true`).
-- Integration: `No_request_body_form_value_or_query_string_reaches_a_log_or_span`: post the vendor company form and a query string, each with a unique marker; the marker appears in no exported record.
-- Integration: `The_key_ring_cap_also_holds_for_the_telemetry_exporter`: with `Logging:LogLevel:Default` = `Trace` in `Testing`, the in-memory log exporter receives no record from `Microsoft.AspNetCore.DataProtection*` below Information.
+- Unit: `No_log_template_names_a_personal_or_secret_value`: placeholders refused (case-insensitive): `Email`, `Name`, `DisplayName`, `Phone`, `Cr`, `CrNumber`, `NationalId`, `Iqama`, `Iban`, `FileName`, `Password`, `Secret`, `Token`, `ConnectionString`, `Price`, `Amount`, `Total`, `Offer`, `Envelope`; the test lists the offending file and line. It must pass on today's templates; if one fails, stop and report it rather than editing the template silently.
+- Unit: `An_object_logged_with_destructuring_has_its_strings_masked_and_request_types_refused`.
+- Unit: `A_literal_library_message_is_masked_before_export` (a template with no tokens that holds an email reaches the wrapped sink as `[email]`).
+- Integration: `A_logged_exception_leaves_with_its_type_and_stack_and_a_masked_message`: an exception whose message holds an email; the captured event has no `Exception`, `exception.type` = `System.InvalidOperationException`, `exception.message` with `[email]`, a non-empty `exception.stacktrace`, and no property or rendered message contains the address.
+- Integration: `A_keycloak_admin_lookup_by_email_leaves_no_email_in_any_span_or_log`: `KeycloakAdminClient.FindUserByEmail` against `FakeHttpServer`; no exported span tag, captured log property or message contains the address (`url.full` of `/users?email=...&exact=true`).
+- Integration: `No_request_body_form_value_or_query_string_reaches_a_log_or_span`: post the vendor company form and a query string, each with a unique marker; the marker appears in no exported span or captured event.
+- Integration: `The_key_ring_cap_also_holds_for_the_telemetry_exporter`: with `Logging:LogLevel:Default` = `Trace` in `Testing`, `CapturingLogSink` receives no event whose `SourceContext` starts with `Microsoft.AspNetCore.DataProtection` below Information.
 - Integration: `Every_error_record_carries_a_component` (an error from a `Platform.Modules.Vendors` category carries `Vendors`, one from `Npgsql` carries `PostgreSQL`).
 - Unchanged and green: `A_key_the_host_cannot_decrypt_is_never_written_whole_to_a_log_even_at_trace_level`, `A_failure_message_never_contains_a_secret`, `An_alert_contains_no_secret_value`.
 
@@ -120,15 +127,16 @@
 - `src/Platform.Web/Program.cs`: `app.MapHealthChecks("/alive", new HealthCheckOptions { Predicate = _ => false }).AllowAnonymous();` (no check runs; the process answers). `/health` stays as it is.
 - `src/Platform.Web/Tenancy/TenantMiddleware.cs`, `src/Platform.Web/PlatformHost/PlatformRequest.cs`, `src/Modules/Identity/Platform.Modules.Identity/Members/StaticRequests.cs`: treat the exact path `/alive` like the exact path `/health` (no tenant resolution, answered on the platform host, no claims transformation). Keep the comment's rule: only exact paths.
 - `src/Modules/Operations/Platform.Modules.Operations/Health/HealthCheckJob.cs`: after the checks run, publish each result on meter `WaslaBid.Operations`: observable gauge `waslabid.health.status` (0, 1, 2) and histogram `waslabid.health.check.duration` (ms), tag `component`; the run is one activity from `WaslaBid.Operations` with a child per check.
-- `src/Modules/Operations/Platform.Modules.Operations/Health/TelemetryHealthCheck.cs`: `GET {Telemetry:CollectorHealthUrl}` (collector `health_check` extension, `http://localhost:13133/` in Development) and `GET {Telemetry:LokiReadyUrl}` (`http://localhost:3100/ready`); Unhealthy names which of the two failed, exception type only (N-10). Registered only when both settings are present, so hosts without the stack (CI) skip it.
+- `src/Modules/Operations/Platform.Modules.Operations/Health/TelemetryHealthCheck.cs`: `GET {Telemetry:CollectorHealthUrl}` (the collector's `health_check` extension, `http://localhost:13133/` in Development) and `GET {Telemetry:ElasticsearchHealthUrl}` (`http://localhost:9200/_cluster/health`) with Basic credentials from `Telemetry:ElasticsearchUser` and `Telemetry:ElasticsearchPassword` (the monitoring user `waslabid_monitor` of task 8, cluster privilege `monitor` only; the password in user secrets on a developer machine and the secret store on the pilot, never in appsettings). Healthy when the collector answers 200 and the cluster status is `green` or `yellow`; Unhealthy names which failed (`collector`, `elasticsearch`, or both) with the exception type, the HTTP status or the cluster status only, never a URL with credentials, the user name, the password or the response body (N-10). Registered only when both URLs are present, so hosts without the stack (CI) skip it.
 - `src/Modules/Operations/Platform.Modules.Operations.Contracts/HealthComponents.cs`: `Telemetry` constant, documented like `Disk`: alerted, not a board tile; `Board` unchanged.
-- `src/Platform.Worker/appsettings.Development.json`: the two URLs.
+- `src/Platform.Worker/appsettings.Development.json`: the two URLs and `Telemetry:ElasticsearchUser` = `waslabid_monitor`; the password through user secrets (`ELASTIC_MONITOR_PASSWORD` from `infra/compose/.env`).
 
 **Tests:**
 - Integration: `Alive_answers_healthy_without_a_database_tenant_or_sign_in` (the same unusable connection string as `Health_endpoint_answers_without_a_tenant_or_sign_in_and_is_unhealthy_without_a_database`, which stays green).
 - Integration: `Alive_is_served_on_tenant_and_platform_hosts_and_on_an_unknown_host`; `A_path_under_alive_is_an_ordinary_tenant_path` (`/alive/x` on an unknown host is 404, as `/health/x` is).
 - Integration: `Each_health_result_is_published_as_a_status_and_latency_metric` (in-memory metric exporter on the worker; one point per component with the right status value).
-- Integration: `Telemetry_reports_unhealthy_naming_the_collector_or_loki_when_either_is_down` (`FakeHttpServer` for both; one answering 503, one unreachable).
+- Integration: `Telemetry_reports_unhealthy_naming_the_collector_or_elasticsearch_when_either_is_down` (`FakeHttpServer` for both; theory: the collector answering 503, Elasticsearch unreachable, Elasticsearch answering status `red`, both down).
+- Integration: `The_telemetry_check_sends_the_monitoring_credentials_and_never_reports_them` (the fake Elasticsearch sees Basic credentials; no check result, incident text or captured log contains the password or the user name).
 - Integration: `A_telemetry_outage_opens_one_incident_and_sends_one_alert_and_one_recovery` (through the existing pipeline and Mailpit, like `An_incident_sends_one_email_and_no_repeat_while_open`).
 - Unit: `Telemetry_is_not_a_board_tile`.
 - Unchanged and green: `The_board_lists_every_component_with_status_latency_and_last_check`, `The_check_reports_on_the_configured_path`.
@@ -139,7 +147,7 @@
 
 ### Task 5: Concurrent users (spec 6.1 to 6.3; O-19, O-20, O-24)
 
-**Agent:** developer. First task of the second pull request (spec Q6).
+**Agent:** developer. Built and merged in PR #6 (2026-10-01).
 
 **Files:**
 - `src/Platform.Shared/Telemetry/TelemetryNames.cs`: meter `WaslaBid.Usage` and every metric, tag and tag value of spec 6.1, the tender ones included, so the tender slices use the same constants.
@@ -166,7 +174,7 @@
 
 ### Task 6: Active users (spec 6.4, 6.6 storage, 6.8; O-21)
 
-**Agent:** developer.
+**Agent:** developer. Built and merged in PR #6 (2026-10-01).
 
 **Files:**
 - `src/Modules/Identity/Platform.Modules.Identity/Migrations/0003_identity_user_activity.sql` (as built: 0003, since PR #5 adds identity 0002): table `identity.user_activity` as in spec 6.4; the trigger setting `hour` from the database clock; `platform.enable_tenant_rls` is not used (its policy is for all commands): forced row-level security with the two policies of spec 6.4 (`tenant_isolation` for SELECT with the helper's staff-only text, `tenant_activity_insert` for INSERT), as audit 0002 and 0003 do for `audit.events`; `grant insert` only to `erp_app`; security-definer `identity.activity_counts(p_now timestamptz)` and `identity.prune_activity(p_before timestamptz)` with `set search_path`, execute revoked from public and granted to `erp_app`, answering only a session with neither a tenant nor a vendor context (the `vendor.stale_uploads()` rule of ADR-0012 point 4); the owner guard of vendors and operations (run as a role with BYPASSRLS).
@@ -196,20 +204,18 @@
 - Changed on purpose, the one existing assertion this plan changes (decided in spec 6.4, so not escalated): `Every_tenant_table_uses_the_staff_only_policy_or_the_explicit_vendor_policy` gains a case for `identity.user_activity` (exactly the two policies above), beside the one for `audit.events`.
 - Unchanged and green: `Every_tenant_owned_table_has_forced_row_level_security_and_the_isolation_policy` and `No_view_reads_a_tenant_table` (the ops table has no `tenant_id`), `VendorFunctionCallerTests`, `The_worker_and_the_projects_it_is_built_from_do_not_load_the_key_ring` (the worker now references Identity), `The_worker_does_not_reference_the_web_host`.
 
-**If Q10 chooses Keycloak login events:** drop the table, the recorder, the middleware and the circuit hook; `UserActivityCounts` reads `LOGIN` events through the Admin API per realm; the tests above become `A_user_who_signed_in_today_counts_as_signed_in_for_the_day_week_and_month` and the isolation tests fall away.
-
 **Verify:** the three commands.
 
 ---
 
 ### Task 7: The console usage page (spec 6.6; O-23, O-25, O-26)
 
-**Agent:** developer.
+**Agent:** developer. Built and merged in PR #6 (2026-10-01), with the Grafana link that task 7b replaces.
 
 **Files:**
 - `src/UI/Platform.UI/Components/StatTile.razor`: label, value (`int?`; null shows a dash with an accessible "Unknown"), optional split lines (label and value), `data-*` passthrough; logical direction utilities only; no uppercase text.
 - `src/Platform.Web/Components/Pages/Dev/Gallery.razor`: `StatTile` with a value, a split and no value, in both panels.
-- `src/Platform.Web/Components/Pages/Console/Usage.razor`: `@page "/platform/usage"`, `[Authorize(Policy = PlatformAuthentication.PolicyName)]`, `ConsoleLayout`, `InteractiveServer`; four tiles and the per-tenant `DataTable` of spec 6.6 with `data-tenant`, `data-kind`, `data-window` hooks; `ConsoleTime` for the result's time; a stale result shows dashes; the Grafana link only when `Observability:GrafanaUrl` is set; Refresh as on the health board.
+- `src/Platform.Web/Components/Pages/Console/Usage.razor`: `@page "/platform/usage"`, `[Authorize(Policy = PlatformAuthentication.PolicyName)]`, `ConsoleLayout`, `InteractiveServer`; four tiles and the per-tenant `DataTable` of spec 6.6 with `data-tenant`, `data-kind`, `data-window` hooks; `ConsoleTime` for the result's time; a stale result shows dashes; the dashboard link only when its setting is valid; Refresh as on the health board.
 - `src/Platform.Web/Usage/UsageOverview.cs`: joins `ITenantCatalog` (portal names), `ConnectedCircuits.Snapshot()` and `IUsageLog.LatestAsync()`; never an HTTP client.
 - `src/Platform.Web/Components/Layout/ConsoleLayout.razor`: navigation entry `Console.Nav.Usage` between Tenants and Jobs.
 - `src/UI/Platform.UI/Resources/SharedResource.ar-SA.resx` and `SharedResource.en-US.resx`: every new string (`Console.Nav.Usage`, `Console.Usage.*`, `StatTile.Unknown`) in Arabic and English.
@@ -217,51 +223,69 @@
 
 **Tests:**
 - bUnit (`tests/Platform.UITests/Components/StatTileTests.cs`): `StatTile_shows_its_label_value_and_split`; `StatTile_without_a_value_shows_a_dash_named_unknown`; `ComponentConventionTests` and `PhysicalUtilityLintTests` cover it unchanged.
-- Integration (`PlatformConsoleTests` style): `The_usage_section_shows_concurrent_and_active_users_per_tenant` (rows in `ops.active_user_counts` and a registered circuit; acme's row and the totals show them split by staff and vendor); `The_usage_totals_count_a_vendor_active_on_two_tenants_once`; `A_stale_usage_result_shows_unknown`; `Usage_counts_are_read_from_the_stored_job_results_not_from_prometheus` (no telemetry settings and the Prometheus and Grafana URLs pointing at an unused port; the page renders the stored numbers and makes no outbound HTTP call); `The_grafana_link_appears_only_when_configured`; `The_usage_page_lists_no_user`: no `sub`, email or name of the seeded users in the markup.
-- Integration: `A_tenant_session_cannot_open_the_usage_page` (acme staff and vendor session cookies on the platform host are sent to the platform realm's sign-in and see no count; add `/platform/usage` to the theory of `A_tenant_admin_session_on_the_platform_host_is_sent_to_the_platform_realm`); `A_platform_admin_without_otp_cannot_open_the_usage_page` (`acr` 1).
-- Integration: add `/platform/usage` in both cultures to `A_console_page_follows_the_culture_and_shows_no_resource_key`.
-- Unchanged and green: the rest of `PlatformConsoleTests` and `CrossHostSessionTests`.
-
-**If Q12 chooses the tenants page:** the tiles and columns go on `/platform/tenants` above the tenant table, no navigation entry; the tests keep their names with that path.
+- Integration (`PlatformConsoleUsageTests`): `The_usage_section_shows_concurrent_and_active_users_per_tenant`; `The_usage_totals_count_a_vendor_active_on_two_tenants_once`; `A_stale_usage_result_shows_unknown`; `Before_the_first_count_active_users_show_unknown`; `Usage_counts_are_read_from_the_stored_job_results_not_from_prometheus` (renamed by task 7b); the Grafana link tests (renamed by task 7b); `The_usage_page_lists_no_user`; `A_tenant_session_cannot_open_the_usage_page`; `A_platform_admin_without_otp_cannot_open_the_usage_page`; `The_console_navigation_lists_usage_between_tenants_and_jobs`; `The_web_host_registers_one_registry_and_the_usage_circuit_handler`.
+- Integration: `/platform/usage` in both cultures in `A_console_page_follows_the_culture_and_shows_no_resource_key`.
 
 **Verify:** the three commands; the golden screenshots retaken and compared by eye in both directions at 360 and 1280 px.
 
 ---
 
-### Task 8: Compose services (O-3 to O-6, O-12, O-13, O-17; section 9 limits)
+### Task 7b: Kibana link on the usage page (spec 6.6; O-23, ADR-0014)
+
+**Agent:** developer. In the second pull request; it changes code merged in PR #6.
+
+**Files:**
+- `src/Platform.Web/Usage/GrafanaLink.cs` renamed to `KibanaLink.cs`: class `KibanaLink`, `Setting = "Observability:KibanaUrl"`, dashboard path `app/dashboards#/view/waslabid-usage` (the saved dashboard id of task 8). Validation unchanged: only an absolute `http` or `https` address with a host makes a link; anything else makes none and logs one warning per process naming the scheme only, its message now naming Kibana.
+- `src/Platform.Web/Usage/UsageOverview.cs`: `GrafanaDashboardUrl` becomes `KibanaDashboardUrl`; the doc comment says the overview never queries Elasticsearch or Kibana.
+- `src/Platform.Web/Components/Pages/Console/Usage.razor`: `data-kibana="dashboard"`, text `Console.Usage.OpenKibana`.
+- `src/Platform.Web/Program.cs`: `AddSingleton<KibanaLink>()`.
+- `src/UI/Platform.UI/Resources/SharedResource.ar-SA.resx` and `SharedResource.en-US.resx`: `Console.Usage.OpenGrafana` replaced by `Console.Usage.OpenKibana` ("Open the history in Kibana"; "عرض السجل في Kibana").
+- `src/Platform.Web/appsettings.Development.json`: `Observability:KibanaUrl` = `http://127.0.0.1:5601`.
+
+**Tests (`tests/Platform.IntegrationTests/Web/PlatformConsoleUsageTests.cs`, renamed and adjusted):**
+- `The_grafana_link_appears_only_when_configured` becomes `The_kibana_link_appears_only_when_configured`: without the setting no `data-kibana`; with `http://127.0.0.1:5601/` the link's `href` is `http://127.0.0.1:5601/app/dashboards#/view/waslabid-usage`.
+- `The_grafana_link_is_shown_only_for_an_absolute_http_address` becomes `The_kibana_link_is_shown_only_for_an_absolute_http_address`: the same theory with `kibana-secret` values (`javascript:`, `data:`, `file:`, `ftp:`, relative, a host without a scheme); one warning from a category ending `.KibanaLink` naming the scheme; no log contains the value.
+- `The_grafana_link_accepts_an_https_address` becomes `The_kibana_link_accepts_an_https_address` (`https://kibana.example/base` gives `https://kibana.example/base/app/dashboards#/view/waslabid-usage`).
+- `Usage_counts_are_read_from_the_stored_job_results_not_from_prometheus` becomes `Usage_counts_are_read_from_the_stored_job_results_not_from_elasticsearch`: `Observability:KibanaUrl` and `Observability:ElasticsearchUrl` pointing at an unused port; the page renders the stored numbers and makes no outbound HTTP call.
+- Unchanged and green: `A_console_page_follows_the_culture_and_shows_no_resource_key` (now covering `Console.Usage.OpenKibana`), the rest of `PlatformConsoleUsageTests`, `PlatformConsoleTests` and `CrossHostSessionTests`.
+
+**Verify:** the three commands; `grep -ri grafana src tests` finds nothing.
+
+---
+
+### Task 8: Compose services (O-3, O-4, O-12, O-13, O-17, O-18; section 9 limits)
 
 **Agent:** devops.
 
 **Files:**
-- `infra/compose/docker-compose.yml`: services `otel-collector`, `loki`, `tempo`, `prometheus`, `grafana`, with container names `erp-otel-collector`, `erp-loki`, `erp-tempo`, `erp-prometheus`, `erp-grafana` (the existing `erp-*` pattern), each pinned by version and digest (multi-architecture digests, since the pilot is arm64), with `mem_limit` from spec section 9 and a health check. Images without a shell cannot run a `CMD` check: use the image's own probe command where it has one, otherwise document which service has no Compose health check and why (W-01's acceptance counts healthy services; update its count in docs/09 only through the user).
-- Ports, all bound to `127.0.0.1`: collector 4317 (OTLP gRPC), 4318 (OTLP HTTP), 13133 (health); Loki 3100; Tempo 3200; Prometheus 9090; Grafana 3000. No clash with the existing 5432, 6379, 8080, 9000, 9002, 9003, 3310, 1025, 8025.
-- `infra/compose/observability/collector.yaml`: receivers `otlp` (gRPC and HTTP); processors `memory_limiter` (200 MB), `batch`, and an attributes step deleting `url.query` and `http.request.header.*` from spans and logs; exporters: OTLP HTTP to Loki `/otlp`, OTLP to Tempo, OTLP HTTP to Prometheus `/api/v1/otlp`; extension `health_check`. Use the core distribution if it covers every component used; otherwise contrib (report which).
-- `infra/compose/observability/loki.yaml`: single binary, filesystem storage, schema v13 with TSDB, `allow_structured_metadata: true`, `otlp_config` resource attributes as index labels limited to `service.name` and `deployment.environment.name`, compactor retention on, `retention_period` from `LOKI_RETENTION` (default `72h` locally; `720h` for the pilot).
-- `infra/compose/observability/tempo.yaml`: local storage, OTLP receiver on the Compose network only, `block_retention` from `TEMPO_RETENTION` (default `72h`; `168h` pilot).
-- Prometheus: command flags `--web.enable-otlp-receiver` and `--storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-3d}` (`30d` pilot).
-- `infra/compose/observability/grafana/provisioning/datasources/datasources.yaml`: Loki (derived field `trace_id` linking to Tempo), Tempo (trace to logs by `trace_id` on Loki, service map from Prometheus), Prometheus; anonymous access off; admin user `admin` with `GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?Set GRAFANA_ADMIN_PASSWORD in infra/compose/.env}`.
-- `infra/compose/observability/grafana/provisioning/dashboards/dashboards.yaml`: a file provider, folder "WaslaBid", `allowUiUpdates: false`, path `/var/lib/grafana/dashboards`; `infra/compose/observability/grafana/dashboards/waslabid-usage.json` mounted there read-only: the dashboard of spec 6.7 (uid `waslabid-usage`; variables `tenant` from `label_values(waslabid_users_active, waslabid_tenant_slug)`, multi with All, and `kind`; rows Now, Active and Tenders with the panels listed there; the Prometheus datasource by the uid set in `datasources.yaml`; the tender panels' descriptions say they wait for the tender slice). Metric names as spec 6.1 with dots as underscores; task 10 confirms them and corrects the JSON in the same pull request if Prometheus names them differently.
-- `infra/compose/.env.example`: `GRAFANA_ADMIN_PASSWORD=` (generate with `openssl rand -hex 16`), `LOKI_RETENTION`, `TEMPO_RETENTION`, `PROMETHEUS_RETENTION` with the local defaults and a comment naming the pilot values.
-- Volumes `loki-data`, `tempo-data`, `prometheus-data`, `grafana-data`.
+- `infra/compose/docker-compose.yml`, services with container names in the existing `erp-*` pattern, each image pinned by version and digest (multi-architecture digests, since the pilot is arm64), all ports bound to `127.0.0.1`:
+  - `otel-collector` (`otel/opentelemetry-collector-contrib`, `erp-otel-collector`, `mem_limit: 256m`): ports 4317 (OTLP gRPC), 4318 (OTLP HTTP), 13133 (health); `collector.yaml` mounted read-only; `ELASTIC_COLLECTOR_PASSWORD` from `.env`; starts after `elastic-setup` completed successfully.
+  - `elasticsearch` (`docker.elastic.co/elasticsearch/elasticsearch:9.x`, `erp-elasticsearch`, `mem_limit: 2g`): port 9200; `discovery.type=single-node`, `ES_JAVA_OPTS=-Xms1g -Xmx1g`, `xpack.security.enabled=true`, `xpack.security.http.ssl.enabled=false`, `xpack.security.transport.ssl.enabled=false`, `xpack.license.self_generated.type=basic`, `ELASTIC_PASSWORD=${ELASTIC_PASSWORD:?Set ELASTIC_PASSWORD in infra/compose/.env}`; volume `elasticsearch-data`; health check without credentials (`curl` answering 401 means the node is up), so no password appears in the health check.
+  - `kibana` (`docker.elastic.co/kibana/kibana:9.x`, same version as Elasticsearch, `erp-kibana`, `mem_limit: 768m`, `NODE_OPTIONS=--max-old-space-size=512`): port 5601; `ELASTICSEARCH_HOSTS=http://elasticsearch:9200`, `ELASTICSEARCH_USERNAME=kibana_system`, `ELASTICSEARCH_PASSWORD=${KIBANA_SYSTEM_PASSWORD:?...}`, the three Kibana encryption keys from `KIBANA_ENCRYPTION_KEY`, Kibana's usage telemetry to Elastic off (`TELEMETRY_OPTIN=false`, `TELEMETRY_ALLOWCHANGINGOPTINSTATUS=false`; data residency, N-01); starts after Elasticsearch is healthy; health check on `/api/status` (200 or 401 means up).
+  - `elastic-setup` (the Elasticsearch image, `erp-elastic-setup`, `restart: "no"`): runs `infra/compose/observability/elastic-setup.sh` (mounted read-only) as `elastic` after Elasticsearch is healthy; idempotent, so every `up -d` may run it again. It (1) sets the `kibana_system` password to `KIBANA_SYSTEM_PASSWORD`; (2) creates roles `waslabid_collector_writer` (`auto_configure` and `create_doc` on `logs-*`, `traces-*`, `metrics-*`), `waslabid_monitor` (cluster `monitor` only) and `waslabid_errors_reader` (F-53: `read` and `view_index_metadata` on `logs-*` only, no write, no cluster privilege beyond what ES|QL needs), and users `waslabid_collector` (`ELASTIC_COLLECTOR_PASSWORD`), `waslabid_monitor` (`ELASTIC_MONITOR_PASSWORD`) and the named staff user `${KIBANA_STAFF_USER}` (`KIBANA_STAFF_PASSWORD`, built-in role `viewer`); (3) installs index lifecycle policies `waslabid-logs`, `waslabid-traces`, `waslabid-metrics` that delete after `TELEMETRY_LOGS_RETENTION`, `TELEMETRY_TRACES_RETENTION` and `TELEMETRY_METRICS_RETENTION`, attached with `index.number_of_replicas: 0` through the `@custom` component templates that Elasticsearch's built-in OTel index templates compose (record their names; if those templates manage retention by data stream lifecycle instead, set `data_retention` there with the same values and report it); (4) waits up to three minutes for Kibana and imports `infra/compose/observability/kibana/waslabid-usage.ndjson` with `POST /api/saved_objects/_import?overwrite=true`. It prints no password and exits non-zero on any failed step.
+- `infra/compose/observability/collector.yaml`: receivers `otlp` (gRPC and HTTP); processors `memory_limiter` (200 MB), `batch` (or the exporter's own batching if the pinned version recommends it; report which), and an `attributes` step deleting `url.query` and the pattern `http.request.header.*` from spans and logs; exporter `elasticsearch` (endpoint `http://elasticsearch:9200`, user `waslabid_collector`, password `${env:ELASTIC_COLLECTOR_PASSWORD}`, `mapping: mode: otel`); extension `health_check` (`0.0.0.0:13133` inside the network); pipelines for traces, logs and metrics.
+- `infra/compose/observability/kibana/waslabid-usage.ndjson`: data view `waslabid-metrics` on `metrics-*`; dashboard id `waslabid-usage`, title "WaslaBid usage": controls `tenant` (options list on the tenant slug, multi-select) and `kind`; sections Now, Active and Tenders with the Lens panels of spec 6.7; field names as the otel mapping stores them (for example `metrics.waslabid.users.concurrent` by `attributes.waslabid.tenant.slug`); the tender panels' descriptions say they wait for the tender slice. Task 10 confirms the field names and corrects the file in the same pull request if they differ.
+- `infra/compose/.env.example`: `ELASTIC_PASSWORD=`, `KIBANA_SYSTEM_PASSWORD=`, `KIBANA_STAFF_USER=`, `KIBANA_STAFF_PASSWORD=`, `ELASTIC_MONITOR_PASSWORD=`, `ELASTIC_COLLECTOR_PASSWORD=` (each generated with `openssl rand -hex 16`), `KIBANA_ENCRYPTION_KEY=` (`openssl rand -hex 32`; at least 32 characters), `TELEMETRY_LOGS_RETENTION=3d`, `TELEMETRY_TRACES_RETENTION=3d`, `TELEMETRY_METRICS_RETENTION=3d`, with a comment naming the pilot values `30d`, `7d`, `30d`.
+- Volume `elasticsearch-data` (Kibana keeps its state in Elasticsearch).
+- The host needs `vm.max_map_count` of at least 262144 (Docker Desktop's WSL2 VM on Windows; a sysctl on the pilot VM in W-19); task 9 documents it.
 - CI: the Trivy step covers the new images the same way it covers the existing ones.
 
-**Acceptance (recorded evidence, not a unit test):** from a clean clone, `cp .env.example .env`, fill the values, `docker compose up -d`: every new service healthy (or documented) within four minutes, `docker compose ps` shows no restarts, a second `up -d` is clean; `curl -s http://127.0.0.1:3100/ready` answers `ready`; Grafana at `http://127.0.0.1:3000` shows the three datasources, each "working" on its test button, and the "WaslaBid usage" dashboard in folder "WaslaBid", whose panels show "No data" rather than an error before the app runs; `docker stats --no-stream` shows each new service under its limit; nothing new listens on a non-loopback address (`netstat -an` on Windows).
+**Acceptance (recorded evidence, not a unit test):** from a clean clone, `cp .env.example .env`, fill the values, `docker compose up -d`: Elasticsearch and Kibana healthy and the collector running within four minutes (a missing Compose health check, such as the collector image's, is documented with the reason; W-01's acceptance counts healthy services, and its count changes in docs/09 only through the user); `erp-elastic-setup` exits 0, and a second `up -d` runs it again cleanly; `docker compose ps` shows no restarts; `curl -s -u waslabid_monitor:... http://127.0.0.1:9200/_cluster/health` answers `green` or `yellow`; `GET _ilm/policy/waslabid-*` shows the three policies with the configured ages; `curl -s http://127.0.0.1:13133/` answers; Kibana at `http://127.0.0.1:5601` refuses anonymous access, the staff user signs in, sees the "WaslaBid usage" dashboard with "No results" rather than an error before the app runs, and cannot open user or role management; `docker stats --no-stream` shows each new service under its limit; nothing new listens on a non-loopback address (`netstat -an` on Windows); no password appears in `docker compose logs`.
 
 ---
 
-### Task 9: Documentation and decisions
+### Task 9: Documentation
 
 **Agent:** developer (docs only), after tasks 1 to 8.
 
-**Files:**
-- `docs/07-ways-of-working.md` section 4: five rows in the service table (purpose, port, credentials: `GRAFANA_ADMIN_PASSWORD`), the new `.env` value in the "Run the app locally" list, `Telemetry:*` settings, how to find a failed request (copy `X-Correlation-Id` from the browser's network panel, Grafana Explore, Tempo, search by trace id; Loki `{service_name="waslabid-web"} | trace_id="<id>"`), `/alive` versus `/health`, that the stack costs about 1.5 GB of memory, and where usage shows: the console page `/platform/usage` and the Grafana dashboard "WaslaBid usage" (`Observability:GrafanaUrl` for the console's link).
-- `docs/02-core-features-and-tech-stack.md` observability row and the section 4.2 diagram label, `docs/03-diagrams.md` diagram 9 label: per the answers to Q1 and Q2 (for example "OpenTelemetry for .NET, Prometheus, Grafana, Loki for logs, Tempo for traces; Sentry-compatible error tracking later (ADR-0014)"). Render every edited diagram with `npx @mermaid-js/mermaid-cli`.
-- `docs/adr/0014-observability-stack-for-the-pilot.md` from `0000-template.md`, only if Q1 or Q2 changes the stack row: Sentry and Serilog decisions, the pilot memory budget, retention.
-- `docs/09-backlog.md`: W-10 status and the acceptance text from spec section 10 (as the user approved it), size per Q6; the F-60 note "W-10 is not Done yet" updated; W-19 dependency per Q4; the F-54 note on usage (added with the draft) kept or corrected.
-- `docs/05-mvp-scope.md` section 8: the hardening line names the usage metrics and page per Q11.
-- `README.md` onboarding (the new `.env` value), `CLAUDE.md` "What this repository is" (one sentence: telemetry through the collector to Loki, Tempo and Prometheus, Grafana on port 3000 with the "WaslaBid usage" dashboard, and the console usage page `/platform/usage`).
+The decisions themselves were recorded on 2026-10-01 in a separate change (branch `w-10-elk-docs`): ADR-0014, the docs/02 observability row and diagram label, the docs/03 diagram 9 label, docs/05 row 21, the W-10 row, size and acceptance and W-19's dependency in docs/09, this plan and the spec. Task 9 changes those only where the build differs from them (for example the ECS fallback of O-4).
 
-**Verify:** Mermaid renders; `dotnet build WaslaBid.slnx -warnaserror` still green (no code change expected).
+**Files:**
+- `docs/07-ways-of-working.md` section 4: rows in the service table for the collector, Elasticsearch, Kibana and `elastic-setup` (purpose, port, credentials from `.env`), the new `.env` values in the "Run the app locally" list, `vm.max_map_count` on Docker Desktop, the `Telemetry:*` settings with the monitoring password in user secrets, `Observability:KibanaUrl`, how to find a failed request (copy `X-Correlation-Id` from the browser's network panel, then Kibana Discover `trace_id : "<id>"` on the logs and traces data views), `/alive` versus `/health`, that the stack costs about 3 GB of memory, and where usage shows: the console page `/platform/usage` and the Kibana dashboard "WaslaBid usage".
+- `docs/09-backlog.md`: W-10 status and evidence; the F-60 note "W-10 is not Done yet" updated; the F-54 note on usage kept or corrected.
+- `README.md` onboarding (the new `.env` values), `CLAUDE.md` "What this repository is" (one sentence: telemetry through the collector to Elasticsearch, Kibana on port 5601 with the "WaslaBid usage" dashboard, and the console usage page `/platform/usage`).
+
+**Verify:** Mermaid renders for any edited diagram; `dotnet build WaslaBid.slnx -warnaserror` still green (no code change expected).
 
 ---
 
@@ -269,27 +293,23 @@
 
 **Agent:** qa-engineer (writes only under `tests/`).
 
-**Files:** `tests/e2e/observability.mjs` (steps 1 to 7 need no browser: `fetch` through Caddy with the local certificate accepted as the other scripts do; step 8 uses the Playwright helpers of `lib.mjs`), a section in `tests/e2e/README.md`.
+**Files:** `tests/e2e/observability.mjs` (steps 1 to 7 need no browser: `fetch` through Caddy with the local certificate accepted as the other scripts do, and to Elasticsearch and Kibana on `127.0.0.1` with credentials read from `infra/compose/.env`, never printed; step 8 uses the Playwright helpers of `lib.mjs`), a section in `tests/e2e/README.md`.
 
 **Steps the script runs and checks:**
 1. `GET https://acme.localhost:8443/dev/throw` answers 500 and carries `X-Correlation-Id`.
-2. Within 60 seconds, Tempo `GET http://127.0.0.1:3200/api/traces/<id>` returns the trace; its server span has `waslabid.tenant.id` equal to acme's id.
-3. Within 60 seconds, Loki `query_range` for `{service_name="waslabid-web"} | trace_id="<id>"` returns one Error line with `exception_type` `System.InvalidOperationException`, `waslabid_component` `Web` and the tenant id; record the exact structured-metadata names Loki uses (spec section 8 assumes dots become underscores) and correct the spec's query in the same pull request if they differ.
-4. The F-53 query from spec section 8 over the last hour counts at least one error for `waslabid-web`.
-5. After one run of `tests/e2e/vendor.mjs` (registration, uploads and consent, which handle real email addresses and CR numbers), Loki over the last hour holds no line from `waslabid-web` or `waslabid-worker` matching an email address (`|~ "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]+"`) or the CR number the run used.
-6. `docker stop erp-otel-collector`; ten `GET` requests to `https://acme.localhost:8443/` all answer within their usual time (print p95); within two minutes Mailpit holds one "[WaslaBid] Telemetry is down" email; `docker start erp-otel-collector`; one "has recovered" email follows.
+2. Within 60 seconds, Elasticsearch `POST http://127.0.0.1:9200/traces-*/_search` with a term query on the trace id returns the trace; its server span carries `waslabid.tenant.id` equal to acme's id. Record the exact field names the otel mapping uses for the trace id and span attributes.
+3. Within 60 seconds, ES|QL (`POST /_query`) `FROM logs-* | WHERE trace_id == "<id>"` returns one record at Error severity with `exception.type` `System.InvalidOperationException`, `waslabid.component` `Web` and the tenant id, and no raw exception object. Record the exact field names and correct spec section 8's query in the same pull request if they differ.
+4. The F-53 query from spec section 8, run as a temporary user with the `waslabid_errors_reader` role (created by the script with the `elastic` user and deleted at the end), counts at least one error for `waslabid-web` over the last hour; the same user's attempt to index a document into `logs-*` is refused (403).
+5. After one run of `tests/e2e/vendor.mjs` (registration, uploads and consent, which handle real email addresses and CR numbers), no log record from `waslabid-web` or `waslabid-worker` of the last hour matches an email address (ES|QL `RLIKE` on the message field) or holds the CR number the run used (a `query_string` search for it over all fields of `logs-*`).
+6. `docker stop erp-otel-collector`; ten `GET` requests to `https://acme.localhost:8443/` all answer within their usual time (print p95); within two minutes Mailpit holds one "[WaslaBid] Telemetry is down" email naming the collector; `docker start erp-otel-collector`; one "has recovered" email follows. The same with `docker stop erp-elasticsearch`, the email naming Elasticsearch.
 7. `GET /alive` on acme, on the platform host and with PostgreSQL stopped (`docker stop erp-postgres`, then start it again) answers 200; `/health` answers 503 while PostgreSQL is stopped, as today.
-8. Usage: sign in on acme as a throwaway staff admin (`throwawayStaff` of `admin.mjs`, cleaned up at the end) and keep the page open. Within two export intervals (about two minutes) Prometheus `GET http://127.0.0.1:9090/api/v1/query` for the concurrent-users metric of acme `staff` returns 1, and the "Concurrent users" panel of the "WaslaBid usage" dashboard returns 1 for acme through Grafana's `/api/ds/query` with that panel's own expression (admin credentials from `.env`, never printed); record the exact Prometheus names and correct the dashboard JSON and spec 6.1 if they differ. After the usage job has run (up to five minutes), the active-users metric for acme `staff` and `1d` is at least 1, and the console usage page, opened as a platform admin with OTP as `platform.mjs` does, shows the same numbers for acme and lists no email or name. Close the staff page; within two export intervals the concurrent count for acme `staff` is 0. Screenshot the console page in both cultures as evidence.
+8. Usage: sign in on acme as a throwaway staff admin (`throwawayStaff` of `admin.mjs`, cleaned up at the end) and keep the page open. Within two export intervals (about two minutes) an ES|QL query on `metrics-*` for the concurrent-users metric of acme `staff` returns 1; `GET http://127.0.0.1:5601/api/saved_objects/dashboard/waslabid-usage` as the staff user finds the dashboard, and a screenshot of it signed in as the staff user shows 1 concurrent `staff` user for acme. Record the exact metric field names and correct the dashboard NDJSON and spec 6.1 if they differ. After the usage job has run (up to five minutes), the active-users metric for acme `staff` and `1d` is at least 1, and the console usage page, opened as a platform admin with OTP as `platform.mjs` does, shows the same numbers for acme, links to Kibana, and lists no email or name. Close the staff page; within two export intervals the concurrent count for acme `staff` is 0. Screenshot the console page in both cultures as evidence.
+9. Kibana's Observability views (traces and logs) open the deliberate failure's trace by its id. If they do not read the OTel-native data, record it: that is the O-4 risk, and the fallback (ECS mapping in the collector) is escalated to the user, not switched silently.
 
-Record the run (date, pass or fail per step, the measured p95) in the W-10 row's evidence, as earlier rows do.
+Record the run (date, pass or fail per step, the measured p95, the recorded field names) in the W-10 row's evidence, as earlier rows do.
 
 ---
 
-### Task 11 (only if Q1 keeps a Sentry-protocol service): error events
+### Task 11: error events (dropped 2026-10-01)
 
-**Agents:** devops (service), then developer (SDK).
-
-- Devops: GlitchTip (web and worker, pinned by digest, `mem_limit` 512 MB each) with its database in the existing PostgreSQL (`01-databases.sql` adds `glitchtip`), port `127.0.0.1:8000`, secrets in `.env`; or self-hosted Sentry on a separate machine if the user chose it (not on the pilot VM, spec section 9).
-- Developer: `Sentry.AspNetCore` and `Sentry.Extensions.Logging` behind `Sentry:Dsn` (empty means off, and no events leave); `SendDefaultPii = false`, `MaxRequestBodySize = None`, no breadcrumbs from HTTP bodies, `BeforeSend` runs `TelemetryRedactor` over message, exception values, tags and breadcrumbs and drops request cookies and headers; the event carries the trace id and `waslabid.tenant.id` as tags.
-- Tests: `Without_a_dsn_no_event_is_sent`; `An_event_carries_the_trace_id_and_tenant_id_and_no_personal_data` (a local HTTP listener standing in for the DSN endpoint captures the envelope; the marker email and a JWT are masked); `An_event_carries_no_request_body_cookie_or_header_value`.
-- Spec section 10's first acceptance line then includes the Sentry clause, and task 10 adds a step: the deliberate failure appears once in GlitchTip with the same trace id.
+Dropped by the user's answer to Q1: no Sentry in the pilot. It would have added GlitchTip or Sentry and the Sentry SDK; GlitchTip remains the later option if error triage in Kibana proves too weak (spec O-1).

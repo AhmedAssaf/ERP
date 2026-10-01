@@ -1,9 +1,11 @@
 # ADR-0006: Separate the platform console from tenant administration, and phase the operations console
 
 Date: 2026-09-26
-Status: Accepted
+Status: Accepted; superseded in part by ADR-0014 (2026-10-01)
 Deciders: Ahmed Assaf
 Related: F-01b, F-02, F-06, F-07, F-51 to F-54, F-60, F-61, N-08, N-10; spec `docs/superpowers/specs/2026-09-27-admin-ui-design.md` (D-1 to D-20); ADR-0001, ADR-0003
+
+> Note 2026-10-01: the log and trace store and the Grafana parts of this record are superseded by ADR-0014. The collector now writes logs, traces and metrics to Elasticsearch; Kibana serves log search, traces and the usage dashboard; the console's 24-hour error summary reads Elasticsearch. Where this record says Loki, Tempo or Grafana (the diagram, decision 4 and the consequences), read Elasticsearch and Kibana. Everything else stands.
 
 ## Context
 
