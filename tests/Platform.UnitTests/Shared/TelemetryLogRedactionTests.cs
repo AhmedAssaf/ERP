@@ -191,6 +191,26 @@ public sealed partial class TelemetryLogRedactionTests
     }
 
     [Fact]
+    public void A_query_string_property_is_blanked_in_the_property_and_the_rendered_message()
+    {
+        var sink = new ListSink();
+
+        using (var provider = new SerilogLoggerProvider(TelemetryModule.CreateLogger(TelemetryNames.Services.Web, [sink]), dispose: true))
+        {
+            var hosting = provider.CreateLogger("Microsoft.AspNetCore.Hosting.Diagnostics");
+            Library.RequestStarting(hosting, "/signin-oidc", "?code=opaquecode&state=opaquestate");
+        }
+
+        var logEvent = sink.Events.ShouldHaveSingleItem();
+        logEvent.Properties[RedactingEnricher.QueryString].ShouldBe(Scalar(string.Empty));
+        logEvent.Properties["Path"].ShouldBe(Scalar("/signin-oidc"));
+        var rendered = logEvent.RenderMessage(CultureInfo.InvariantCulture);
+        rendered.ShouldContain("/signin-oidc");
+        rendered.ShouldNotContain("opaque");
+        rendered.ShouldNotContain("?");
+    }
+
+    [Fact]
     public void Every_record_names_its_component()
     {
         var sink = new ListSink();
@@ -249,6 +269,9 @@ public sealed partial class TelemetryLogRedactionTests
 
         [LoggerMessage(Level = LogLevel.Warning, Message = "Retry {Attempt} for ahmad@example.sa failed.")]
         public static partial void LiteralAroundAToken(ILogger logger, int attempt);
+
+        [LoggerMessage(Level = LogLevel.Information, Message = "Request starting GET {Path}{QueryString} - done")]
+        public static partial void RequestStarting(ILogger logger, string path, string queryString);
 
         [LoggerMessage(Level = LogLevel.Error, Message = "Component probe.")]
         public static partial void Plain(ILogger logger);

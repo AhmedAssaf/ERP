@@ -8,7 +8,7 @@ namespace Platform.Shared.Telemetry;
 /// The last enricher of the host's Serilog logger (W-10, plan task 3; spec O-10, section 5.3): every string property value,
 /// also inside structure, sequence and dictionary values (dictionary keys included), passes through
 /// <see cref="TelemetryRedactor"/> and is then cut to <see cref="MaximumStringLength"/> (the logger has no string cap of its
-/// own, which would cut before masking). This also covers objects logged with <c>{@...}</c>, whose members
+/// own, which would cut before masking); a <see cref="QueryString"/> property is blanked. This also covers objects logged with <c>{@...}</c>, whose members
 /// <see cref="RedactingDestructuringPolicy"/> leaves to this step. For an event with an exception it adds
 /// <c>exception.type</c> (the full type name), <c>exception.message</c> and <c>exception.stacktrace</c> (the text of
 /// <see cref="Exception.ToString"/>), both masked; the raw exception itself is taken off the event by
@@ -20,6 +20,16 @@ public sealed class RedactingEnricher : ILogEventEnricher
     public const string ExceptionMessage = "exception.message";
     public const string ExceptionStackTrace = "exception.stacktrace";
 
+    /// <summary>
+    /// The property ASP.NET Core's Hosting request records (<c>Request starting ... {Path}{QueryString}</c>, <c>Request
+    /// finished ...</c>) and other framework records name the query string with; its value is always blanked (O-11: no query
+    /// string is ever captured), whatever the category. Sinks render the message from the properties, so the rendered
+    /// message carries no query string either.
+    /// </summary>
+    public const string QueryString = "QueryString";
+
+    private static readonly LogEventProperty BlankQueryString = new(QueryString, new ScalarValue(string.Empty));
+
     /// <summary>The longest string value kept; longer ones are cut after masking, ending in an ellipsis.</summary>
     public const int MaximumStringLength = 4096;
 
@@ -29,6 +39,16 @@ public sealed class RedactingEnricher : ILogEventEnricher
         List<LogEventProperty>? changed = null;
         foreach (var (name, value) in logEvent.Properties)
         {
+            if (name == QueryString)
+            {
+                if (value is not ScalarValue { Value: null or "" })
+                {
+                    (changed ??= []).Add(BlankQueryString);
+                }
+
+                continue;
+            }
+
             var redacted = Redact(value);
             if (!ReferenceEquals(redacted, value))
             {

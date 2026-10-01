@@ -36,6 +36,8 @@ public sealed class TelemetryRedactorTests
     [InlineData("span 00f067aa0ba902b7")]
     [InlineData("traceparent 00-4bf92f3577b34da61234567890ce4736-00f067aa0ba902b7-01")]
     [InlineData("company 3f2504e0-4f89-11d3-9a0c-030512345678")]
+    [InlineData("doc-3f2504e0-4f89-11d3-9a0c-030512345678 stored")]
+    [InlineData("pair 3f2504e0-4f89-11d3-9a0c-030512345678-7d1f3c2e-4f89-11d3-9a0c-123456789012")]
     [InlineData("answered 404 after 3 attempts")]
     [InlineData("on 2026-09-30 at 12:34:56.1234567")]
     [InlineData("قيمة ٤٠٤ قصيرة")]
@@ -50,6 +52,14 @@ public sealed class TelemetryRedactorTests
     [InlineData("الجوال ۰۵۵۱۲۳۴۵۶۷", "الجوال [digits]")]
     [InlineData("mixed ١٠١٠123456 run", "mixed [digits] run")]
     public void Arabic_indic_digit_runs_are_masked_too(string value, string expected)
+    {
+        TelemetryRedactor.Redact(value).ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData("ref 3f2504e0-4f89-11d3-9a0c-0305123456789 long", "ref 3f2504e0-4f89-11d3-9a0c-[digits] long")]
+    [InlineData("x3f2504e0-4f89-11d3-9a0c-030512345678", "x3f2504e0-4f89-11d3-9a0c-[digits]")]
+    public void A_dashed_run_that_is_not_a_guid_has_its_long_runs_masked(string value, string expected)
     {
         TelemetryRedactor.Redact(value).ShouldBe(expected);
     }

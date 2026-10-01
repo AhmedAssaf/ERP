@@ -163,11 +163,21 @@ public sealed partial class TelemetryRedactionTests(DatabaseFixture db)
         var queryMarker = Letters();
         var formMarker = Letters();
         var telemetry = new CapturedTelemetry();
-        await using var factory = new PlatformWebFactory(db.AppConnectionString).WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+        await using var factory = new PlatformWebFactory(db.AppConnectionString).WithWebHostBuilder(builder =>
         {
-            telemetry.AddTo(services);
-            services.Replace(ServiceDescriptor.Scoped<IVendorAccounts>(_ => new FakeVendorAccounts()));
-        }));
+            // Every category at Trace, as Development (or an operator chasing a problem) would run: Hosting's request records
+            // name the path and the query string.
+            builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Logging:LogLevel:Default"] = "Trace",
+                ["Logging:LogLevel:Microsoft.AspNetCore"] = "Trace",
+            }));
+            builder.ConfigureTestServices(services =>
+            {
+                telemetry.AddTo(services);
+                services.Replace(ServiceDescriptor.Scoped<IVendorAccounts>(_ => new FakeVendorAccounts()));
+            });
+        });
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("http://acme.localhost"), AllowAutoRedirect = false });
 
         using var page = await client.SendAsync(new HttpRequestMessage(HttpMethod.Get, $"/vendor/register/company?probe={queryMarker}").As(applicant), Ct);
@@ -181,6 +191,10 @@ public sealed partial class TelemetryRedactionTests(DatabaseFixture db)
         servers.ShouldAllBe(s => s.GetTagItem("url.query") == null);
         var spans = telemetry.SpansOf(factory.Services);
         spans.Count.ShouldBeGreaterThan(servers.Count, "the registration's database commands are traced below the request");
+        telemetry.Logs.ShouldContain(
+            l => l.Category == "Microsoft.AspNetCore.Hosting.Diagnostics" && l.Properties.ContainsKey("QueryString")
+                && l.Properties.GetValueOrDefault("Path") == "/vendor/register/company",
+            "Hosting's request records were captured, so the query string had a way out");
         foreach (var marker in new[] { queryMarker, formMarker })
         {
             foreach (var span in spans)
