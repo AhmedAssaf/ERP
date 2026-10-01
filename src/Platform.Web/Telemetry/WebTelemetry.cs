@@ -4,6 +4,7 @@ using OpenTelemetry;
 using OpenTelemetry.Context.Propagation;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
+using Platform.Shared.Telemetry;
 
 namespace Platform.Web.Telemetry;
 
@@ -60,6 +61,8 @@ internal static class WebTelemetry
         ArgumentNullException.ThrowIfNull(builder);
         // O-8: hosting takes the inbound trace context from this propagator, which extracts nothing (task 2).
         builder.Services.AddSingleton<DistributedContextPropagator, UntrustedTraceContextPropagator>();
+        // O-10: a handled exception's type and Error status on the server span (the instrumentation covers the unhandled ones).
+        builder.Services.AddExceptionHandler<ExceptionSpanHandler>();
         // O-8, second half: the ASP.NET Core instrumentation extracts the headers a second time with OpenTelemetry's default
         // propagator, and re-parents the request onto what it finds, unless that propagator is the plain W3C one, whose
         // extraction it leaves to hosting (above). The SDK's default adds W3C baggage, which would bring that second
@@ -73,6 +76,10 @@ internal static class WebTelemetry
                     options.Filter = context => IsTraced(context.Request.Path);
                     // The only response enrichment slot: a later enricher must call DropStaticAsset from its own callback.
                     options.EnrichWithHttpResponse = DropStaticAsset;
+                    // No exception event, which could not be masked; the type and Error status instead (O-10). The masked
+                    // message is on the exception handler's log record of the same trace.
+                    options.RecordException = false;
+                    options.EnrichWithException = SpanExceptions.Record;
                 })
                 .AddSource(ComponentSources))
             .WithMetrics(metrics => metrics.AddMeter(Meters));

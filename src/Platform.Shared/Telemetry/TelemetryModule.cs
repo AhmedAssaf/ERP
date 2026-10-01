@@ -69,8 +69,15 @@ public static class TelemetryModule
                 tracing
                     .SetSampler(new ParentBasedSampler(new AlwaysOnSampler()))
                     .AddSource(TelemetryNames.Sources.Npgsql, TelemetryNames.Sources.OwnPrefix)
-                    .AddHttpClientInstrumentation()
+                    .AddHttpClientInstrumentation(options =>
+                    {
+                        // No exception event, which could not be masked; the type and Error status instead (O-10).
+                        options.RecordException = false;
+                        options.EnrichWithException = SpanExceptions.Record;
+                    })
                     .AddProcessor(new RootDatabaseSpanFilter());
+                // The last processor, ahead of every exporter (O-10): no span leaves before its values are masked.
+                tracing.AddProcessor(new RedactingSpanProcessor());
                 if (endpoint is not null)
                 {
                     tracing.AddOtlpExporter(options => UseCollector(options, endpoint));
@@ -136,23 +143,34 @@ public static class TelemetryModule
             builder.Services.AddSingleton<ILogEventSink, OtlpLogSink>();
         }
 
-        builder.Services.AddSingleton<ILoggerProvider>(services => new SerilogLoggerProvider(CreateLogger(services), dispose: true));
+        builder.Services.AddSingleton<ILoggerProvider>(services => new SerilogLoggerProvider(
+            CreateLogger(services.GetRequiredService<TelemetryResource>().ServiceName, services.GetServices<ILogEventSink>()), dispose: true));
     }
 
     /// <summary>
     /// The host's Serilog logger: no level of its own, log scopes and <c>LogContext</c> properties as event properties, the O-9
-    /// context of the current span for a record written outside those scopes (<see cref="ActivityContextEnricher"/>), and
-    /// every <see cref="ILogEventSink"/> service as a sink. No console sink, in any environment (O-16).
+    /// context of the current span for a record written outside those scopes (<see cref="ActivityContextEnricher"/>), the
+    /// component (<see cref="ComponentEnricher"/>), and every <see cref="ILogEventSink"/> service as a sink. No console sink,
+    /// in any environment (O-16). Redaction (O-10, plan task 3): request types and streams are never destructured
+    /// (<see cref="RedactingDestructuringPolicy"/>, within depth and count caps); <see cref="RedactingEnricher"/>, the last
+    /// enricher, masks every string value and then cuts it to 4096 characters (masked first, so no address is cut in half),
+    /// and adds the exception's type and masked message and stack; each sink is wrapped in <see cref="RedactedEventSink"/>,
+    /// so it never receives the raw exception or unmasked template text.
     /// </summary>
-    private static Logger CreateLogger(IServiceProvider services)
+    internal static Logger CreateLogger(string serviceName, IEnumerable<ILogEventSink> sinks)
     {
         var configuration = new LoggerConfiguration()
             .MinimumLevel.Verbose()
+            .Destructure.With<RedactingDestructuringPolicy>()
+            .Destructure.ToMaximumDepth(4)
+            .Destructure.ToMaximumCollectionCount(32)
             .Enrich.FromLogContext()
-            .Enrich.With<ActivityContextEnricher>();
-        foreach (var sink in services.GetServices<ILogEventSink>())
+            .Enrich.With<ActivityContextEnricher>()
+            .Enrich.With(new ComponentEnricher(serviceName))
+            .Enrich.With<RedactingEnricher>();
+        foreach (var sink in sinks)
         {
-            configuration.WriteTo.Sink(sink);
+            configuration.WriteTo.Sink(new RedactedEventSink(sink));
         }
 
         return configuration.CreateLogger();
