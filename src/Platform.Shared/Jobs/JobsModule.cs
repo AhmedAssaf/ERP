@@ -2,6 +2,7 @@ using Hangfire;
 using Hangfire.Common;
 using Hangfire.PostgreSql;
 using Hangfire.PostgreSql.Factories;
+using Hangfire.Server;
 using Hangfire.States;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -40,22 +41,28 @@ public static class JobsModule
     public static IServiceCollection AddJobClient(this IServiceCollection services, string connectionString) =>
         AddJobClient(services, connectionString, failFast: false);
 
-    /// <summary>Registers the client plus a Hangfire server whose jobs run in their own DI scope as the enqueuing tenant.</summary>
+    /// <summary>
+    /// Registers the client plus a Hangfire server whose jobs run in their own DI scope as the enqueuing tenant, each inside
+    /// its span and log scope (<see cref="JobTelemetryFilter"/>, W-10).
+    /// </summary>
     public static IServiceCollection AddJobServer(
         this IServiceCollection services, string connectionString, Action<JobServerSettings>? configure = null)
     {
         AddJobClient(services, connectionString, failFast: true);
         var settings = new JobServerSettings();
         configure?.Invoke(settings);
+        services.AddSingleton<IServerFilter, JobTelemetryFilter>();
 
         services.AddSingleton<IHostedService>(sp =>
         {
-            // This host's own DI-registered state filters (e.g. Operations' job-failure alert), on top of Hangfire's
-            // process-wide defaults. Never Hangfire's static GlobalJobFilters.Filters: several Hangfire servers can
-            // share one process (tests build one per test host), and a filter registered for one must not run on
-            // another's jobs.
+            // This host's own DI-registered state and server filters (e.g. Operations' job-failure alert, the job telemetry),
+            // on top of Hangfire's process-wide defaults. Never Hangfire's static GlobalJobFilters.Filters: several Hangfire
+            // servers can share one process (tests build one per test host), and a filter registered for one must not run
+            // on another's jobs. An instance registered under two of these interfaces is still one filter.
             var hostFilters = sp.GetServices<IElectStateFilter>().Cast<object>()
                 .Concat(sp.GetServices<IApplyStateFilter>())
+                .Concat(sp.GetServices<IServerFilter>())
+                .Distinct(ReferenceEqualityComparer.Instance)
                 .ToArray();
 
             var options = new BackgroundJobServerOptions
@@ -117,7 +124,7 @@ public static class JobsModule
             inner.GetFilters(job).Append(new JobFilter(tenantFilter, JobFilterScope.Global, null));
     }
 
-    /// <summary>This job server's own extra state filters (see <see cref="AddJobServer"/>), on top of the defaults.</summary>
+    /// <summary>This job server's own extra state and server filters (see <see cref="AddJobServer"/>), on top of the defaults.</summary>
     private sealed class HostScopedFilterProvider(IJobFilterProvider inner, IReadOnlyCollection<object> extraFilters) : IJobFilterProvider
     {
         // Hangfire's own JobFilterProviderCollection sorts by Order after combining providers; a plain Concat here

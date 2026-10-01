@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.StaticAssets;
+using OpenTelemetry;
+using OpenTelemetry.Context.Propagation;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 
@@ -56,6 +58,14 @@ internal static class WebTelemetry
     public static IHostApplicationBuilder AddWebTelemetry(this IHostApplicationBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        // O-8: hosting takes the inbound trace context from this propagator, which extracts nothing (task 2).
+        builder.Services.AddSingleton<DistributedContextPropagator, UntrustedTraceContextPropagator>();
+        // O-8, second half: the ASP.NET Core instrumentation extracts the headers a second time with OpenTelemetry's default
+        // propagator, and re-parents the request onto what it finds, unless that propagator is the plain W3C one, whose
+        // extraction it leaves to hosting (above). The SDK's default adds W3C baggage, which would bring that second
+        // extraction back. Process-wide by OpenTelemetry's design; outbound HttpClient calls still carry traceparent, which
+        // the runtime injects.
+        Sdk.SetDefaultTextMapPropagator(new TraceContextPropagator());
         builder.Services.AddOpenTelemetry()
             .WithTracing(tracing => tracing
                 .AddAspNetCoreInstrumentation(options =>

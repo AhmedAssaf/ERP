@@ -101,14 +101,14 @@ public static class TelemetryNames
         public const string HealthCheckDuration = "waslabid.health.check.duration";
     }
 
-    /// <summary>
-    /// Tag keys of the technical metrics, as spec 5.4 writes them. Spec 5.4 names the job metrics' tag <c>job.type</c>
-    /// while O-9 names the span and log attribute <see cref="Attributes.JobType"/>; both are kept as written until the
-    /// spec settles one.
-    /// </summary>
+    /// <summary>Tag keys of the technical metrics (spec 5.4).</summary>
     public static class MetricTags
     {
-        public const string JobType = "job.type";
+        /// <summary>
+        /// The job's <c>Type.Method</c>: the same name as the span and log attribute <see cref="Attributes.JobType"/> (O-9;
+        /// spec 5.4 aligned 2026-10-01), so a metric, a span and a log line of one job type share a key.
+        /// </summary>
+        public const string JobType = Attributes.JobType;
 
         /// <summary>A <c>HealthComponents</c> name.</summary>
         public const string Component = "component";
