@@ -21,10 +21,13 @@ namespace Platform.Shared.Telemetry;
 /// </summary>
 public static class TelemetryModule
 {
-    /// <summary>The collector's OTLP gRPC endpoint, for example <c>http://localhost:4317</c>. Unset: nothing is exported.</summary>
+    /// <summary>
+    /// The collector's OTLP gRPC endpoint, for example <c>http://localhost:4317</c>. Absent: <see cref="StandardOtlpEndpointVariable"/>
+    /// is read instead; present but empty: off, with no fallback. Required outside Development and Testing.
+    /// </summary>
     public const string OtlpEndpointSetting = "Telemetry:OtlpEndpoint";
 
-    /// <summary>The standard OpenTelemetry variable, read when <see cref="OtlpEndpointSetting"/> is not set.</summary>
+    /// <summary>The standard OpenTelemetry variable, read only when <see cref="OtlpEndpointSetting"/> is absent.</summary>
     public const string StandardOtlpEndpointVariable = "OTEL_EXPORTER_OTLP_ENDPOINT";
 
     /// <summary><c>deployment.environment.name</c> (<c>development</c>, <c>pilot</c>); unset: the host environment in lower case.</summary>
@@ -37,7 +40,8 @@ public static class TelemetryModule
     /// Registers the resource, tracing (Npgsql, every <c>WaslaBid.*</c> source, HttpClient; parent-based, everything
     /// sampled, O-5), metrics (runtime, Npgsql, HttpClient, every <c>WaslaBid.*</c> meter) and logging (Serilog as a provider),
     /// with the OTLP exporters only when <see cref="OtlpEndpoint"/> gives an endpoint. Outside Development and Testing every
-    /// other logging provider is removed first, the console included (O-16): logs then leave only through OTLP.
+    /// other logging provider is removed first, the console included (O-16): logs then leave only through OTLP, so there an
+    /// endpoint is required and its absence stops the host.
     /// </summary>
     public static IHostApplicationBuilder AddPlatformTelemetry(this IHostApplicationBuilder builder, string serviceName)
     {
@@ -46,6 +50,13 @@ public static class TelemetryModule
 
         var resource = TelemetryResource.For(serviceName, builder.Environment, builder.Configuration);
         var endpoint = OtlpEndpoint(builder.Configuration);
+        if (endpoint is null && !IsDevelopmentOrTesting(builder.Environment))
+        {
+            // Without the console (O-16) and without a collector, every log line would be dropped without a trace.
+            throw new InvalidOperationException(
+                $"Setting '{OtlpEndpointSetting}' is not configured. It is required outside Development: logs leave the host only over OTLP.");
+        }
+
         builder.Services.AddSingleton(resource);
         AddLogging(builder, endpoint is not null);
 
@@ -58,7 +69,8 @@ public static class TelemetryModule
                 tracing
                     .SetSampler(new ParentBasedSampler(new AlwaysOnSampler()))
                     .AddSource(TelemetryNames.Sources.Npgsql, TelemetryNames.Sources.OwnPrefix)
-                    .AddHttpClientInstrumentation();
+                    .AddHttpClientInstrumentation()
+                    .AddProcessor(new RootDatabaseSpanFilter());
                 if (endpoint is not null)
                 {
                     tracing.AddOtlpExporter(options => UseCollector(options, endpoint));
@@ -77,14 +89,15 @@ public static class TelemetryModule
     }
 
     /// <summary>
-    /// The collector endpoint from <see cref="OtlpEndpointSetting"/>, or else <see cref="StandardOtlpEndpointVariable"/> (the
-    /// hosts read environment variables into configuration); null when neither is set. A value that is not an absolute URL
-    /// stops the host, naming the setting.
+    /// The collector endpoint from <see cref="OtlpEndpointSetting"/> when that setting is present, an empty value meaning off;
+    /// only when it is absent, <see cref="StandardOtlpEndpointVariable"/> (the hosts read environment variables into
+    /// configuration). Null when there is none. A value that is not an absolute http or https URL stops the host, naming the
+    /// setting and never the value.
     /// </summary>
     public static Uri? OtlpEndpoint(IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(configuration);
-        var (setting, value) = configuration[OtlpEndpointSetting] is { Length: > 0 } own
+        var (setting, value) = configuration[OtlpEndpointSetting] is { } own
             ? (OtlpEndpointSetting, own)
             : (StandardOtlpEndpointVariable, configuration[StandardOtlpEndpointVariable]);
         if (string.IsNullOrWhiteSpace(value))

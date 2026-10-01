@@ -1,6 +1,7 @@
 using System.Net;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Platform.IntegrationTests.Infrastructure;
+using Platform.Shared.Telemetry;
 
 namespace Platform.IntegrationTests.Web;
 
@@ -18,7 +19,9 @@ public class HealthEndpointTests
             .WithWebHostBuilder(b => b
                 .UseSetting("ConnectionStrings:Platform", "Host=unused;Database=unused")
                 .UseSetting("ConnectionStrings:KeyRing", TestSecrets.KeyRingConnectionString("Host=unused;Database=unused"))
-                .UseSetting(TestSecrets.CrAuditKeySetting.Key, TestSecrets.CrAuditKeySetting.Value));
+                .UseSetting(TestSecrets.CrAuditKeySetting.Key, TestSecrets.CrAuditKeySetting.Value)
+                // W-10: never export to a developer's collector from a test host.
+                .UseSetting(TelemetryModule.OtlpEndpointSetting, string.Empty));
         using var client = factory.CreateClient();
 
         var response = await client.GetAsync(new Uri("/health", UriKind.Relative), TestContext.Current.CancellationToken);

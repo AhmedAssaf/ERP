@@ -38,7 +38,8 @@ internal static class WebTelemetry
 
     /// <summary>
     /// Paths that never get a span (spec 5.2): readiness and liveness probes, the framework's files, the class libraries'
-    /// static assets, and the SignalR negotiation that precedes a circuit. Matched by path because the instrumentation's
+    /// static assets, and the Blazor hub (its negotiation, and the WebSocket request that lives as long as the circuit; the
+    /// circuit's own work is traced by the Blazor activity sources). Matched by path because the instrumentation's
     /// filter runs when the request starts, before routing has chosen an endpoint; the children of an unsampled request (a
     /// probe's database call) are not sampled either. Static assets mapped elsewhere (the scoped CSS bundle
     /// <c>/Platform.Web.styles.css</c>) are dropped when the request ends, by their endpoint (<see cref="DropStaticAsset"/>).
@@ -49,7 +50,7 @@ internal static class WebTelemetry
         "/alive",
         "/_framework",
         "/_content",
-        "/_blazor/negotiate",
+        "/_blazor",
     ];
 
     public static IHostApplicationBuilder AddWebTelemetry(this IHostApplicationBuilder builder)
@@ -60,6 +61,7 @@ internal static class WebTelemetry
                 .AddAspNetCoreInstrumentation(options =>
                 {
                     options.Filter = context => IsTraced(context.Request.Path);
+                    // The only response enrichment slot: a later enricher must call DropStaticAsset from its own callback.
                     options.EnrichWithHttpResponse = DropStaticAsset;
                 })
                 .AddSource(ComponentSources))

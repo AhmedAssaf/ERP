@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Net;
-using System.Net.Sockets;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -8,8 +7,10 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.StaticAssets;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
+using Npgsql;
 using OpenTelemetry;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Trace;
@@ -41,11 +42,15 @@ public sealed partial class TelemetryRegistrationTests(DatabaseFixture db)
         using var client = ClientFor(factory, "acme.localhost");
 
         using var response = await client.SendAsync(new HttpRequestMessage(HttpMethod.Get, "/admin/staff").As(admin), Ct);
+        // The sentinel: a second, unauthenticated request (401). Once its span is in, the first request's spans are all in.
+        using var sentinel = await client.GetAsync(new Uri("/admin/staff", UriKind.Relative), Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var server = (await telemetry.WaitForServerSpansAsync(factory.Services, 1, Ct)).ShouldHaveSingleItem();
+        sentinel.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        var spans = await telemetry.WaitForServerSpansAsync(factory.Services, 2, Ct);
+        spans.Count.ShouldBe(2, "one server span per request");
+        var server = spans.Where(s => Equals(s.GetTagItem("http.response.status_code"), 200)).ShouldHaveSingleItem();
         server.GetTagItem("http.route").ShouldBe("/admin/staff");
-        server.GetTagItem("http.response.status_code").ShouldBe(200);
     }
 
     /// <remarks>
@@ -70,6 +75,8 @@ public sealed partial class TelemetryRegistrationTests(DatabaseFixture db)
         (await client.GetAsync(new Uri(content, UriKind.Relative), Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
         (await client.GetAsync(new Uri(elsewhere, UriKind.Relative), Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
         await client.PostAsync(new Uri("/_blazor/negotiate?negotiateVersion=1", UriKind.Relative), null, Ct);
+        // The circuit's own request: on a browser it is the WebSocket that lives as long as the circuit.
+        await client.GetAsync(new Uri("/_blazor?id=unknown-connection", UriKind.Relative), Ct);
         await client.GetAsync(new Uri("/admin/staff", UriKind.Relative), Ct);
 
         var sentinel = (await telemetry.WaitForServerSpansAsync(factory.Services, 1, Ct)).ShouldHaveSingleItem("only the last request is traced");
@@ -101,6 +108,41 @@ public sealed partial class TelemetryRegistrationTests(DatabaseFixture db)
             .Select(t => t.Key)
             .ToList();
         leaked.ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// Database work outside any request or job (Hangfire polling, heartbeats, locks, the key-ring refresh) starts no trace
+    /// of its own; a command inside a request still gets its child span.
+    /// </summary>
+    [Fact]
+    public async Task A_database_call_outside_any_activity_produces_no_span()
+    {
+        var admin = await AcmeAdminAsync();
+        var telemetry = new CapturedTelemetry();
+        await using var factory = Factory(telemetry);
+        using var client = ClientFor(factory, "acme.localhost");
+        var marker = $"root_probe_{Guid.NewGuid():N}";
+
+        var previous = Activity.Current;
+        Activity.Current = null;
+        try
+        {
+            await using var connection = new NpgsqlConnection(db.AppConnectionString);
+            await connection.OpenAsync(Ct);
+            await using var command = new NpgsqlCommand($"select 1 as {marker}", connection);
+            await command.ExecuteScalarAsync(Ct);
+        }
+        finally
+        {
+            Activity.Current = previous;
+        }
+
+        using var response = await client.SendAsync(new HttpRequestMessage(HttpMethod.Get, "/admin/staff").As(admin), Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var server = (await telemetry.WaitForServerSpansAsync(factory.Services, 1, Ct)).ShouldHaveSingleItem();
+        telemetry.SpansOf(factory.Services).ShouldContain(s => s.Source.Name == "Npgsql" && s.TraceId == server.TraceId);
+        telemetry.AllSpans.ShouldNotContain(s => Statement(s).Contains(marker, StringComparison.Ordinal));
     }
 
     [Fact]
@@ -151,8 +193,12 @@ public sealed partial class TelemetryRegistrationTests(DatabaseFixture db)
     {
         List<ServiceDescriptor> without = [];
         List<ServiceDescriptor> with = [];
+        // The factory sets Telemetry:OtlpEndpoint to empty, which means off: the standard variable (read through configuration,
+        // as the hosts read environment variables) is then ignored, so a developer's OTEL_EXPORTER_OTLP_ENDPOINT changes nothing.
         await using (var plain = new PlatformWebFactory(db.AppConnectionString)
-            .WithWebHostBuilder(builder => builder.ConfigureTestServices(services => without = [.. services])))
+            .WithWebHostBuilder(builder => builder
+                .UseSetting(TelemetryModule.StandardOtlpEndpointVariable, PlatformWebFactory.UnusedOtlpEndpoint())
+                .ConfigureTestServices(services => without = [.. services])))
         {
             using var client = plain.CreateClient();
             (await client.GetAsync(new Uri("/health", UriKind.Relative), Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -160,7 +206,7 @@ public sealed partial class TelemetryRegistrationTests(DatabaseFixture db)
 
         await using (var exporting = new PlatformWebFactory(db.AppConnectionString)
             .WithWebHostBuilder(builder => builder
-                .UseSetting(TelemetryModule.OtlpEndpointSetting, $"http://127.0.0.1:{UnusedPort()}")
+                .UseSetting(TelemetryModule.OtlpEndpointSetting, PlatformWebFactory.UnusedOtlpEndpoint())
                 .ConfigureTestServices(services => with = [.. services])))
         {
             _ = exporting.Server;
@@ -178,7 +224,7 @@ public sealed partial class TelemetryRegistrationTests(DatabaseFixture db)
     {
         var admin = await AcmeAdminAsync();
         var factory = new PlatformWebFactory(db.AppConnectionString)
-            .WithWebHostBuilder(builder => builder.UseSetting(TelemetryModule.OtlpEndpointSetting, $"http://127.0.0.1:{UnusedPort()}"));
+            .WithWebHostBuilder(builder => builder.UseSetting(TelemetryModule.OtlpEndpointSetting, PlatformWebFactory.UnusedOtlpEndpoint()));
         using (var client = ClientFor(factory, "acme.localhost"))
         {
             for (var i = 0; i < 20; i++)
@@ -191,26 +237,61 @@ public sealed partial class TelemetryRegistrationTests(DatabaseFixture db)
         await Should.NotThrowAsync(async () => await factory.DisposeAsync());
     }
 
+    /// <summary>
+    /// Outside Development and Testing the console is cleared (O-16), so without a collector every log line would be lost:
+    /// the host does not start, and says which setting is missing. An explicitly empty setting is no endpoint.
+    /// </summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void Outside_development_a_host_without_an_otlp_endpoint_does_not_start(string? endpoint)
+    {
+        using var factory = new PlatformWebFactory("Host=unused;Database=unused", environment: "Production")
+            .WithWebHostBuilder(builder => builder.UseSetting(TelemetryModule.OtlpEndpointSetting, endpoint));
+
+        var refused = Should.Throw<InvalidOperationException>(() => factory.Server);
+
+        refused.Message.ShouldContain(TelemetryModule.OtlpEndpointSetting);
+        refused.Message.ShouldNotContain("http", Case.Insensitive);
+    }
+
+    /// <summary>
+    /// Read from the registrations of a host that is built but stopped before its first hosted service, on a database that
+    /// does not exist: a Production host that started on the shared test database would store a key ring key under the test
+    /// certificate, which every later Testing host then fails to decrypt (logged as errors in their output).
+    /// </summary>
     [Fact]
     public void Outside_development_no_console_log_provider_is_registered()
     {
-        using var factory = new PlatformWebFactory(db.AppConnectionString, environment: "Production");
+        List<ServiceDescriptor> services = [];
+        using var factory = new PlatformWebFactory("Host=unused;Database=unused", environment: "Production")
+            .WithWebHostBuilder(builder => builder.ConfigureTestServices(s =>
+            {
+                services = [.. s];
+                s.Insert(0, ServiceDescriptor.Singleton<IHostedService, StopBeforeStart>());
+            }));
 
-        var providers = factory.Services.GetServices<ILoggerProvider>().ToList();
+        Should.Throw<InvalidOperationException>(() => factory.Server).Message.ShouldBe(StopBeforeStart.Message);
 
-        providers.ShouldNotContain(p => p is ConsoleLoggerProvider);
-        providers.ShouldContain(p => p is SerilogLoggerProvider);
+        var providers = services.Where(d => d.ServiceType == typeof(ILoggerProvider)).ToList();
+        providers.ShouldNotContain(d => d.ImplementationType == typeof(ConsoleLoggerProvider));
+        // Only the Serilog provider, registered by a factory (TelemetryModule): every other provider was cleared.
+        providers.ShouldHaveSingleItem().ImplementationFactory.ShouldNotBeNull();
     }
 
     [Fact]
     public void In_development_the_console_log_provider_stays()
     {
-        using var factory = new PlatformWebFactory(db.AppConnectionString, environment: "Development");
+        List<ServiceDescriptor> services = [];
+        using var factory = new PlatformWebFactory(db.AppConnectionString, environment: "Development")
+            .WithWebHostBuilder(builder => builder.ConfigureTestServices(s => services = [.. s]));
 
         var providers = factory.Services.GetServices<ILoggerProvider>().ToList();
 
         providers.ShouldContain(p => p is ConsoleLoggerProvider);
         providers.ShouldContain(p => p is SerilogLoggerProvider);
+        // The registration check of the Production test finds the console here.
+        services.ShouldContain(d => d.ServiceType == typeof(ILoggerProvider) && d.ImplementationType == typeof(ConsoleLoggerProvider));
     }
 
     /// <summary>
@@ -300,13 +381,6 @@ public sealed partial class TelemetryRegistrationTests(DatabaseFixture db)
 
     private static string Statement(Activity span) => span.GetTagItem("db.query.text") as string ?? string.Empty;
 
-    private static int UnusedPort()
-    {
-        using var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        return ((IPEndPoint)listener.LocalEndpoint).Port;
-    }
-
     private static bool ReferencesOtlp(ServiceDescriptor descriptor) =>
         Types(descriptor).Any(t =>
             t.Assembly == typeof(OtlpExporterOptions).Assembly
@@ -323,6 +397,16 @@ public sealed partial class TelemetryRegistrationTests(DatabaseFixture db)
             (descriptor.IsKeyedService ? descriptor.KeyedImplementationInstance : descriptor.ImplementationInstance)?.GetType(),
         };
         return [.. types.OfType<Type>().SelectMany(t => t.GetGenericArguments().Prepend(t))];
+    }
+
+    /// <summary>Stops a host after it is built and before any other hosted service starts.</summary>
+    private sealed class StopBeforeStart : IHostedService
+    {
+        public const string Message = "Stopped by the test once the host was built.";
+
+        public Task StartAsync(CancellationToken cancellationToken) => throw new InvalidOperationException(Message);
+
+        public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 
     /// <summary>Writes one Information record at the very start of every request, inside the request's activity.</summary>

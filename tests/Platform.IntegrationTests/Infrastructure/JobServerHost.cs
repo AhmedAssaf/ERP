@@ -29,7 +29,9 @@ internal sealed class JobServerHost : IAsyncDisposable
         CancellationToken cancellationToken = default)
     {
         var serverName = $"test-{Guid.NewGuid():N}";
-        var builder = new HostApplicationBuilder(new HostApplicationBuilderSettings { DisableDefaults = true });
+        // Testing, as the web test hosts: the worker's Production-only rules (W-10: an OTLP endpoint is required) do not apply.
+        // No configuration source is added, so no environment variable such as OTEL_EXPORTER_OTLP_ENDPOINT is read either.
+        var builder = new HostApplicationBuilder(new HostApplicationBuilderSettings { DisableDefaults = true, EnvironmentName = "Testing" });
         builder.Services.AddLogging();
         builder.Services.AddPlatformShared();
         builder.Services.AddAuditModule(appConnectionString);

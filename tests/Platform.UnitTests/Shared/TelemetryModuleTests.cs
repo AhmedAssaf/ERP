@@ -32,6 +32,38 @@ public class TelemetryModuleTests
         TelemetryModule.OtlpEndpoint(configuration).ShouldBe(new Uri("http://localhost:4317"));
     }
 
+    [Fact]
+    public void An_explicitly_empty_own_setting_means_off_without_falling_back()
+    {
+        var configuration = Configuration(
+            (TelemetryModule.OtlpEndpointSetting, string.Empty),
+            (TelemetryModule.StandardOtlpEndpointVariable, "http://collector:4317"));
+
+        TelemetryModule.OtlpEndpoint(configuration).ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData("Production")]
+    [InlineData("Staging")]
+    public void Outside_development_and_testing_a_host_without_an_endpoint_does_not_start(string environment)
+    {
+        var builder = new HostApplicationBuilder(new HostApplicationBuilderSettings { DisableDefaults = true, EnvironmentName = environment });
+
+        var refused = Should.Throw<InvalidOperationException>(() => builder.AddPlatformTelemetry(TelemetryNames.Services.Worker));
+
+        refused.Message.ShouldContain(TelemetryModule.OtlpEndpointSetting);
+    }
+
+    [Theory]
+    [InlineData("Development")]
+    [InlineData("Testing")]
+    public void In_development_and_testing_a_host_without_an_endpoint_registers_telemetry(string environment)
+    {
+        var builder = new HostApplicationBuilder(new HostApplicationBuilderSettings { DisableDefaults = true, EnvironmentName = environment });
+
+        Should.NotThrow(() => builder.AddPlatformTelemetry(TelemetryNames.Services.Worker));
+    }
+
     [Theory]
     [InlineData("localhost:4317")]
     [InlineData("not a url")]
