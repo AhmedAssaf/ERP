@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Net;
 using Hangfire;
+using Hangfire.Common;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -121,34 +122,98 @@ public sealed class JobTelemetryTests(DatabaseFixture db)
             .ShouldBe([TelemetryNames.MetricTags.JobType], "no tenant, job id or argument on a technical metric");
     }
 
+    /// <summary>
+    /// A recurring job carries no <c>TraceParent</c>, so it is the root of a trace of its own, even on a worker thread that
+    /// has an activity current: the worker is started under an ambient activity, which its threads inherit with the
+    /// execution context, so a job span started "under whatever is current" would become that activity's child.
+    /// </summary>
     [Fact]
     public async Task A_recurring_job_without_a_request_starts_its_own_trace()
     {
-        using var ambientSource = new ActivitySource("WaslaBid.Tests.Ambient");
         var telemetry = new CapturedTelemetry();
-        await using var worker = await StartWorkerAsync(telemetry);
+        var ambient = RecordedActivity("ambient worker start");
+        JobServerHost worker;
+        try
+        {
+            worker = await StartWorkerAsync(telemetry);
+        }
+        finally
+        {
+            ambient.Stop();
+        }
+
+        await using var _ = worker;
+        Activity.Current.ShouldBeNull("the test itself runs outside the ambient activity from here on");
         var recurringId = $"telemetry-recurring-{Guid.NewGuid():N}";
         var marker = Guid.NewGuid().ToString("N");
         var manager = new RecurringJobManager(worker.Storage);
         manager.AddOrUpdate<TelemetryProbeJob>(recurringId, job => job.Run(marker), Cron.Never());
 
-        string jobId;
-        ActivityTraceId ambientTrace;
-        using (var ambient = ambientSource.StartActivity("test ambient"))
-        {
-            ambient.ShouldNotBeNull("the worker's tracer provider listens to every WaslaBid.* source");
-            ambientTrace = ambient.TraceId;
-            jobId = manager.TriggerJob(recurringId);
-        }
-
+        var jobId = manager.TriggerJob(recurringId);
         await worker.WaitForSuccessAsync(jobId, Ct);
         manager.RemoveIfExists(recurringId);
 
         worker.Storage.GetParameter(jobId, "TraceParent").ShouldBeNull();
         var span = await JobSpanAsync(telemetry, jobId);
         span.ParentSpanId.ShouldBe(default);
-        span.TraceId.ShouldNotBe(ambientTrace);
+        span.TraceId.ShouldNotBe(ambient.TraceId);
         Record(telemetry, marker).TraceId.ShouldBe(span.TraceId);
+    }
+
+    /// <summary>
+    /// Only a recorded activity becomes a job's parent: under an unrecorded one (the untraced <c>/_blazor</c> request of a
+    /// circuit), the worker's parent-based sampler would drop the job's span, so no <c>TraceParent</c> is stamped and the job
+    /// starts a trace of its own.
+    /// </summary>
+    [Fact]
+    public async Task A_job_enqueued_under_an_unrecorded_activity_starts_its_own_recorded_trace()
+    {
+        var telemetry = new CapturedTelemetry();
+        await using var worker = await StartWorkerAsync(telemetry);
+        var unrecordedMarker = Guid.NewGuid().ToString("N");
+        var recordedMarker = Guid.NewGuid().ToString("N");
+
+        string unrecordedJob;
+        string recordedJob;
+        Activity unrecorded;
+        Activity recorded;
+        await using (var scope = worker.ScopeFor(TestTenants.Acme))
+        {
+            var jobs = scope.ServiceProvider.GetRequiredService<IBackgroundJobClient>();
+            unrecorded = new Activity("unrecorded enqueue").SetIdFormat(ActivityIdFormat.W3C).Start();
+            try
+            {
+                unrecorded.Recorded.ShouldBeFalse();
+                unrecordedJob = jobs.Enqueue<TelemetryProbeJob>(job => job.Run(unrecordedMarker));
+            }
+            finally
+            {
+                unrecorded.Stop();
+            }
+
+            recorded = RecordedActivity("recorded enqueue");
+            try
+            {
+                recordedJob = jobs.Enqueue<TelemetryProbeJob>(job => job.Run(recordedMarker));
+            }
+            finally
+            {
+                recorded.Stop();
+            }
+        }
+
+        await worker.WaitForSuccessAsync(unrecordedJob, Ct);
+        await worker.WaitForSuccessAsync(recordedJob, Ct);
+
+        worker.Storage.GetParameter(unrecordedJob, "TraceParent").ShouldBeNull();
+        var own = await JobSpanAsync(telemetry, unrecordedJob);
+        own.Recorded.ShouldBeTrue();
+        own.ParentSpanId.ShouldBe(default);
+        own.TraceId.ShouldNotBe(unrecorded.TraceId);
+        SerializationHelper.Deserialize<string>(worker.Storage.GetParameter(recordedJob, "TraceParent")).ShouldBe(recorded.Id);
+        var child = await JobSpanAsync(telemetry, recordedJob);
+        child.TraceId.ShouldBe(recorded.TraceId);
+        child.ParentSpanId.ShouldBe(recorded.SpanId);
     }
 
     private async Task<JobServerHost> StartWorkerAsync(CapturedTelemetry telemetry)
@@ -174,6 +239,14 @@ public sealed class JobTelemetryTests(DatabaseFixture db)
 
             await Task.Delay(25, Ct);
         }
+    }
+
+    /// <summary>A started W3C activity marked recorded, as a sampled request span would be; no listener needed.</summary>
+    private static Activity RecordedActivity(string name)
+    {
+        var activity = new Activity(name).SetIdFormat(ActivityIdFormat.W3C);
+        activity.ActivityTraceFlags = ActivityTraceFlags.Recorded;
+        return activity.Start();
     }
 
     private static CapturedLog Record(CapturedTelemetry telemetry, string marker) =>

@@ -64,7 +64,8 @@ public sealed class JobTelemetryFilter : IServerFilter, IJobFilter
     {
         ArgumentNullException.ThrowIfNull(context);
         var jobType = JobType(context.BackgroundJob.Job);
-        var tenantId = context.GetJobParameter<Guid?>(TenantJobFilter.TenantIdParameter);
+        // The parameters are written once, when the job is created: the copy fetched with the job needs no second read.
+        var tenantId = context.GetJobParameter<Guid?>(TenantJobFilter.TenantIdParameter, allowStale: true);
         List<KeyValuePair<string, object?>> tags =
         [
             new(TelemetryNames.Attributes.JobId, context.BackgroundJob.Id),
@@ -76,7 +77,7 @@ public sealed class JobTelemetryFilter : IServerFilter, IJobFilter
         }
 
         var previous = Activity.Current;
-        var parent = ParentOf(context.GetJobParameter<string>(TenantJobFilter.TraceParentParameter));
+        var parent = ParentOf(context.GetJobParameter<string>(TenantJobFilter.TraceParentParameter, allowStale: true));
         // Never a child of whatever was current on the worker's thread: of the enqueuing span, or the root of its own trace.
         Activity.Current = null;
         var activity = Source.StartActivity($"job {jobType}", ActivityKind.Internal, parent, tags);

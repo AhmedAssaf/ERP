@@ -68,9 +68,8 @@ public static class JobsModule
             var options = new BackgroundJobServerOptions
             {
                 Activator = new TenantJobActivator(sp.GetRequiredService<IServiceScopeFactory>()),
-                FilterProvider = hostFilters.Length == 0
-                    ? JobFilterProviders.Providers
-                    : new HostScopedFilterProvider(JobFilterProviders.Providers, hostFilters),
+                // Never empty: the job telemetry filter is always among them.
+                FilterProvider = new HostScopedFilterProvider(JobFilterProviders.Providers, hostFilters),
             };
             if (settings.ServerName is not null)
             {

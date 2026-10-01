@@ -13,6 +13,8 @@ namespace Platform.IntegrationTests.Infrastructure;
 /// become <c>role</c> claims on the token's own identity, as a token that tried to carry tenant roles would.
 /// <paramref name="RealmRoles"/> become <c>roles</c> claims (Keycloak realm roles, the tenant realm's id token mapper);
 /// <paramref name="Email"/> and <paramref name="EmailVerified"/> become <c>email</c> and <c>email_verified</c>.
+/// <paramref name="Username"/> is the <c>preferred_username</c> (the subject when not given); <paramref name="Name"/>, when
+/// given, the <c>name</c> claim.
 /// </summary>
 internal sealed record TestUser(
     string Subject,
@@ -21,7 +23,9 @@ internal sealed record TestUser(
     IReadOnlyList<string>? TokenRoles = null,
     IReadOnlyList<string>? RealmRoles = null,
     string? Email = null,
-    bool EmailVerified = false)
+    bool EmailVerified = false,
+    string? Username = null,
+    string? Name = null)
 {
     public const string Header = "X-Test-User";
 
@@ -43,7 +47,12 @@ internal sealed class TestAuthHandler(IOptionsMonitor<AuthenticationSchemeOption
         }
 
         var user = JsonSerializer.Deserialize<TestUser>(raw.ToString())!;
-        var claims = new List<Claim> { new("sub", user.Subject), new("preferred_username", user.Subject) };
+        var claims = new List<Claim> { new("sub", user.Subject), new("preferred_username", user.Username ?? user.Subject) };
+        if (user.Name is not null)
+        {
+            claims.Add(new Claim("name", user.Name));
+        }
+
         claims.AddRange(user.Organizations.Select(o => new Claim("organization", o)));
         if (user.Locale is not null)
         {

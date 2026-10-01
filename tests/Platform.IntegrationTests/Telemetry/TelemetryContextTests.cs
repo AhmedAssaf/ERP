@@ -9,12 +9,14 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Console;
 using Npgsql;
 using Platform.IntegrationTests.Infrastructure;
 using Platform.Modules.Identity.Contracts;
 using Platform.Modules.Vendors.Contracts;
 using Platform.Shared.Telemetry;
 using Platform.Shared.Tenancy;
+using Serilog.Events;
 
 namespace Platform.IntegrationTests.Telemetry;
 
@@ -58,7 +60,10 @@ public sealed partial class TelemetryContextTests(DatabaseFixture db)
         using var client = ClientFor(factory, "acme.localhost");
         var marker = Marker();
         var email = $"telemetry-{marker}@acme.test";
-        var user = new TestUser($"user-{marker}", ["acme"], "en", Email: email, EmailVerified: true);
+        // The sub, the user name and the display name all differ, so user.id can only have come from the sub.
+        var username = $"login-{Marker()}";
+        var name = $"Display {Marker()}";
+        var user = new TestUser($"user-{marker}", ["acme"], "en", Email: email, EmailVerified: true, Username: username, Name: name);
 
         using var response = await client.SendAsync(new HttpRequestMessage(HttpMethod.Get, $"{ProbeEndpoints.LogPath}?marker={marker}").As(user), Ct);
 
@@ -70,13 +75,16 @@ public sealed partial class TelemetryContextTests(DatabaseFixture db)
         server.GetTagItem(TelemetryNames.Attributes.UserId).ShouldBe(user.Subject);
         var request = telemetry.Logs.Where(l => l.TraceId == server.TraceId).ToList();
         request.ShouldContain(record);
-        foreach (var log in request)
+        foreach (var personal in new[] { email, username, name })
         {
-            log.Message.ShouldNotContain(email, Case.Insensitive);
-            log.Properties.Values.ShouldAllBe(value => value == null || !value.Contains(email, StringComparison.OrdinalIgnoreCase));
-        }
+            foreach (var log in request)
+            {
+                log.Message.ShouldNotContain(personal, Case.Insensitive);
+                log.Properties.Values.ShouldAllBe(value => value == null || !value.Contains(personal, StringComparison.OrdinalIgnoreCase));
+            }
 
-        server.TagObjects.ShouldAllBe(tag => tag.Value == null || !tag.Value.ToString()!.Contains(email, StringComparison.OrdinalIgnoreCase));
+            server.TagObjects.ShouldAllBe(tag => tag.Value == null || !tag.Value.ToString()!.Contains(personal, StringComparison.OrdinalIgnoreCase));
+        }
     }
 
     [Fact]
@@ -240,19 +248,51 @@ public sealed partial class TelemetryContextTests(DatabaseFixture db)
         signedIn.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
+    /// <summary>
+    /// Spec section 10: the deliberate failure gives one Error record with the request's trace id and its context. The
+    /// developer exception page writes that record after the request's log scopes have closed; the context comes from the
+    /// server span's tags.
+    /// </summary>
     [Fact]
-    public async Task In_development_the_deliberate_failure_endpoint_fails_with_its_fixed_message()
+    public async Task In_development_the_deliberate_failure_gives_one_error_record_with_the_trace_id_and_the_context()
     {
-        // The developer exception page logs the deliberate failure with its stack trace; kept out of the test output.
-        await using var factory = new PlatformWebFactory(db.AppConnectionString, environment: "Development")
-            .WithWebHostBuilder(builder => builder.ConfigureLogging(logging => logging.AddFilter("Microsoft.AspNetCore.Diagnostics", LogLevel.None)));
+        var telemetry = new CapturedTelemetry();
+        // The page's record and stack trace stay out of the test output: only the console provider is muted for it.
+        await using var factory = new PlatformWebFactory(db.AppConnectionString, environment: "Development").WithWebHostBuilder(builder => builder
+            .ConfigureLogging(logging => logging.AddFilter<ConsoleLoggerProvider>("Microsoft.AspNetCore.Diagnostics", LogLevel.None))
+            .ConfigureTestServices(telemetry.AddTo));
         using var client = ClientFor(factory, "acme.localhost");
+        var user = new TestUser($"user-{Marker()}", ["acme"], "en");
 
-        using var response = await client.GetAsync(new Uri("/dev/throw", UriKind.Relative), Ct);
+        using var response = await client.SendAsync(new HttpRequestMessage(HttpMethod.Get, "/dev/throw").As(user), Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.InternalServerError);
         (await response.Content.ReadAsStringAsync(Ct)).ShouldContain("Deliberate failure for the W-10 checks.");
-        CorrelationId(response).Length.ShouldBe(32);
+        var server = (await telemetry.WaitForServerSpansAsync(factory.Services, 1, Ct)).ShouldHaveSingleItem();
+        CorrelationId(response).ShouldBe(server.TraceId.ToHexString());
+        AssertOneErrorRecordWithContext(telemetry, server, user);
+    }
+
+    /// <summary>The same outside Development, where the exception handler writes the record and answers 500.</summary>
+    [Fact]
+    public async Task In_production_an_unhandled_exception_gives_one_error_record_with_the_trace_id_and_the_context()
+    {
+        var telemetry = new CapturedTelemetry();
+        await using var factory = ProductionFactory().WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+        {
+            telemetry.AddTo(services);
+            services.AddSingleton<IStartupFilter, ProbeEndpoints>();
+        }));
+        using var client = ClientFor(factory, "acme.localhost");
+        var user = new TestUser($"user-{Marker()}", ["acme"], "en");
+
+        using var response = await client.SendAsync(new HttpRequestMessage(HttpMethod.Get, ProbeEndpoints.ThrowPath).As(user), Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.InternalServerError);
+        (await response.Content.ReadAsStringAsync(Ct)).ShouldNotContain(ProbeEndpoints.FailureMessage);
+        var server = (await telemetry.WaitForServerSpansAsync(factory.Services, 1, Ct)).ShouldHaveSingleItem();
+        CorrelationId(response).ShouldBe(server.TraceId.ToHexString());
+        AssertOneErrorRecordWithContext(telemetry, server, user);
     }
 
     private WebApplicationFactory<Program> Factory(CapturedTelemetry telemetry) =>
@@ -268,11 +308,10 @@ public sealed partial class TelemetryContextTests(DatabaseFixture db)
     /// </summary>
     private WebApplicationFactory<Program> ProductionFactory()
     {
-        var port = new Uri(PlatformWebFactory.UnusedOtlpEndpoint()).Port;
         var keyRing = new NpgsqlConnectionStringBuilder(TestSecrets.KeyRingConnectionString(db.AppConnectionString))
         {
             Host = "127.0.0.1",
-            Port = port,
+            Port = PlatformWebFactory.UnusedLoopbackPort(),
             Timeout = 1,
         };
         return new PlatformWebFactory(db.AppConnectionString, environment: "Production")
@@ -292,6 +331,15 @@ public sealed partial class TelemetryContextTests(DatabaseFixture db)
 
     private static string Marker() => Guid.NewGuid().ToString("N");
 
+    private static void AssertOneErrorRecordWithContext(CapturedTelemetry telemetry, Activity server, TestUser user)
+    {
+        // Errors outside the request (a Production host's key ring startup in this test) belong to no request's trace.
+        var error = telemetry.Logs.Where(l => l.Level == LogEventLevel.Error && l.TraceId == server.TraceId).ShouldHaveSingleItem();
+        error.Properties[TelemetryNames.Attributes.TenantId].ShouldBe(TestTenants.Acme.TenantId.ToString());
+        error.Properties[TelemetryNames.Attributes.TenantSlug].ShouldBe(TestTenants.Acme.Slug);
+        error.Properties[TelemetryNames.Attributes.UserId].ShouldBe(user.Subject);
+    }
+
     private async Task<TestUser> AcmeAdminAsync()
     {
         var admin = new TestUser($"admin-{Guid.NewGuid():N}", ["acme"], "en");
@@ -308,6 +356,8 @@ public sealed partial class TelemetryContextTests(DatabaseFixture db)
         public const string LogPath = "/test/telemetry/log";
         public const string VendorLogPath = "/test/telemetry/vendor-log";
         public const string PlatformLogPath = "/platform/test/telemetry/log";
+        public const string ThrowPath = "/test/telemetry/throw";
+        public const string FailureMessage = "Telemetry probe failure.";
 
         public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next) => app =>
         {
@@ -318,6 +368,7 @@ public sealed partial class TelemetryContextTests(DatabaseFixture db)
             endpoints.MapGet(LogPath, Log).AllowAnonymous();
             endpoints.MapGet(VendorLogPath, Log).RequireAuthorization(VendorPolicies.Vendor);
             endpoints.MapGet(PlatformLogPath, Log).AllowAnonymous();
+            endpoints.MapGet(ThrowPath, IResult () => throw new InvalidOperationException(FailureMessage)).AllowAnonymous();
         };
 
         private static IResult Log(string marker, ILogger<ProbeEndpoints> logger)

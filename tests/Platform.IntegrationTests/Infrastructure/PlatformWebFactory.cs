@@ -64,11 +64,17 @@ internal sealed class PlatformWebFactory(string appConnectionString, OidcSetting
     }
 
     /// <summary>An OTLP endpoint on a loopback port nothing listens on, for hosts that need one but must not reach a collector.</summary>
-    public static string UnusedOtlpEndpoint()
+    public static string UnusedOtlpEndpoint() => $"http://127.0.0.1:{UnusedLoopbackPort()}";
+
+    /// <summary>
+    /// A loopback port nothing listens on: a connection to it is refused at once. (A fixed well-known port such as 9 is silently
+    /// dropped on Windows, so a client waits for its timeout instead.)
+    /// </summary>
+    public static int UnusedLoopbackPort()
     {
         using var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();
-        return $"http://127.0.0.1:{((IPEndPoint)listener.LocalEndpoint).Port}";
+        return ((IPEndPoint)listener.LocalEndpoint).Port;
     }
 
     public HttpClient ClientFor(string host) =>

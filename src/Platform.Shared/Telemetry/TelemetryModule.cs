@@ -140,14 +140,16 @@ public static class TelemetryModule
     }
 
     /// <summary>
-    /// The host's Serilog logger: no level of its own, log scopes and <c>LogContext</c> properties as event properties, and
+    /// The host's Serilog logger: no level of its own, log scopes and <c>LogContext</c> properties as event properties, the O-9
+    /// context of the current span for a record written outside those scopes (<see cref="ActivityContextEnricher"/>), and
     /// every <see cref="ILogEventSink"/> service as a sink. No console sink, in any environment (O-16).
     /// </summary>
     private static Logger CreateLogger(IServiceProvider services)
     {
         var configuration = new LoggerConfiguration()
             .MinimumLevel.Verbose()
-            .Enrich.FromLogContext();
+            .Enrich.FromLogContext()
+            .Enrich.With<ActivityContextEnricher>();
         foreach (var sink in services.GetServices<ILogEventSink>())
         {
             configuration.WriteTo.Sink(sink);
