@@ -52,7 +52,7 @@ Tags follow the user's convention: **Standard** (an industry or platform standar
 | O-14 | Alerts | F-60 (the worker's health job, email) stays the only alert path. W-10 adds a non-board component "Telemetry" (collector health and Elasticsearch cluster health) so a dead pipeline alerts like Disk does. No Kibana alert rules in W-10 | One alert path, one incident list; Kibana alerting would be a second channel with its own recipients and its own history | Judgment | No |
 | O-15 | Health endpoints | Keep `/health` exactly as it is (readiness, includes the key ring; the worker probes it for F-51). Add `/alive` (liveness: the process answers, no dependency) for container health checks on the pilot. The worker keeps opening no port | `/health` and `/alive` is the .NET Aspire service-defaults convention; a path outside `/health/*` keeps TenantMiddleware's rule that only the exact `/health` skips tenant resolution | Standard | No |
 | O-16 | Console output outside Development | Off. Outside Development and Testing, logs leave only through Serilog's OTLP sink (redacted). Development keeps the console | Container stdout would keep an unredacted, unrotated second copy outside the retention in O-12 and can fill the pilot disk. Cost: `docker logs` shows only startup failures that happen before the pipeline starts, which the host still writes to stderr | User decision | Q8, 2026-10-01 |
-| O-17 | Compose layout | The collector, Elasticsearch, Kibana and the one-shot `elastic-setup` are part of the default stack (no profile), each with a memory limit | Developers see the same pipeline as the pilot; about 3 GB | Judgment | No |
+| O-17 | Compose layout | The collector, Elasticsearch and the one-shot `elastic-setup` are part of the default stack, each with a memory limit; Kibana and its one-shot `kibana-setup` (saved objects import) sit in the Compose profile `kibana` and run only when someone looks (`docker compose --profile kibana up -d`), locally and on the pilot (trimmed by the user on 2026-10-01, section 9) | Developers see the same pipeline as the pilot; about 1.75 GB always on, Kibana's 768 MB only while in use, which matters on a 16 GB laptop and the 12 GB pilot VM | Judgment | No |
 | O-18 | Kibana access on the pilot | Through an SSH tunnel only, with Kibana's own login: a named platform-staff Elasticsearch user whose password lives in the secret store. Kibana OIDC needs a paid licence; oauth2-proxy in front of Kibana with the `waslabid-platform` realm is the later option when a third person needs access | Nothing new exposed to the internet on a single VM; two partners are the only readers | User decision | Q5, 2026-10-01 |
 | O-19 | Business metric names and labels | Meter `WaslaBid.Usage`; tags only the tenant slug, the kind of user and small fixed value sets (window, tender state, visibility); never a user id, vendor company id, tender id or tenant-defined text (section 6.1) | Every label value is a dimension kept 30 days on every data point; a label cannot be redacted afterwards (N-10, PDPL) | Judgment | No |
 | O-20 | Concurrent users | Counted in the web host from the Blazor circuit handler chain that W-21 extended: one more `CircuitHandler` keeps a registry of connected circuits in process memory; gauges read it (section 6.3) | Reuses the existing mechanism; no store, no per-request cost | Judgment | No |
@@ -303,21 +303,21 @@ Estimated resident memory with the pilot's load (accepted by the user on 2026-10
 
 | Service | Memory limit | Note |
 |---|---|---|
-| PostgreSQL | 2 GB | Existing |
+| PostgreSQL | 1.5 GB | Existing; trimmed from 2 GB, ample at pilot volume |
 | Keycloak | 1.5 GB | Existing, JVM |
-| ClamAV | 3 GB | Existing; about 1.2 GB resident, doubles briefly while signatures reload |
+| ClamAV | 2 GB | Existing; about 1.2 GB resident; trimmed from 3 GB by setting `ConcurrentDatabaseReload no`, so a signature reload no longer loads a second copy (scans wait for the reload instead, a few tens of seconds a few times a day; uploads already show a scanning state) |
 | MinIO, Redis, Caddy | 1 GB together | Existing |
 | Web host, worker | 1.5 GB together | Existing, when containerised in W-19 |
 | OpenTelemetry Collector | 256 MB | `memory_limiter` at 200 MB |
-| Elasticsearch | 2 GB | 1 GB heap, the rest for Lucene's file cache; single node, 0 replicas |
-| Kibana | 768 MB | Node heap capped at 512 MB |
-| `elastic-setup` | none | One-shot, exits after setup |
-| **Total** | **about 12 GB** | The Elastic part is about 3 GB |
+| Elasticsearch | 1.5 GB | 768 MB heap, the rest for Lucene's file cache; single node, 0 replicas; trimmed from 2 GB |
+| Kibana | 768 MB, only while in use | Node heap capped at 512 MB; Compose profile `kibana` (O-17) |
+| `elastic-setup`, `kibana-setup` | none | One-shot, exit after setup |
+| **Total** | **about 9.3 GB steady, about 10 GB with Kibana up** | The Elastic part is about 1.75 GB steady; the first figure (about 12 GB) was trimmed by the user on 2026-10-01 |
 | Loki, Tempo, Prometheus, Grafana (first draft, history) | about 1.8 GB together | Replaced by Elasticsearch and Kibana (ADR-0014) |
 | Self-hosted Sentry, for comparison (history) | 16 GB minimum, 32 GB in practice | Does not fit beside the stack (O-1) |
 | GlitchTip, for comparison (history) | about 512 MB plus a database in the existing PostgreSQL | The later option if Kibana triage proves too weak |
 
-The first draft of this section took the Always Free Arm allowance as 4 OCPU and 24 GB. docs/02 section 5 item 3 records it as 2 Arm cores and 12 GB since June 2026; on that allowance the stack above fills the VM, so W-19 confirms the allowance and either lowers limits (ClamAV is the largest) or takes the paid fallback named there.
+The first draft of this section took the Always Free Arm allowance as 4 OCPU and 24 GB; docs/02 section 5 item 3 records it as 2 Arm cores and 12 GB since June 2026. Nothing here needs 24 GB: the trimmed stack (decided by the user on 2026-10-01) is about 9.3 GB steady and about 10 GB while Kibana is up, leaving about 2 GB for the operating system and page cache on the 12 GB VM. W-19 applies the PostgreSQL and ClamAV limits and the ClamAV setting on the pilot; the paid fallback in docs/02 stays the answer if the allowance shrinks again.
 
 Disk: at pilot volume (one tenant, tens of users) Elasticsearch stays well under 10 GB for the retention in O-12. Elasticsearch needs `vm.max_map_count` of at least 262144 on the host (a sysctl on the pilot VM, W-19; Docker Desktop's WSL2 VM on developer machines). Elastic and the collector publish arm64 images; the devops agent confirms each digest is multi-architecture when pinning.
 
@@ -355,7 +355,7 @@ Answered 2026-10-01: **Elasticsearch 9.x and Kibana 9.x replace Loki, Tempo, Pro
 Superseded 2026-10-01 by the backend answer: metrics go to Elasticsearch, not Prometheus, now.
 
 **Q4. Pilot resource budget and W-19's dependency.**
-Answered 2026-10-01: **accept the Elastic budget on the pilot VM**: Elasticsearch 2 GB (1 GB heap), Kibana 768 MB, collector 256 MB, about 3 GB (section 9); **W-10 is added to W-19's dependencies** in docs/09.
+Answered 2026-10-01: **accept the Elastic budget on the pilot VM**, then trimmed the same day at the user's request: Elasticsearch 1.5 GB (768 MB heap), collector 256 MB, Kibana 768 MB only while in use (profile `kibana`), PostgreSQL 1.5 GB, ClamAV 2 GB with `ConcurrentDatabaseReload no`; about 9.3 GB steady for the whole pilot stack (section 9); **W-10 is added to W-19's dependencies** in docs/09.
 
 **Q5. How platform staff reach the UI on the pilot.**
 Answered 2026-10-01: **Kibana through an SSH tunnel only**, with Kibana's own login: a named platform-staff Elasticsearch user whose password is in the secret store. Kibana OIDC needs a paid licence; oauth2-proxy with the `waslabid-platform` realm is the later option when a third person needs access.
