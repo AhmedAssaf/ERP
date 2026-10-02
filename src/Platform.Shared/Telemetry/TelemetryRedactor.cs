@@ -272,7 +272,7 @@ public static partial class TelemetryRedactor
     /// <list type="number">
     /// <item>a date, three groups joined by the same <c>-</c> or <c>.</c>, <c>yyyy-mm-dd</c> or <c>dd-mm-yyyy</c> with a year
     /// from 1900 to 2099: kept, and it breaks any chain (<c>2026-10-02 12:34</c>). Only a <c>yyyy-mm-dd</c> date joined by
-    /// hyphens keeps a suffix, a hyphen and one or two digits (<c>2026-10-02-15</c>); any other hyphen and group after a date
+    /// hyphens keeps a suffix, a hyphen and one or two digits (<c>2026-10-02-15</c>), unless a chain or a dotted run goes on from that suffix, which then belongs to them (<c>2026-10-02-05 5123 4567</c> is masked, fix round 2); any other hyphen and group after a date
     /// makes it no date, and it is read as a chain (<c>2026-10-02-153045</c> is masked);</item>
     /// <item>a platform reference (fix round 1): right after <c>RFP</c>, <c>RFQ</c>, <c>PO</c> or <c>TND</c> (any case) and
     /// a hyphen, a year from 2000 to 2049, a hyphen and one sequence number of up to six digits from which no chain and no
