@@ -17,8 +17,16 @@
 // PostgreSQL is stopped last. Pass step numbers to run a subset (`node observability.mjs 1 2 3`); steps 2, 3, 4 and 9
 // add step 1, which makes their failure. Steps 6 and 7 always start what they stopped, even on failure.
 // Secrets (ELASTIC_PASSWORD, KIBANA_STAFF_PASSWORD, the Keycloak admin) come from infra/compose/.env (E2E_ENV_FILE) and
-// go into request headers only; nothing here prints a secret value (N-10). The throwaway Elasticsearch user's password
-// is generated, used and deleted with the user.
+// go into request headers and form fields only (N-10). Everything this script prints or stores passes through scrub(),
+// which replaces every secret value of the .env, the generated passwords of the throwaway users, their Basic headers and
+// the TOTP seeds in .state with [secret], so an error message that quotes a filled value (Playwright's call log does)
+// cannot leak one. A short secret such as the local default Keycloak admin password `admin` is scrubbed too, so words that
+// contain it read as [secret] in the output. The throwaway Elasticsearch user's password is generated, used and deleted
+// with the user.
+// Ctrl-C or SIGTERM runs the same restore and cleanup as the end of a run, once: containers started again, the probe
+// user, the Keycloak throwaways and Kibana removed or stopped, results written; then the script exits non-zero.
+// E2E_SELF_INTERRUPT_MS=<ms> raises SIGINT inside the process after that delay, to check the restore path without a
+// console (on Windows a signal sent from another process cannot be caught).
 import { execFileSync, spawn } from 'child_process';
 import crypto from 'crypto';
 import fs from 'fs';
@@ -38,6 +46,32 @@ fs.mkdirSync(SHOTS, { recursive: true });
 const RCPT = 'platform-admin@waslabid.test';
 const THROW_MESSAGE = 'Deliberate failure for the W-10 checks.';
 const run = Date.now().toString();
+const ENV_FILE = process.env.E2E_ENV_FILE || path.join(DIR, '..', '..', 'infra', 'compose', '.env');
+
+// ---- Secret scrubbing (N-10) ----
+const secrets = new Set();
+const addSecret = value => { if (typeof value === 'string' && value.length > 0) secrets.add(value); return value; };
+for (const line of fs.readFileSync(ENV_FILE, 'utf8').split(/\r?\n/)) {
+  const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
+  if (m && /PASSWORD|SECRET|_KEY$|TOKEN/.test(m[1])) addSecret(m[2].trim());
+}
+/** Every known secret value in a string replaced with [secret], longest first; TOTP seeds and the vendor password read from .state at call time. */
+function scrubText(text) {
+  const state = loadState();
+  const all = [...secrets, ...Object.values(state.totp ?? {}), state.vendorPw].filter(v => typeof v === 'string' && v.length > 0)
+    .sort((a, b) => b.length - a.length);
+  let out = String(text);
+  for (const v of all) out = out.split(v).join('[secret]');
+  return out;
+}
+/** scrubText applied to every string inside a value (objects and arrays walked), so stored JSON stays valid. */
+function scrub(value) {
+  if (typeof value === 'string') return scrubText(value);
+  if (Array.isArray(value)) return value.map(scrub);
+  if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, scrub(v)]));
+  return value;
+}
+const log = text => console.log(scrubText(text));
 
 const ORDER = [1, 2, 3, 4, 5, 8, 9, 6, 7];
 const asked = process.argv.slice(2).map(Number).filter(n => ORDER.includes(n));
@@ -49,9 +83,11 @@ const el = () => `${Math.round((Date.now() - t0) / 1000)}s`;
 const results = [];
 const evidence = { date: new Date().toISOString(), steps: STEPS, fields: {}, memory: [], p95: {} };
 const rec = (step, check, ok, seen) => {
-  results.push({ step, check, ok, at: el(), seen });
-  console.log(`${ok ? 'PASS' : 'FAIL'} [${el()}] ${step}. ${check} :: ${JSON.stringify(seen)}`);
+  const clean = scrub(seen ?? {});
+  results.push({ step, check: scrubText(check), ok, at: el(), seen: clean });
+  log(`${ok ? 'PASS' : 'FAIL'} [${el()}] ${step}. ${check} :: ${JSON.stringify(clean)}`);
 };
+const errorText = e => scrubText(maskEmails(String(e?.stack ?? e))).slice(0, 600);
 
 // ---------------------------------------------------------------------------------------------------------------------
 // HTTP helpers. Through Caddy: connect to 127.0.0.1 with the tenant host as SNI and Host header (Node does not resolve
@@ -76,7 +112,7 @@ async function direct(url) {
   try { return (await fetch(url, { signal: AbortSignal.timeout(30000) })).status; } catch (e) { return `error ${e.name}`; }
 }
 
-const basic = (user, password) => `Basic ${Buffer.from(`${user}:${password}`).toString('base64')}`;
+const basic = (user, password) => addSecret(`Basic ${Buffer.from(`${user}:${password}`).toString('base64')}`);
 const elasticAuth = () => basic('elastic', envValue('ELASTIC_PASSWORD'));
 const staffAuth = () => basic(envValue('KIBANA_STAFF_USER'), envValue('KIBANA_STAFF_PASSWORD'));
 
@@ -122,7 +158,7 @@ function memory(label) {
   try { es = docker('inspect', '-f', 'OOMKilled={{.State.OOMKilled}} RestartCount={{.RestartCount}} Status={{.State.Status}}', 'erp-elasticsearch'); } catch { /* reported as not running */ }
   const entry = { label, at: el(), stats, elasticsearch: es };
   evidence.memory.push(entry);
-  console.log(`MEM [${el()}] ${label} :: ${JSON.stringify(entry)}`);
+  log(`MEM [${el()}] ${label} :: ${JSON.stringify(entry)}`);
   return entry;
 }
 async function waitHealthy(container, ms) {
@@ -225,11 +261,32 @@ const F53_SPEC = `FROM logs-*
 | STATS errors = COUNT(*) BY resource.attributes.service.name, attributes.waslabid.component, attributes.exception.type
 | SORT errors DESC`;
 
+const PROBE_PREFIX = 'w10_f53_probe_';
+let probeUser; // set while the throwaway Elasticsearch user exists, so an interrupted run deletes it
+
+async function deleteProbeUser() {
+  if (!probeUser) return undefined;
+  const d = await es('DELETE', `/_security/user/${probeUser}`);
+  if (d.status === 200 || d.status === 404) probeUser = undefined;
+  return d.status;
+}
+
 async function step4() {
-  const user = `w10_f53_probe_${run}`;
-  const password = crypto.randomBytes(18).toString('base64url');
+  // Leftovers of an earlier run killed before its cleanup: only users this script created (name prefix and metadata).
+  const listed = await es('GET', '/_security/user');
+  const leftovers = Object.entries(listed.json ?? {})
+    .filter(([name, u]) => name.startsWith(PROBE_PREFIX) && u.metadata?.owner === 'waslabid-e2e').map(([name]) => name);
+  const swept = [];
+  for (const name of leftovers) swept.push({ name, status: (await es('DELETE', `/_security/user/${name}`)).status });
+  rec(4, `leftover ${PROBE_PREFIX}* users swept before the run`, listed.status === 200 && swept.every(x => x.status === 200),
+    { listStatus: listed.status, swept });
+
+  const user = `${PROBE_PREFIX}${run}`;
+  const password = addSecret(crypto.randomBytes(18).toString('base64url'));
   const created = await es('PUT', `/_security/user/${user}`, { password, roles: ['waslabid_errors_reader'], full_name: 'W-10 task 10 probe', metadata: { owner: 'waslabid-e2e' } });
   rec(4, 'throwaway user with role waslabid_errors_reader created (as elastic)', created.status === 200, { status: created.status, error: esError(created), user });
+  if (created.status !== 200) return;
+  probeUser = user;
   try {
     const auth = basic(user, password);
     const lastHour = F53_SPEC.replace('NOW() - 24 hours', 'NOW() - 1 hour');
@@ -253,8 +310,8 @@ async function step4() {
       await es('POST', '/logs-*/_delete_by_query?refresh=true', { query: { match_phrase: { 'body.text': probeText } } });
     }
   } finally {
-    const d = await es('DELETE', `/_security/user/${user}`);
-    rec(4, 'throwaway Elasticsearch user deleted', d.status === 200, { status: d.status });
+    const status = await deleteProbeUser();
+    rec(4, 'throwaway Elasticsearch user deleted', status === 200, { status });
   }
 }
 
@@ -263,9 +320,10 @@ async function step5() {
   const logFile = path.join(DIR, 'observability-vendor-run.log');
   const exitCode = await new Promise(resolve => {
     const out = fs.openSync(logFile, 'w');
-    const child = spawn(process.execPath, ['vendor.mjs'], { cwd: DIR, env: process.env, stdio: ['ignore', out, out] });
-    child.on('exit', code => { fs.closeSync(out); resolve(code); });
+    vendorChild = spawn(process.execPath, ['vendor.mjs'], { cwd: DIR, env: process.env, stdio: ['ignore', out, out] });
+    vendorChild.on('exit', code => { fs.closeSync(out); vendorChild = undefined; resolve(code); });
   });
+  fs.writeFileSync(logFile, scrubText(fs.readFileSync(logFile, 'utf8')));
   const endedAt = new Date();
   const company = sql(`select cr_number, vat_number, contact_email from vendor.companies where created_at >= ${q(startedAt.toISOString())} order by created_at desc limit 1;`).split('\t');
   const [cr, vat, email] = company.length === 3 ? company : [];
@@ -303,10 +361,23 @@ async function step5() {
   const positive = await qs(THROW_MESSAGE);
   const positiveOk = (positive.json?.hits?.total?.value ?? 0) > 0;
   rec(5, 'control: a query_string over all fields of logs-* finds a known value (the deliberate failure message)', positiveOk, { status: positive.status, hits: positive.json?.hits?.total?.value });
+  // The same search with a wildcard on both sides also finds the digits inside a longer token or value (CR7123456789,
+  // cr=7123456789). Controls: part of the barrier trace id inside the keyword trace_id, and part of a word in body.text.
+  const wild = (value, index = 'logs-*') => es('POST', `/${index}/_search`, { size: 5, track_total_hits: true, query: { bool: { filter: [lastHour, { query_string: { query: `*${value}*`, fields: ['*'], lenient: true, allow_leading_wildcard: true } }] } } });
+  const embeddedId = barrier.slice(8, 18);
+  const wildControls = {
+    [`*${embeddedId}* (inside trace_id)`]: (await wild(embeddedId)).json?.hits?.total?.value,
+    '*nhandle* (inside "unhandled" in body.text)': (await wild('nhandle')).json?.hits?.total?.value,
+  };
+  const wildOk = Object.values(wildControls).every(n => (n ?? 0) > 0);
+  rec(5, 'control: a wildcard query_string over all fields of logs-* finds a value embedded in a longer token', wildOk, wildControls);
   const crHits = await qs(cr);
-  rec(5, 'no log record of the last hour holds the run\'s CR number (query_string over all fields of logs-*)',
-    positiveOk && crHits.status === 200 && crHits.json.hits.total.value === 0,
-    { status: crHits.status, error: esError(crHits), hits: crHits.json?.hits?.total?.value, where: hits(crHits).map(s => ({ service: s.resource?.attributes?.['service.name'], scope: s.scope?.name })) });
+  const crWild = await wild(cr);
+  rec(5, 'no log record of the last hour holds the run\'s CR number, alone or inside a longer token (query_string exact and *CR*, all fields of logs-*)',
+    positiveOk && wildOk && crHits.status === 200 && crHits.json.hits.total.value === 0 && crWild.status === 200 && crWild.json.hits.total.value === 0,
+    { exact: { status: crHits.status, error: esError(crHits), hits: crHits.json?.hits?.total?.value },
+      wildcard: { status: crWild.status, error: esError(crWild), hits: crWild.json?.hits?.total?.value },
+      where: [...hits(crHits), ...hits(crWild)].map(s => ({ service: s.resource?.attributes?.['service.name'], scope: s.scope?.name })) });
 
   // Wider look, recorded for the report: the literal address and the VAT number in logs, and all three in traces.
   const wider = {};
@@ -324,7 +395,9 @@ async function kibana(method, p, auth = staffAuth()) {
     return { status: r.status, json };
   } catch (e) { return { status: `error ${e.name}`, json: undefined }; }
 }
+let kibanaStarted = false;
 async function kibanaUp() {
+  kibanaStarted = true;
   execFileSync('docker', ['compose', '--profile', 'kibana', 'up', '-d', 'kibana', 'kibana-setup'], { cwd: COMPOSE_DIR, stdio: 'ignore' });
   const ready = await until(async () => {
     const s = await kibana('GET', '/api/status');
@@ -333,7 +406,7 @@ async function kibanaUp() {
   return ready;
 }
 function kibanaStop() {
-  try { execFileSync('docker', ['compose', '--profile', 'kibana', 'stop', 'kibana'], { cwd: COMPOSE_DIR, stdio: 'ignore' }); return 'stopped'; } catch (e) { return `stop failed: ${e.message.slice(0, 120)}`; }
+  try { execFileSync('docker', ['compose', '--profile', 'kibana', 'stop', 'kibana'], { cwd: COMPOSE_DIR, stdio: 'ignore' }); kibanaStarted = false; return 'stopped'; } catch (e) { return `stop failed: ${errorText(e).slice(0, 120)}`; }
 }
 async function kibanaSignIn(browser) {
   const { ctx, page } = await newPage(browser, { width: 1600, height: 1100, locale: 'en-US' });
@@ -378,6 +451,7 @@ async function step8(browser) {
   let staffCtx;
   try {
     const staff = await throwawayStaff('acme', 'tenant-admin', 'w10-usage', run);
+    addSecret(staff.password);
     const s = await newPage(browser, { locale: 'en-US' });
     staffCtx = s.ctx;
     await s.page.goto(`${ACME}/admin/staff`);
@@ -428,6 +502,7 @@ async function step8(browser) {
 
     // The console usage page as a throwaway platform admin with OTP, in both cultures.
     const admin = await throwawayPlatformAdmin(run);
+    addSecret(admin.password);
     const p = await newPage(browser, { locale: 'en-US' });
     await p.page.goto(`${PLATFORM}/platform/usage`);
     const pk = [];
@@ -470,7 +545,7 @@ async function step8(browser) {
     await p.ctx.close();
   } finally {
     if (staffCtx) await staffCtx.close().catch(() => {});
-    const removed = await cleanup().catch(e => [{ error: String(e).slice(0, 200) }]);
+    const removed = await cleanup().catch(e => [{ error: errorText(e) }]);
     rec(8, 'cleanup: throwaway staff and platform admin deleted from Keycloak, member row deleted',
       removed.length > 0 && removed.every(r => r.keycloakDelete === 204 && (r.kind !== 'staff' || r.memberRows === '1')), removed.map(r => ({ kind: r.kind, keycloakDelete: r.keycloakDelete, memberRows: r.memberRows, error: r.error })));
   }
@@ -519,7 +594,9 @@ async function step9(browser) {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-async function timings(n = 10) {
+// Thirty requests a run, so the nearest-rank p95 is the 29th value, not the maximum: one blip does not decide it.
+const TIMED_REQUESTS = 30;
+async function timings(n = TIMED_REQUESTS) {
   const out = [];
   for (let i = 0; i < n; i++) { const r = await viaCaddy(`${ACME}/`); out.push({ status: r.status, ms: round(r.ms) }); }
   return { statuses: [...new Set(out.map(x => x.status))], ms: out.map(x => x.ms), p95: p95(out.map(x => x.ms)) };
@@ -533,8 +610,8 @@ async function outage(container, part, other) {
   try {
     docker('stop', container); stoppedAt = Date.now();
     const during = await timings();
-    evidence.p95[container] = { baselineMs: baseline.p95, stoppedMs: during.p95 };
-    rec(6, `${container} stopped: ten GET / on acme answer as usual (p95 within 100 ms of the baseline)`,
+    evidence.p95[container] = { requests: TIMED_REQUESTS, baselineMs: baseline.p95, stoppedMs: during.p95 };
+    rec(6, `${container} stopped: ${TIMED_REQUESTS} GET / on acme answer as usual (p95 within 100 ms of a ${TIMED_REQUESTS}-request baseline)`,
       during.statuses.length === 1 && during.statuses[0] === baseline.statuses[0] && baseline.statuses.length === 1 && during.p95 - baseline.p95 <= 100,
       { baseline, during, addedP95Ms: round(during.p95 - baseline.p95) });
     const down = await until(async () => {
@@ -590,27 +667,64 @@ async function step7() {
 
 // ---------------------------------------------------------------------------------------------------------------------
 let browser;
+let vendorChild;
+let restoring;
+
+/** Restores the stack and removes what the run created; runs once, whether the run ended, failed or was interrupted. */
+function restoreAndCleanup(reason) {
+  restoring ??= (async () => {
+    const done = { reason };
+    const attempt = async (label, fn) => { try { done[label] = await fn(); } catch (e) { done[label] = `failed: ${errorText(e)}`; } };
+    if (vendorChild) await attempt('vendorRun', () => { vendorChild.kill(); return 'stopped'; });
+    if (browser) await attempt('browser', async () => { await browser.close(); return 'closed'; });
+    // The containers the steps stop are running again.
+    for (const c of ['erp-otel-collector', 'erp-elasticsearch', 'erp-postgres']) {
+      await attempt(c, () => {
+        if (docker('inspect', '-f', '{{.State.Running}}', c) === 'true') return 'running';
+        docker('start', c);
+        return 'restarted';
+      });
+    }
+    if (probeUser) await attempt('probeUser', async () => `delete answered ${await deleteProbeUser()}`);
+    // Keycloak throwaways and their member rows: a no-op when step 8 already cleaned up; needs PostgreSQL, started above.
+    await attempt('keycloakThrowaways', async () => {
+      await waitHealthy('erp-postgres', 60000);
+      return (await cleanup()).map(x => ({ kind: x.kind, keycloakDelete: x.keycloakDelete, memberRows: x.memberRows }));
+    });
+    if (kibanaStarted) await attempt('kibana', () => kibanaStop());
+    await attempt('memory', () => { memory('end'); return 'sampled'; });
+    evidence.restore = scrub(done);
+    log(`RESTORE ${JSON.stringify(evidence.restore)}`);
+    fs.writeFileSync(path.join(DIR, 'observability-results.json'), scrubText(JSON.stringify({ ...evidence, results }, null, 2)));
+    const failed = results.filter(r => !r.ok);
+    log(`\n${results.length - failed.length} passed, ${failed.length} failed; results in observability-results.json`);
+    return failed.length;
+  })();
+  return restoring;
+}
+
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.on(signal, async () => {
+    if (!restoring) rec(0, `interrupted by ${signal}`, false, {});
+    await restoreAndCleanup(signal);
+    process.exit(signal === 'SIGINT' ? 130 : 143);
+  });
+}
+if (process.env.E2E_SELF_INTERRUPT_MS) setTimeout(() => process.emit('SIGINT', 'SIGINT'), Number(process.env.E2E_SELF_INTERRUPT_MS)).unref();
+
 try {
   memory('start');
   for (const n of STEPS) {
     try {
-      if (n === 8 || n === 9) browser ??= await launch();
+      // Playwright's own signal handlers would exit before restoreAndCleanup ends; this script closes the browser itself.
+      if (n === 8 || n === 9) browser ??= await launch({ handleSIGINT: false, handleSIGTERM: false, handleSIGHUP: false });
       await { 1: step1, 2: step2, 3: step3, 4: step4, 5: step5, 6: step6, 7: step7, 8: step8, 9: step9 }[n](browser);
     } catch (e) {
-      rec(n, 'script error', false, { error: maskEmails(String(e)).slice(0, 500) });
+      rec(n, 'script error', false, { error: errorText(e) });
     }
     if (n === 5) memory('after step 5');
     if ((n === 9) || (n === 8 && !STEPS.includes(9))) { memory('Kibana up, before stop'); rec(n, 'Kibana stopped after the Kibana steps', kibanaStop() === 'stopped', {}); }
   }
 } finally {
-  if (browser) await browser.close().catch(() => {});
-  // Whatever happened, the containers the steps stop are running again.
-  for (const c of ['erp-otel-collector', 'erp-elasticsearch', 'erp-postgres']) {
-    try { if (docker('inspect', '-f', '{{.State.Running}}', c) !== 'true') { docker('start', c); console.log(`restarted ${c}`); } } catch { /* reported in memory() */ }
-  }
-  memory('end');
-  fs.writeFileSync(path.join(DIR, 'observability-results.json'), JSON.stringify({ ...evidence, results }, null, 2));
-  const failed = results.filter(r => !r.ok);
-  console.log(`\n${results.length - failed.length} passed, ${failed.length} failed; results in observability-results.json`);
-  if (failed.length) process.exitCode = 1;
+  if (await restoreAndCleanup('end')) process.exitCode = 1;
 }

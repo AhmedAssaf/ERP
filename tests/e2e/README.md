@@ -137,13 +137,14 @@ vendor steps the vendor scripts share (PDF, chunked upload, sign in again, compa
   F-53 query of spec section 8 runs as a throwaway Elasticsearch user with the role `waslabid_errors_reader` (created as
   `elastic`, deleted at the end), counts the error and is refused (403) when indexing into `logs-*`; (5) after one run of
   `vendor.mjs` no log record of the last hour holds an email address (ES|QL `RLIKE` on `body.text`) or the run's CR
-  number (`query_string` over all fields), each search with a positive control; (8) a throwaway acme staff admin keeps a
+  number (`query_string` over all fields, exact and as `*number*` so digits inside a longer token count), each search
+  with a positive control; (8) a throwaway acme staff admin keeps a
   page open: `metrics.waslabid.users.concurrent` for acme `staff` becomes 1, the Kibana dashboard `waslabid-usage`
   shows it to the Kibana staff user, `metrics.waslabid.users.active` follows the usage job, the console usage page (a
   throwaway platform admin with OTP) shows the same numbers in `ar-SA` and `en-US` with the Kibana link and no email or
   name, and closing the page brings the count back to 0; (9) Kibana's APM trace view and Discover open the trace by its
-  id (risk O-4); (6) `docker stop erp-otel-collector`, then `erp-elasticsearch`: ten `GET /` on acme keep their usual
-  time (p95 against a baseline taken just before, at most 100 ms added), one "[WaslaBid] Telemetry is down" email names
+  id (risk O-4); (6) `docker stop erp-otel-collector`, then `erp-elasticsearch`: thirty `GET /` on acme keep their usual
+  time (p95 against a thirty-request baseline taken just before, at most 100 ms added), one "[WaslaBid] Telemetry is down" email names
   the part within two minutes and one "has recovered" email follows the restart; (7) `/alive` answers 200 on acme and on
   the platform host, also with `erp-postgres` stopped, while `/health` answers 503. Steps run in the order 1, 2, 3, 4, 5,
   8, 9, 6, 7; pass numbers to run a subset (`node observability.mjs 1 2 3 4`; steps 2, 3, 4 and 9 add step 1). Steps 6
@@ -152,7 +153,14 @@ vendor steps the vendor scripts share (PDF, chunked upload, sign in again, compa
   stop it afterwards. Needs the default Compose stack with the collector and Elasticsearch, the web host and the worker
   (the worker with `Telemetry:ElasticsearchPassword` in its user secrets, the value of `ELASTIC_MONITOR_PASSWORD`),
   and in `.env` `ELASTIC_PASSWORD`, `KIBANA_STAFF_USER`, `KIBANA_STAFF_PASSWORD`, `KEYCLOAK_ADMIN` and
-  `KEYCLOAK_ADMIN_PASSWORD`; credentials go into request headers only, never to the console. Elasticsearch and
+  `KEYCLOAK_ADMIN_PASSWORD`; credentials go into request headers and form fields only. Everything printed or written
+  passes through a scrubber that replaces every secret value of the `.env`, the throwaway users' generated passwords,
+  their Basic headers and the TOTP seeds with `[secret]` (Playwright errors quote filled values); with the local default
+  Keycloak admin password `admin`, paths such as `/admin/staff` therefore print as `/[secret]/staff`. Step 4 first deletes
+  any `w10_f53_probe_*` user an earlier, killed run left behind. Ctrl-C or SIGTERM runs the end-of-run restore once
+  (containers started, probe user, Keycloak throwaways and Kibana removed or stopped, results written) and exits 130 or
+  143; `E2E_SELF_INTERRUPT_MS=<ms>` raises SIGINT inside the process to check that path, since on Windows a signal sent
+  from another process cannot be caught. Elasticsearch and
   collector memory (`docker stats`, OOM kill and restart count) is sampled at the start, after steps 5, 8 and 9, after
   each restart and at the end. Screenshots in `shots-observability/`, the vendor run's output in
   `observability-vendor-run.log`, results with the recorded field names, the F-53 query and the p95 figures in

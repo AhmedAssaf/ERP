@@ -51,9 +51,11 @@ async function freshCode(state, user) {
   return totp(state.totp[user], step);
 }
 
-export async function launch() {
+// options pass through to chromium.launch; a script with its own SIGINT and SIGTERM cleanup passes handleSIGINT: false and
+// handleSIGTERM: false, since Playwright's own handlers otherwise exit the process (code 130) before that cleanup ends.
+export async function launch(options = {}) {
   const exe = process.env.E2E_CHROMIUM_PATH || CHROMIUM_PATH_DEFAULT;
-  return chromium.launch({ executablePath: exe });
+  return chromium.launch({ executablePath: exe, ...options });
 }
 export async function newPage(browser, { width = 1280, height = 900, locale } = {}) {
   const ctx = await browser.newContext({ ignoreHTTPSErrors: true, viewport: { width, height }, locale });
