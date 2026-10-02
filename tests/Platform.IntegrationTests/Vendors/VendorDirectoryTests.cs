@@ -382,17 +382,37 @@ public sealed class VendorDirectoryTests(DatabaseFixture db)
     public async Task Two_concurrent_joins_write_exactly_one_join_entry()
     {
         var (companyId, userId) = await VendorAsync("Concurrent Joiner");
-        // Both calls report the membership as added, the worst case for the audit.
-        var accounts = new FakeVendorAccounts { State = new(HoldsVendorRole: true, OrganizationAliases: ["acme"]) };
+        // Both calls report the membership as added, the worst case for the audit. Adding the membership comes after a
+        // join's relationship check and before its insert, so holding each call there until both arrive makes both pass the
+        // check before either inserts. Without it the scheduler may finish one join before the other starts (seen on CI):
+        // the second then takes the related-company path, which this fake answers from State, without the membership the
+        // first join added, and refuses with MembershipRemoved; that path has its own tests above.
+        var bothChecked = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var arrived = 0;
+        var accounts = new FakeVendorAccounts
+        {
+            State = new(HoldsVendorRole: true, OrganizationAliases: ["acme"]),
+            OnAddOrganization = async _ =>
+            {
+                if (Interlocked.Increment(ref arrived) == 2)
+                {
+                    bothChecked.SetResult();
+                }
+
+                await bothChecked.Task.WaitAsync(TimeSpan.FromSeconds(30), Ct);
+            },
+        };
         await using var host = new ModuleHost(db.AppConnectionString, configure: s => s.Replace(ServiceDescriptor.Scoped<IVendorAccounts>(_ => accounts)));
 
         var results = await Task.WhenAll(
             Task.Run(() => JoinAsync(host, TestTenants.Beta, companyId, userId), Ct),
             Task.Run(() => JoinAsync(host, TestTenants.Beta, companyId, userId), Ct));
 
-        results.ShouldAllBe(r => r.IsSuccess);
+        results.ShouldAllBe(r => r.IsSuccess, string.Join("; ", results.Where(r => !r.IsSuccess).Select(r => $"{r.Error!.Code}: {r.Error.Message}")));
+        accounts.Steps.ToArray().ShouldBe(["add-organization", "add-organization"]);
         results.Count(r => r.Value.RelationshipCreated).ShouldBe(1);
         (await VendorRows.AuditsAsync(db.OwnerConnectionString, TestTenants.Beta.TenantId, userId, "vendor.joined", Ct)).Count.ShouldBe(1);
+        (await VendorRows.AuditsAsync(db.OwnerConnectionString, TestTenants.Beta.TenantId, userId, "vendor.membership_restored", Ct)).Count.ShouldBe(1);
         (await VendorRows.RelationshipsAsync(db.OwnerConnectionString, companyId, Ct))[TestTenants.Beta.TenantId].ShouldBe("pending");
     }
 
