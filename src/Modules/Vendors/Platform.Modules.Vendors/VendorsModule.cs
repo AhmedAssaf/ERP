@@ -13,6 +13,7 @@ using Platform.Modules.Vendors.Ownership;
 using Platform.Modules.Vendors.Persistence;
 using Platform.Modules.Vendors.Registration;
 using Platform.Modules.Vendors.Relationships;
+using Platform.Shared.Caching;
 using Platform.Shared.Data;
 using Platform.Shared.Scanning;
 
@@ -66,7 +67,7 @@ public static class VendorsModule
     /// <summary>
     /// The vendor pages' services (vendor plan task 2): registration (<see cref="IVendorRegistration"/>, which needs the
     /// Identity module's member directory and vendor accounts, the audit writer and the Operations module's platform
-    /// audit, and keeps its duplicate-CR limit per process), the user-to-company lookup
+    /// audit, and keeps its duplicate-CR limits in Redis when <c>ConnectionStrings:Redis</c> is set, W-34), the user-to-company lookup
     /// (<see cref="IVendorUsers"/>), the current company (<see cref="IVendorCompanies"/>), the Vendor policy's handler, the
     /// staff's vendor directory with approval (<see cref="IVendorDirectory"/>), joining another tenant (<see cref="IVendorJoin"/>)
     /// the consent ledger (<see cref="IConsentLedger"/>), and the CR ownership check and disputes (W-33:
@@ -84,6 +85,8 @@ public static class VendorsModule
             .Validate(o => VendorsOptions.DecodeCrAuditKey(o.CrAuditKey) is not null, VendorsOptions.CrAuditKeyProblem)
             .Validate(o => o.UploadRequestsPerMinute > 0, "Setting 'Vendors:UploadRequestsPerMinute' must be a positive number.")
             .Validate(o => o.MaxUploadsPerDay > 0, "Setting 'Vendors:MaxUploadsPerDay' must be a positive number.")
+            .Validate(o => o.DuplicateCrPerAddress > 0, "Setting 'Vendors:DuplicateCrPerAddress' must be a positive number.")
+            .Validate(o => o.DuplicateCrWindow >= TimeSpan.FromSeconds(1), "Setting 'Vendors:DuplicateCrWindow' must be at least one second (for example 01:00:00).")
             .ValidateOnStart();
         services.TryAddSingleton<CrNumberAudit>();
         services.AddHttpContextAccessor();
@@ -92,6 +95,9 @@ public static class VendorsModule
         services.AddScoped<IVendorCompanies, VendorCompanies>();
         services.AddScoped<IAuthorizationHandler, VendorCompanyHandler>();
         services.TryAddSingleton(TimeProvider.System);
+        // W-34: the duplicate-CR limits per account and per source address, in Redis when ConnectionStrings:Redis is set
+        // (shared by every web instance), in process memory otherwise and while Redis does not answer.
+        services.AddRedis(configuration);
         services.TryAddSingleton<DuplicateCrThrottle>();
         services.AddScoped<IVendorRegistration, VendorRegistrationService>();
         // Staff view and approval, and joining another tenant (vendor plan task 5, V-7, V-11).

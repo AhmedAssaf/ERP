@@ -96,8 +96,8 @@ internal sealed partial class VendorRegistrationService(
             return StaffAccount();
         }
 
-        // A limited user gets the duplicate answer whatever the number, before the number is looked up.
-        if (duplicates.IsLimited(userId))
+        // A limited user or address gets the duplicate answer whatever the number, before the number is looked up.
+        if (await duplicates.IsLimitedAsync(userId, cancellationToken))
         {
             return DuplicateAnswer();
         }
@@ -218,11 +218,12 @@ internal sealed partial class VendorRegistrationService(
     /// <summary>
     /// V-6: refused with the neutral message and audited in the platform audit under the keyed HMAC-SHA256 of the CR
     /// number (<see cref="CrNumberAudit"/>), never the number itself and never in a tenant's log (the host tenant need
-    /// not learn which companies its visitors tried). Counts towards the user's limit (<see cref="DuplicateCrThrottle"/>).
+    /// not learn which companies its visitors tried). Counts towards the user's and the source address's limits
+    /// (<see cref="DuplicateCrThrottle"/>).
     /// </summary>
     private async Task<Result<Guid>> DuplicateAsync(TenantContext tenant, string userId, string crNumber, CancellationToken cancellationToken)
     {
-        duplicates.Record(userId);
+        await duplicates.RecordAsync(userId, cancellationToken);
         await platformAudit.WriteAsync(
             new PlatformAuditEntry(userId, "vendor.duplicate_cr_refused", CrNumberAudit.SubjectType, crAudit.Hmac(crNumber), new Dictionary<string, string?>
             {

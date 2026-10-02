@@ -11,7 +11,9 @@ using Platform.Modules.Operations.PlatformConsole;
 using Platform.Modules.Operations.Health;
 using Platform.Modules.Operations.Usage;
 using Platform.Shared;
+using Platform.Shared.Caching;
 using Platform.Shared.Data;
+using StackExchange.Redis;
 
 namespace Platform.Modules.Operations;
 
@@ -85,7 +87,8 @@ public static class OperationsModule
     /// wiring (<see cref="AddOperationsAlerts"/>) so <see cref="Health.HealthCheckJob"/> can notify on every
     /// incident, plus a disk-usage check (docs/05 row 19) that goes through the same incident pipeline rather than
     /// the F-51 board's fixed seven tiles (docs/05 row 17), and, where the telemetry stack is configured, the Telemetry
-    /// check (W-10, O-14; <see cref="AddTelemetryHealthCheck"/>), alerted the same way.
+    /// check (W-10, O-14; <see cref="AddTelemetryHealthCheck"/>) and, where Redis is configured, the Redis check (W-34;
+    /// <see cref="AddRedisHealthCheck"/>), both alerted the same way.
     /// </summary>
     public static IServiceCollection AddOperationsHealthChecks(
         this IServiceCollection services, string postgreSqlConnectionString, IConfiguration configuration)
@@ -142,6 +145,7 @@ public static class OperationsModule
         });
 
         services.AddTelemetryHealthCheck(configuration);
+        services.AddRedisHealthCheck(configuration);
         services.AddHealthCheckJob();
         return services;
     }
@@ -168,6 +172,23 @@ public static class OperationsModule
             var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(TelemetryHealthCheck));
             return new NamedHealthCheck(HealthComponents.Telemetry, new TelemetryHealthCheck(httpClient, settings));
         });
+        return services;
+    }
+
+    /// <summary>
+    /// The Redis check (W-34): registered only when <c>ConnectionStrings:Redis</c> is configured, so a host without Redis
+    /// (CI) neither runs nor alerts on it. It PINGs through the host's one multiplexer (<see cref="RedisConnection.AddRedis"/>);
+    /// the connection string, with its password, comes from user secrets or the secret store (N-10).
+    /// </summary>
+    internal static IServiceCollection AddRedisHealthCheck(this IServiceCollection services, IConfiguration configuration)
+    {
+        if (!RedisConnection.IsConfigured(configuration))
+        {
+            return services;
+        }
+
+        services.AddRedis(configuration);
+        services.AddSingleton(sp => new NamedHealthCheck(HealthComponents.Redis, new RedisHealthCheck(sp.GetRequiredService<IConnectionMultiplexer>())));
         return services;
     }
 

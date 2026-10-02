@@ -108,6 +108,7 @@
   <data name="Console.Component.SMTP" xml:space="preserve"><value>Email (SMTP)</value></data>
   <data name="Console.Component.Disk" xml:space="preserve"><value>Disk space</value></data>
   <data name="Console.Component.Telemetry" xml:space="preserve"><value>Telemetry pipeline</value></data>
+  <data name="Console.Component.Redis" xml:space="preserve"><value>Shared cache (Redis)</value></data>
   <data name="Console.Status.Healthy" xml:space="preserve"><value>Healthy</value></data>
   <data name="Console.Status.Degraded" xml:space="preserve"><value>Degraded</value></data>
   <data name="Console.Status.Unhealthy" xml:space="preserve"><value>Failing</value></data>

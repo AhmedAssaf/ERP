@@ -57,7 +57,7 @@ internal sealed class CrDisputes(
             return Result.Failure<Guid>(first);
         }
 
-        if (duplicates.IsLimited(userId))
+        if (await duplicates.IsLimitedAsync(userId, cancellationToken))
         {
             return Result.Failure<Guid>(Error.Refused(CrDisputeErrors.Limited, "Too many commercial registration numbers were tried. Try again in an hour."));
         }
@@ -99,7 +99,7 @@ internal sealed class CrDisputes(
 
         if (disputeId is not { } id)
         {
-            duplicates.Record(userId);
+            await duplicates.RecordAsync(userId, cancellationToken);
             return Result.Failure<Guid>(Error.NotFound(
                 CrDisputeErrors.NoCompany, "No company on WaslaBid has this commercial registration number. Register your company instead."));
         }

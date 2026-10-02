@@ -20,6 +20,12 @@ public static class HealthComponents
     /// </summary>
     public const string Telemetry = "Telemetry";
 
+    /// <summary>
+    /// Redis (W-34): the shared duplicate-CR throttle's store. Checked for alerts (F-60) but not a board tile, like
+    /// <see cref="Disk"/> and <see cref="Telemetry"/>; only on hosts where <c>ConnectionStrings:Redis</c> is configured.
+    /// </summary>
+    public const string Redis = "Redis";
+
     /// <summary>The board's tiles, in display order.</summary>
     public static IReadOnlyList<string> Board { get; } = [Web, Worker, PostgreSql, ObjectStorage, Keycloak, ClamAv, Email];
 
