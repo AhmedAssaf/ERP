@@ -7,12 +7,14 @@ namespace Platform.UnitTests.Shared;
 /// <summary>
 /// W-10, plan task 3, fix round 1: the redactor runs on every log property and span tag, client-controlled ones included
 /// (<c>user_agent.original</c>, <c>url.path</c>), so it must take linear time. Each case is an input crafted against one
-/// pattern (a long run that a backtracking search would rescan from every start); 32 and 64 KB must each take well under
-/// 50 ms.
+/// pattern (a long run that a backtracking search would rescan from every start); 32 and 64 KB must each take under
+/// 500 ms. Linear patterns take a few to about 15 ms locally and up to about 80 ms on a hosted CI runner; the quadratic
+/// pattern this guards against took about 15 s at 32 KB and about 60 s at 64 KB, so the budget leaves room for a slow
+/// runner and still catches it by two orders of magnitude.
 /// </summary>
 public sealed class TelemetryRedactorTimingTests
 {
-    private static readonly TimeSpan Budget = TimeSpan.FromMilliseconds(50);
+    private static readonly TimeSpan Budget = TimeSpan.FromMilliseconds(500);
 
     public static TheoryData<string, int> Cases()
     {
