@@ -374,7 +374,7 @@ The W-10 row's acceptance was "Given a request, when it fails, then a trace with
 
 ## 11. Questions and the user's answers
 
-Q1 to Q8 were answered by the user on 2026-10-01 (recorded in ADR-0014); Q9 to Q12 were answered or adopted on 2026-09-30. Plan tasks 5 to 7 were built on the 2026-09-30 answers (branch `w-10-observability`, PR #6); the pipeline is built on the 2026-10-01 answers (branch `w-10-pipeline`).
+Q1 to Q8 were answered by the user on 2026-10-01 (recorded in ADR-0014); Q9 to Q12 were answered or adopted on 2026-09-30. Plan tasks 5 to 7 were built on the 2026-09-30 answers (branch `w-10-observability`, PR #6); the pipeline was built on the 2026-10-01 answers (branch `w-10-pipeline`, merged in PR #7).
 
 **Q1. Sentry in the pilot: drop it, self-host Sentry, self-host GlitchTip, or Sentry SaaS?**
 Answered 2026-10-01: **no Sentry in the pilot**; plan task 11 is dropped. Errors are triaged in Kibana: the Error log record with exception type, masked message and stack, plus its trace. (Recommendation was the same, with Loki and Tempo carrying exceptions; GlitchTip in Jeddah stays the later option.)
