@@ -129,10 +129,89 @@ public sealed class TelemetryRedactorTests
     [Theory]
     [InlineData("Phone: 055 123 4567.", "Phone: [digits].")]
     [InlineData("Phone: 055-123-4567.", "Phone: [digits].")]
-    [InlineData("call +1 555 123 4567", "call +1 [digits]")]
+    [InlineData("call +1 555 123 4567", "call +[digits]")]
     [InlineData("IBAN SA03 8000 0000 6080 1016 7519 refused", "IBAN SA[digits] refused")]
     [InlineData("on 2026-10-02 call 055 123 4567", "on 2026-10-02 call [digits]")]
     public void Digit_groups_joined_by_one_space_or_hyphen_count_as_one_run(string value, string expected) =>
+        TelemetryRedactor.Redact(value).ShouldBe(expected);
+
+    // W-10 follow-ups (2026-10-02; spec 7.1, items 4 and 5): phones as people group them, references and dates kept. The
+    // two tables are one decision: every row is a test, the rules in TelemetryRedactor were chosen to pass all of them.
+
+    [Theory]
+    [InlineData("call +966 5 5123 4567", "call +[digits]")]
+    [InlineData("call +966 55 123 4567", "call +[digits]")]
+    [InlineData("call 0 55 123 4567", "call [digits]")]
+    [InlineData("call 055-123 4567", "call [digits]")]
+    [InlineData("call 055 123-4567", "call [digits]")]
+    [InlineData("call (011) 465 1234", "call ([digits]")]
+    [InlineData("call +966 (11) 465 1234", "call +[digits]")]
+    [InlineData("call 055.123.4567", "call [digits]")]
+    [InlineData("call 055\t123\t4567", "call [digits]")]
+    [InlineData("call 055  123  4567", "call [digits]")]
+    [InlineData("call 055 - 123 - 4567 now", "call [digits] now")]
+    [InlineData("phones 055.123.4567 and 055 123 4567", "phones [digits] and [digits]")]
+    [InlineData("on 2026-10-02 12:34:56 call 055-123 4567", "on 2026-10-02 12:34:56 call [digits]")]
+    public void Phones_grouped_as_people_write_them_are_masked(string value, string expected) =>
+        TelemetryRedactor.Redact(value).ShouldBe(expected);
+
+    [Theory]
+    [InlineData("host 192.168.100.200 answered")]
+    [InlineData("hosts 10.0.0.1 10.0.0.2 10.20.30.40 192.168.100.200")]
+    [InlineData("db 192.168.100.200:5432 up")]
+    [InlineData("SDK 10.0.401")]
+    [InlineData("Windows 10.0.26100.4061")]
+    [InlineData("on 2026-10-02 12:34:56")]
+    [InlineData("on 02-10-2026 12:34")]
+    [InlineData("at 2026.10.02 12:34")]
+    [InlineData("from 2026-10-02 10:00 to 2026-10-03 12")]
+    [InlineData("days 2026-10-02\t2026-10-03\t2026-10-04")]
+    [InlineData("took 00:00:01.2345678")]
+    [InlineData("took 12:34:56.1234567 in 2026-10-02")]
+    [InlineData("amount 12345678.90")]
+    [InlineData("job 12345678-1234-1234-1234-123456789012 done")]
+    [InlineData("trace 4bf92f3577b34da6a3ce929d0e0e4736 span 00f067aa0ba902b7")]
+    [InlineData("listening on http://127.0.0.1:5273 and :8443")]
+    [InlineData("answered 404 after 3 attempts")]
+    [InlineData("attempts 1 2 3 4 5 6 7 8 9 10")]
+    [InlineData("pages (1) (2) (3) (4) (5) (6) (7) (8) (9) (10)")]
+    public void Addresses_versions_dates_times_ids_and_short_numbers_stay_unmasked_beside_the_phone_rules(string value) =>
+        TelemetryRedactor.Redact(value).ShouldBeSameAs(value);
+
+    /// <summary>
+    /// The one conflict kept (item 4): a phone written digit by digit has the shape of a list of single digits
+    /// (<c>attempts 1 2 3 4 5 6 7 8 9 10</c>), so two single-digit groups never join; nobody types a number so.
+    /// </summary>
+    [Fact]
+    public void A_phone_written_digit_by_digit_is_kept_like_a_list_of_single_digits() =>
+        TelemetryRedactor.Redact("call 0 5 5 1 2 3 4 5 6 7 8").ShouldBe("call 0 5 5 1 2 3 4 5 6 7 8");
+
+    [Theory]
+    [InlineData("tender RFP-2026-000045 opened")]
+    [InlineData("/tenders/rfp-2026-000045/offers")]
+    [InlineData("item W-10-2026-09-30 done")]
+    [InlineData("PO-2026-10-02-0001 issued")]
+    [InlineData("F-29-2026-1234 scored")]
+    [InlineData("export 2026-10-02-15 ready")]
+    [InlineData("backup 2026-10-02-153045 kept")]
+    [InlineData("RFP-2026-000045 and RFP-2026-000046")]
+    public void References_and_dates_with_a_short_suffix_stay_unmasked(string value) =>
+        TelemetryRedactor.Redact(value).ShouldBeSameAs(value);
+
+    [Theory]
+    [InlineData("call 055-123-4567", "call [digits]")]
+    [InlineData("IBAN SA03-8000-0000-6080-1016-7519 refused", "IBAN SA[digits] refused")]
+    [InlineData("mobile-055-123-4567", "mobile-[digits]")]
+    [InlineData("tel-1-212-555-1234", "tel-[digits]")]
+    [InlineData("CR-1010-123456", "CR-[digits]")]
+    [InlineData("ID-2123-456789", "ID-[digits]")]
+    [InlineData("CR-2050-123456", "CR-[digits]")]
+    [InlineData("acct-2026-0000-6080-1016-7519", "acct-[digits]")]
+    [InlineData("RFP-2026-0551234567", "RFP-2026-[digits]")]
+    [InlineData("RFP-2026-000045 055 123 4567", "RFP-2026-000045 [digits]")]
+    [InlineData("export 2026-10-02-055-123-4567", "export 2026-10-02-[digits]")]
+    [InlineData("طلب-2026-000045", "طلب-[digits]")]
+    public void Hyphen_grouped_phones_ibans_and_ids_are_still_masked_beside_the_reference_rules(string value, string expected) =>
         TelemetryRedactor.Redact(value).ShouldBe(expected);
 
     [Theory]
