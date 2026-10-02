@@ -94,7 +94,7 @@ exporters:
     # Least privilege: auto_configure and create_doc on logs-*, traces-*, metrics-* only (elastic-setup.sh).
     user: waslabid_collector
     password: ${env:ELASTIC_COLLECTOR_PASSWORD}
-    # OTel-native mapping only (O-4). In 0.161.0 `mapping::mode` is deprecated and ignored; `allowed_modes` with the
+    # OTel-native mapping only (O-4). Since contrib 0.159 (EDOT 9.5.4 is built on it) `mapping::mode` is deprecated and ignored; `allowed_modes` with the
     # single entry otel makes it the default and refuses any other mode a client asks for (X-Elastic-Mapping-Mode
     # metadata or the elastic.mapping.mode scope attribute).
     mapping:

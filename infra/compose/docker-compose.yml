@@ -175,6 +175,9 @@ services:
     mem_limit: 320m
     environment:
       ELASTIC_COLLECTOR_PASSWORD: ${ELASTIC_COLLECTOR_PASSWORD:?Set ELASTIC_COLLECTOR_PASSWORD in infra/compose/.env}
+      # The Go runtime's soft limit under the 320 MB container limit: garbage collection tightens before the kernel's OOM
+      # killer acts (memory_limiter at 180 MiB still refuses data first).
+      GOMEMLIMIT: 250MiB
     ports:
       - "127.0.0.1:4317:4317"     # OTLP gRPC
       - "127.0.0.1:4318:4318"     # OTLP HTTP
