@@ -102,6 +102,11 @@ public sealed class TelemetryRedactorTimingTests
         ["digits, single digits between pairs"] = n => Repeat("1 22 ", n),
         ["digits, every separator"] = n => Repeat("12 -34.(56) \t7.", n),
         ["digits, long gap"] = n => "12" + Repeat(" ", n - 4) + "34",
+        // Fix round 1: platform references, dated suffixes, plus-prefixed dotted runs, chains stopped by a dot.
+        ["digits, platform references"] = n => Repeat("RFP-2026-000045 ", n),
+        ["digits, dates with short suffixes"] = n => Repeat("2026-10-02-15 ", n),
+        ["digits, plus-prefixed dotted runs"] = n => Repeat("+1.2.3.4 ", n),
+        ["digits, chains stopped by a dot"] = n => Repeat("1.22 33.44 ", n),
     };
 
     private static string Repeat(string unit, int length)

@@ -151,6 +151,12 @@ public sealed class TelemetryRedactorTests
     [InlineData("call 055  123  4567", "call [digits]")]
     [InlineData("call 055 - 123 - 4567 now", "call [digits] now")]
     [InlineData("phones 055.123.4567 and 055 123 4567", "phones [digits] and [digits]")]
+    [InlineData("ip-like 966.551.234.567", "ip-like [digits]")]
+    [InlineData("ip-like 1.012.345.678", "ip-like [digits]")]
+    [InlineData("call +1.212.555.1234", "call +[digits]")]
+    [InlineData("call +966.5.5123.4567", "call +[digits]")]
+    [InlineData("call 055 123 4567.89", "call [digits].89")]
+    [InlineData("step 1.055 123 4567", "step 1.[digits]")]
     [InlineData("on 2026-10-02 12:34:56 call 055-123 4567", "on 2026-10-02 12:34:56 call [digits]")]
     public void Phones_grouped_as_people_write_them_are_masked(string value, string expected) =>
         TelemetryRedactor.Redact(value).ShouldBe(expected);
@@ -186,14 +192,22 @@ public sealed class TelemetryRedactorTests
     public void A_phone_written_digit_by_digit_is_kept_like_a_list_of_single_digits() =>
         TelemetryRedactor.Redact("call 0 5 5 1 2 3 4 5 6 7 8").ShouldBe("call 0 5 5 1 2 3 4 5 6 7 8");
 
+    /// <summary>
+    /// Fix round 1 (controller ruling, 2026-10-02): only the platform's own reference prefixes (<c>RFP</c>, <c>RFQ</c>,
+    /// <c>PO</c>, <c>TND</c>, any case) followed by a year and one sequence number of up to six digits are kept; a date keeps a
+    /// suffix of one or two digits only.
+    /// </summary>
     [Theory]
     [InlineData("tender RFP-2026-000045 opened")]
     [InlineData("/tenders/rfp-2026-000045/offers")]
+    [InlineData("quote RFQ-2026-12 sent")]
+    [InlineData("order PO-2026-000123 issued")]
+    [InlineData("Po-2026-1 issued")]
+    [InlineData("tender TND-2026-014 closed")]
+    [InlineData("tnd-2049-999999")]
     [InlineData("item W-10-2026-09-30 done")]
-    [InlineData("PO-2026-10-02-0001 issued")]
-    [InlineData("F-29-2026-1234 scored")]
     [InlineData("export 2026-10-02-15 ready")]
-    [InlineData("backup 2026-10-02-153045 kept")]
+    [InlineData("export 2026-10-02-7")]
     [InlineData("RFP-2026-000045 and RFP-2026-000046")]
     public void References_and_dates_with_a_short_suffix_stay_unmasked(string value) =>
         TelemetryRedactor.Redact(value).ShouldBeSameAs(value);
@@ -207,9 +221,20 @@ public sealed class TelemetryRedactorTests
     [InlineData("ID-2123-456789", "ID-[digits]")]
     [InlineData("CR-2050-123456", "CR-[digits]")]
     [InlineData("acct-2026-0000-6080-1016-7519", "acct-[digits]")]
-    [InlineData("RFP-2026-0551234567", "RFP-2026-[digits]")]
+    [InlineData("RFP-2026-0551234567", "RFP-[digits]")]
     [InlineData("RFP-2026-000045 055 123 4567", "RFP-2026-000045 [digits]")]
-    [InlineData("export 2026-10-02-055-123-4567", "export 2026-10-02-[digits]")]
+    [InlineData("export 2026-10-02-055-123-4567", "export [digits]")]
+    [InlineData("ID-2012-345678", "ID-[digits]")]
+    [InlineData("Iqama-2012-345-678", "Iqama-[digits]")]
+    [InlineData("upload CR-2030-123456.pdf", "upload CR-[digits].pdf")]
+    [InlineData("x-2026-0551-234-567", "x-[digits]")]
+    [InlineData("card-2031-4567-8901-2345", "card-[digits]")]
+    [InlineData("RFP-2026-055-123-4567", "RFP-[digits]")]
+    [InlineData("RFP-2026-05512345", "RFP-[digits]")]
+    [InlineData("PO-2026-10-02-0001 issued", "PO-[digits] issued")]
+    [InlineData("F-29-2026-1234 scored", "F-[digits] scored")]
+    [InlineData("backup 2026-10-02-153045 kept", "backup [digits] kept")]
+    [InlineData("export 2026-10-02-15-0551234", "export [digits]")]
     [InlineData("طلب-2026-000045", "طلب-[digits]")]
     public void Hyphen_grouped_phones_ibans_and_ids_are_still_masked_beside_the_reference_rules(string value, string expected) =>
         TelemetryRedactor.Redact(value).ShouldBe(expected);
