@@ -129,6 +129,34 @@ vendor steps the vendor scripts share (PDF, chunked upload, sign in again, compa
   `ConnectionStrings:KeyRing`, `dotnet build src/Platform.Web`, `KEYCLOAK_ADMIN` and `KEYCLOAK_ADMIN_PASSWORD` in
   `.env` (`E2E_ENV_FILE` for a `.env` outside this checkout) and the `erp-postgres` container. Session cookies in
   `.state/keyring-session.json` until cleanup; results in `keyring-results.json`; exits non-zero when a step fails.
+- **`observability.mjs`** — W-10 plan task 10, the observability pipeline end to end (spec
+  `docs/superpowers/specs/2026-09-30-observability-design.md` sections 6.1, 6.7, 8 and 10). Steps: (1) `GET /dev/throw`
+  on acme answers 500 with `X-Correlation-Id`; (2) within 60 seconds `traces-*` holds that trace and its server span
+  carries `waslabid.tenant.id` of acme; (3) ES|QL on `logs-*` by `trace_id` finds one Error record with
+  `exception.type`, `waslabid.component` `Web` and the tenant id, and only the three masked exception attributes; (4) the
+  F-53 query of spec section 8 runs as a throwaway Elasticsearch user with the role `waslabid_errors_reader` (created as
+  `elastic`, deleted at the end), counts the error and is refused (403) when indexing into `logs-*`; (5) after one run of
+  `vendor.mjs` no log record of the last hour holds an email address (ES|QL `RLIKE` on `body.text`) or the run's CR
+  number (`query_string` over all fields), each search with a positive control; (8) a throwaway acme staff admin keeps a
+  page open: `metrics.waslabid.users.concurrent` for acme `staff` becomes 1, the Kibana dashboard `waslabid-usage`
+  shows it to the Kibana staff user, `metrics.waslabid.users.active` follows the usage job, the console usage page (a
+  throwaway platform admin with OTP) shows the same numbers in `ar-SA` and `en-US` with the Kibana link and no email or
+  name, and closing the page brings the count back to 0; (9) Kibana's APM trace view and Discover open the trace by its
+  id (risk O-4); (6) `docker stop erp-otel-collector`, then `erp-elasticsearch`: ten `GET /` on acme keep their usual
+  time (p95 against a baseline taken just before, at most 100 ms added), one "[WaslaBid] Telemetry is down" email names
+  the part within two minutes and one "has recovered" email follows the restart; (7) `/alive` answers 200 on acme and on
+  the platform host, also with `erp-postgres` stopped, while `/health` answers 503. Steps run in the order 1, 2, 3, 4, 5,
+  8, 9, 6, 7; pass numbers to run a subset (`node observability.mjs 1 2 3 4`; steps 2, 3, 4 and 9 add step 1). Steps 6
+  and 7 always start the containers they stopped, even on failure, and the script checks all three are running at the
+  end. Steps 8 and 9 start Kibana (`docker compose --profile kibana up -d kibana kibana-setup` in `infra/compose`) and
+  stop it afterwards. Needs the default Compose stack with the collector and Elasticsearch, the web host and the worker
+  (the worker with `Telemetry:ElasticsearchPassword` in its user secrets, the value of `ELASTIC_MONITOR_PASSWORD`),
+  and in `.env` `ELASTIC_PASSWORD`, `KIBANA_STAFF_USER`, `KIBANA_STAFF_PASSWORD`, `KEYCLOAK_ADMIN` and
+  `KEYCLOAK_ADMIN_PASSWORD`; credentials go into request headers only, never to the console. Elasticsearch and
+  collector memory (`docker stats`, OOM kill and restart count) is sampled at the start, after steps 5, 8 and 9, after
+  each restart and at the end. Screenshots in `shots-observability/`, the vendor run's output in
+  `observability-vendor-run.log`, results with the recorded field names, the F-53 query and the p95 figures in
+  `observability-results.json`; exits non-zero when a step fails. A full run takes about 30 minutes.
 
 ## What "run each script" looks like
 
