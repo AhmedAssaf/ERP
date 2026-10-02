@@ -61,6 +61,14 @@ public sealed class TelemetryRedactorTimingTests
         ["digits, dashed runs"] = n => Repeat("1234567890-", n),
         ["digits, guid-like dashed run"] = n => Repeat("aaaaaaaa-aaaa-aaaa-aaaa-123456789012-", n),
         ["every pattern at once"] = n => Repeat("a.", n - 20) + "@ eyJ bearer pwd x=",
+        // W-10 task 4 ruling: Basic credentials and Authorization header lines.
+        ["basic, repeated"] = n => Repeat("basic ", n),
+        ["basic, long white space"] = n => "Basic" + Repeat(" ", n - 6) + "x",
+        ["basic, one long credential"] = n => "Basic " + Repeat("QUFB", n - 6),
+        ["basic, many credentials"] = n => Repeat("Basic dXNlcjpwYXNz ", n),
+        ["authorization, repeated"] = n => Repeat("authorization: ", n),
+        ["authorization, long value"] = n => "Authorization: " + Repeat("x", n - 15),
+        ["authorization, long white space"] = n => "Authorization:" + Repeat(" ", n - 15) + "x",
     };
 
     private static string Repeat(string unit, int length)

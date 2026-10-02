@@ -64,6 +64,39 @@ public sealed class TelemetryRedactorTests
         TelemetryRedactor.Redact(value).ShouldBe(expected);
     }
 
+    /// <summary>W-10 task 4 ruling: an HTTP Basic credential (base64 of <c>user:password</c>) is masked like a Bearer one.</summary>
+    [Theory]
+    [InlineData("Basic bW9uaXRvcjpzM2NyZXQ=", "Basic [token]")]
+    [InlineData("[\"Basic bW9uaXRvcjpzM2NyZXQ=\"]", "[\"Basic [token]\"]")]
+    [InlineData("header basic   d2FzbGFiaWRfbW9uaXRvcjpwYXNzd29yZA== sent", "header basic   [token] sent")]
+    [InlineData("BASIC dXNlcjpwYXNz, then", "BASIC [token], then")]
+    public void Basic_credentials_are_masked(string value, string expected) =>
+        TelemetryRedactor.Redact(value).ShouldBe(expected);
+
+    [Theory]
+    [InlineData("The basic plan has no AI review")]
+    [InlineData("Basic auth is configured")]
+    [InlineData("basic information about the tender")]
+    [InlineData("basic")]
+    public void Ordinary_words_after_basic_are_kept(string value) =>
+        TelemetryRedactor.Redact(value).ShouldBeSameAs(value);
+
+    /// <summary>W-10 task 4 ruling: the value of an <c>Authorization</c> header line is masked whatever its scheme.</summary>
+    [Theory]
+    [InlineData("Authorization: Digest username=\"monitor\", response=\"6629fae4\"", "Authorization: [token]")]
+    [InlineData("authorization:opaque-api-credential-value", "authorization:[token]")]
+    [InlineData("Proxy-Authorization: Negotiate YIIGqgYJKoZIhvcSAQICAQBuggaZ", "Proxy-Authorization: [token]")]
+    [InlineData("Authorization: Basic not-a-credential\nnext line kept", "Authorization: [token]\nnext line kept")]
+    [InlineData("Authorization: Basic bW9uaXRvcjpzM2NyZXQ=", "Authorization: Basic [token]")]
+    public void The_value_of_an_authorization_header_line_is_masked(string value, string expected) =>
+        TelemetryRedactor.Redact(value).ShouldBe(expected);
+
+    [Theory]
+    [InlineData("Authorization failed for policy PlatformAdmin")]
+    [InlineData("Authorization:")]
+    public void Authorization_without_a_header_value_is_kept(string value) =>
+        TelemetryRedactor.Redact(value).ShouldBe(value);
+
     [Fact]
     public void A_number_glued_to_letters_that_are_not_hexadecimal_is_masked()
     {

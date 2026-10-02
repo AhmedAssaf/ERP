@@ -12,6 +12,9 @@ namespace Platform.Shared.Telemetry;
 /// <list type="bullet">
 /// <item>an email address, also URL-encoded (<c>%40</c>), becomes <c>[email]</c>;</item>
 /// <item>a JWT (<c>eyJ...</c> with two dots) becomes <c>[token]</c>, and the credential after <c>Bearer</c> as well;</item>
+/// <item>the credential after <c>Basic</c> (base64 that decodes to <c>user:password</c>, so "basic plan" is kept) becomes
+/// <c>[token]</c>, and so does the value of an <c>Authorization:</c> header line whatever its scheme, up to the end of the
+/// line (W-10 task 4 ruling); a value already reduced to <c>Bearer [token]</c> or <c>Basic [token]</c> keeps its scheme;</item>
 /// <item>the value of a <c>password=</c>, <c>pwd=</c>, <c>secret=</c> or <c>apikey=</c> pair (any key ending so, such as
 /// <c>client_secret</c>; case-insensitive; up to <c>;</c>, <c>&amp;</c> or white space) becomes <c>key=[secret]</c>;</item>
 /// <item>a run of ten or more digits, Western or Arabic-Indic, becomes <c>[digits]</c>: CR, national id, iqama, phone,
@@ -63,12 +66,78 @@ public static partial class TelemetryRedactor
             masked = Bearer().Replace(masked, "${bearer}" + TokenMarker);
         }
 
+        if (masked.Contains("basic", StringComparison.OrdinalIgnoreCase))
+        {
+            masked = MaskGroup(masked, Basic(), "credential", IsBasicCredential);
+        }
+
+        if (masked.Contains("authorization", StringComparison.OrdinalIgnoreCase))
+        {
+            masked = MaskGroup(masked, AuthorizationHeader(), "value", IsUnmaskedHeaderValue);
+        }
+
         if (masked.Contains('=') && HoldsSecretKey(masked))
         {
             masked = SecretPair().Replace(masked, "${key}=" + SecretMarker);
         }
 
         return MaskDigitRuns(masked);
+    }
+
+    /// <summary>
+    /// Replaces the named group of every match <paramref name="mask"/> accepts with <see cref="TokenMarker"/>. A value where no
+    /// match is accepted comes back as the same instance.
+    /// </summary>
+    private static string MaskGroup(string value, Regex pattern, string group, Func<Group, bool> mask)
+    {
+        StringBuilder? builder = null;
+        var copied = 0;
+        foreach (Match match in pattern.Matches(value))
+        {
+            var target = match.Groups[group];
+            if (!mask(target))
+            {
+                continue;
+            }
+
+            builder ??= new StringBuilder(value.Length);
+            builder.Append(value, copied, target.Index - copied).Append(TokenMarker);
+            copied = target.Index + target.Length;
+        }
+
+        return builder is null ? value : builder.Append(value, copied, value.Length - copied).ToString();
+    }
+
+    /// <summary>
+    /// A Basic credential is base64 of <c>user:password</c>: only a run that decodes to bytes holding a colon is masked, so an
+    /// ordinary word after "basic" (also valid base64 characters) is kept.
+    /// </summary>
+    private static bool IsBasicCredential(Group credential)
+    {
+        var chars = credential.ValueSpan;
+        var buffer = System.Buffers.ArrayPool<byte>.Shared.Rent((chars.Length * 3 / 4) + 3);
+        try
+        {
+            return Convert.TryFromBase64Chars(chars, buffer, out var written) && buffer.AsSpan(0, written).Contains((byte)':');
+        }
+        finally
+        {
+            System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
+        }
+    }
+
+    /// <summary>Any header value, unless an earlier step already left only a scheme and the marker (<c>Bearer [token]</c>).</summary>
+    private static bool IsUnmaskedHeaderValue(Group value)
+    {
+        var text = value.ValueSpan;
+        if (!text.EndsWith(TokenMarker, StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        var beforeMarker = text[..^TokenMarker.Length];
+        var scheme = beforeMarker.TrimEnd();
+        return scheme.Length == 0 || scheme.Length == beforeMarker.Length || scheme.ContainsAnyExcept(SchemeCharacters);
     }
 
     private static bool HoldsSecretKey(string value)
@@ -197,6 +266,9 @@ public static partial class TelemetryRedactor
     private static readonly System.Buffers.SearchValues<char> HexLetters =
         System.Buffers.SearchValues.Create("abcdefABCDEF");
 
+    private static readonly System.Buffers.SearchValues<char> SchemeCharacters =
+        System.Buffers.SearchValues.Create("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-");
+
     /// <summary>The words every key of <see cref="SecretPair"/> holds.</summary>
     private static readonly string[] SecretKeys = ["pass", "pwd", "secret", "apikey", "api_key", "api-key"];
 
@@ -211,6 +283,17 @@ public static partial class TelemetryRedactor
     /// <summary>The credential after <c>Bearer</c> (any case); the word and its white space are kept.</summary>
     [GeneratedRegex(@"(?<bearer>\b(?i:bearer)\s+)[A-Za-z0-9\-._~+/]+=*", Linear)]
     private static partial Regex Bearer();
+
+    /// <summary>A candidate Basic credential after <c>Basic</c> (any case); <see cref="IsBasicCredential"/> decides.</summary>
+    [GeneratedRegex(@"(?<basic>\b(?i:basic)\s+)(?<credential>[A-Za-z0-9+/]+=*)", Linear)]
+    private static partial Regex Basic();
+
+    /// <summary>
+    /// An <c>Authorization</c> (or <c>Proxy-Authorization</c>) header line: the name, a colon and spaces or tabs on one line
+    /// are kept, the value up to the end of the line is masked (<see cref="IsUnmaskedHeaderValue"/>).
+    /// </summary>
+    [GeneratedRegex(@"(?<header>\b(?i:authorization)[ \t]*:[ \t]*)(?<value>[^\r\n]+)", Linear)]
+    private static partial Regex AuthorizationHeader();
 
     /// <summary>
     /// A secret key-value pair; the key (the whole run of key characters ending in a secret word) keeps its spelling, the
