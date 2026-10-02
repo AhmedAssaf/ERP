@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using System.Net;
 using Hangfire;
@@ -107,6 +108,35 @@ public sealed class TelemetryDataSourceTests(DatabaseFixture db)
 
         health.Status.ShouldBe(HealthStatus.Healthy);
         RawPoolNames().Where(name => name.Contains(marker, StringComparison.Ordinal)).ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// W-10 follow-up (2026-10-02; spec O-10): a database span is exported without events. In the otel mapping each span event
+    /// is a <c>logs-*</c> document, and Npgsql records <c>received-first-response</c> on every command of the module contexts'
+    /// pool, which Npgsql's own switch does not reach. A failed command keeps its exception type on the span instead of an
+    /// event with the message (which can quote a value, such as the key of a unique violation).
+    /// </summary>
+    [Fact]
+    public async Task A_database_span_is_exported_without_events_and_a_failed_one_names_its_exception_type()
+    {
+        var telemetry = new CapturedTelemetry();
+        await using var factory = new PlatformWebFactory(db.AppConnectionString).WithWebHostBuilder(builder => builder.ConfigureTestServices(telemetry.AddTo));
+        using var source = new ActivitySource("WaslaBid.Tests.DatabaseEvents");
+        ActivityTraceId traceId;
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            await using var context = await scope.ServiceProvider.GetRequiredService<IDbContextFactory<OperationsDbContext>>().CreateDbContextAsync(Ct);
+            using var parent = source.StartActivity("probe").ShouldNotBeNull("the host's tracer listens to WaslaBid.* sources");
+            traceId = parent.TraceId;
+            await context.Database.ExecuteSqlRawAsync("select 1", Ct);
+            await Should.ThrowAsync<PostgresException>(() => context.Database.ExecuteSqlRawAsync("select 1/0", Ct));
+        }
+
+        var database = telemetry.AllSpans.Where(span => span.TraceId == traceId && span.Source.Name == TelemetryNames.Sources.Npgsql).ToList();
+        database.Count.ShouldBeGreaterThanOrEqualTo(2);
+        database.ShouldAllBe(span => !span.Events.Any());
+        var failed = database.Where(span => span.Status == ActivityStatusCode.Error).ShouldHaveSingleItem();
+        failed.GetTagItem(TelemetryNames.Attributes.ExceptionType).ShouldBe(typeof(PostgresException).FullName);
     }
 
     private static string Marker() => $"w10probe{Guid.NewGuid():N}";

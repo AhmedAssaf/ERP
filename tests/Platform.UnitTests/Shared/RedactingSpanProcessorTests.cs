@@ -152,6 +152,77 @@ public sealed class RedactingSpanProcessorTests
         span.Recorded.ShouldBeFalse();
     }
 
+    /// <summary>
+    /// W-10 follow-up (2026-10-02; spec O-10): in the otel mapping every span event is stored as a document of its own in
+    /// <c>logs-*</c>, and Npgsql records a <c>received-first-response</c> event on every command (thousands an hour on an idle
+    /// development stack). A database span leaves without its events; its tags and status stay.
+    /// </summary>
+    [Fact]
+    public void A_database_span_leaves_without_its_events()
+    {
+        using var source = new ActivitySource(TelemetryNames.Sources.Npgsql);
+        using var listener = Listening(source);
+        using var span = source.StartActivity("SELECT").ShouldNotBeNull();
+        span.SetTag("db.query.text", "SELECT 1");
+        span.AddEvent(new ActivityEvent("received-first-response"));
+        span.Stop();
+
+        new RedactingSpanProcessor().OnEnd(span);
+
+        span.Events.ShouldBeEmpty();
+        span.GetTagItem("db.query.text").ShouldBe("SELECT 1");
+        span.Recorded.ShouldBeTrue();
+    }
+
+    /// <summary>
+    /// The exception of a failed command stays on the span as its type and Error status, as for a request (<see
+    /// cref="SpanExceptions"/>); the event with the message and stack is dropped, so the span is exported even when the
+    /// message held a value to mask (it used to be withheld whole).
+    /// </summary>
+    [Fact]
+    public void A_failed_database_span_keeps_the_exception_type_and_leaves_without_the_exception_event()
+    {
+        using var source = new ActivitySource(TelemetryNames.Sources.Npgsql);
+        using var listener = Listening(source);
+        using var span = source.StartActivity("INSERT").ShouldNotBeNull();
+        span.AddException(Thrown($"duplicate key value: Key (email)=({Email}) already exists."));
+        span.SetStatus(ActivityStatusCode.Error, $"Key (email)=({Email})");
+        span.Stop();
+
+        new RedactingSpanProcessor().OnEnd(span);
+
+        span.Events.ShouldBeEmpty();
+        span.GetTagItem(TelemetryNames.Attributes.ExceptionType).ShouldBe(typeof(InvalidOperationException).FullName);
+        span.Status.ShouldBe(ActivityStatusCode.Error);
+        span.StatusDescription.ShouldBe("Key (email)=([email])");
+        span.Recorded.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void A_span_of_another_source_keeps_its_events()
+    {
+        using var source = new ActivitySource("WaslaBid.Tests");
+        using var listener = Listening(source);
+        using var span = source.StartActivity("job").ShouldNotBeNull();
+        span.AddEvent(new ActivityEvent("retried"));
+        span.Stop();
+
+        new RedactingSpanProcessor().OnEnd(span);
+
+        span.Events.ShouldHaveSingleItem().Name.ShouldBe("retried");
+    }
+
+    private static ActivityListener Listening(ActivitySource source)
+    {
+        var listener = new ActivityListener
+        {
+            ShouldListenTo = s => ReferenceEquals(s, source),
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
+        };
+        ActivitySource.AddActivityListener(listener);
+        return listener;
+    }
+
     private static Activity Recorded(string name)
     {
         var span = new Activity(name) { ActivityTraceFlags = ActivityTraceFlags.Recorded };
