@@ -190,7 +190,10 @@ services:
     mem_limit: 1536m
     environment:
       discovery.type: single-node
-      ES_JAVA_OPTS: "-Xms768m -Xmx768m"
+      # Direct memory defaults to half the heap (384 MB) on top of it; Elasticsearch uses heap buffers for HTTP, so
+      # its direct pool stays small (23 MB at idle). 128 MB caps it so heap, non-heap and direct stay under 1.5 GB
+      # during bulk indexing instead of being OOM-killed (exit 137).
+      ES_JAVA_OPTS: "-Xms768m -Xmx768m -XX:MaxDirectMemorySize=128m"
       xpack.security.enabled: "true"
       xpack.security.http.ssl.enabled: "false"
       xpack.security.transport.ssl.enabled: "false"

@@ -39,36 +39,38 @@ for a in TELEMETRY_LOGS_RETENTION TELEMETRY_TRACES_RETENTION TELEMETRY_METRICS_R
   require_age "$a"
 done
 
-# es METHOD PATH [BODY]: sends the request as elastic; fails on any status other than 2xx and prints only the status
-# and Elasticsearch's error type, never the body sent.
-es() {
-  local method=$1 path=$2 body=${3:-} out status
-  out=$(mktemp)
+# es_req METHOD PATH [BODY]: sends the request as elastic and leaves the status in REQ_STATUS and the response body in
+# the file REQ_OUT. The credential reaches curl through stdin; the request body is never echoed.
+REQ_OUT=$(mktemp)
+trap 'rm -f "$REQ_OUT"' EXIT
+REQ_STATUS=000
+es_req() {
+  local method=$1 path=$2 body=${3:-}
   if [[ -n $body ]]; then
-    status=$(printf 'user = "elastic:%s"\n' "$ELASTIC_PASSWORD" |
-      curl -sS -K - -o "$out" -w '%{http_code}' -X "$method" "$ES_URL$path" \
-        -H 'Content-Type: application/json' --data-binary @<(printf '%s' "$body")) || status=000
+    REQ_STATUS=$(printf 'user = "elastic:%s"\n' "$ELASTIC_PASSWORD" |
+      curl -sS -K - -o "$REQ_OUT" -w '%{http_code}' -X "$method" "$ES_URL$path" \
+        -H 'Content-Type: application/json' --data-binary @<(printf '%s' "$body")) || REQ_STATUS=000
   else
-    status=$(printf 'user = "elastic:%s"\n' "$ELASTIC_PASSWORD" |
-      curl -sS -K - -o "$out" -w '%{http_code}' -X "$method" "$ES_URL$path") || status=000
+    REQ_STATUS=$(printf 'user = "elastic:%s"\n' "$ELASTIC_PASSWORD" |
+      curl -sS -K - -o "$REQ_OUT" -w '%{http_code}' -X "$method" "$ES_URL$path") || REQ_STATUS=000
   fi
-  if [[ $status != 2* ]]; then
-    local type
-    type=$(grep -o '"type":"[^"]*"' "$out" | head -1 || true)
-    rm -f "$out"
-    fail "$method $path answered $status ${type}"
+}
+
+# es METHOD PATH [BODY]: es_req that fails on any status other than 2xx, printing only the status and Elasticsearch's
+# error type.
+es() {
+  es_req "$@"
+  if [[ $REQ_STATUS != 2* ]]; then
+    fail "$1 $2 answered $REQ_STATUS $(grep -o '"type":"[^"]*"' "$REQ_OUT" | head -1 || true)"
   fi
-  rm -f "$out"
 }
 
 step() { echo "elastic-setup: $*"; }
 
 # Wait until the security index answers for the elastic user (the node can be up before it is ready).
 for i in $(seq 1 30); do
-  if printf 'user = "elastic:%s"\n' "$ELASTIC_PASSWORD" |
-     curl -sf -K - -o /dev/null "$ES_URL/_security/_authenticate"; then
-    break
-  fi
+  es_req GET /_security/_authenticate
+  [[ $REQ_STATUS == 200 ]] && break
   [[ $i -lt 30 ]] || fail "elastic user cannot authenticate (is ELASTIC_PASSWORD the one this data volume was created with?)"
   sleep 2
 done
@@ -108,7 +110,19 @@ es POST /_security/user/waslabid_collector "{\"password\":\"$ELASTIC_COLLECTOR_P
 step "user waslabid_monitor"
 es POST /_security/user/waslabid_monitor "{\"password\":\"$ELASTIC_MONITOR_PASSWORD\",\"roles\":[\"waslabid_monitor\"],\"full_name\":\"WaslaBid Telemetry check\"}"
 step "user $KIBANA_STAFF_USER (viewer)"
-es POST "/_security/user/$KIBANA_STAFF_USER" "{\"password\":\"$KIBANA_STAFF_PASSWORD\",\"roles\":[\"viewer\"],\"full_name\":\"WaslaBid platform staff\"}"
+es POST "/_security/user/$KIBANA_STAFF_USER" "{\"password\":\"$KIBANA_STAFF_PASSWORD\",\"roles\":[\"viewer\"],\"full_name\":\"WaslaBid platform staff\",\"metadata\":{\"owner\":\"waslabid\",\"role\":\"staff\"}}"
+
+# Offboarding: a staff user this script created earlier (metadata owner waslabid, role staff) under another name is
+# deleted, so renaming KIBANA_STAFF_USER never leaves the old account active. Built-in and other users are untouched.
+step "staff users no longer configured"
+es GET "/_security/user?filter_path=*.metadata.role"
+for old in $(grep -o '"[a-z][a-z0-9_.-]*":{"metadata":{"role":"staff"}}' "$REQ_OUT" | cut -d'"' -f2); do
+  [[ $old == "$KIBANA_STAFF_USER" ]] && continue
+  es GET "/_security/user/$old?filter_path=*.metadata.owner"
+  grep -q '"owner":"waslabid"' "$REQ_OUT" || continue
+  step "delete staff user $old (not KIBANA_STAFF_USER any more)"
+  es DELETE "/_security/user/$old"
+done
 
 # (3) Retention (O-12). Elasticsearch 9's built-in OTel index templates (logs-otel@template, traces-otel@template,
 # metrics-otel@template and the hidden metrics-*.otel aggregates) manage their data streams with index lifecycle
@@ -174,15 +188,11 @@ USAGE_MAPPINGS='{
 # attributes, no receiver scope) the dataset generic.otel. Created empty if missing, and the mappings above added to
 # its write index if it predates them; both are no-ops on a second run.
 ensure_usage_stream() {
-  local ds=metrics-generic.otel-default out status
-  out=$(mktemp)
-  status=$(printf 'user = "elastic:%s"
-' "$ELASTIC_PASSWORD" |
-    curl -sS -K - -o "$out" -w '%{http_code}' -X PUT "$ES_URL/_data_stream/$ds") || status=000
-  if [[ $status != 2* ]] && ! grep -q resource_already_exists_exception "$out"; then
-    rm -f "$out"; fail "PUT /_data_stream/$ds answered $status"
+  local ds=metrics-generic.otel-default
+  es_req PUT "/_data_stream/$ds"
+  if [[ $REQ_STATUS != 2* ]] && ! grep -q resource_already_exists_exception "$REQ_OUT"; then
+    fail "PUT /_data_stream/$ds answered $REQ_STATUS"
   fi
-  rm -f "$out"
   es PUT "/$ds/_mapping?write_index_only=true" "$USAGE_MAPPINGS"
 }
 step "lifecycle waslabid-logs ($TELEMETRY_LOGS_RETENTION) via logs-otel@custom"

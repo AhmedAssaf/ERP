@@ -113,7 +113,8 @@ jobs:
   security:
     name: Trivy scan
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # 25: the repository scan, plus up to 15 for the Compose images (Elasticsearch and Kibana are about 1.5 GB each).
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7
 
@@ -138,6 +139,8 @@ jobs:
       # app image exists (W-19), scan it here with --exit-code 1.
       - name: Compose images scan (report only)
         continue-on-error: true
+        # A slow pull of the large Elastic images ends this report-only step, not the job.
+        timeout-minutes: 15
         run: |
           images=$(grep -E '^\s+image:' infra/compose/docker-compose.yml | awk '{print $2}' | sort -u)
           for image in $images; do
