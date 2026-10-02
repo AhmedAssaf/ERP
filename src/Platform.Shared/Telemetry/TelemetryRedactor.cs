@@ -275,12 +275,12 @@ public static partial class TelemetryRedactor
     /// hyphens keeps a suffix, a hyphen and one or two digits (<c>2026-10-02-15</c>); any other hyphen and group after a date
     /// makes it no date, and it is read as a chain (<c>2026-10-02-153045</c> is masked);</item>
     /// <item>a platform reference (fix round 1): right after <c>RFP</c>, <c>RFQ</c>, <c>PO</c> or <c>TND</c> (any case) and
-    /// a hyphen, a year from 2000 to 2049, a hyphen and one sequence number of up to six digits, with no further hyphen and
-    /// group: kept (<c>RFP-2026-000045</c>). Any other word (<c>ID-2012-345678</c>), a longer number or a further group
-    /// (<c>RFP-2026-055-123-4567</c>) is a chain;</item>
+    /// a hyphen, a year from 2000 to 2049, a hyphen and one sequence number of up to six digits from which no chain and no
+    /// dotted run goes on: kept (<c>RFP-2026-000045</c>). Any other word (<c>ID-2012-345678</c>), a longer number or a
+    /// sequence that goes on (<c>RFP-2026-055-123-4567</c>, <c>RFP-2026-055 123 4567</c>) is a chain;</item>
     /// <item>a dotted run, groups joined by single dots: masked whole when it has three or more groups, every group after the
     /// first of two or more digits (any, after a <c>+</c>), ten digits or more in all, and is not an IPv4 address (four groups
-    /// of up to three digits, each at most 255); kept otherwise (<c>055.123.4567</c>, <c>966.551.234.567</c>,
+    /// of up to three digits, each at most 255, no leading zero); kept otherwise (<c>055.123.4567</c>, <c>966.551.234.567</c>,
     /// <c>+1.212.555.1234</c> masked; <c>192.168.100.200</c>, <c>10.0.26100.4061</c>, <c>12345678.90</c> kept). A run kept
     /// whole whose last group goes on into a chain hands that group to it (<c>step 1.055 123 4567</c>);</item>
     /// <item>otherwise a chain: groups joined by a phone separator (an optional <c>)</c>, up to two spaces or tabs, an
@@ -483,7 +483,13 @@ public static partial class TelemetryRedactor
         }
 
         /// <summary>True when group <paramref name="next"/> may follow group <paramref name="previous"/> in a chain.</summary>
-        private bool CanJoin(int previous, int next)
+        private bool CanJoin(int previous, int next) => JoinsShape(previous, next) && DateEnd(next) < 0;
+
+        /// <summary>
+        /// <see cref="CanJoin"/> without the date test: the separator and the group lengths only. Never calls back into
+        /// <see cref="DateEnd"/>, so <see cref="DateEnd"/> may use it without recursing.
+        /// </summary>
+        private bool JoinsShape(int previous, int next)
         {
             if (next >= groups.Count || groups[next].Kept || Between(previous, next) is not (Separator.Hyphen or Separator.Phone))
             {
@@ -491,8 +497,7 @@ public static partial class TelemetryRedactor
             }
 
             var (before, after) = (groups[previous], groups[next]);
-            return (before.Length > 1 || before.Whole) && (after.Length > 1 || after.Whole) && (before.Length > 1 || after.Length > 1)
-                && DateEnd(next) < 0;
+            return (before.Length > 1 || before.Whole) && (after.Length > 1 || after.Whole) && (before.Length > 1 || after.Length > 1);
         }
 
         private bool StartsDottedRun(int index) => Between(index, index + 1) == Separator.Dot;
@@ -548,7 +553,10 @@ public static partial class TelemetryRedactor
             return !ipv4 && groups[end - 1].Length < DigitRunLength && CanJoin(end - 1, end) ? end - 1 : end;
         }
 
-        /// <summary>Four groups of one to three digits, each at most 255.</summary>
+        /// <summary>
+        /// Four groups of one to three digits, each at most 255, none of two or more digits starting with 0 (real addresses
+        /// never print one; <c>055.123.45.67</c> is a phone).
+        /// </summary>
         private bool IsIPv4(int first, int end)
         {
             if (end - first != 4)
@@ -558,7 +566,8 @@ public static partial class TelemetryRedactor
 
             for (var k = first; k < end; k++)
             {
-                if (groups[k].Length > 3 || Number(groups[k]) > 255)
+                if (groups[k].Length > 3 || Number(groups[k]) > 255
+                    || (groups[k].Length > 1 && CharUnicodeInfo.GetDecimalDigitValue(value[groups[k].Start]) == 0))
                 {
                     return false;
                 }
@@ -570,8 +579,9 @@ public static partial class TelemetryRedactor
         /// <summary>
         /// The index after a platform reference starting at group <paramref name="first"/>, or -1: right after one of
         /// <see cref="ReferencePrefixes"/> and a hyphen, a year from 2000 to 2049, a hyphen and one sequence number of up to
-        /// <see cref="MaxSequenceDigits"/> digits that no further hyphen and group follows (so <c>RFP-2026-055-123-4567</c> is a
-        /// chain and masked).
+        /// <see cref="MaxSequenceDigits"/> digits from which no chain (a hyphen or phone separator and a group) and no dotted
+        /// run goes on (so <c>RFP-2026-055-123-4567</c>, <c>RFP-2026-055 123 4567</c> and <c>RFP-2026-055.123.4567</c> are
+        /// masked; <c>RFP-2026-000045 055 123 4567</c> is masked as one run).
         /// </summary>
         private int ReferenceEnd(int first)
         {
@@ -581,8 +591,10 @@ public static partial class TelemetryRedactor
             }
 
             var sequence = first + 1;
+            // Fix round 2 (prefer masking): a sequence number that a chain or a dotted run goes on from is no reference, so
+            // the chain rule reads the whole (RFP-2026-055 123 4567, RFP-2026-055.123.4567).
             if (sequence >= groups.Count || groups[sequence].Kept || Between(first, sequence) != Separator.Hyphen
-                || groups[sequence].Length > MaxSequenceDigits || Between(sequence, sequence + 1) == Separator.Hyphen)
+                || groups[sequence].Length > MaxSequenceDigits || CanJoin(sequence, sequence + 1) || StartsDottedRun(sequence))
             {
                 return -1;
             }
@@ -597,8 +609,9 @@ public static partial class TelemetryRedactor
         /// The index after a date starting at group <paramref name="first"/>, or -1. A date is three groups joined by the same
         /// <c>-</c> or <c>.</c>: <c>yyyy-mm-dd</c> or <c>dd-mm-yyyy</c> with a year from 1900 to 2099. Only a <c>yyyy-mm-dd</c>
         /// date joined by hyphens may carry a suffix, one hyphen and one or two digits that no further hyphen and group
-        /// follows (<c>2026-10-02-15</c>); any other hyphen and group after a date makes it no date (it is then a chain:
-        /// <c>2026-10-02-153045</c> is masked).
+        /// follows (<c>2026-10-02-15</c>); a suffix that a chain or a dotted run goes on from is left to them
+        /// (<c>2026-10-02-05 5123 4567</c> masks from the suffix); any other hyphen and group after a date makes it no date (it
+        /// is then a chain: <c>2026-10-02-153045</c> is masked).
         /// </summary>
         private int DateEnd(int first)
         {
@@ -629,7 +642,14 @@ public static partial class TelemetryRedactor
 
             var shortSuffix = isoDate && gap == Separator.Hyphen && !groups[suffix].Kept && groups[suffix].Length <= MaxDateSuffixDigits
                 && Between(suffix, suffix + 1) != Separator.Hyphen;
-            return shortSuffix ? suffix + 1 : -1;
+            if (!shortSuffix)
+            {
+                return -1;
+            }
+
+            // Fix round 2: a suffix that a chain or a dotted run goes on from is left to them (2026-10-02-05 5123 4567).
+            // JoinsShape, not CanJoin: CanJoin asks DateEnd of the next group, which would recurse along a run of dates.
+            return JoinsShape(suffix, suffix + 1) || StartsDottedRun(suffix) ? suffix : suffix + 1;
         }
 
         private bool IsYear(DigitGroup group) => Number(group) is >= 1900 and <= 2099;

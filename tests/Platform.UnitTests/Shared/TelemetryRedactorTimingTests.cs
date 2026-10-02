@@ -107,6 +107,11 @@ public sealed class TelemetryRedactorTimingTests
         ["digits, dates with short suffixes"] = n => Repeat("2026-10-02-15 ", n),
         ["digits, plus-prefixed dotted runs"] = n => Repeat("+1.2.3.4 ", n),
         ["digits, chains stopped by a dot"] = n => Repeat("1.22 33.44 ", n),
+        // Fix round 2: a reference whose sequence goes on into a chain or a dotted run, leading-zero dotted quads.
+        ["digits, references running into chains"] = n => Repeat("RFP-2026-055 1 ", n),
+        ["digits, references running into dotted runs"] = n => Repeat("PO-2026-05.1 ", n),
+        ["digits, leading-zero dotted quads"] = n => Repeat("055.123.45.67 ", n),
+        ["digits, dates with suffixes running into dotted runs"] = n => Repeat("2026-10-02-15.", n),
     };
 
     private static string Repeat(string unit, int length)
