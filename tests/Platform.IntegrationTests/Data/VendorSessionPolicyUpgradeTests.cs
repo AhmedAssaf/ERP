@@ -60,6 +60,7 @@ public sealed class VendorSessionPolicyUpgradeTests(DatabaseFixture db)
                 "audit/0003_audit_actor_and_time.sql",
                 "tenancy/0007_tenancy_function_callers.sql",
                 "tenancy/0008_tenancy_branding_vendor_users_and_owner.sql",
+                "tenancy/0009_tenancy_referenced_logos.sql",
                 "identity/0002_identity_staff_tenants.sql",
                 "identity/0003_identity_user_activity.sql",
                 "operations/0004_operations_platform_audit_access.sql",
