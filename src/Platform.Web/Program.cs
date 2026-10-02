@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Platform.Modules.Audit;
 using Platform.Modules.Identity;
@@ -14,6 +15,7 @@ using Platform.Modules.Vendors.Contracts;
 using Platform.Modules.Workflow;
 using Platform.Shared;
 using Platform.Shared.Jobs;
+using Platform.Shared.Telemetry;
 using Platform.UI;
 using Platform.Web.Account;
 using Platform.Web.Branding;
@@ -21,6 +23,7 @@ using Platform.Web.Components;
 using Platform.Web.Edge;
 using Platform.Web.Localization;
 using Platform.Web.PlatformHost;
+using Platform.Web.Telemetry;
 using Platform.Web.Tenancy;
 using Platform.Web.Usage;
 using Platform.Web.Vendor;
@@ -46,6 +49,12 @@ if (!builder.Environment.IsDevelopment() && !builder.Environment.IsEnvironment("
         }
     }
 }
+
+// W-10 (spec O-3 to O-6, O-16): traces and metrics through OpenTelemetry, logs through Serilog as a logging provider, all
+// over OTLP only when Telemetry:OtlpEndpoint is set; outside Development and Testing no console output. Requests to /health,
+// /alive, the framework's files and static assets get no span.
+builder.AddPlatformTelemetry(TelemetryNames.Services.Web);
+builder.AddWebTelemetry();
 
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 builder.Services.AddProblemDetails();
@@ -78,7 +87,7 @@ builder.Services.AddOperationsConsole(builder.Configuration);
 builder.Services.AddScoped<TenantOverview>();
 // W-10 (spec 6.6): the console usage page's figures, from the circuit registry and the usage job's stored result.
 builder.Services.AddScoped<UsageOverview>();
-builder.Services.AddSingleton<GrafanaLink>();
+builder.Services.AddSingleton<KibanaLink>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<CircuitHandler, TenantCircuitHandler>();
 builder.Services.AddScoped<CircuitHandler, VendorCircuitHandler>();
@@ -173,6 +182,8 @@ builder.Services.AddScoped<AuthenticationStateProvider, MembershipRevalidatingSt
 // session guard, on meter WaslaBid.Usage and for the console usage page.
 builder.Services.AddSingleton<ConnectedCircuits>();
 builder.Services.AddScoped<CircuitHandler, UsageCircuitHandler>();
+// W-10 (O-9): every inbound circuit activity logs with the circuit's tenant, user and vendor company; ordered last.
+builder.Services.AddScoped<CircuitHandler, CircuitTelemetryHandler>();
 builder.Services.AddPlatformLocalization();
 builder.Services.AddPlatformUI();
 
@@ -183,6 +194,8 @@ builder.Services.AddKeyRing(builder.Configuration, builder.Environment);
 
 var app = builder.Build();
 
+// W-10 (O-7): first, so every response carries its trace id in X-Correlation-Id, the 404s and 500s below included.
+app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseForwardedHeaders();
 
 if (!app.Environment.IsDevelopment())
@@ -193,6 +206,8 @@ if (!app.Environment.IsDevelopment())
 
 app.UseMiddleware<PlatformHostMiddleware>();
 app.UseMiddleware<TenantMiddleware>();
+// W-10 (O-9): the tenant's id and slug on the server span and on every log record of the request from here on.
+app.UseMiddleware<RequestTelemetryMiddleware>();
 if (!app.Environment.IsDevelopment())
 {
     // Developer pages (/dev/*, the component gallery) exist only in Development; elsewhere they are a 404 for everyone,
@@ -214,12 +229,16 @@ app.UseAccessRemovedPage();
 app.UseAuthentication();
 // The acting user (app.user_id) of every connection from here on: the authenticated principal's sub.
 app.UseMiddleware<ActingUserMiddleware>();
+// W-10 (O-9): the acting user's sub as user.id, on the span and the records from here on.
+app.UseUserTelemetry();
 app.UseRequestLocalization();
 // A signed-in vendor who opens the tenant's home goes to the vendor home instead of the staff home's 403.
 app.UseMiddleware<VendorHomeRedirectMiddleware>();
 app.UseAuthorization();
 app.UseMiddleware<PlatformAdminEverywhereMiddleware>();
 app.UseMiddleware<VendorContextMiddleware>();
+// W-10 (O-9): the vendor company of a vendor request, on the span and the records from here on.
+app.UseVendorCompanyTelemetry();
 // W-10 (spec 6.4): after the vendor context, an authorized staff or vendor request marks its user active for the hour.
 app.UseMiddleware<UserActivityMiddleware>();
 app.UseAntiforgery();
@@ -227,6 +246,8 @@ app.UseAntiforgery();
 app.UseRateLimiter();
 app.MapStaticAssets().AllowAnonymous();
 app.MapHealthChecks("/health").AllowAnonymous();
+// W-10 (O-15): liveness for container health checks. No check runs: the process answering is the whole answer.
+app.MapHealthChecks("/alive", new HealthCheckOptions { Predicate = _ => false }).AllowAnonymous();
 app.MapCultureEndpoints();
 app.MapSignOutEndpoints();
 app.MapVendorRegistrationEndpoints();
@@ -234,6 +255,8 @@ app.MapVendorUploadEndpoints();
 app.MapBrandingEndpoints();
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 app.MapJobsDashboard();
+// W-10: GET /dev/throw, Development only, for the end-to-end checks of plan task 10.
+app.MapDeliberateFailure(app.Environment);
 
 app.Run();
 

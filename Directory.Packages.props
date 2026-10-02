@@ -27,9 +27,25 @@
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageVersion Include="Npgsql" Version="10.0.3" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+    <!-- W-10 traces and metrics (plan task 1, spec O-3, O-5, O-6): OpenTelemetry .NET 1.19.1 (core, hosting, OTLP exporter,
+         in-memory exporter for tests) and 1.19.0 (ASP.NET Core and HttpClient instrumentation) are current stable; no known
+         advisories (OSV checked 2026-10-01; the OTLP exporter's GHSA-4625-4j76-fww9, GHSA-mr8r-92fq-pj8p and
+         GHSA-q834-8qmm-v933 are fixed from 1.15.3, the instrumentations' GHSA-vh2m-22xx-q94f from 1.8.1). -->
+    <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="1.19.1" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.19.1" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.19.1" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.19.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.19.0" />
     <!-- Tests only (plan task 6): computes TOTP codes for the platform realm's seeded OTP credential. 1.4.1 is current
          stable, MIT, no known advisories. -->
     <PackageVersion Include="Otp.NET" Version="1.4.1" />
+    <!-- W-10 logs (spec Q2 decided 2026-10-01: Serilog kept): registered only as a Microsoft.Extensions.Logging provider,
+         never as the logger factory, so the W-24 filter rules stay the level gate; logs leave through the OTLP sink.
+         Serilog 4.4.0, Serilog.Extensions.Logging 10.0.0 and Serilog.Sinks.OpenTelemetry 4.2.0 are current stable; no known
+         advisories (OSV checked 2026-10-01, also for the sink's Google.Protobuf 3.30.1 and Grpc.Net.Client 2.70.0). -->
+    <PackageVersion Include="Serilog" Version="4.4.0" />
+    <PackageVersion Include="Serilog.Extensions.Logging" Version="10.0.0" />
+    <PackageVersion Include="Serilog.Sinks.OpenTelemetry" Version="4.2.0" />
     <PackageVersion Include="Shouldly" Version="4.3.0" />
     <!-- Logo re-encoding (F-02, spec D-10; MIT). 4.152.1 is current stable, no known advisories (OSV, checked at pinning).
          SkiaSharp brings the Windows and macOS native assets; containers need the Linux build without fontconfig. -->

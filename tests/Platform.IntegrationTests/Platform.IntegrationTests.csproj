@@ -9,6 +9,7 @@
     <PackageReference Include="MailKit" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="OpenTelemetry.Exporter.InMemory" />
     <PackageReference Include="Otp.NET" />
     <PackageReference Include="Shouldly" />
     <PackageReference Include="Testcontainers" />

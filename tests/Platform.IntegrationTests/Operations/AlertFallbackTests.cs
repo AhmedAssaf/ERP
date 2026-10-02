@@ -1,3 +1,4 @@
+using System.Diagnostics.Metrics;
 using System.Globalization;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
@@ -204,6 +205,7 @@ public sealed class AlertFallbackTests(DatabaseFixture db, MailpitFixture mailpi
             fallback,
             services.GetRequiredService<IAlertSender>(),
             services.GetRequiredService<AlertSettings>(),
+            new HealthTelemetry(services.GetRequiredService<IMeterFactory>(), TimeProvider.System),
             TimeProvider.System,
             NullLogger<HealthCheckJob>.Instance);
 

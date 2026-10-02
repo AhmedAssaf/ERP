@@ -18,6 +18,8 @@ namespace Platform.Modules.Operations.Health;
 /// again, components the fallback announced get a recovery email if healthy, or have their open incident marked as
 /// already announced if still down, and the normal pipeline takes over. A store outage never makes the job throw: it
 /// is logged as a warning (exception type only, N-10) so Hangfire does not mark every minute as failed.
+/// W-10 (plan task 4): the run is one span with a child per check, and every result is published as a metric
+/// (<see cref="HealthTelemetry"/>) before it is recorded, so the metrics do not depend on the store.
 /// </summary>
 internal sealed partial class HealthCheckJob(
     IEnumerable<NamedHealthCheck> checks,
@@ -26,6 +28,7 @@ internal sealed partial class HealthCheckJob(
     FallbackAlertState fallback,
     IAlertSender sender,
     AlertSettings alertSettings,
+    HealthTelemetry telemetry,
     TimeProvider timeProvider,
     ILogger<HealthCheckJob> logger)
 {
@@ -39,7 +42,13 @@ internal sealed partial class HealthCheckJob(
     [AutomaticRetry(Attempts = 0)]
     public async Task RunAsync(CancellationToken cancellationToken)
     {
-        var results = await RunChecksAsync(cancellationToken);
+        List<HealthResult> results;
+        using (HealthTelemetry.StartRun())
+        {
+            results = await RunChecksAsync(cancellationToken);
+        }
+
+        telemetry.Publish(results);
 
         try
         {
@@ -71,6 +80,7 @@ internal sealed partial class HealthCheckJob(
 
         foreach (var named in checks)
         {
+            using var activity = HealthTelemetry.StartCheck(named.Component);
             var checkedAt = timeProvider.GetUtcNow();
             var startedAt = timeProvider.GetTimestamp();
 
@@ -88,8 +98,11 @@ internal sealed partial class HealthCheckJob(
                     HealthCheckMessages.WithExceptionType(ex, HealthCheckMessages.CouldNotReach(named.Component)));
             }
 
-            var latencyMs = (int)timeProvider.GetElapsedTime(startedAt).TotalMilliseconds;
-            results.Add(new HealthResult(named.Component, Map(result.Status), latencyMs, checkedAt, result.Description));
+            var elapsed = timeProvider.GetElapsedTime(startedAt);
+            var status = Map(result.Status);
+            telemetry.RecordDuration(named.Component, elapsed);
+            HealthTelemetry.EndCheck(activity, status);
+            results.Add(new HealthResult(named.Component, status, (int)elapsed.TotalMilliseconds, checkedAt, result.Description));
         }
 
         return results;

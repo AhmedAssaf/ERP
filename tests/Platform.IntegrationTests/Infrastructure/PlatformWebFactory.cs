@@ -1,6 +1,9 @@
+using System.Net;
+using System.Net.Sockets;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
+using Platform.Shared.Telemetry;
 
 namespace Platform.IntegrationTests.Infrastructure;
 
@@ -32,8 +35,14 @@ internal sealed class PlatformWebFactory(string appConnectionString, OidcSetting
         builder.UseSetting("PlatformOidc:Authority", oidc?.PlatformAuthority ?? "https://keycloak.invalid/realms/waslabid-platform");
         builder.UseSetting("PlatformOidc:ClientSecret", oidc?.PlatformClientSecret ?? "unused-in-tests");
         builder.UseSetting(TestSecrets.CrAuditKeySetting.Key, TestSecrets.CrAuditKeySetting.Value);
+        // W-10: explicitly empty means off, with no fallback to OTEL_EXPORTER_OTLP_ENDPOINT, so a test host never exports to
+        // a developer's collector (Development's appsettings point at localhost:4317). Tests that export set it again.
+        builder.UseSetting(TelemetryModule.OtlpEndpointSetting, string.Empty);
         if (environment is not ("Testing" or "Development"))
         {
+            // W-10: required outside Development and Testing; a free local port, refused at once. (A fixed well-known port such
+            // as 9 is silently dropped on Windows, and each host's shutdown then waits minutes for the export to time out.)
+            builder.UseSetting(TelemetryModule.OtlpEndpointSetting, UnusedOtlpEndpoint());
             // Required outside Development and Testing; nothing in such a test contacts the Keycloak Admin API.
             builder.UseSetting("KeycloakAdmin:BaseUrl", "https://keycloak.invalid");
             builder.UseSetting("KeycloakAdmin:ClientSecret", "unused-in-tests");
@@ -52,6 +61,20 @@ internal sealed class PlatformWebFactory(string appConnectionString, OidcSetting
         }
 
         builder.ConfigureTestServices(services => services.AddTestAuthentication());
+    }
+
+    /// <summary>An OTLP endpoint on a loopback port nothing listens on, for hosts that need one but must not reach a collector.</summary>
+    public static string UnusedOtlpEndpoint() => $"http://127.0.0.1:{UnusedLoopbackPort()}";
+
+    /// <summary>
+    /// A loopback port nothing listens on: a connection to it is refused at once. (A fixed well-known port such as 9 is silently
+    /// dropped on Windows, so a client waits for its timeout instead.)
+    /// </summary>
+    public static int UnusedLoopbackPort()
+    {
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        return ((IPEndPoint)listener.LocalEndpoint).Port;
     }
 
     public HttpClient ClientFor(string host) =>

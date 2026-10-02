@@ -27,7 +27,8 @@ public static class TenancyModule
         }
 
         var pooled = builder.ConnectionString;
-        services.AddKeyedSingleton(DataSourceKey, (_, _) => NpgsqlDataSource.Create(pooled));
+        // Named (W-10): an unnamed data source is named after its connection string in metrics and spans.
+        services.AddKeyedSingleton(DataSourceKey, (_, _) => new NpgsqlDataSourceBuilder(pooled) { Name = DataSourceNames.Tenancy }.Build());
         services.AddSingleton<ITenantDirectory, TenantDirectory>();
         // Scoped: it reads the scope's platform mark (IPlatformRequestContext from AddPlatformShared).
         services.AddScoped<ITenantCatalog, TenantCatalog>();

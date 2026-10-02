@@ -155,9 +155,147 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  # W-10 observability (ADR-0014): the hosts send OTLP to the collector, which writes logs, traces and metrics to
+  # Elasticsearch in the OTel-native mapping; Kibana is the UI, opt-in through the profile `kibana` (spec O-17).
+  # Every port binds to 127.0.0.1 only (O-13). Passwords come from .env (N-10); none appears in a command line,
+  # a health check or a log line. Images are pinned by version and multi-architecture index digest (amd64 and arm64,
+  # the pilot is arm64). Elastic 9.5.4 is the fix release of ESA-2026-176/179/180/182/183 (2026-09-25); 9.5.5 is not
+  # on docker.elastic.co yet. Collector 0.161.0: the open advisories of the contrib repository concern components this
+  # configuration does not load (mongodb, prometheus receiver, azureauth, sentry, github receiver), checked 2026-10-02.
+  # Elasticsearch needs vm.max_map_count >= 262144 on the Docker host (docs/07 section 4).
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.161.0@sha256:fd328de2552466ad78385e1b1289c3f2402b1c45f265b252aab1955b42845ac1
+    container_name: erp-otel-collector
+    command: ["--config=/etc/otelcol-contrib/collector.yaml"]
+    mem_limit: 256m
+    environment:
+      ELASTIC_COLLECTOR_PASSWORD: ${ELASTIC_COLLECTOR_PASSWORD:?Set ELASTIC_COLLECTOR_PASSWORD in infra/compose/.env}
+    ports:
+      - "127.0.0.1:4317:4317"     # OTLP gRPC
+      - "127.0.0.1:4318:4318"     # OTLP HTTP
+      - "127.0.0.1:13133:13133"   # health_check extension, read by the worker's Telemetry check (F-60)
+    volumes:
+      - ./observability/collector.yaml:/etc/otelcol-contrib/collector.yaml:ro
+    depends_on:
+      elastic-setup:
+        condition: service_completed_successfully
+    # No Compose health check: the image is distroless (the collector binary only, no shell, curl or wget), so a
+    # check cannot run inside it. Its health is read from the host on 13133 (worker Telemetry check, F-60).
+    restart: unless-stopped
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.5.4@sha256:82ac14f43fe701992e601f4cc81e1c0d7dbc5a2576d8cd736006452925df4026
+    container_name: erp-elasticsearch
+    mem_limit: 1536m
+    environment:
+      discovery.type: single-node
+      # Direct memory defaults to half the heap (384 MB) on top of it; Elasticsearch uses heap buffers for HTTP, so
+      # its direct pool stays small (23 MB at idle). 128 MB caps it so heap, non-heap and direct stay under 1.5 GB
+      # during bulk indexing instead of being OOM-killed (exit 137).
+      ES_JAVA_OPTS: "-Xms768m -Xmx768m -XX:MaxDirectMemorySize=128m"
+      xpack.security.enabled: "true"
+      xpack.security.http.ssl.enabled: "false"
+      xpack.security.transport.ssl.enabled: "false"
+      xpack.license.self_generated.type: basic
+      # Bootstrap password of the built-in elastic user; read only on the first start of an empty data volume.
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:?Set ELASTIC_PASSWORD in infra/compose/.env}
+    ports:
+      - "127.0.0.1:9200:9200"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    healthcheck:
+      # No credentials: 401 from the security layer means the node is up and serving HTTP.
+      test: ["CMD-SHELL", "curl -s -o /dev/null -w '%{http_code}' http://localhost:9200/ | grep -qE '^(200|401)$'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    restart: unless-stopped
+
+  elastic-setup:
+    # One-shot, idempotent: kibana_system password, roles, users, lifecycle policies (observability/elastic-setup.sh).
+    # Runs again on every `up -d`.
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.5.4@sha256:82ac14f43fe701992e601f4cc81e1c0d7dbc5a2576d8cd736006452925df4026
+    container_name: erp-elastic-setup
+    restart: "no"
+    entrypoint: ["bash", "/setup/elastic-setup.sh"]
+    environment:
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:?Set ELASTIC_PASSWORD in infra/compose/.env}
+      KIBANA_SYSTEM_PASSWORD: ${KIBANA_SYSTEM_PASSWORD:?Set KIBANA_SYSTEM_PASSWORD in infra/compose/.env}
+      KIBANA_STAFF_USER: ${KIBANA_STAFF_USER:?Set KIBANA_STAFF_USER in infra/compose/.env}
+      KIBANA_STAFF_PASSWORD: ${KIBANA_STAFF_PASSWORD:?Set KIBANA_STAFF_PASSWORD in infra/compose/.env}
+      ELASTIC_MONITOR_PASSWORD: ${ELASTIC_MONITOR_PASSWORD:?Set ELASTIC_MONITOR_PASSWORD in infra/compose/.env}
+      ELASTIC_COLLECTOR_PASSWORD: ${ELASTIC_COLLECTOR_PASSWORD:?Set ELASTIC_COLLECTOR_PASSWORD in infra/compose/.env}
+      TELEMETRY_LOGS_RETENTION: ${TELEMETRY_LOGS_RETENTION:?Set TELEMETRY_LOGS_RETENTION in infra/compose/.env}
+      TELEMETRY_TRACES_RETENTION: ${TELEMETRY_TRACES_RETENTION:?Set TELEMETRY_TRACES_RETENTION in infra/compose/.env}
+      TELEMETRY_METRICS_RETENTION: ${TELEMETRY_METRICS_RETENTION:?Set TELEMETRY_METRICS_RETENTION in infra/compose/.env}
+    volumes:
+      - ./observability/elastic-setup.sh:/setup/elastic-setup.sh:ro
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:9.5.4@sha256:b1b4cea273350ffcb67292d7b90dd034598c1627bfa3cd0783315e9237dbe737
+    container_name: erp-kibana
+    profiles: [kibana]
+    # Kibana 9.5.4 does not start with the spec's 512 MB heap or 768 MB limit (V8 heap out of memory at about 500 MB
+    # during plugin start, 2026-10-02; also with a 640 MB heap). 768 MB heap starts and serves the dashboards at about
+    # 990 MB resident; the limit leaves room for that plus page cache. Spec section 9 to follow (task 9, the user).
+    mem_limit: 1280m
+    environment:
+      NODE_OPTIONS: "--max-old-space-size=768"
+      SERVER_PUBLICBASEURL: http://127.0.0.1:5601
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      ELASTICSEARCH_USERNAME: kibana_system
+      ELASTICSEARCH_PASSWORD: ${KIBANA_SYSTEM_PASSWORD:?Set KIBANA_SYSTEM_PASSWORD in infra/compose/.env}
+      XPACK_SECURITY_ENCRYPTIONKEY: ${KIBANA_ENCRYPTION_KEY:?Set KIBANA_ENCRYPTION_KEY in infra/compose/.env}
+      XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY: ${KIBANA_ENCRYPTION_KEY:?Set KIBANA_ENCRYPTION_KEY in infra/compose/.env}
+      XPACK_REPORTING_ENCRYPTIONKEY: ${KIBANA_ENCRYPTION_KEY:?Set KIBANA_ENCRYPTION_KEY in infra/compose/.env}
+      # Nothing about usage goes to Elastic (data residency, N-01).
+      TELEMETRY_OPTIN: "false"
+      TELEMETRY_ALLOWCHANGINGOPTINSTATUS: "false"
+      NEWSFEED_ENABLED: "false"
+    ports:
+      - "127.0.0.1:5601:5601"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      elastic-setup:
+        condition: service_completed_successfully
+    healthcheck:
+      # No credentials: 200 or 401 from /api/status means Kibana is up (503 while it starts).
+      test: ["CMD-SHELL", "curl -s -o /dev/null -w '%{http_code}' http://localhost:5601/api/status | grep -qE '^(200|401)$'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 90s
+    restart: unless-stopped
+
+  kibana-setup:
+    # One-shot, idempotent: imports the "WaslaBid usage" dashboard (overwrite), so the NDJSON in the repository is
+    # the source of truth. Imports as elastic: the staff user's viewer role cannot write saved objects (the import
+    # answers 403, as spec 6.7 intends). Credentials go to curl through stdin (-K -), never on a command line.
+    image: curlimages/curl:8.22.0@sha256:58adaa4e8dca9c988bae2aba4ab3434a0bb2da16bbe3f92dec39ec7785166777
+    container_name: erp-kibana-setup
+    profiles: [kibana]
+    restart: "no"
+    entrypoint: ["sh", "/setup/kibana-setup.sh"]
+    environment:
+      KIBANA_IMPORT_USER: elastic
+      KIBANA_IMPORT_PASSWORD: ${ELASTIC_PASSWORD:?Set ELASTIC_PASSWORD in infra/compose/.env}
+    volumes:
+      - ./observability/kibana-setup.sh:/setup/kibana-setup.sh:ro
+      - ./observability/kibana/waslabid-usage.ndjson:/setup/waslabid-usage.ndjson:ro
+    depends_on:
+      kibana:
+        condition: service_healthy
+
 volumes:
   postgres-data:
   minio-data:
   clamav-db:
   caddy-data:
   caddy-config:
+  elasticsearch-data:

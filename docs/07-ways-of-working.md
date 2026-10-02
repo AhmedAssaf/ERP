@@ -74,6 +74,12 @@ docker compose up -d
 | ClamAV | Virus scanning for vendor uploads: the web host scans every completed upload over TCP `INSTREAM`, the worker retries pending ones (F-12), and the health board checks it | 3310 | none |
 | Mailpit | Catches all outgoing email, shows it in a web UI | 1025 (SMTP), 8025 (UI) | none |
 | Caddy | Local TLS edge; `https://<tenant>.localhost` forwards to the app on the host | 80, 443 by default; set `CADDY_HTTP_PORT` and `CADDY_HTTPS_PORT` (for example 8081 and 8443) on Windows machines where 443 sits in a reserved range | none |
+| OpenTelemetry Collector (contrib 0.161) | Receives OTLP from the web host and the worker, drops query strings and credential headers, writes logs, traces and metrics to Elasticsearch (W-10, ADR-0014); no Compose health check (distroless image), the worker reads its health extension | 4317 (OTLP gRPC), 4318 (OTLP HTTP), 13133 (health), all bound to 127.0.0.1 | ELASTIC_COLLECTOR_PASSWORD (create documents only) |
+| Elasticsearch 9 | Telemetry store, single node, 0 replicas, Basic licence; 1.5 GB limit, 768 MB heap | 9200 (127.0.0.1) | ELASTIC_PASSWORD (superuser, read only when the volume is created), ELASTIC_MONITOR_PASSWORD (cluster monitor, the worker's check) |
+| `elastic-setup` | One-shot, runs on every `up -d` and is safe to repeat: sets the built-in and `waslabid_*` users and roles, the retention policies (`TELEMETRY_*_RETENTION`), the usage metric mappings; deletes a staff user that is no longer `KIBANA_STAFF_USER` | none | ELASTIC_PASSWORD and the other passwords |
+| Kibana 9 and `kibana-setup` (profile `kibana`, off by default) | The one telemetry UI (Discover, Observability logs, the "WaslaBid usage" dashboard); `kibana-setup` imports the dashboard as `elastic`, then exits. Start: `docker compose --profile kibana up -d`; stop: `docker compose stop kibana` | 5601 (127.0.0.1) | KIBANA_STAFF_USER and KIBANA_STAFF_PASSWORD (role `viewer`), KIBANA_SYSTEM_PASSWORD, KIBANA_ENCRYPTION_KEY |
+
+Memory on a 16 GB laptop: the Elastic part (collector 256 MB, Elasticsearch 1.5 GB) is about 1.75 GB always on; Kibana adds up to 1.25 GB while it runs (limit 1280 MB, 768 MB heap), which is why it sits behind the `kibana` profile. Elasticsearch needs `vm.max_map_count` of at least 262144 on the Docker host: recent Docker Desktop versions ship with it; if Elasticsearch exits at start, run `wsl -d docker-desktop sysctl -w vm.max_map_count=262144` (check with `wsl -d docker-desktop sysctl vm.max_map_count`; older versions lose it on restart). `ELASTIC_PASSWORD` is read only when the `elasticsearch-data` volume is first created: after changing it in `.env`, `elastic-setup` fails with "elastic user cannot authenticate", so reset with `docker compose rm -sf elasticsearch` and `docker volume rm erp-dev_elasticsearch-data` (this deletes the telemetry, which is not backed up).
 
 The .NET app runs on the host with `dotnet watch` on port 5273 so hot reload works. Caddy forwards `*.localhost` to it, which lets you test several tenants on their own hostnames without editing the hosts file.
 
@@ -81,7 +87,7 @@ Reset everything: `docker compose down -v` then `up -d` again. ClamAV takes up t
 
 ### Run the app locally
 
-With the Compose stack up and these seven values filled in `infra/compose/.env` (see `.env.example` for how to generate
+With the Compose stack up and these seven values (plus the ten telemetry values listed below the commands) filled in `infra/compose/.env` (see `.env.example` for how to generate
 them): `WASLABID_WEB_CLIENT_SECRET`, `WASLABID_PLATFORM_CLIENT_SECRET`, `WASLABID_ADMIN_API_SECRET`,
 `WASLABID_DEV_USER_PASSWORD` (at least 12 characters, not a user name, or the platform realm import fails),
 `MINIO_HEALTH_PROBE_PASSWORD`, `VENDORS_CR_AUDIT_KEY` (base64 of at least 32 bytes; the web host does not start
@@ -173,6 +179,57 @@ for the non-secret ones are in `src/Platform.Worker/appsettings.Development.json
 configured. Mailpit (already in the Compose stack) catches every alert in Development. On a developer machine whose
 system drive is above 80 percent full, the first run sends one "[WaslaBid] Disk is down" email and keeps that
 incident open; that is the disk alert working, not a fault (raise `Platform:DiskAlertPercent` locally if it is noise).
+
+#### Telemetry and Kibana (W-10, ADR-0014)
+
+```mermaid
+flowchart LR
+    APP["Platform.Web and<br/>Platform.Worker"] -->|"OTLP 4317"| COL["Collector"] --> ES[("Elasticsearch")]
+    KIB["Kibana (profile kibana)"] --> ES
+    WRK["Worker Telemetry check"] -.->|"13133 and cluster health"| COL
+    WRK -.-> ES
+    CON["/platform/usage"] -.->|"link"| KIB
+```
+
+Fill ten more values in `infra/compose/.env` (`.env.example` says how to generate each): `ELASTIC_PASSWORD`,
+`KIBANA_SYSTEM_PASSWORD`, `KIBANA_STAFF_USER` (a named user, for example your first name), `KIBANA_STAFF_PASSWORD`,
+`ELASTIC_MONITOR_PASSWORD`, `ELASTIC_COLLECTOR_PASSWORD`, `KIBANA_ENCRYPTION_KEY`, and the retention ages
+`TELEMETRY_LOGS_RETENTION`, `TELEMETRY_TRACES_RETENTION`, `TELEMETRY_METRICS_RETENTION` (3d locally; the pilot uses 30d,
+7d and 30d). An existing clone must add them before any `docker compose` command: the Compose file requires each one
+(`${NAME:?...}`), so `up`, `ps` and `down` all stop with "Set NAME in infra/compose/.env" until it is there. Then
+`docker compose up -d` again; `elastic-setup` exits 0 and the collector and Elasticsearch come up
+within about 30 seconds once the images are pulled (Kibana about 37 seconds more); the limit is four minutes. The host-side settings:
+
+- `Telemetry:OtlpEndpoint` (web host and worker; `http://localhost:4317` in `appsettings.Development.json`). Outside
+  Development and Testing a host without it does not start; an explicitly empty value turns export off.
+- Worker only: `Telemetry:CollectorHealthUrl` (`http://localhost:13133/`), `Telemetry:ElasticsearchHealthUrl`
+  (`http://localhost:9200/_cluster/health`), `Telemetry:ElasticsearchUser` (`waslabid_monitor`), all with Development
+  defaults, and the password as a user secret, never in a file (N-10):
+  `dotnet user-secrets set "Telemetry:ElasticsearchPassword" "$(env_value ELASTIC_MONITOR_PASSWORD)" --project src/Platform.Worker > /dev/null`
+  (same `env_value` function as above). Without it the worker's "Telemetry" check fails with "elasticsearch answered
+  HTTP 401" (Elasticsearch refuses the request without the monitoring user's password).
+- `Telemetry:Environment` (web host and worker): the `deployment.environment.name` on every span, log record and metric;
+  unset, it is the host environment name in lower case (`development` locally). Set `pilot` on the pilot (W-19).
+- Web host: `Observability:KibanaUrl` (`http://127.0.0.1:5601` in Development) gives the "Open in Kibana" link on
+  `/platform/usage`; on the pilot Kibana is reached through an SSH tunnel (O-18).
+
+Kibana is off by default. `docker compose --profile kibana up -d` starts it and imports the dashboard; open
+`http://127.0.0.1:5601` and sign in as `KIBANA_STAFF_USER` (read only; the `elastic` user is for administration).
+
+Find a failed request: copy the `X-Correlation-Id` response header from the browser's network panel (it is the W3C trace
+id; a `ProblemDetails` body carries it as `traceId`), then in Kibana Discover: for the logs, use the data view "All logs" with
+KQL `trace_id : "<id>"`; for the trace, switch Discover to ES|QL mode and run `FROM traces-* | WHERE trace_id == "<id>"`
+(no traces data view is shipped). The server span carries `waslabid.tenant.id`; the
+Error log record carries the tenant, `waslabid.component`, the exception type and a masked message. Kibana's APM trace
+view shows no data for these OTel-native traces yet (open follow-up, W-10 row in docs/09); use Discover.
+
+Health: `/health` is readiness (it includes the key ring and answers 503 when PostgreSQL is down); `/alive` is liveness
+only, runs no check and answers 200 while the process is up, so a database outage does not make an orchestrator restart
+the host. Both answer on every host without a tenant.
+
+Usage numbers show in two places: the console page `/platform/usage` (reads the web host's registry and the worker's
+stored counts, works without the telemetry stack) and the Kibana dashboard "WaslaBid usage" (history, per tenant).
+`tests/e2e/observability.mjs` proves the whole pipeline against this stack (tests/e2e/README.md).
 
 Open `https://acme.localhost:8443` (or the port in `CADDY_HTTPS_PORT`). Login only works through Caddy: it terminates TLS, which the OIDC correlation cookies need, and forwards the host with its port so the redirect URI is right. Plain `http://localhost:5273` cannot complete an OIDC login. Keycloak answers on `http://localhost:8080`; sign in as `acme.admin` or `beta.admin` with `WASLABID_DEV_USER_PASSWORD` from `.env`.
 

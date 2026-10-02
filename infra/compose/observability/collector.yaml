@@ -1,0 +1,119 @@
+# OpenTelemetry Collector (contrib 0.161.0) for W-10 (spec O-3, O-4): OTLP in, Elasticsearch out.
+# The hosts redact before export (spec 7.1); the attributes step here is the second net (O-3).
+
+extensions:
+  health_check:
+    # Inside the Compose network; the host reaches it on 127.0.0.1:13133 (worker Telemetry check, F-60).
+    endpoint: 0.0.0.0:13133
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  # First in every pipeline. The container limit is 256 MB (spec section 9).
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 200
+    spike_limit_mib: 40
+
+  # Second net for what must never be stored: query strings, request headers and the user agent (O-11), and Npgsql's data
+  # source name, a connection string (host and user) when the data source has no name (W-10 final fix wave).
+  attributes/drop-risky:
+    actions:
+      - key: url.query
+        action: delete
+      - key: user_agent.original
+        action: delete
+      - pattern: ^http\.request\.header\..*
+        action: delete
+      - key: db.npgsql.data_source
+        action: delete
+
+  # Second net for metrics (the hosts drop the attribute with a metric view): Npgsql's pool name is kept only when it is one of
+  # the hosts' own data source names (Platform.Shared.Data.DataSourceNames, all "platform-..."), never a connection string.
+  transform/pool-name:
+    error_mode: ignore
+    metric_statements:
+      - statements:
+          - delete_key(datapoint.attributes, "db.client.connection.pool.name") where datapoint.attributes["db.client.connection.pool.name"] != nil and not IsMatch(datapoint.attributes["db.client.connection.pool.name"], "^platform-[a-z-]+$")
+
+  # Pentest F-OBS-08 (accepted for the pilot, ADR-0014: OTLP is loopback-only and unauthenticated): the Elasticsearch
+  # exporter routes a document by the data_stream.* (and elasticsearch.index) attributes of its record (a span event too),
+  # scope or resource, which would let any local sender create streams outside the retention policies. They are removed everywhere, so every
+  # document lands in the logs-, traces- or metrics-generic.otel-default streams the ILM policies cover.
+  transform/strip-routing:
+    error_mode: ignore
+    trace_statements:
+      - statements:
+          - delete_matching_keys(resource.attributes, "^(data_stream[.].*|elasticsearch[.]index)$")
+      - statements:
+          - delete_matching_keys(scope.attributes, "^(data_stream[.].*|elasticsearch[.]index)$")
+      - statements:
+          - delete_matching_keys(span.attributes, "^(data_stream[.].*|elasticsearch[.]index)$")
+      # In otel mode the exporter writes each span event as a logs-* document routed by the event's own attributes.
+      - statements:
+          - delete_matching_keys(spanevent.attributes, "^(data_stream[.].*|elasticsearch[.]index)$")
+    log_statements:
+      - statements:
+          - delete_matching_keys(resource.attributes, "^(data_stream[.].*|elasticsearch[.]index)$")
+      - statements:
+          - delete_matching_keys(scope.attributes, "^(data_stream[.].*|elasticsearch[.]index)$")
+      - statements:
+          - delete_matching_keys(log.attributes, "^(data_stream[.].*|elasticsearch[.]index)$")
+    metric_statements:
+      - statements:
+          - delete_matching_keys(resource.attributes, "^(data_stream[.].*|elasticsearch[.]index)$")
+      - statements:
+          - delete_matching_keys(scope.attributes, "^(data_stream[.].*|elasticsearch[.]index)$")
+      - statements:
+          - delete_matching_keys(datapoint.attributes, "^(data_stream[.].*|elasticsearch[.]index)$")
+
+exporters:
+  elasticsearch:
+    endpoint: http://elasticsearch:9200
+    # Least privilege: auto_configure and create_doc on logs-*, traces-*, metrics-* only (elastic-setup.sh).
+    user: waslabid_collector
+    password: ${env:ELASTIC_COLLECTOR_PASSWORD}
+    # OTel-native mapping only (O-4). In 0.161.0 `mapping::mode` is deprecated and ignored; `allowed_modes` with the
+    # single entry otel makes it the default and refuses any other mode a client asks for (X-Elastic-Mapping-Mode
+    # metadata or the elastic.mapping.mode scope attribute).
+    mapping:
+      allowed_modes: [otel]
+    # Never echo document sources in bulk error responses into the collector's log (N-10).
+    include_source_on_error: false
+    # Batching is the exporter's own sending queue (the exporter's recommended way since the batch processor was
+    # replaced by exporterhelper batching); these are its defaults, written out so they are visible.
+    sending_queue:
+      enabled: true
+      sizer: requests
+      queue_size: 10
+      num_consumers: 10
+      batch:
+        flush_timeout: 10s
+        sizer: bytes
+        min_size: 1000000
+        max_size: 5000000
+
+service:
+  extensions: [health_check]
+  telemetry:
+    logs:
+      level: info
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, attributes/drop-risky, transform/strip-routing]
+      exporters: [elasticsearch]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, attributes/drop-risky, transform/strip-routing]
+      exporters: [elasticsearch]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, transform/pool-name, transform/strip-routing]
+      exporters: [elasticsearch]

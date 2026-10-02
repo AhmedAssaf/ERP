@@ -84,7 +84,8 @@ public static class OperationsModule
     /// checks run from a Hangfire recurring job in the worker, never probed live by the board). Includes the alert
     /// wiring (<see cref="AddOperationsAlerts"/>) so <see cref="Health.HealthCheckJob"/> can notify on every
     /// incident, plus a disk-usage check (docs/05 row 19) that goes through the same incident pipeline rather than
-    /// the F-51 board's fixed seven tiles (docs/05 row 17).
+    /// the F-51 board's fixed seven tiles (docs/05 row 17), and, where the telemetry stack is configured, the Telemetry
+    /// check (W-10, O-14; <see cref="AddTelemetryHealthCheck"/>), alerted the same way.
     /// </summary>
     public static IServiceCollection AddOperationsHealthChecks(
         this IServiceCollection services, string postgreSqlConnectionString, IConfiguration configuration)
@@ -140,8 +141,44 @@ public static class OperationsModule
                 HealthComponents.Disk, new DiskSpaceHealthCheck(settings.DiskPathOr(env.ContentRootPath), settings.DiskAlertPercent));
         });
 
+        services.AddTelemetryHealthCheck(configuration);
+        services.AddHealthCheckJob();
+        return services;
+    }
+
+    /// <summary>
+    /// The Telemetry check (W-10, O-14): registered only when both <c>Telemetry:CollectorHealthUrl</c> and
+    /// <c>Telemetry:ElasticsearchHealthUrl</c> are configured, so a host without the telemetry stack (CI) neither runs nor
+    /// alerts on it. Elasticsearch is read as <c>Telemetry:ElasticsearchUser</c> with <c>Telemetry:ElasticsearchPassword</c>
+    /// from user secrets or the secret store, never an appsettings file (N-10).
+    /// </summary>
+    internal static IServiceCollection AddTelemetryHealthCheck(this IServiceCollection services, IConfiguration configuration)
+    {
+        if (TelemetryHealthSettings.FromConfiguration(configuration) is not { } settings)
+        {
+            return services;
+        }
+
+        // N-10: no request logging for this client. The factory's Trace-level header record carries each header's raw value as
+        // a structured property (only its rendered text is redacted), which would put the monitoring user's Basic credentials
+        // in a log record whenever System.Net.Http is logged at Trace.
+        services.AddHttpClient(nameof(TelemetryHealthCheck)).RemoveAllLoggers();
+        services.AddSingleton(sp =>
+        {
+            var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(TelemetryHealthCheck));
+            return new NamedHealthCheck(HealthComponents.Telemetry, new TelemetryHealthCheck(httpClient, settings));
+        });
+        return services;
+    }
+
+    /// <summary>The job that runs every registered <see cref="NamedHealthCheck"/>, and what it keeps between runs.</summary>
+    internal static IServiceCollection AddHealthCheckJob(this IServiceCollection services)
+    {
+        services.TryAddSingleton(TimeProvider.System);
         // One per worker process: remembers what was alerted while the health store (PostgreSQL) is unavailable.
         services.AddSingleton<FallbackAlertState>();
+        // W-10 (plan task 4): the health metrics, which report the last run between runs.
+        services.AddSingleton<HealthTelemetry>();
         services.AddScoped<HealthCheckJob>();
         return services;
     }
