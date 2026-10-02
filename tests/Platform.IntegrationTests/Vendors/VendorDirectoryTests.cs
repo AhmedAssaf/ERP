@@ -462,9 +462,17 @@ public sealed class VendorDirectoryTests(DatabaseFixture db)
             }
         };
 
-        var first = await JoinAsync(failing, TestTenants.Beta, companyId, userId);
-        var joined = await second.ShouldNotBeNull().WaitAsync(TimeSpan.FromSeconds(30), Ct);
-        await stop.CancelAsync();
+        Platform.Shared.Results.Result<VendorJoined> first, joined;
+        try
+        {
+            first = await JoinAsync(failing, TestTenants.Beta, companyId, userId);
+            joined = await second.ShouldNotBeNull().WaitAsync(TimeSpan.FromSeconds(30), Ct);
+        }
+        finally
+        {
+            // The pg_locks poller stops here, also when a join above threw.
+            await stop.CancelAsync();
+        }
 
         first.Error.ShouldNotBeNull().Code.ShouldBe(VendorErrors.JoinFailed);
         joined.IsSuccess.ShouldBeTrue(joined.Error?.Message);
@@ -522,9 +530,17 @@ public sealed class VendorDirectoryTests(DatabaseFixture db)
             await second.ShouldNotBeNull().WaitAsync(TimeSpan.FromSeconds(30), Ct);
         };
 
-        var first = await JoinAsync(failing, TestTenants.Beta, companyId, userId);
-        var joined = await second.ShouldNotBeNull().WaitAsync(TimeSpan.FromSeconds(30), Ct);
-        await stop.CancelAsync();
+        Platform.Shared.Results.Result<VendorJoined> first, joined;
+        try
+        {
+            first = await JoinAsync(failing, TestTenants.Beta, companyId, userId);
+            joined = await second.ShouldNotBeNull().WaitAsync(TimeSpan.FromSeconds(30), Ct);
+        }
+        finally
+        {
+            // The pg_locks poller stops here, also when a join above threw.
+            await stop.CancelAsync();
+        }
 
         first.Error.ShouldNotBeNull().Code.ShouldBe(VendorErrors.JoinFailed);
         joined.Value.ShouldBe(new VendorJoined(RelationshipCreated: true, OrganizationAdded: false));

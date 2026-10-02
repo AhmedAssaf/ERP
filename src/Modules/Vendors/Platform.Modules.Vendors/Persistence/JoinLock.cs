@@ -12,12 +12,20 @@ namespace Platform.Modules.Vendors.Persistence;
 /// <see cref="CompanyLock"/> (<c>vendor.companies:</c>) and <c>vendor.raise_cr_dispute</c> (<c>vendor.cr_disputes:</c>); the
 /// prefix keeps the text apart from theirs, and the migrator's and key ring's locks use fixed constants. A hash collision
 /// with any of them could only make one wait for the other, never skip a wait. An advisory lock needs no table privilege.
+/// The guarantee assumes PostgreSQL's <c>idle_in_transaction_session_timeout</c> stays 0 (its default, and not set by
+/// infra/compose) or above the Keycloak worst case of a join or an undo (token fetch, call and a 401 retry, 15 seconds
+/// each): a shorter one ends the session while it waits on Keycloak, which drops the lock mid-add or mid-revoke and lets
+/// the race back in.
 /// </summary>
 internal static class JoinLock
 {
     /// <summary>
     /// How long the undo waits for the joins holding the lock: past it the undo gives up and leaves the membership in place
-    /// (the logged, safe side). Below Npgsql's default command timeout (30 seconds), so PostgreSQL answers first.
+    /// (the logged, safe side). Below Npgsql's default command timeout (30 seconds), so PostgreSQL answers first. The
+    /// residual outcomes, both on the safe side: a join that holds the shared lock past this while Keycloak is degraded
+    /// makes the undo give up, logged as <c>RecheckFailed</c> with a lock-timeout error (membership kept, no relationship
+    /// until the vendor joins again); a join queued behind a slow revoke can reach the 30-second command timeout and gets
+    /// <c>vendor.join_failed</c> before any Keycloak change.
     /// </summary>
     public const string UndoWait = "20s";
 

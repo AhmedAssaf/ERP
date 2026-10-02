@@ -13,10 +13,11 @@ using Platform.Shared.Tenancy;
 namespace Platform.Modules.Vendors.Relationships;
 
 /// <summary>
-/// A vendor of another tenant joins the host tenant (spec section 3, ADR-0008). Keycloak first: membership of the tenant's
-/// organization, which the Vendor policy needs there; then, in one database transaction, <c>vendor.join_tenant()</c> (a
-/// pending relationship for the session's tenant and vendor company, only for a user of that company), which answers
-/// whether this call created it. The audit entry is written before that transaction commits, but on the audit writer's
+/// A vendor of another tenant joins the host tenant (spec section 3, ADR-0008). One database transaction opens first and
+/// takes the join lock shared (<see cref="JoinLock"/>, W-40); inside it, Keycloak adds the membership of the tenant's
+/// organization, which the Vendor policy needs there; then <c>vendor.join_tenant()</c> (a pending relationship for the
+/// session's tenant and vendor company, only for a user of that company) answers whether this call created it, and the
+/// transaction commits. The audit entry is written before that transaction commits, but on the audit writer's
 /// own connection, so it is not part of the transaction: when the audit fails the relationship rolls back; a commit that
 /// fails after it leaves an entry for a join that did not happen, and joining again writes a second one. Only the call
 /// that created the relationship writes <c>vendor.joined</c>, so two joins at the same moment write one; a call that added
