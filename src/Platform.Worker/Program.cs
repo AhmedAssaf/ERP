@@ -39,6 +39,8 @@ internal static class EntryPoint
         builder.Services.AddObjectStorage(builder.Configuration);
         builder.Services.AddVirusScanner(builder.Configuration);
         builder.Services.AddVendorJobs();
+        // W-38: removes logo objects no tenant references (needs the object storage just above).
+        builder.Services.AddBrandingJobs(builder.Configuration);
         builder.Services.AddOperationsHealthChecks(platformDb, builder.Configuration);
         // W-33: tell the platform admins about new CR ownership disputes (needs the F-60 alerts registered just above).
         builder.Services.AddVendorDisputeAlerts();
@@ -55,6 +57,7 @@ internal static class EntryPoint
         OperationsModule.ScheduleHealthCheckJob(host.Services);
         OperationsModule.ScheduleUsageMetricsJobs(host.Services);
         VendorsModule.ScheduleVendorJobs(host.Services);
+        TenancyModule.ScheduleBrandingJobs(host.Services);
         await host.RunAsync();
     }
 }

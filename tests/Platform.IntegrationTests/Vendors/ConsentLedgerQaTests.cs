@@ -15,40 +15,46 @@ namespace Platform.IntegrationTests.Vendors;
 /// vendor admin as its acting user; the app role cannot put a recipient on the platform list; and the exact fields of the
 /// three platform audit entries.
 /// <para>
-/// Every application clock is in 2031, later than the database's real date, so each grant the service accepts also passes
-/// the database's no-backdating trigger (migration 0015) whatever day the suite runs.
+/// Every application clock is derived from a day 60 days after the database's own date (<see cref="DatabaseClock"/>), later
+/// than its real date, so each grant the service accepts also passes the database's no-backdating trigger (migration 0015)
+/// whatever day the suite runs.
 /// </para>
 /// </summary>
 [Collection(DatabaseCollection.Name)]
-public sealed class ConsentLedgerQaTests(DatabaseFixture db)
+public sealed class ConsentLedgerQaTests(DatabaseFixture db) : IAsyncLifetime
 {
-    // 10 March 2031 in Riyadh (UTC+3 all year).
-    private static readonly DateOnly D = new(2031, 3, 10);
+    // The day the tests treat as today in Riyadh (UTC+3 all year), set from the database in InitializeAsync.
+    private DateOnly D;
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    public static TheoryData<string, string> MidnightCases => new()
+    public async ValueTask InitializeAsync() => D = await DatabaseClock.FutureRiyadhDayAsync(db.OwnerConnectionString, Ct);
+
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+
+    public static TheoryData<int, string, string> MidnightCases => new()
     {
-        // The day before the first day, one second before and at midnight in Riyadh; UTC is on the day before in both.
-        { "2031-03-09T20:59:59Z", "NotYetValid" },
-        { "2031-03-09T21:00:00Z", "Active" },
+        // Days are relative to D. The day before the first day, one second before and at midnight in Riyadh; UTC is on
+        // the day before in both.
+        { -1, "20:59:59", "NotYetValid" },
+        { -1, "21:00:00", "Active" },
         // The last day (D + 10), one second before and at midnight in Riyadh; UTC is still on the last day in both.
-        { "2031-03-20T20:59:59Z", "Active" },
-        { "2031-03-20T21:00:00Z", "Expired" },
+        { 10, "20:59:59", "Active" },
+        { 10, "21:00:00", "Expired" },
     };
 
     [Theory]
     [MemberData(nameof(MidnightCases))]
-    public async Task The_listed_status_turns_at_midnight_in_Riyadh_not_at_midnight_UTC(string utcNow, string expected)
+    public async Task The_listed_status_turns_at_midnight_in_Riyadh_not_at_midnight_UTC(int dayOffset, string utcTime, string expected)
     {
-        var (companyId, userId, recipientId) = await VendorWithRecipientAsync($"Midnight {utcNow}");
+        var (companyId, userId, recipientId) = await VendorWithRecipientAsync($"Midnight {dayOffset} {utcTime}");
         await using (var granting = Host(At(D.AddDays(-1), 9)))
         {
             (await LedgerFor(granting, companyId, userId, l => l.GrantAsync(recipientId, ConsentScope.AwardRecords, D, D.AddDays(10), userId, Ct)))
                 .IsSuccess.ShouldBeTrue();
         }
 
-        await using var host = Host(DateTimeOffset.Parse(utcNow, System.Globalization.CultureInfo.InvariantCulture));
+        await using var host = Host(DatabaseClock.Utc(D.AddDays(dayOffset), TimeOnly.Parse(utcTime, System.Globalization.CultureInfo.InvariantCulture)));
 
         var listed = (await LedgerFor(host, companyId, userId, l => l.ListAsync(Ct))).ShouldHaveSingleItem();
 
@@ -60,7 +66,7 @@ public sealed class ConsentLedgerQaTests(DatabaseFixture db)
     {
         var (companyId, userId, recipientId) = await VendorWithRecipientAsync("Just After Midnight Company");
         // 00:30 on D in Riyadh is 21:30 on D - 1 in UTC.
-        await using var host = Host(new DateTimeOffset(2031, 3, 9, 21, 30, 0, TimeSpan.Zero));
+        await using var host = Host(DatabaseClock.Utc(D.AddDays(-1), new TimeOnly(21, 30)));
 
         var fromRiyadhToday = await LedgerFor(host, companyId, userId, l => l.GrantAsync(recipientId, ConsentScope.AwardRecords, D, D.AddDays(30), userId, Ct));
 
@@ -71,7 +77,7 @@ public sealed class ConsentLedgerQaTests(DatabaseFixture db)
     public async Task A_grant_from_the_UTC_date_is_backdated_once_it_is_already_tomorrow_in_Riyadh()
     {
         var (companyId, userId, recipientId) = await VendorWithRecipientAsync("Backdated By UTC Company");
-        await using var host = Host(new DateTimeOffset(2031, 3, 9, 21, 30, 0, TimeSpan.Zero));
+        await using var host = Host(DatabaseClock.Utc(D.AddDays(-1), new TimeOnly(21, 30)));
 
         var fromUtcToday = await LedgerFor(host, companyId, userId, l =>
             l.GrantAsync(recipientId, ConsentScope.AwardRecords, D.AddDays(-1), D.AddDays(30), userId, Ct));
@@ -221,8 +227,8 @@ public sealed class ConsentLedgerQaTests(DatabaseFixture db)
             ["grant_id"] = grantId.ToString(),
             ["recipient_id"] = recipientId.ToString(),
             ["scope"] = "profile_documents",
-            ["valid_from"] = "2031-03-10",
-            ["valid_to"] = "2031-06-08",
+            ["valid_from"] = D.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
+            ["valid_to"] = D.AddDays(90).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
         }));
     }
 

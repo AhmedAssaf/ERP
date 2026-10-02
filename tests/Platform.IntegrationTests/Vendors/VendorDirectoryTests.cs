@@ -123,7 +123,7 @@ public sealed class VendorDirectoryTests(DatabaseFixture db)
     public async Task A_vendor_document_is_visible_to_a_tenant_only_while_a_relationship_exists()
     {
         var (companyId, _) = await VendorAsync("Visible Documents Company");
-        var expiry = new DateOnly(2030, 1, 31);
+        var expiry = await DatabaseClock.ValidUntilAsync(db.OwnerConnectionString, Ct);
         await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, companyId, VendorDocumentTypes.CrCertificate, expiry, "clean", isCurrent: true, Ct);
         await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, companyId, VendorDocumentTypes.VatCertificate, expiry, "pending_scan", isCurrent: false, Ct);
         await using var host = new ModuleHost(db.AppConnectionString);

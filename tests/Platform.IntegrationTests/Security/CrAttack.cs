@@ -30,7 +30,7 @@ internal static class CrAttack
         if (certificate)
         {
             await VendorDocumentRows.InsertAsync(
-                db.OwnerConnectionString, companyId, VendorDocumentTypes.CrCertificate, new DateOnly(2031, 1, 1), "clean", isCurrent: true, Ct);
+                db.OwnerConnectionString, companyId, VendorDocumentTypes.CrCertificate, await DatabaseClock.ValidUntilAsync(db.OwnerConnectionString, Ct), "clean", isCurrent: true, Ct);
         }
 
         return (companyId, userId, crNumber);

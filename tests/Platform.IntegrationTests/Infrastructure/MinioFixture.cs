@@ -54,6 +54,14 @@ public sealed class MinioFixture : IAsyncLifetime
         }
     }
 
+    /// <summary>The keys under the prefix, in the bucket as it is now.</summary>
+    public async Task<IReadOnlyList<string>> ListKeysAsync(string prefix, CancellationToken cancellationToken)
+    {
+        using var client = new AmazonS3Client(AccessKey, SecretKey, new AmazonS3Config { ServiceURL = ServiceUrl, ForcePathStyle = true });
+        var response = await client.ListObjectsV2Async(new ListObjectsV2Request { BucketName = BucketName, Prefix = prefix }, cancellationToken);
+        return (response.S3Objects ?? []).Select(o => o.Key).ToList();
+    }
+
     public async ValueTask InitializeAsync()
     {
         await _container.StartAsync();

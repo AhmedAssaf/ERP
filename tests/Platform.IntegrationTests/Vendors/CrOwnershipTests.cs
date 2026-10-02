@@ -90,7 +90,7 @@ public sealed class CrOwnershipTests(DatabaseFixture db)
     {
         var (withoutCertificate, _) = await VendorAsync("No Certificate Co");
         // A certificate still waiting for its virus scan is no certificate an officer could read.
-        await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, withoutCertificate, VendorDocumentTypes.CrCertificate, new DateOnly(2031, 1, 1), "pending_scan", isCurrent: true, Ct);
+        await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, withoutCertificate, VendorDocumentTypes.CrCertificate, await DatabaseClock.ValidUntilAsync(db.OwnerConnectionString, Ct), "pending_scan", isCurrent: true, Ct);
         var (withCertificate, _) = await VendorWithCertificateAsync("Blank Note Co");
         var officer = await StaffAsync(TestTenants.Acme, TenantRoles.ContractsOfficer);
         await using var host = Host(new FakeVendorAccounts());
@@ -342,7 +342,7 @@ public sealed class CrOwnershipTests(DatabaseFixture db)
     private async Task<(Guid CompanyId, string UserId)> VendorWithCertificateAsync(string nameEn)
     {
         var vendor = await VendorAsync(nameEn);
-        await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, vendor.CompanyId, VendorDocumentTypes.CrCertificate, new DateOnly(2031, 1, 1), "clean", isCurrent: true, Ct);
+        await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, vendor.CompanyId, VendorDocumentTypes.CrCertificate, await DatabaseClock.ValidUntilAsync(db.OwnerConnectionString, Ct), "clean", isCurrent: true, Ct);
         return vendor;
     }
 

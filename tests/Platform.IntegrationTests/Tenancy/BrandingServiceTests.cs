@@ -226,6 +226,61 @@ public sealed class BrandingServiceTests(DatabaseFixture db, MinioFixture minio)
     }
 
     [Fact]
+    public async Task A_logo_refused_after_the_upload_deletes_nothing_inline()
+    {
+        // W-38: the object is named by its content, so another save of the same logo may be writing or have just
+        // committed that key; only BrandingLogoCleanupJob removes an unreferenced object, after its grace period.
+        var tenant = await TenantRows.InsertAsync(db.OwnerConnectionString, Ct);
+        const string stranger = "logo-stranger";
+        await using var host = Host();
+        await using var scope = host.ScopeFor(tenant, actingUserId: stranger);
+        await using var upload = new MemoryStream(Jpeg(200, 100));
+
+        var result = await scope.ServiceProvider.GetRequiredService<IBrandingService>().SaveLogoAsync(upload, "image/jpeg", stranger, Ct);
+
+        result.Error.ShouldNotBeNull().Code.ShouldBe(BrandingErrors.NotAllowed);
+        (await minio.ListKeysAsync($"tenants/{tenant.TenantId:D}/branding/", Ct)).Count.ShouldBe(1);
+        (await TenantRows.BrandingAsync(db.AppConnectionString, tenant, Ct)).LogoUrl.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task A_refused_upload_of_the_logo_already_in_use_keeps_it_and_a_second_logo_keeps_the_first()
+    {
+        var tenant = await TenantRows.InsertAsync(db.OwnerConnectionString, Ct);
+        const string stranger = "logo-stranger-2";
+        await MemberRows.EnsureActiveAdminAsync(db.OwnerConnectionString, tenant.TenantId, Actor, Ct);
+        await using var host = Host();
+        var prefix = $"tenants/{tenant.TenantId:D}/branding/";
+
+        await using (var admin = host.ScopeFor(tenant, actingUserId: Actor))
+        {
+            await using var first = new MemoryStream(Jpeg(200, 100));
+            (await admin.ServiceProvider.GetRequiredService<IBrandingService>().SaveLogoAsync(first, "image/jpeg", Actor, Ct)).IsSuccess.ShouldBeTrue();
+        }
+
+        var firstKeys = await minio.ListKeysAsync(prefix, Ct);
+        firstKeys.Count.ShouldBe(1);
+
+        await using (var refused = host.ScopeFor(tenant, actingUserId: stranger))
+        {
+            await using var same = new MemoryStream(Jpeg(200, 100));
+            (await refused.ServiceProvider.GetRequiredService<IBrandingService>().SaveLogoAsync(same, "image/jpeg", stranger, Ct))
+                .Error.ShouldNotBeNull().Code.ShouldBe(BrandingErrors.NotAllowed);
+        }
+
+        (await minio.ListKeysAsync(prefix, Ct)).ShouldBe(firstKeys);
+
+        await using (var admin = host.ScopeFor(tenant, actingUserId: Actor))
+        {
+            await using var second = new MemoryStream(Jpeg(300, 100));
+            (await admin.ServiceProvider.GetRequiredService<IBrandingService>().SaveLogoAsync(second, "image/jpeg", Actor, Ct)).IsSuccess.ShouldBeTrue();
+        }
+
+        // As before W-38: a successful save keeps the new object and does not touch the previous logo.
+        (await minio.ListKeysAsync(prefix, Ct)).Count.ShouldBe(2);
+    }
+
+    [Fact]
     public async Task A_tenant_admin_who_is_also_a_vendor_user_is_not_allowed_with_or_without_a_vendor_context()
     {
         // In a circuit the vendor context may be set (name and colour); the logo POST has none. Both refuse the same way:
