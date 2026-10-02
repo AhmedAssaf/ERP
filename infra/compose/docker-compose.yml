@@ -160,15 +160,19 @@ services:
   # Every port binds to 127.0.0.1 only (O-13). Passwords come from .env (N-10); none appears in a command line,
   # a health check or a log line. Images are pinned by version and multi-architecture index digest (amd64 and arm64,
   # the pilot is arm64). Elastic 9.5.4 is the fix release of ESA-2026-176/179/180/182/183 (2026-09-25); 9.5.5 is not
-  # on docker.elastic.co yet. Collector 0.161.0: the open advisories of the contrib repository concern components this
-  # configuration does not load (mongodb, prometheus receiver, azureauth, sentry, github receiver), checked 2026-10-02.
+  # on docker.elastic.co yet. The collector is EDOT (Elastic's OpenTelemetry Collector distribution) of the same 9.5.4
+  # release since 2026-10-02 (ADR-0014): contrib 0.161.0 has no elasticapm processor or connector, which Kibana's APM
+  # views need for OTel-native traces.
   # Elasticsearch needs vm.max_map_count >= 262144 on the Docker host (docs/07 section 4).
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.161.0@sha256:fd328de2552466ad78385e1b1289c3f2402b1c45f265b252aab1955b42845ac1
+    image: docker.elastic.co/elastic-agent/elastic-otel-collector:9.5.4@sha256:0597fe7cad118fcaee15a8691088eff7b60fdd1501bd84fc91b90066d79c9afd
     container_name: erp-otel-collector
-    command: ["--config=/etc/otelcol-contrib/collector.yaml"]
-    mem_limit: 256m
+    # The image's entrypoint is `elastic-agent otel`: standalone, no Fleet enrolment, nothing leaves the Compose network.
+    command: ["--config=/etc/edot/collector.yaml"]
+    # 320 MB since EDOT (2026-10-02; 256 MB with contrib): about 145 MB at idle and 196 MB at 50 requests a second,
+    # mostly the larger binary and the elasticapm connector's in-memory aggregation. memory_limiter: 180 MB heap.
+    mem_limit: 320m
     environment:
       ELASTIC_COLLECTOR_PASSWORD: ${ELASTIC_COLLECTOR_PASSWORD:?Set ELASTIC_COLLECTOR_PASSWORD in infra/compose/.env}
     ports:
@@ -176,23 +180,30 @@ services:
       - "127.0.0.1:4318:4318"     # OTLP HTTP
       - "127.0.0.1:13133:13133"   # health_check extension, read by the worker's Telemetry check (F-60)
     volumes:
-      - ./observability/collector.yaml:/etc/otelcol-contrib/collector.yaml:ro
+      - ./observability/collector.yaml:/etc/edot/collector.yaml:ro
     depends_on:
       elastic-setup:
         condition: service_completed_successfully
-    # No Compose health check: the image is distroless (the collector binary only, no shell, curl or wget), so a
-    # check cannot run inside it. Its health is read from the host on 13133 (worker Telemetry check, F-60).
+    healthcheck:
+      # The health_check extension; the worker's Telemetry check reads the same endpoint from the host (F-60).
+      test: ["CMD-SHELL", "curl -sf -o /dev/null http://localhost:13133/"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
     restart: unless-stopped
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:9.5.4@sha256:82ac14f43fe701992e601f4cc81e1c0d7dbc5a2576d8cd736006452925df4026
     container_name: erp-elasticsearch
-    mem_limit: 1536m
+    # 1.75 GB with the heap kept at 768 MB (2026-10-02): at 1.5 GB the container idled at about 96 % of its limit; the
+    # headroom is page cache and off-heap memory (Lucene's memory-mapped files), not more heap.
+    mem_limit: 1792m
     environment:
       discovery.type: single-node
       # Direct memory defaults to half the heap (384 MB) on top of it; Elasticsearch uses heap buffers for HTTP, so
-      # its direct pool stays small (23 MB at idle). 128 MB caps it so heap, non-heap and direct stay under 1.5 GB
-      # during bulk indexing instead of being OOM-killed (exit 137).
+      # its direct pool stays small (23 MB at idle). 128 MB caps it so heap, non-heap and direct stay well under the
+      # limit during bulk indexing instead of being OOM-killed (exit 137).
       ES_JAVA_OPTS: "-Xms768m -Xmx768m -XX:MaxDirectMemorySize=128m"
       xpack.security.enabled: "true"
       xpack.security.http.ssl.enabled: "false"

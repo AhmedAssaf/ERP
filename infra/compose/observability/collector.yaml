@@ -1,4 +1,7 @@
-# OpenTelemetry Collector (contrib 0.161.0) for W-10 (spec O-3, O-4): OTLP in, Elasticsearch out.
+# Elastic Distribution of the OpenTelemetry Collector (EDOT 9.5.4) for W-10 (spec O-3, O-4): OTLP in, Elasticsearch out.
+# EDOT replaced the contrib 0.161.0 image on 2026-10-02 because only EDOT carries the elasticapm processor and
+# connector, which Kibana's APM views need for OTel-native traces (spec O-4, ADR-0014). Every other component below is
+# the upstream contrib one.
 # The hosts redact before export (spec 7.1); the attributes step here is the second net (O-3).
 
 extensions:
@@ -14,12 +17,20 @@ receivers:
       http:
         endpoint: 0.0.0.0:4318
 
+connectors:
+  # Aggregates spans (and log records) into the APM summary metrics Kibana's service inventory, transaction and
+  # dependency views read: metrics-{service_summary,service_transaction,transaction,service_destination}.{1m,10m,60m}.otel-default.
+  # Those streams use Elasticsearch's built-in templates, which compose metrics-otel@custom, so the waslabid-metrics
+  # retention covers them (elastic-setup.sh). Aggregation state is in memory.
+  elasticapm: {}
+
 processors:
-  # First in every pipeline. The container limit is 256 MB (spec section 9).
+  # First in every pipeline. It measures the Go heap; the container limit (320 MB, docker-compose.yml, spec section 9)
+  # also holds about 110 MB of non-heap memory of the EDOT process, so the heap may reach 180 MB (soft limit 144 MB).
   memory_limiter:
     check_interval: 1s
-    limit_mib: 200
-    spike_limit_mib: 40
+    limit_mib: 180
+    spike_limit_mib: 36
 
   # Second net for what must never be stored: query strings, request headers and the user agent (O-11), and Npgsql's data
   # source name, a connection string (host and user) when the data source has no name (W-10 final fix wave).
@@ -73,6 +84,10 @@ processors:
       - statements:
           - delete_matching_keys(datapoint.attributes, "^(data_stream[.].*|elasticsearch[.]index)$")
 
+  # Enriches spans with the fields Kibana's APM UI reads (processor.event, transaction.*, span.*, event.outcome,
+  # service.target.*). Runs after the two redaction steps, so it only sees what may be stored.
+  elasticapm: {}
+
 exporters:
   elasticsearch:
     endpoint: http://elasticsearch:9200
@@ -107,13 +122,21 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [memory_limiter, attributes/drop-risky, transform/strip-routing]
-      exporters: [elasticsearch]
+      processors: [memory_limiter, attributes/drop-risky, transform/strip-routing, elasticapm]
+      exporters: [elasticapm, elasticsearch]
     logs:
       receivers: [otlp]
       processors: [memory_limiter, attributes/drop-risky, transform/strip-routing]
-      exporters: [elasticsearch]
+      exporters: [elasticapm, elasticsearch]
     metrics:
       receivers: [otlp]
       processors: [memory_limiter, transform/pool-name, transform/strip-routing]
+      exporters: [elasticsearch]
+    # The connector's output only: no sender reaches this pipeline, and its input already passed drop-risky and
+    # strip-routing above. strip-routing is deliberately absent here: the connector sets data_stream.dataset itself
+    # (service_summary.1m and the like), which is how the summaries reach the streams the APM UI reads; all of them
+    # match metrics-*.otel-* and so the waslabid-metrics retention (F-OBS-08 still holds).
+    metrics/aggregated-otel-metrics:
+      receivers: [elasticapm]
+      processors: [memory_limiter]
       exporters: [elasticsearch]
