@@ -13,6 +13,7 @@ using Microsoft.Extensions.Logging;
 using OpenTelemetry.Metrics;
 using MetricPoint = OpenTelemetry.Metrics.MetricPoint;
 using Platform.IntegrationTests.Infrastructure;
+using Platform.Shared.Jobs;
 using Platform.Shared.Telemetry;
 
 namespace Platform.IntegrationTests.Telemetry;
@@ -120,6 +121,44 @@ public sealed class JobTelemetryTests(DatabaseFixture db)
             .Select(t => t.Key)
             .Distinct()
             .ShouldBe([TelemetryNames.MetricTags.JobType], "no tenant, job id or argument on a technical metric");
+    }
+
+    /// <summary>
+    /// W-10 final fix wave (final review, item C): Hangfire's own failure records are written after the job's span and log
+    /// scope have closed, so they carry no job context. The job telemetry writes one record of its own while both are still
+    /// open: the job's trace, id, type and tenant, the exception's type, masked message and stack, and never an argument.
+    /// </summary>
+    [Fact]
+    public async Task A_failed_job_writes_one_warning_with_its_context_and_masked_exception_and_no_arguments()
+    {
+        const string secret = "fake-secret-job-argument-9e2a";
+        var telemetry = new CapturedTelemetry();
+        await using var worker = await StartWorkerAsync(telemetry);
+
+        string jobId;
+        await using (var scope = worker.ScopeFor(TestTenants.Acme))
+        {
+            jobId = scope.ServiceProvider.GetRequiredService<IBackgroundJobClient>().Enqueue<FailingAddressTelemetryJob>(job => job.Run(secret));
+        }
+
+        await WaitForStateAsync(worker, jobId, "Failed");
+
+        var span = await JobSpanAsync(telemetry, jobId);
+        var record = telemetry.Logs.Where(l => l.Template == "Job {JobType} failed" && l.Properties.GetValueOrDefault(TelemetryNames.Attributes.JobId) == jobId)
+            .ShouldHaveSingleItem();
+        record.Level.ShouldBe(Serilog.Events.LogEventLevel.Warning);
+        record.Category.ShouldBe(typeof(JobTelemetryFilter).FullName);
+        record.TraceId.ShouldBe(span.TraceId);
+        record.SpanId.ShouldBe(span.SpanId);
+        record.Properties[TelemetryNames.Attributes.JobType].ShouldBe("FailingAddressTelemetryJob.Run");
+        record.Properties["JobType"].ShouldBe("FailingAddressTelemetryJob.Run");
+        record.Properties[TelemetryNames.Attributes.TenantId].ShouldBe(TestTenants.Acme.TenantId.ToString());
+        record.Properties[RedactingEnricher.ExceptionType].ShouldBe(typeof(InvalidOperationException).FullName);
+        record.Properties[RedactingEnricher.ExceptionMessage].ShouldBe("Deliberate job failure for [email]: 29 characters.");
+        record.Properties[RedactingEnricher.ExceptionStackTrace].ShouldNotBeNull().ShouldContain(nameof(FailingAddressTelemetryJob));
+        record.Exception.ShouldBeNull("the raw exception never reaches a sink");
+        record.Message.ShouldNotContain(secret);
+        record.Properties.Values.ShouldAllBe(v => v == null || (!v.Contains(secret, StringComparison.Ordinal) && !v.Contains("ahmad", StringComparison.Ordinal)));
     }
 
     /// <summary>
@@ -325,5 +364,14 @@ public sealed class FailingTelemetryJob
 {
 #pragma warning disable CA1822 // Instance method by convention: Hangfire jobs are activated per execution.
     public void Run(string secret) => throw new InvalidOperationException($"Deliberate job failure: {secret.Length} characters.");
+#pragma warning restore CA1822
+}
+
+/// <summary>Fails at once, without retries, with an address in its message and an argument that must never reach the telemetry.</summary>
+[AutomaticRetry(Attempts = 0)]
+public sealed class FailingAddressTelemetryJob
+{
+#pragma warning disable CA1822 // Instance method by convention: Hangfire jobs are activated per execution.
+    public void Run(string secret) => throw new InvalidOperationException($"Deliberate job failure for ahmad@example.sa: {secret.Length} characters.");
 #pragma warning restore CA1822
 }

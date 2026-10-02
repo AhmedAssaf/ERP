@@ -15,7 +15,9 @@ namespace Platform.Shared.Jobs;
 /// same three, so every record the job writes carries them. A failed job's span gets status Error and <c>exception.type</c>;
 /// <see cref="TelemetryNames.Metrics.JobsDuration"/> and <see cref="TelemetryNames.Metrics.JobsFailed"/> are recorded per job
 /// type only. The job's arguments are never read, and the exception's message and stack trace never reach the span (spec 7:
-/// they leave only through the masked log record).
+/// they leave only through the masked log record). That record is written here, as a Warning "Job {JobType} failed" with the
+/// exception attached, while the job's span and log scope are still open: Hangfire's own failure records come after
+/// <see cref="OnPerformed"/> and so carry none of the job's context (W-10 final fix wave).
 /// </summary>
 /// <remarks>
 /// Hangfire calls <see cref="OnPerforming"/>, the job and <see cref="OnPerformed"/> one after the other on the worker's thread,
@@ -23,7 +25,7 @@ namespace Platform.Shared.Jobs;
 /// was current before is put back afterwards, and a job without a parent starts from no current activity at all, so nothing
 /// of one job's trace can leak into the next.
 /// </remarks>
-public sealed class JobTelemetryFilter : IServerFilter, IJobFilter
+public sealed partial class JobTelemetryFilter : IServerFilter, IJobFilter
 {
     /// <summary>The activity source of the job spans; every <c>WaslaBid.*</c> source is registered by both hosts.</summary>
     public static readonly ActivitySource Source = new(TelemetryNames.Sources.Jobs);
@@ -105,6 +107,8 @@ public sealed class JobTelemetryFilter : IServerFilter, IJobFilter
                 state.Activity?.SetTag(TelemetryNames.Attributes.ExceptionType, thrown.GetType().FullName);
                 state.Activity?.SetStatus(ActivityStatusCode.Error);
                 _failed.Add(1, jobTag);
+                // The exception goes on the record, where the redaction masks its message and stack (spec 7.1).
+                JobFailed(_logger, thrown, state.JobType);
             }
 
             _duration.Record(Stopwatch.GetElapsedTime(state.StartedAt).TotalSeconds, jobTag);
@@ -116,6 +120,9 @@ public sealed class JobTelemetryFilter : IServerFilter, IJobFilter
             Activity.Current = state.Previous;
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Job {JobType} failed")]
+    private static partial void JobFailed(ILogger logger, Exception exception, string jobType);
 
     /// <summary>The enqueuing span's context, or none (a new trace) when the parameter is missing or not a W3C id.</summary>
     private static ActivityContext ParentOf(string? traceParent) =>
