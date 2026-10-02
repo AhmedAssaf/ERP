@@ -29,7 +29,8 @@ jobs:
   build-test:
     name: Build, format, lint, test
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # The integration suite takes about 16 minutes on a hosted runner since W-10 (1,200+ tests with Testcontainers).
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v7
 
