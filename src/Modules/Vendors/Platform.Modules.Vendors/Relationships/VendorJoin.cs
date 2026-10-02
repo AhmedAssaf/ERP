@@ -1,5 +1,6 @@
 using System.Data.Common;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 using Platform.Modules.Audit.Contracts;
 using Platform.Modules.Identity.Contracts;
@@ -12,16 +13,19 @@ using Platform.Shared.Tenancy;
 namespace Platform.Modules.Vendors.Relationships;
 
 /// <summary>
-/// A vendor of another tenant joins the host tenant (spec section 3, ADR-0008). Keycloak first: membership of the tenant's
-/// organization, which the Vendor policy needs there; then, in one database transaction, <c>vendor.join_tenant()</c> (a
-/// pending relationship for the session's tenant and vendor company, only for a user of that company), which answers
-/// whether this call created it. The audit entry is written before that transaction commits, but on the audit writer's
+/// A vendor of another tenant joins the host tenant (spec section 3, ADR-0008). One database transaction opens first and
+/// takes the join lock shared (<see cref="JoinLock"/>, W-40); inside it, Keycloak adds the membership of the tenant's
+/// organization, which the Vendor policy needs there; then <c>vendor.join_tenant()</c> (a pending relationship for the
+/// session's tenant and vendor company, only for a user of that company) answers whether this call created it, and the
+/// transaction commits. The audit entry is written before that transaction commits, but on the audit writer's
 /// own connection, so it is not part of the transaction: when the audit fails the relationship rolls back; a commit that
 /// fails after it leaves an entry for a join that did not happen, and joining again writes a second one. Only the call
 /// that created the relationship writes <c>vendor.joined</c>, so two joins at the same moment write one; a call that added
 /// the user to the organization while a parallel join created the relationship writes <c>vendor.membership_restored</c>.
-/// When the database step fails, the membership this call added is taken back unless a
-/// relationship with the tenant exists by then (a parallel join of the same vendor won).
+/// When the database step fails, the membership this call added is taken back unless a relationship with the tenant exists
+/// by then. W-40: the joins of a company to a tenant and that undo are kept apart by <see cref="JoinLock"/>, so the undo
+/// never takes back a membership that a parallel join found in Keycloak and then committed its relationship on: either
+/// that join commits first and the undo keeps the membership, or it starts after the undo and adds the membership again.
 /// A company that already works with the tenant never gets a membership back from here (<see cref="RejoinAsync"/>).
 /// </summary>
 internal sealed partial class VendorJoin(
@@ -55,21 +59,28 @@ internal sealed partial class VendorJoin(
             return await RejoinAsync(tenant, vendor.CompanyId, userId, cancellationToken);
         }
 
-        bool organizationAdded;
-        try
-        {
-            organizationAdded = await accounts.AddToOrganizationAsync(userId, tenant.KeycloakOrgAlias, cancellationToken);
-        }
-        catch (IdentityProviderException ex)
-        {
-            KeycloakFailed(logger, tenant.Slug, userId, ex.InnerException?.GetType().Name ?? ex.GetType().Name);
-            return Failed();
-        }
-
+        // W-40: from here to the commit this join holds the join lock shared (JoinLock), so an undo of a parallel failed
+        // join cannot take back a membership this join's Keycloak add found and relied on.
+        var organizationAdded = false;
+        var addingMembership = false;
         try
         {
             await using var db = await contexts.CreateDbContextAsync(cancellationToken);
             await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+            await JoinLock.ShareAsync(db, tenant.TenantId, vendor.CompanyId, cancellationToken);
+
+            addingMembership = true;
+            try
+            {
+                organizationAdded = await accounts.AddToOrganizationAsync(userId, tenant.KeycloakOrgAlias, cancellationToken);
+            }
+            catch (IdentityProviderException ex)
+            {
+                KeycloakFailed(logger, tenant.Slug, userId, ex.InnerException?.GetType().Name ?? ex.GetType().Name);
+                return Failed();
+            }
+
+            addingMembership = false;
             var created = await db.Database.SqlQuery<bool>($"select vendor.join_tenant() as \"Value\"").SingleAsync(cancellationToken);
             if (created || organizationAdded)
             {
@@ -89,7 +100,9 @@ internal sealed partial class VendorJoin(
             await transaction.CommitAsync(cancellationToken);
             return Result.Success(new VendorJoined(created, organizationAdded));
         }
-        catch (Exception ex) when (ex is DbException or DbUpdateException or TimeoutException or OperationCanceledException or InvalidOperationException)
+        // Any other failure of the Keycloak add propagates as before; the transaction (and the lock) is rolled back by then,
+        // as it is here: the undo runs after the using blocks, so it never waits for this join's own shared hold.
+        catch (Exception ex) when (!addingMembership && ex is DbException or DbUpdateException or TimeoutException or OperationCanceledException or InvalidOperationException)
         {
             SaveFailed(logger, tenant.Slug, userId, ex.GetType().Name);
             if (organizationAdded)
@@ -108,17 +121,24 @@ internal sealed partial class VendorJoin(
 
     /// <summary>
     /// Takes back the organization membership this call added, unless the company has a relationship with the tenant by
-    /// now. When that re-check fails nothing is taken back and the failure is logged: the user then stays a member without a
-    /// relationship, so the Vendor policy (which checks the organization and the vendor row, not the relationship) opens the
-    /// vendor home on this host, where the company shows no status with the tenant and the tenant's staff do not see it.
-    /// Joining again creates the relationship.
+    /// now. The re-check and the revoke run under the join lock held exclusive (W-40, <see cref="JoinLock"/>): the undo first
+    /// waits for every join of the company to the tenant still between its Keycloak add and its commit, so one that relied
+    /// on this membership has committed its relationship when the re-check runs, and a join that starts meanwhile waits
+    /// until the revoke is done and adds the membership itself. When the re-check fails, or the lock is not had within
+    /// <see cref="JoinLock.UndoWait"/>, nothing is taken back and the failure is logged: the user then stays a member
+    /// without a relationship, so the Vendor policy (which checks the organization and the vendor row, not the
+    /// relationship) opens the vendor home on this host, where the company shows no status with the tenant and the
+    /// tenant's staff do not see it. Joining again creates the relationship.
     /// </summary>
     private async Task UndoAsync(TenantContext tenant, Guid companyId, string userId)
     {
+        await using var db = await contexts.CreateDbContextAsync(CancellationToken.None);
+        IDbContextTransaction transaction;
         bool related;
         try
         {
-            await using var db = await contexts.CreateDbContextAsync(CancellationToken.None);
+            transaction = await db.Database.BeginTransactionAsync(CancellationToken.None);
+            await JoinLock.ExclusiveAsync(db, tenant.TenantId, companyId, CancellationToken.None);
             related = await db.Relationships.AsNoTracking().AnyAsync(r => r.CompanyId == companyId, CancellationToken.None);
         }
         catch (Exception ex) when (ex is DbException or TimeoutException or InvalidOperationException)
@@ -127,10 +147,14 @@ internal sealed partial class VendorJoin(
             return;
         }
 
-        if (!related)
+        // Nothing to commit: disposing the transaction rolls it back, which releases the lock after the revoke.
+        await using (transaction)
         {
-            await accounts.RevokeAsync(
-                new VendorAccessGrant(userId, tenant.KeycloakOrgAlias, RoleAdded: false, OrganizationAdded: true), CancellationToken.None);
+            if (!related)
+            {
+                await accounts.RevokeAsync(
+                    new VendorAccessGrant(userId, tenant.KeycloakOrgAlias, RoleAdded: false, OrganizationAdded: true), CancellationToken.None);
+            }
         }
     }
 
