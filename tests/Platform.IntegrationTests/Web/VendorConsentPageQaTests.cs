@@ -77,13 +77,13 @@ public sealed partial class VendorConsentPageQaTests(DatabaseFixture db) : IDisp
         await using var scope = host.ScopeFor(TestTenants.Acme, companyId, userId);
         var page = Render(scope, userId, culture, Now);
 
-        await page.Find($"[data-revoke='{grantId}']").ClickAsync(new());
+        await page.WaitForElement($"[data-revoke='{grantId}']", RenderWait.Timeout).ClickAsync(new());
         var dialog = page.Find("[role=dialog]");
         dialog.QuerySelector("h2")!.TextContent.ShouldContain(seedName);
         RawKey().IsMatch(dialog.OuterHtml).ShouldBeFalse(dialog.OuterHtml);
         await ConfirmAsync(page, revokeConfirm);
 
-        page.WaitForAssertion(() => page.Find($"[data-consent-status='{grantId}:revoked']"));
+        page.WaitForAssertion(() => page.Find($"[data-consent-status='{grantId}:revoked']"), RenderWait.Timeout);
         RawKey().IsMatch(page.Markup).ShouldBeFalse();
     }
 
@@ -115,10 +115,10 @@ public sealed partial class VendorConsentPageQaTests(DatabaseFixture db) : IDisp
 
         new[]
         {
-            page.Find($"[data-consent-status='{activeId}:active']").TextContent.Trim(),
-            page.Find($"[data-consent-status='{laterId}:not_yet_valid']").TextContent.Trim(),
-            page.Find($"[data-consent-status='{expiredId}:expired']").TextContent.Trim(),
-            page.Find($"[data-consent-status='{revokedId}:revoked']").TextContent.Trim(),
+            page.WaitForElement($"[data-consent-status='{activeId}:active']", RenderWait.Timeout).TextContent.Trim(),
+            page.WaitForElement($"[data-consent-status='{laterId}:not_yet_valid']", RenderWait.Timeout).TextContent.Trim(),
+            page.WaitForElement($"[data-consent-status='{expiredId}:expired']", RenderWait.Timeout).TextContent.Trim(),
+            page.WaitForElement($"[data-consent-status='{revokedId}:revoked']", RenderWait.Timeout).TextContent.Trim(),
         }.ShouldBe([active, notYetValid, expired, revoked]);
     }
 
@@ -139,7 +139,9 @@ public sealed partial class VendorConsentPageQaTests(DatabaseFixture db) : IDisp
         await using var scope = host.ScopeFor(TestTenants.Acme, companyId, userId);
         var page = Render(scope, userId, "en-US", Now);
 
-        page.FindAll("[data-revoke]").Select(b => b.GetAttribute("data-revoke") ?? string.Empty).Order().ShouldBe(new[] { activeId.ToString(), laterId.ToString() }.Order());
+        page.WaitForAssertion(
+            () => page.FindAll("[data-revoke]").Select(b => b.GetAttribute("data-revoke") ?? string.Empty).Order().ShouldBe(new[] { activeId.ToString(), laterId.ToString() }.Order()),
+            RenderWait.Timeout);
         page.FindAll($"[data-revoke='{expiredId}']").ShouldBeEmpty();
     }
 
@@ -177,7 +179,7 @@ public sealed partial class VendorConsentPageQaTests(DatabaseFixture db) : IDisp
         await page.Find("[role=dialog] select[data-consent-scope]").ChangeAsync(new() { Value = "award_records" });
         await ConfirmAsync(page, grantConfirm);
 
-        page.WaitForAssertion(() => page.Find("[role=dialog] [role=alert]").TextContent.Trim().ShouldBe(notAdmin));
+        page.WaitForAssertion(() => page.Find("[role=dialog] [role=alert]").TextContent.Trim().ShouldBe(notAdmin), RenderWait.Timeout);
         (await ConsentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct)).ShouldBeEmpty();
     }
 
@@ -195,10 +197,10 @@ public sealed partial class VendorConsentPageQaTests(DatabaseFixture db) : IDisp
         await using var scope = host.ScopeFor(TestTenants.Acme, companyId, strangerId);
         var page = Render(scope, strangerId, culture, Now);
 
-        await page.Find($"[data-revoke='{grantId}']").ClickAsync(new());
+        await page.WaitForElement($"[data-revoke='{grantId}']", RenderWait.Timeout).ClickAsync(new());
         await ConfirmAsync(page, revokeConfirm);
 
-        page.WaitForAssertion(() => page.Find("[role=dialog] [role=alert]").TextContent.Trim().ShouldBe(notAdmin));
+        page.WaitForAssertion(() => page.Find("[role=dialog] [role=alert]").TextContent.Trim().ShouldBe(notAdmin), RenderWait.Timeout);
         page.Find($"[data-consent-status='{grantId}:active']");
         (await ConsentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct)).ShouldHaveSingleItem().Kind.ShouldBe("grant");
     }
@@ -220,7 +222,8 @@ public sealed partial class VendorConsentPageQaTests(DatabaseFixture db) : IDisp
         auth.SetClaims(new Claim(IdentityClaims.Subject, userId));
         auth.SetPolicies(VendorPolicies.Vendor);
         var page = _page.Render<VendorConsent>();
-        page.WaitForAssertion(() => page.Find("[data-grant]").HasAttribute("disabled").ShouldBeFalse());
+        // Enabled once the recipients have loaded; the grants load in a later step, so a test waits for the rows it uses.
+        page.WaitForAssertion(() => page.Find("[data-grant]").HasAttribute("disabled").ShouldBeFalse(), RenderWait.Timeout);
         return page;
     }
 

@@ -49,10 +49,14 @@ public sealed class BrandingPageNotAllowedTests(DatabaseFixture db, MinioFixture
         auth.SetClaims(new Claim(IdentityClaims.Subject, dualUser));
         auth.SetPolicies(TenantPolicies.TenantAdmin);
         var page = _page.Render<BrandingPage>();
+        // The form renders before the current branding loads; a submit before that would send an empty name.
+        page.WaitForAssertion(
+            () => page.Find("[data-branding-form] input[maxlength='100']").GetAttribute("value").ShouldBe(tenant.Branding.PortalName),
+            RenderWait.Timeout);
 
         await page.Find("[data-branding-form]").SubmitAsync();
 
-        page.WaitForAssertion(() => page.Find("[data-branding-form] [role=alert]").TextContent.Trim().ShouldBe(message));
+        page.WaitForAssertion(() => page.Find("[data-branding-form] [role=alert]").TextContent.Trim().ShouldBe(message), RenderWait.Timeout);
         (await TenantRows.BrandingAsync(db.AppConnectionString, tenant, Ct)).ShouldBe(tenant.Branding);
     }
 
