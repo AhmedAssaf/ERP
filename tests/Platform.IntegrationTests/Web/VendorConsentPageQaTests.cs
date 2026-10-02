@@ -18,19 +18,31 @@ namespace Platform.IntegrationTests.Web;
 /// the grant and revoke dialogs in Arabic and English without raw keys, the development seed's recipient named in the
 /// page's language, each status's own text in both languages, the grant dialog's first day at the Riyadh midnight boundary,
 /// and what a signed-in user who is not the company's vendor admin sees. Rendered with bUnit against the real ledger, with
-/// one fixed clock for the page and the ledger (10 March 2031, 09:00 in Riyadh, later than the database's real date so the
-/// no-backdating trigger accepts every grant).
+/// one fixed clock for the page and the ledger (09:00 in Riyadh on a day 60 days after the database's own date, so the
+/// no-backdating trigger accepts every grant whatever day the suite runs; <see cref="DatabaseClock"/>).
 /// </summary>
 [Collection(DatabaseCollection.Name)]
-public sealed partial class VendorConsentPageQaTests(DatabaseFixture db) : IDisposable
+public sealed partial class VendorConsentPageQaTests(DatabaseFixture db) : IAsyncLifetime
 {
-    private static readonly DateOnly D = new(2031, 3, 10);
+    private DateOnly D;
 
-    private static readonly DateTimeOffset Now = new(2031, 3, 10, 9, 0, 0, TimeSpan.FromHours(3));
+    private DateTimeOffset Now;
 
     private static CancellationToken Ct => Xunit.TestContext.Current.CancellationToken;
 
     private readonly BunitContext _page = new();
+
+    public async ValueTask InitializeAsync()
+    {
+        D = await DatabaseClock.FutureRiyadhDayAsync(db.OwnerConnectionString, Ct);
+        Now = new DateTimeOffset(D.ToDateTime(new TimeOnly(9, 0)), TimeSpan.FromHours(3));
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        _page.Dispose();
+        return ValueTask.CompletedTask;
+    }
 
     public static TheoryData<string, string, string, string> Languages => new()
     {
@@ -151,15 +163,15 @@ public sealed partial class VendorConsentPageQaTests(DatabaseFixture db) : IDisp
         var (companyId, userId) = await VendorAsync("Midnight Dialog Company");
         await ConsentRows.AddRecipientAsync(db.OwnerConnectionString, "Midnight Dialog Recipient", Ct);
         // 00:30 on 10 March in Riyadh is 21:30 on 9 March in UTC.
-        var justAfterMidnight = new DateTimeOffset(2031, 3, 9, 21, 30, 0, TimeSpan.Zero);
+        var justAfterMidnight = DatabaseClock.Utc(D.AddDays(-1), new TimeOnly(21, 30));
         await using var host = Host(justAfterMidnight);
         await using var scope = host.ScopeFor(TestTenants.Acme, companyId, userId);
         var page = Render(scope, userId, "en-US", justAfterMidnight);
 
         await page.Find("[data-grant]").ClickAsync(new());
 
-        page.Find("[role=dialog] input[data-consent-from]").GetAttribute("value").ShouldBe("2031-03-10");
-        page.Find("[role=dialog] input[data-consent-to]").GetAttribute("value").ShouldBe("2032-03-10");
+        page.Find("[role=dialog] input[data-consent-from]").GetAttribute("value").ShouldBe(D.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture));
+        page.Find("[role=dialog] input[data-consent-to]").GetAttribute("value").ShouldBe(D.AddYears(1).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture));
     }
 
     [Theory]
@@ -204,8 +216,6 @@ public sealed partial class VendorConsentPageQaTests(DatabaseFixture db) : IDisp
         page.Find($"[data-consent-status='{grantId}:active']");
         (await ConsentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct)).ShouldHaveSingleItem().Kind.ShouldBe("grant");
     }
-
-    public void Dispose() => _page.Dispose();
 
     private IRenderedComponent<VendorConsent> Render(AsyncServiceScope scope, string userId, string culture, DateTimeOffset now)
     {
