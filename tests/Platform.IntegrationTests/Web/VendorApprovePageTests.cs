@@ -38,11 +38,11 @@ public sealed class VendorApprovePageTests(DatabaseFixture db) : IDisposable
 
         await page.Find("[data-approve]").ClickAsync(new());
         // Verified already (at another tenant, which the page never names): no check, only what it was verified by.
-        page.WaitForAssertion(() => page.Find("[data-ownership-verified='manual']"));
+        page.WaitForAssertion(() => page.Find("[data-ownership-verified='manual']"), RenderWait.Timeout);
         page.FindAll("[data-ownership-check]").ShouldBeEmpty();
         await ConfirmAsync(page);
 
-        page.WaitForAssertion(() => page.Find($"[data-vendor-status='{companyId}:approved']"));
+        page.WaitForAssertion(() => page.Find($"[data-vendor-status='{companyId}:approved']"), RenderWait.Timeout);
         page.FindAll("[data-approve]").ShouldBeEmpty();
         (await VendorRows.RelationshipsAsync(db.OwnerConnectionString, companyId, Ct))[TestTenants.Acme.TenantId].ShouldBe("approved");
         (await VendorRows.AuditsAsync(db.OwnerConnectionString, TestTenants.Acme.TenantId, officer, "vendor.approved", Ct)).ShouldHaveSingleItem();
@@ -62,7 +62,7 @@ public sealed class VendorApprovePageTests(DatabaseFixture db) : IDisposable
 
         await page.Find("[data-approve]").ClickAsync(new());
 
-        page.WaitForAssertion(() => page.Find("[data-ownership-check]"));
+        page.WaitForAssertion(() => page.Find("[data-ownership-check]"), RenderWait.Timeout);
         page.Find("[data-registrant-name]").TextContent.ShouldContain("Huda Alharbi (self-declared)");
         page.Find("[data-registrant-email='verified']").TextContent.ShouldContain("huda@ownership.test");
         page.Find("[data-registrant-email='verified']").TextContent.ShouldContain("(email verified)");
@@ -73,18 +73,18 @@ public sealed class VendorApprovePageTests(DatabaseFixture db) : IDisposable
 
         // Not confirmed: refused before anything is recorded.
         await ConfirmAsync(page);
-        page.WaitForAssertion(() => page.Find("[role=dialog] [role=alert]").TextContent.ShouldBe("Tick the box to confirm that you checked the company's ownership."));
+        page.WaitForAssertion(() => page.Find("[role=dialog] [role=alert]").TextContent.ShouldBe("Tick the box to confirm that you checked the company's ownership."), RenderWait.Timeout);
 
         // Confirmed without a note: the note field says what is missing.
         await page.Find("[data-ownership-confirm]").ChangeAsync(new() { Value = true });
         await ConfirmAsync(page);
-        page.WaitForAssertion(() => page.Find("[role=dialog]").TextContent.ShouldContain("Write what you checked, in up to 1,000 characters."));
+        page.WaitForAssertion(() => page.Find("[role=dialog]").TextContent.ShouldContain("Write what you checked, in up to 1,000 characters."), RenderWait.Timeout);
         (await VendorRows.RelationshipsAsync(db.OwnerConnectionString, companyId, Ct))[TestTenants.Acme.TenantId].ShouldBe("pending");
 
         await page.Find("[data-ownership-note]").ChangeAsync(new() { Value = "The certificate names Huda Alharbi as the owner.\r\nShe sent an authorisation letter." });
         await ConfirmAsync(page);
 
-        page.WaitForAssertion(() => page.Find($"[data-vendor-status='{companyId}:approved']"));
+        page.WaitForAssertion(() => page.Find($"[data-vendor-status='{companyId}:approved']"), RenderWait.Timeout);
         var verification = (await OwnershipRows.VerificationAsync(db.OwnerConnectionString, companyId, Ct)).ShouldNotBeNull();
         verification.Method.ShouldBe("manual");
         verification.Note.ShouldBe("The certificate names Huda Alharbi as the owner.\nShe sent an authorisation letter.");
@@ -101,14 +101,14 @@ public sealed class VendorApprovePageTests(DatabaseFixture db) : IDisposable
 
         await page.Find("[data-approve]").ClickAsync(new());
 
-        page.WaitForAssertion(() => page.Find("[data-ownership-no-certificate]"));
+        page.WaitForAssertion(() => page.Find("[data-ownership-no-certificate]"), RenderWait.Timeout);
         // The identity provider is not wired in this host: the registrant is unknown, and the page says so.
         page.Find("[data-ownership-registrant]").TextContent.ShouldContain("The sign-in service did not answer");
         await page.Find("[data-ownership-confirm]").ChangeAsync(new() { Value = true });
         await page.Find("[data-ownership-note]").ChangeAsync(new() { Value = "Checked." });
         await ConfirmAsync(page);
 
-        page.WaitForAssertion(() => page.Find("[role=dialog] [role=alert]").TextContent.ShouldStartWith("The company has no current commercial registration certificate"));
+        page.WaitForAssertion(() => page.Find("[role=dialog] [role=alert]").TextContent.ShouldStartWith("The company has no current commercial registration certificate"), RenderWait.Timeout);
         (await OwnershipRows.VerificationAsync(db.OwnerConnectionString, companyId, Ct)).ShouldBeNull();
     }
 
@@ -123,10 +123,10 @@ public sealed class VendorApprovePageTests(DatabaseFixture db) : IDisposable
         await MemberRows.OverwriteRolesAsync(db.AppConnectionString, TestTenants.Acme.TenantId, officer, [TenantRoles.TechnicalEvaluator], Ct);
 
         await page.Find("[data-approve]").ClickAsync(new());
-        page.WaitForAssertion(() => page.Find("[data-ownership-verified]"));
+        page.WaitForAssertion(() => page.Find("[data-ownership-verified]"), RenderWait.Timeout);
         await ConfirmAsync(page);
 
-        page.WaitForAssertion(() => page.Find("[role=dialog] [role=alert]").TextContent.ShouldBe("Only a contracts officer or a tenant administrator can approve a vendor."));
+        page.WaitForAssertion(() => page.Find("[role=dialog] [role=alert]").TextContent.ShouldBe("Only a contracts officer or a tenant administrator can approve a vendor."), RenderWait.Timeout);
         (await VendorRows.RelationshipsAsync(db.OwnerConnectionString, companyId, Ct))[TestTenants.Acme.TenantId].ShouldBe("pending");
     }
 
@@ -144,7 +144,7 @@ public sealed class VendorApprovePageTests(DatabaseFixture db) : IDisposable
 
         await page.Find("[data-approve]").ClickAsync(new());
 
-        page.WaitForAssertion(() => page.Find("[data-ownership-check]"));
+        page.WaitForAssertion(() => page.Find("[data-ownership-check]"), RenderWait.Timeout);
         var dialog = page.Find("[role=dialog]").TextContent;
         dialog.ShouldContain("التحقق من الملكية");
         dialog.ShouldContain("(كما أدخله بنفسه)");
@@ -170,7 +170,7 @@ public sealed class VendorApprovePageTests(DatabaseFixture db) : IDisposable
         auth.SetClaims(new Claim(IdentityClaims.Subject, officer));
         auth.SetPolicies(VendorPolicies.VendorManager);
         var page = _page.Render<VendorDetails>(p => p.Add(x => x.CompanyId, companyId));
-        page.WaitForAssertion(() => page.Find($"[data-vendor-card='{companyId}']"));
+        page.WaitForAssertion(() => page.Find($"[data-vendor-card='{companyId}']"), RenderWait.Timeout);
         return page;
     }
 

@@ -46,9 +46,9 @@ public sealed class VendorOwnershipConsoleQaPageTests(DatabaseFixture db) : IDis
         await using var scope = host.PlatformScope(admin);
         var page = Render(scope, admin, culture);
 
-        await page.Find($"[data-idp-retry='{disputeId}']").ClickAsync(new());
+        await page.WaitForElement($"[data-idp-retry='{disputeId}']", RenderWait.Timeout).ClickAsync(new());
 
-        page.WaitForAssertion(() => Toast(page).ShouldBe((expected, "border-success")));
+        page.WaitForAssertion(() => Toast(page).ShouldBe((expected, "border-success")), RenderWait.Timeout);
         page.FindAll($"[data-idp-failure='{disputeId}']").ShouldBeEmpty();
     }
 
@@ -66,9 +66,9 @@ public sealed class VendorOwnershipConsoleQaPageTests(DatabaseFixture db) : IDis
         await using var scope = host.PlatformScope(admin);
         var page = Render(scope, admin, culture);
 
-        await page.Find($"[data-idp-retry='{disputeId}']").ClickAsync(new());
+        await page.WaitForElement($"[data-idp-retry='{disputeId}']", RenderWait.Timeout).ClickAsync(new());
 
-        page.WaitForAssertion(() => Toast(page).ShouldBe((expected, "border-danger")));
+        page.WaitForAssertion(() => Toast(page).ShouldBe((expected, "border-danger")), RenderWait.Timeout);
         page.Find($"[data-idp-failure='{disputeId}']").QuerySelector("[data-idp-failed-steps]").ShouldNotBeNull().TextContent.ShouldContain("role:grant");
     }
 
@@ -89,14 +89,14 @@ public sealed class VendorOwnershipConsoleQaPageTests(DatabaseFixture db) : IDis
         await using var scope = host.PlatformScope(admin);
         var page = Render(scope, admin, culture);
 
-        await page.Find($"[data-idp-retry='{first}']").ClickAsync(new());
+        await page.WaitForElement($"[data-idp-retry='{first}']", RenderWait.Timeout).ClickAsync(new());
 
         page.WaitForAssertion(() =>
         {
             var (text, tone) = Toast(page);
             text.ShouldStartWith(expected);
             tone.ShouldBe("border-action", "superseded is information, not a failure");
-        });
+        }, RenderWait.Timeout);
         page.FindAll($"[data-idp-failure='{first}']").ShouldBeEmpty();
     }
 
@@ -113,7 +113,7 @@ public sealed class VendorOwnershipConsoleQaPageTests(DatabaseFixture db) : IDis
 
         var page = Render(scope, admin, "ar-SA");
 
-        var section = page.Find("[data-idp-failures]");
+        var section = page.WaitForElement("[data-idp-failures]", RenderWait.Timeout);
         section.TextContent.ShouldContain("لم تُحدَّث خدمة تسجيل الدخول");
         section.TextContent.ShouldContain("نُقلت إلى ريم الشهري في");
         section.QuerySelector("[data-idp-failed-steps]").ShouldNotBeNull().TextContent.ShouldContain("الخطوات التي تعذرت:");
@@ -135,9 +135,9 @@ public sealed class VendorOwnershipConsoleQaPageTests(DatabaseFixture db) : IDis
         await using var scope = host.PlatformScope(admin);
         var page = Render(scope, admin, culture);
 
-        await page.Find($"[{action}='{disputeId}']").ClickAsync(new());
+        await page.WaitForElement($"[{action}='{disputeId}']", RenderWait.Timeout).ClickAsync(new());
 
-        page.WaitForAssertion(() => page.Find("[role=dialog]").TextContent.ShouldContain(expected));
+        page.WaitForAssertion(() => page.Find("[role=dialog]").TextContent.ShouldContain(expected), RenderWait.Timeout);
     }
 
     public void Dispose() => _page.Dispose();
@@ -200,7 +200,9 @@ public sealed class VendorOwnershipConsoleQaPageTests(DatabaseFixture db) : IDis
         auth.SetClaims(new Claim(IdentityClaims.Subject, admin));
         auth.SetPolicies(PlatformAuthentication.PolicyName);
         var page = _page.Render<VendorOwnership>();
-        page.WaitForAssertion(() => page.Find("[data-ownership-method]"));
+        // The method section shows once the settings have loaded; the disputes and the failed updates load in later steps,
+        // so a test waits for the rows it uses.
+        page.WaitForAssertion(() => page.Find("[data-ownership-method]"), RenderWait.Timeout);
         return page;
     }
 }

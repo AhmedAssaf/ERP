@@ -42,7 +42,7 @@ public sealed class VendorOwnershipConsolePageTests(DatabaseFixture db) : IDispo
             page.Find("[data-wathq-fallback]");
             await page.Find("[data-save-method]").ClickAsync(new());
 
-            page.WaitForAssertion(() => page.Find("[data-ownership-method='wathq']"));
+            page.WaitForAssertion(() => page.Find("[data-ownership-method='wathq']"), RenderWait.Timeout);
             (await OwnershipRows.MethodAsync(db.OwnerConnectionString, Ct)).ShouldBe("wathq");
             (await VendorRows.PlatformAuditsAsync(db.OwnerConnectionString, admin, "vendor.ownership_method_changed", Ct)).ShouldHaveSingleItem();
         }
@@ -72,16 +72,16 @@ public sealed class VendorOwnershipConsolePageTests(DatabaseFixture db) : IDispo
 
         await using var scope = host.PlatformScope(admin);
         var page = Render(scope, admin);
-        page.Find($"[data-dispute='{disputeId}']").TextContent.ShouldContain("Console Disputed Co");
+        page.WaitForElement($"[data-dispute='{disputeId}']", RenderWait.Timeout).TextContent.ShouldContain("Console Disputed Co");
 
         await page.Find($"[data-uphold='{disputeId}']").ClickAsync(new());
         await ConfirmAsync(page, "Move the company");
-        page.WaitForAssertion(() => page.Find("[role=dialog]").TextContent.ShouldContain("Write what you checked, in up to 1,000 characters."));
+        page.WaitForAssertion(() => page.Find("[role=dialog]").TextContent.ShouldContain("Write what you checked, in up to 1,000 characters."), RenderWait.Timeout);
 
         await page.Find("[data-resolution-note]").ChangeAsync(new() { Value = "Called the claimant.\r\nChecked the certificate." });
         await ConfirmAsync(page, "Move the company");
 
-        page.WaitForAssertion(() => page.FindAll($"[data-dispute='{disputeId}']").ShouldBeEmpty());
+        page.WaitForAssertion(() => page.FindAll($"[data-dispute='{disputeId}']").ShouldBeEmpty(), RenderWait.Timeout);
         (await OwnershipRows.DisputeAsync(db.OwnerConnectionString, disputeId, Ct)).ShouldNotBeNull().ResolutionNote.ShouldBe("Called the claimant.\nChecked the certificate.");
         (await OwnershipRows.VendorUsersAsync(db.OwnerConnectionString, companyId, Ct)).ShouldBe([(claimant, "vendor-admin")]);
         (await OwnershipRows.DisputeAsync(db.OwnerConnectionString, disputeId, Ct)).ShouldNotBeNull().Status.ShouldBe("upheld");
@@ -94,13 +94,13 @@ public sealed class VendorOwnershipConsolePageTests(DatabaseFixture db) : IDispo
         await using var owned = host;
         await using var scope = host.PlatformScope(admin);
         var page = Render(scope, admin);
-        page.Find($"[data-dispute-status='{disputeId}:open']");
+        page.WaitForElement($"[data-dispute-status='{disputeId}:open']", RenderWait.Timeout);
         page.Find($"[data-dispute-registrant='{disputeId}']").TextContent.ShouldContain("Squatting Person (self-declared)");
 
         await page.Find($"[data-accept='{disputeId}']").ClickAsync(new());
         await ConfirmAsync(page, "Accept for review");
 
-        page.WaitForAssertion(() => page.Find($"[data-dispute-status='{disputeId}:under_review']"));
+        page.WaitForAssertion(() => page.Find($"[data-dispute-status='{disputeId}:under_review']"), RenderWait.Timeout);
         page.FindAll($"[data-accept='{disputeId}']").ShouldBeEmpty();
 
         // Keycloak refuses the claimant's role: the uphold stands and the console keeps a retry until it works.
@@ -108,11 +108,11 @@ public sealed class VendorOwnershipConsolePageTests(DatabaseFixture db) : IDispo
         await page.Find($"[data-uphold='{disputeId}']").ClickAsync(new());
         await page.Find("[data-resolution-note]").ChangeAsync(new() { Value = "Called the claimant and checked the certificate." });
         await ConfirmAsync(page, "Move the company");
-        page.WaitForAssertion(() => page.Find($"[data-idp-failure='{disputeId}']"));
+        page.WaitForAssertion(() => page.Find($"[data-idp-failure='{disputeId}']"), RenderWait.Timeout);
 
         accounts.OnGrantRole = null;
         await page.Find($"[data-idp-retry='{disputeId}']").ClickAsync(new());
-        page.WaitForAssertion(() => page.FindAll($"[data-idp-failure='{disputeId}']").ShouldBeEmpty());
+        page.WaitForAssertion(() => page.FindAll($"[data-idp-failure='{disputeId}']").ShouldBeEmpty(), RenderWait.Timeout);
         (await OwnershipRows.VendorUsersAsync(db.OwnerConnectionString, companyId, Ct)).ShouldHaveSingleItem().Role.ShouldBe("vendor-admin");
     }
 
@@ -124,11 +124,12 @@ public sealed class VendorOwnershipConsolePageTests(DatabaseFixture db) : IDispo
         await using var scope = host.PlatformScope(admin);
 
         var page = Render(scope, admin, "ar-SA");
+        var status = page.WaitForElement($"[data-dispute-status='{disputeId}:open']", RenderWait.Timeout);
 
         var html = page.Markup;
         html.ShouldContain("طريقة التحقق من الملكية");
         html.ShouldContain("نزاعات الملكية");
-        page.Find($"[data-dispute-status='{disputeId}:open']").TextContent.ShouldContain("جديد، لم يُقبل بعد");
+        status.TextContent.ShouldContain("جديد، لم يُقبل بعد");
         page.Find($"[data-accept='{disputeId}']").TextContent.ShouldContain("قبول للمراجعة");
         html.ShouldNotContain("Console.Ownership.", Case.Sensitive, "no raw resource key");
         html.ShouldNotContain("Admin.Vendors.", Case.Sensitive, "no raw resource key");
@@ -166,7 +167,9 @@ public sealed class VendorOwnershipConsolePageTests(DatabaseFixture db) : IDispo
         auth.SetClaims(new Claim(IdentityClaims.Subject, admin));
         auth.SetPolicies(PlatformAuthentication.PolicyName);
         var page = _page.Render<VendorOwnership>();
-        page.WaitForAssertion(() => page.Find("[data-ownership-method]"));
+        // The method section shows once the settings have loaded; the disputes and the failed updates load in later steps,
+        // so a test waits for the rows it uses.
+        page.WaitForAssertion(() => page.Find("[data-ownership-method]"), RenderWait.Timeout);
         return page;
     }
 

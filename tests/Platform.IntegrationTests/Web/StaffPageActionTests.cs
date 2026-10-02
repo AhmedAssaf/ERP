@@ -42,17 +42,17 @@ public sealed class StaffPageActionTests(DatabaseFixture db) : IDisposable
         var page = Render(scope, staff);
 
         await InviteAsync(page, "new.person@acme.test", "New Person", TenantRoles.ContractsOfficer);
-        page.WaitForAssertion(() => page.Markup.ShouldContain(InvitedTo("new.person@acme.test")));
+        page.WaitForAssertion(() => page.Markup.ShouldContain(InvitedTo("new.person@acme.test")), RenderWait.Timeout);
         staff.Invites.ShouldHaveSingleItem().ShouldBe(("new.person@acme.test", "New Person", _admin));
 
         await page.Find($"[data-change-roles='{invitee.UserId}']").ClickAsync(new());
         await page.Find($"[role=dialog] [data-role='{TenantRoles.FinanceApprover}']").ChangeAsync(new() { Value = true });
         await ConfirmAsync(page, "Save roles");
-        page.WaitForAssertion(() => page.Markup.ShouldContain($"Roles saved for {invitee.DisplayName}"));
+        page.WaitForAssertion(() => page.Markup.ShouldContain($"Roles saved for {invitee.DisplayName}"), RenderWait.Timeout);
         staff.RoleChanges.ShouldHaveSingleItem().ShouldBe((invitee.UserId!, $"{TenantRoles.ContractsOfficer},{TenantRoles.FinanceApprover}", _admin));
 
         await page.Find($"[data-resend='{invitee.UserId}']").ClickAsync(new());
-        page.WaitForAssertion(() => page.Markup.ShouldContain($"Invitation sent again to {invitee.Email}"));
+        page.WaitForAssertion(() => page.Markup.ShouldContain($"Invitation sent again to {invitee.Email}"), RenderWait.Timeout);
         staff.Resends.ShouldHaveSingleItem().ShouldBe((invitee.UserId!, _admin));
     }
 
@@ -66,9 +66,9 @@ public sealed class StaffPageActionTests(DatabaseFixture db) : IDisposable
         var page = Render(scope, staff);
 
         await InviteAsync(page, "first@acme.test", "First Person", TenantRoles.ContractsOfficer);
-        page.WaitForAssertion(() => page.Markup.ShouldContain(InvitedTo("first@acme.test")));
+        page.WaitForAssertion(() => page.Markup.ShouldContain(InvitedTo("first@acme.test")), RenderWait.Timeout);
         await InviteAsync(page, "second@acme.test", "Second Person", TenantRoles.ContractsOfficer);
-        page.WaitForAssertion(() => page.Markup.ShouldContain(InvitedTo("second@acme.test")));
+        page.WaitForAssertion(() => page.Markup.ShouldContain(InvitedTo("second@acme.test")), RenderWait.Timeout);
 
         page.Markup.ShouldNotContain("already have an account");
     }
@@ -85,16 +85,16 @@ public sealed class StaffPageActionTests(DatabaseFixture db) : IDisposable
         await MemberRows.OverwriteRolesAsync(db.AppConnectionString, TestTenants.Acme.TenantId, _admin, [TenantRoles.ContractsOfficer], Ct);
 
         await InviteAsync(page, "new.person@acme.test", "New Person", TenantRoles.ContractsOfficer);
-        page.WaitForAssertion(() => page.Find("[role=dialog] [role=alert]").TextContent.ShouldBe(NotAllowed));
+        page.WaitForAssertion(() => page.Find("[role=dialog] [role=alert]").TextContent.ShouldBe(NotAllowed), RenderWait.Timeout);
         await page.Find("[role=dialog]").QuerySelectorAll("button").First(b => b.TextContent.Contains("Cancel", StringComparison.Ordinal)).ClickAsync(new());
 
         await page.Find($"[data-change-roles='{invitee.UserId}']").ClickAsync(new());
         await ConfirmAsync(page, "Save roles");
-        page.WaitForAssertion(() => page.Find("[role=dialog]").TextContent.ShouldContain(NotAllowed));
+        page.WaitForAssertion(() => page.Find("[role=dialog]").TextContent.ShouldContain(NotAllowed), RenderWait.Timeout);
         await page.Find("[role=dialog]").QuerySelectorAll("button").First(b => b.TextContent.Contains("Cancel", StringComparison.Ordinal)).ClickAsync(new());
 
         await page.Find($"[data-resend='{invitee.UserId}']").ClickAsync(new());
-        page.WaitForAssertion(() => page.Markup.ShouldContain(NotAllowed));
+        page.WaitForAssertion(() => page.Markup.ShouldContain(NotAllowed), RenderWait.Timeout);
 
         staff.Invites.ShouldBeEmpty();
         staff.RoleChanges.ShouldBeEmpty();
@@ -111,13 +111,13 @@ public sealed class StaffPageActionTests(DatabaseFixture db) : IDisposable
 
         await InviteAsync(page, "not-an-email", "Valid Name", TenantRoles.ContractsOfficer);
         page.WaitForAssertion(() => page.Find("[role=dialog]").TextContent
-            .ShouldContain("Enter the person's work email address, for example name@company.com."));
+            .ShouldContain("Enter the person's work email address, for example name@company.com."), RenderWait.Timeout);
 
         await page.Find("[role=dialog] input[type=email]").ChangeAsync(new() { Value = "valid.person@acme.test" });
         await page.Find("[role=dialog] input[type=text]").ChangeAsync(new() { Value = "<b>Bold</b>" });
         await ConfirmAsync(page, "Send invitation");
         page.WaitForAssertion(() => page.Find("[role=dialog]").TextContent
-            .ShouldContain("Enter the person's full name, up to 100 characters, using letters, spaces, apostrophes, hyphens and periods."));
+            .ShouldContain("Enter the person's full name, up to 100 characters, using letters, spaces, apostrophes, hyphens and periods."), RenderWait.Timeout);
         page.Find("[role=dialog]").TextContent.ShouldNotContain("Enter the person's work email address");
     }
 
@@ -158,7 +158,7 @@ public sealed class StaffPageActionTests(DatabaseFixture db) : IDisposable
         auth.SetClaims(new Claim(IdentityClaims.Subject, _admin));
         auth.SetPolicies(TenantPolicies.TenantAdmin);
         var page = _page.Render<Staff>();
-        page.WaitForAssertion(() => page.Markup.ShouldNotContain("Loading staff"));
+        page.WaitForAssertion(() => page.Markup.ShouldNotContain("Loading staff"), RenderWait.Timeout);
         return page;
     }
 

@@ -64,7 +64,7 @@ public sealed partial class VendorConsentPageTests(DatabaseFixture db) : IDispos
         await page.Find("[role=dialog] input[data-consent-to]").ChangeAsync(new() { Value = today.AddMonths(3).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) });
         await ConfirmAsync(page, "Grant consent");
 
-        page.WaitForAssertion(() => page.Find("[data-consent-grant]"));
+        page.WaitForAssertion(() => page.Find("[data-consent-grant]"), RenderWait.Timeout);
         var grant = (await ConsentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct)).ShouldHaveSingleItem();
         grant.Scope.ShouldBe("po_records");
         page.Find($"[data-consent-status='{grant.Id}:active']");
@@ -72,7 +72,7 @@ public sealed partial class VendorConsentPageTests(DatabaseFixture db) : IDispos
         await page.Find($"[data-revoke='{grant.Id}']").ClickAsync(new());
         await ConfirmAsync(page, "Revoke consent");
 
-        page.WaitForAssertion(() => page.Find($"[data-consent-status='{grant.Id}:revoked']"));
+        page.WaitForAssertion(() => page.Find($"[data-consent-status='{grant.Id}:revoked']"), RenderWait.Timeout);
         page.FindAll($"[data-revoke='{grant.Id}']").ShouldBeEmpty();
         (await ConsentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct)).Count.ShouldBe(2);
     }
@@ -94,7 +94,7 @@ public sealed partial class VendorConsentPageTests(DatabaseFixture db) : IDispos
         await ConfirmAsync(page, "Grant consent");
 
         page.WaitForAssertion(() => page.Find("[role=dialog]").TextContent
-            .ShouldContain("Choose a period that starts today or later and ends on or after its first day."));
+            .ShouldContain("Choose a period that starts today or later and ends on or after its first day."), RenderWait.Timeout);
         (await ConsentRows.ForCompanyAsync(db.OwnerConnectionString, companyId, Ct)).ShouldBeEmpty();
     }
 
@@ -115,8 +115,8 @@ public sealed partial class VendorConsentPageTests(DatabaseFixture db) : IDispos
         auth.SetClaims(new Claim(IdentityClaims.Subject, userId));
         auth.SetPolicies(VendorPolicies.Vendor);
         var page = _page.Render<VendorConsent>();
-        // Enabled once the recipients have loaded.
-        page.WaitForAssertion(() => page.Find("[data-grant]").HasAttribute("disabled").ShouldBeFalse());
+        // Enabled once the recipients have loaded; the grants load in a later step, so a test waits for the rows it uses.
+        page.WaitForAssertion(() => page.Find("[data-grant]").HasAttribute("disabled").ShouldBeFalse(), RenderWait.Timeout);
         return page;
     }
 
