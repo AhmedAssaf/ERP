@@ -3,15 +3,14 @@ namespace Platform.Shared.Data;
 /// <summary>
 /// The names of the hosts' Npgsql data sources (W-10 final fix wave; spec O-10, O-11). Npgsql puts a data source's name on
 /// every connection pool metric (<c>db.client.connection.pool.name</c>) and command span (<c>db.npgsql.data_source</c>); a data
-/// source without a name is named after its connection string, host and user included. So every data source a host opens is
-/// built with one of these names, never from a bare connection string. The collector keeps a pool name only when it has the
-/// <c>platform-</c> prefix (<c>infra/compose/observability/collector.yaml</c>).
+/// source without a name is named after its connection string, host and user included. Every data source a host builds itself
+/// carries one of these names. Two pools stay unnamed: the module contexts' (EF Core opens connections from the connection
+/// string, sharing the pool of plain connections on it) and Hangfire's LISTEN connection (cloned from a connection string);
+/// so the hosts' metric view drops the pool name and the span processor drops the data source tag, whatever the name. The
+/// collector keeps a pool name only when it has the <c>platform-</c> prefix (<c>infra/compose/observability/collector.yaml</c>).
 /// </summary>
 public static class DataSourceNames
 {
-    /// <summary>The module contexts' shared pool (<see cref="ModuleDbContextRegistration.AddModuleDbContext{TContext}"/>).</summary>
-    public const string App = "platform-app";
-
     /// <summary>The Tenancy module's own pool.</summary>
     public const string Tenancy = "platform-tenancy";
 

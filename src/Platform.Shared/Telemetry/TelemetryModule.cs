@@ -89,9 +89,10 @@ public static class TelemetryModule
             .WithMetrics(metrics =>
             {
                 metrics.AddMeter(Meters);
-                // Npgsql names a pool after its connection string unless its data source has a name. Every data source the
-                // hosts build is named (Platform.Shared.Data.DataSourceNames), but Hangfire's LISTEN connection (long polling)
-                // is cloned from a bare connection string; so the pool name never leaves on a metric (O-10, W-10 final fix wave).
+                // Npgsql names a pool after its connection string unless its data source has a name. The data sources the
+                // hosts build are named (Platform.Shared.Data.DataSourceNames), but the module contexts' pool and Hangfire's
+                // LISTEN connection come from bare connection strings; so the pool name never leaves on a metric (O-10, W-10
+                // final fix wave).
                 metrics.AddView(instrument => instrument.Meter.Name == TelemetryNames.Sources.Npgsql
                     ? new MetricStreamConfiguration { TagKeys = NpgsqlMetricTags }
                     : null);

@@ -20,8 +20,9 @@ namespace Platform.IntegrationTests.Telemetry;
 /// W-10 final fix wave (final review, item D; spec O-10, O-11): Npgsql names a data source without a name after its connection
 /// string (password removed, host and user kept), and puts that name on its connection pool and command metrics
 /// (<c>db.client.connection.pool.name</c>) and on every command span (<c>db.npgsql.data_source</c>). Every data source the hosts
-/// build is named (<see cref="DataSourceNames"/>); the span tag never leaves; and since Hangfire's LISTEN connection (long
-/// polling) is opened from a bare connection string that no name reaches, the pool name never leaves on a metric either.
+/// build is named (<see cref="DataSourceNames"/>); the span tag never leaves; and since the module contexts' pool and
+/// Hangfire's LISTEN connection (long polling) come from bare connection strings that no name reaches, the pool name never
+/// leaves on a metric either.
 /// </summary>
 /// <remarks>
 /// Npgsql's meter is process-wide, so it also reports the pools the test helpers open with plain connection strings: each host
@@ -65,8 +66,6 @@ public sealed class TelemetryDataSourceTests(DatabaseFixture db)
 
         ShouldCarryNoPoolName(telemetry.CollectMetrics(factory.Services), marker);
         var names = RawPoolNames();
-        names.Where(name => name.Contains(marker, StringComparison.Ordinal)).ShouldBeEmpty("an unnamed pool of this host is named after its connection string");
-        names.ShouldContain(DataSourceNames.App, "the module contexts' pool");
         names.ShouldContain(DataSourceNames.Tenancy);
         names.ShouldContain(DataSourceNames.KeyRing);
     }
