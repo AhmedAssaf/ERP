@@ -98,7 +98,14 @@ public static class TelemetryModule
                     : null);
                 if (endpoint is not null)
                 {
-                    metrics.AddOtlpExporter(options => UseCollector(options, endpoint));
+                    // Delta (W-10 follow-up, spec 5.6): the collector's Elasticsearch exporter drops cumulative histograms,
+                    // so request, database and job durations reach metrics-* only as deltas. Counters become deltas too;
+                    // up-down counters stay cumulative and gauges have no temporality, so the usage gauges are unchanged.
+                    metrics.AddOtlpExporter((options, reader) =>
+                    {
+                        UseCollector(options, endpoint);
+                        reader.TemporalityPreference = MetricReaderTemporalityPreference.Delta;
+                    });
                 }
             });
 
