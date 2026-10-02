@@ -1,10 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Npgsql;
 using Platform.IntegrationTests.Infrastructure;
 using Platform.Modules.Audit.Contracts;
 using Platform.Modules.Identity.Contracts;
 using Platform.Modules.Vendors.Contracts;
+using Platform.Modules.Vendors.Persistence;
 
 namespace Platform.IntegrationTests.Vendors;
 
@@ -417,6 +419,122 @@ public sealed class VendorDirectoryTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task A_join_arriving_while_a_failed_join_takes_back_its_membership_ends_related_and_in_the_organization()
+    {
+        // W-40, first interleaving: join A added the membership, its database step failed, and its undo found no relationship
+        // and is taking the membership back. Join B of the same vendor arrives at that moment. Before W-40, B's Keycloak add
+        // answered "already a member" (A's membership), B committed its relationship, and A's revoke then removed the
+        // membership B relied on: related to beta but outside its organization, so every later join was refused. Now the
+        // undo holds the join lock while it takes the membership back, so B waits and adds the membership itself.
+        var (companyId, userId) = await VendorAsync("Undo Race Late Joiner");
+        using var stop = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        var secondAdding = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var adds = 0;
+        var accounts = new FakeVendorAccounts
+        {
+            State = new(HoldsVendorRole: true, OrganizationAliases: ["acme"]),
+            AnswerFromMemberships = true,
+            OnAddOrganization = _ =>
+            {
+                if (Interlocked.Increment(ref adds) == 2)
+                {
+                    secondAdding.TrySetResult();
+                }
+
+                return Task.CompletedTask;
+            },
+        };
+        await using var failing = new ModuleHost(db.AppConnectionString, configure: s =>
+        {
+            s.Replace(ServiceDescriptor.Scoped<IVendorAccounts>(_ => accounts));
+            s.Replace(ServiceDescriptor.Scoped<IAuditWriter, FailingAuditWriter>());
+        });
+        await using var working = new ModuleHost(db.AppConnectionString, configure: s => s.Replace(ServiceDescriptor.Scoped<IVendorAccounts>(_ => accounts)));
+        Task<Platform.Shared.Results.Result<VendorJoined>>? second = null;
+        accounts.OnRevoke = async _ =>
+        {
+            second = Task.Run(() => JoinAsync(working, TestTenants.Beta, companyId, userId), Ct);
+            var waiting = JoinLockWaiterAsync(TestTenants.Beta.TenantId, companyId, stop.Token);
+            if (await Task.WhenAny(secondAdding.Task, waiting).WaitAsync(TimeSpan.FromSeconds(30), Ct) == secondAdding.Task)
+            {
+                // B got past the point where it could wait for this undo: let it commit before the membership goes.
+                await second.WaitAsync(TimeSpan.FromSeconds(30), Ct);
+            }
+        };
+
+        var first = await JoinAsync(failing, TestTenants.Beta, companyId, userId);
+        var joined = await second.ShouldNotBeNull().WaitAsync(TimeSpan.FromSeconds(30), Ct);
+        await stop.CancelAsync();
+
+        first.Error.ShouldNotBeNull().Code.ShouldBe(VendorErrors.JoinFailed);
+        joined.IsSuccess.ShouldBeTrue(joined.Error?.Message);
+        joined.Value.RelationshipCreated.ShouldBeTrue();
+        (await VendorRows.RelationshipsAsync(db.OwnerConnectionString, companyId, Ct))[TestTenants.Beta.TenantId].ShouldBe("pending");
+        accounts.OrganizationsOf(userId).ShouldContain(TestTenants.Beta.KeycloakOrgAlias, "related to beta, so a member of its organization");
+        (await VendorRows.AuditsAsync(db.OwnerConnectionString, TestTenants.Beta.TenantId, userId, "vendor.joined", Ct)).Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task A_join_that_relied_on_the_membership_of_a_failed_join_keeps_it()
+    {
+        // W-40, second interleaving: join B of the same vendor has already found A's membership in Keycloak ("already a
+        // member") and is about to save its relationship when A's database step fails. Before W-40, A's undo found no
+        // relationship yet and took the membership back while B committed. Now B holds the join lock from before its
+        // Keycloak add until its commit, so A's undo waits, finds B's relationship and keeps the membership.
+        var (companyId, userId) = await VendorAsync("Undo Race Early Joiner");
+        using var stop = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        var secondAdding = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseSecond = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var adds = 0;
+        var accounts = new FakeVendorAccounts
+        {
+            State = new(HoldsVendorRole: true, OrganizationAliases: ["acme"]),
+            AnswerFromMemberships = true,
+            OnAddOrganization = async _ =>
+            {
+                if (Interlocked.Increment(ref adds) == 2)
+                {
+                    secondAdding.TrySetResult();
+                    await releaseSecond.Task.WaitAsync(TimeSpan.FromSeconds(30), Ct);
+                }
+            },
+        };
+        await using var working = new ModuleHost(db.AppConnectionString, configure: s => s.Replace(ServiceDescriptor.Scoped<IVendorAccounts>(_ => accounts)));
+        Task<Platform.Shared.Results.Result<VendorJoined>>? second = null;
+        var auditOfFirst = new CallbackAuditWriter(async () =>
+        {
+            // A has added the membership and is in its database step: start B and hold it in its Keycloak add.
+            second = Task.Run(() => JoinAsync(working, TestTenants.Beta, companyId, userId), Ct);
+            await secondAdding.Task.WaitAsync(TimeSpan.FromSeconds(30), Ct);
+            // Let B go on once A's undo waits for it; an undo that does not wait releases B from its revoke instead.
+            _ = JoinLockWaiterAsync(TestTenants.Beta.TenantId, companyId, stop.Token)
+                .ContinueWith(t => releaseSecond.TrySetResult(), TaskScheduler.Default);
+            throw new DbUpdateException("forced audit failure", new InvalidOperationException("forced"));
+        });
+        await using var failing = new ModuleHost(db.AppConnectionString, configure: s =>
+        {
+            s.Replace(ServiceDescriptor.Scoped<IVendorAccounts>(_ => accounts));
+            s.Replace(ServiceDescriptor.Scoped<IAuditWriter>(_ => auditOfFirst));
+        });
+        accounts.OnRevoke = async _ =>
+        {
+            releaseSecond.TrySetResult();
+            await second.ShouldNotBeNull().WaitAsync(TimeSpan.FromSeconds(30), Ct);
+        };
+
+        var first = await JoinAsync(failing, TestTenants.Beta, companyId, userId);
+        var joined = await second.ShouldNotBeNull().WaitAsync(TimeSpan.FromSeconds(30), Ct);
+        await stop.CancelAsync();
+
+        first.Error.ShouldNotBeNull().Code.ShouldBe(VendorErrors.JoinFailed);
+        joined.Value.ShouldBe(new VendorJoined(RelationshipCreated: true, OrganizationAdded: false));
+        accounts.Revoked.ShouldBeEmpty("B's relationship owns the membership A added");
+        accounts.OrganizationsOf(userId).ShouldContain(TestTenants.Beta.KeycloakOrgAlias, "related to beta, so a member of its organization");
+        (await VendorRows.RelationshipsAsync(db.OwnerConnectionString, companyId, Ct))[TestTenants.Beta.TenantId].ShouldBe("pending");
+        (await VendorRows.AuditsAsync(db.OwnerConnectionString, TestTenants.Beta.TenantId, userId, "vendor.joined", Ct)).Count.ShouldBe(1);
+    }
+
+    [Fact]
     public async Task Two_concurrent_approvals_write_exactly_one_approval_entry()
     {
         var (companyId, _) = await VendorAsync("Concurrently Approved Company");
@@ -468,6 +586,46 @@ public sealed class VendorDirectoryTests(DatabaseFixture db)
     {
         public Task WriteAsync(AuditEntry entry, CancellationToken cancellationToken = default) =>
             throw new DbUpdateException("forced audit failure", new InvalidOperationException("forced"));
+    }
+
+    /// <summary>An audit log that runs a test's step and then fails as <see cref="FailingAuditWriter"/> does (the step throws).</summary>
+    private sealed class CallbackAuditWriter(Func<Task> write) : IAuditWriter
+    {
+        public Task WriteAsync(AuditEntry entry, CancellationToken cancellationToken = default) => write();
+    }
+
+    /// <summary>
+    /// True once a session waits for the join lock of the tenant and company (W-40, key from <c>JoinLock.Key</c>), false
+    /// when <paramref name="stop"/> fires first. A bigint advisory key shows in pg_locks as classid (its high 32 bits) and
+    /// objid (its low 32 bits) with objsubid 1.
+    /// </summary>
+    private async Task<bool> JoinLockWaiterAsync(Guid tenantId, Guid companyId, CancellationToken stop)
+    {
+        try
+        {
+            await using var connection = new NpgsqlConnection(db.OwnerConnectionString);
+            await connection.OpenAsync(stop);
+            await using var command = new NpgsqlCommand(
+                """
+                select exists (
+                    select 1 from pg_locks
+                    where locktype = 'advisory' and not granted and objsubid = 1
+                      and ((classid::bigint << 32) | objid::bigint) = hashtextextended(@key, 0))
+                """,
+                connection);
+            command.Parameters.AddWithValue("key", JoinLock.Key(tenantId, companyId));
+            while (!(bool)(await command.ExecuteScalarAsync(stop))!)
+            {
+                await Task.Delay(20, stop);
+            }
+
+            return true;
+        }
+        catch (OperationCanceledException) when (stop.IsCancellationRequested)
+        {
+            // The test has its answer; nobody waits for this one any more.
+            return false;
+        }
     }
 
     private async Task<string> StaffAsync(Platform.Shared.Tenancy.TenantContext tenant, string role)
