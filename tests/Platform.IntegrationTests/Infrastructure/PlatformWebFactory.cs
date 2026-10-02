@@ -51,6 +51,8 @@ internal sealed class PlatformWebFactory(string appConnectionString, OidcSetting
             builder.UseSetting("ForwardedHeaders:KnownProxies:0", "10.0.0.1");
             builder.UseSetting("DataProtection:CertificatePath", TestCertificates.KeyRingPath);
             builder.UseSetting("DataProtection:CertificatePassword", TestCertificates.KeyRingPassword);
+            // W-34: required outside Development and Testing; a free local port, so the throttle falls back to process memory.
+            builder.UseSetting("ConnectionStrings:Redis", $"127.0.0.1:{UnusedLoopbackPort()}");
         }
 
         if (oidc is not null)

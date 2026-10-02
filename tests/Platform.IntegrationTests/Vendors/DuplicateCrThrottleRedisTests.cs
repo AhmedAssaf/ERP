@@ -185,6 +185,62 @@ public sealed class DuplicateCrThrottleRedisTests(DatabaseFixture db, RedisFixtu
         }
     }
 
+    /// <summary>
+    /// A Redis that accepted the connection and then stops answering costs a call about the lowered operation timeout
+    /// (one second), not the library's five, and the call falls back to the in-process limits; a timeout the connection
+    /// string sets itself is kept, which is why the second throttle waits longer.
+    /// </summary>
+    [Fact]
+    public async Task A_redis_that_stops_answering_costs_a_call_about_a_second_and_falls_back()
+    {
+        await using var proxy = HangingTcpProxy.To(redis.ConnectionString);
+        var logs = new CapturedLogs();
+        var throttle = Throttle($"127.0.0.1:{proxy.Port}", logs: logs);
+        var slow = Throttle($"127.0.0.1:{proxy.Port},asyncTimeout=3000");
+        var user = NewUserId();
+        await throttle.RecordAsync(user, address: null, Ct);
+        (await throttle.IsLimitedAsync(user, address: null, Ct)).ShouldBeFalse();
+        (await slow.IsLimitedAsync(user, address: null, Ct)).ShouldBeFalse();
+        logs.Entries.ShouldNotContain(e => e.Level >= LogLevel.Warning, "Redis answered so far");
+
+        proxy.Hang();
+
+        var watch = Stopwatch.StartNew();
+        (await throttle.IsLimitedAsync(user, address: null, Ct)).ShouldBeFalse("the in-process count of this outage is empty");
+        var lowered = watch.Elapsed;
+        lowered.ShouldBeLessThan(TimeSpan.FromSeconds(2.5));
+        watch.Restart();
+        await slow.IsLimitedAsync(user, address: null, Ct);
+        watch.Elapsed.ShouldBeGreaterThan(TimeSpan.FromSeconds(2.5), "asyncTimeout=3000 in the connection string is kept");
+
+        // The outage is counted in memory, and logged once.
+        for (var i = 0; i < DuplicateCrThrottle.Limit; i++)
+        {
+            await throttle.RecordAsync(user, address: null, Ct);
+        }
+
+        (await throttle.IsLimitedAsync(user, address: null, Ct)).ShouldBeTrue();
+        logs.Entries.Where(e => e.Level >= LogLevel.Warning).ShouldHaveSingleItem().Text.ShouldContain("in-process");
+    }
+
+    /// <summary>
+    /// A server that accepts and never answers from the start: the first connection gives up after one attempt of the
+    /// connect timeout (two seconds; with the library's three attempts it took six), then calls fail fast.
+    /// </summary>
+    [Fact]
+    public async Task A_server_that_never_answers_does_not_hold_the_first_call_for_long()
+    {
+        await using var silent = HangingTcpProxy.Silent();
+
+        var watch = Stopwatch.StartNew();
+        var throttle = Throttle($"127.0.0.1:{silent.Port}");
+        var user = NewUserId();
+        await throttle.RecordAsync(user, address: null, Ct);
+        (await throttle.IsLimitedAsync(user, address: null, Ct)).ShouldBeFalse();
+
+        watch.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(4), "one connect attempt of two seconds, then fail-fast calls");
+    }
+
     [Fact]
     public async Task An_address_limited_registration_gets_the_same_neutral_answer_and_goes_no_further()
     {

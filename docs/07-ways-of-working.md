@@ -130,7 +130,7 @@ dotnet user-secrets set "Vendors:CrAuditKey" "$(env_value VENDORS_CR_AUDIT_KEY)"
 unset PGPW WEB_SECRET PLATFORM_SECRET ADMIN_API_SECRET KEY_RING_DB
 ```
 
-Redis needs no secret locally: `ConnectionStrings:Redis` is `localhost:6379` in `appsettings.Development.json` of `Platform.Web` (the duplicate-CR throttle, W-34) and of `Platform.Worker` (the Redis health check, alerted like Disk and Telemetry). The pilot's value carries a password and lives in the secret store, never in the repository (N-10). Without the setting the web host keeps the limits in process memory and the worker does not check Redis; with it, a Redis that is down never stops the host (`abortConnect=false`), and the throttle falls back to process memory, logging one Warning per outage.
+Redis needs no secret locally: `ConnectionStrings:Redis` is `localhost:6379` in `appsettings.Development.json` of `Platform.Web` (the duplicate-CR throttle, W-34) and of `Platform.Worker` (the Redis health check, alerted like Disk and Telemetry). The pilot's value carries a password and lives in the secret store, never in the repository (N-10). Outside Development and Testing the web host refuses to start without it; in Development and Testing it then keeps the limits in process memory, and the worker without it does not check Redis; with it, a Redis that is down never stops the host (`abortConnect=false`), and the throttle falls back to process memory, logging one Warning per outage.
 
 Then migrate, seed the development tenants `acme` and `beta`, and start the app:
 

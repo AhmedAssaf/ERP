@@ -111,7 +111,7 @@ internal sealed partial class DuplicateCrThrottle
                 RedisAnswered();
                 return Count(counts[0]) >= Limit || (counts.Length > 1 && Count(counts[1]) >= _perAddress);
             }
-            catch (Exception ex) when (ex is RedisException or TimeoutException)
+            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
                 RedisFailed(ex);
             }
@@ -134,7 +134,7 @@ internal sealed partial class DuplicateCrThrottle
                 RedisAnswered();
                 return;
             }
-            catch (Exception ex) when (ex is RedisException or TimeoutException)
+            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
                 RedisFailed(ex);
             }
@@ -185,6 +185,12 @@ internal sealed partial class DuplicateCrThrottle
         }
     }
 
+    /// <summary>
+    /// Any failure of a Redis call that the caller did not cancel counts as Redis not answering: besides
+    /// <see cref="RedisException"/> and <see cref="TimeoutException"/>, a connection the client aborts after repeated
+    /// timeouts faults its pending commands with an <see cref="IOException"/>. Registration must keep working, so every
+    /// such failure falls back, and it is logged (once per outage).
+    /// </summary>
     private void RedisFailed(Exception exception)
     {
         if (Interlocked.Exchange(ref _redisFailing, 1) == 0)
