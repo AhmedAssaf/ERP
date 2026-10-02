@@ -94,6 +94,12 @@ public static class VendorErrors
 
     public const string RegistrationFailed = "vendor.registration_failed";
 
+    /// <summary>
+    /// W-34: too many CR numbers were tried from the caller's network (the source address's limit) in the last hour. The
+    /// answer names no number and says nothing about any company.
+    /// </summary>
+    public const string NetworkLimited = "vendor.network_limited";
+
     /// <summary>The identity provider did not add the vendor to the tenant's organization; nothing was joined.</summary>
     public const string JoinFailed = "vendor.join_failed";
 

@@ -274,4 +274,7 @@ public static class CrDisputeErrors
 
     /// <summary>The person tried too many CR numbers in the last hour (the duplicate-CR limit, V-6).</summary>
     public const string Limited = "dispute.limited";
+
+    /// <summary>W-34: too many CR numbers were tried from the caller's network (the source address's limit) in the last hour.</summary>
+    public const string NetworkLimited = "dispute.network_limited";
 }

@@ -29,6 +29,7 @@ public sealed class DuplicateCrThrottleRedisTests(DatabaseFixture db, RedisFixtu
 {
     private const int PerAddress = 3;
     private const string DuplicateMessage = "This company already has an account on WaslaBid. Ask its administrator to add you.";
+    private const string NetworkMessage = "Too many registration attempts from your network. Try again in an hour.";
 
     private readonly List<IAsyncDisposable> _owned = [];
 
@@ -49,16 +50,16 @@ public sealed class DuplicateCrThrottleRedisTests(DatabaseFixture db, RedisFixtu
         var address = NewAddress();
         string first = NewUserId(), second = NewUserId();
 
-        await throttle.RecordAsync(first, address, Ct);
-        await throttle.RecordAsync(first, address, Ct);
-        (await throttle.IsLimitedAsync(second, address, Ct)).ShouldBeFalse();
-        await throttle.RecordAsync(second, address, Ct);
+        await AnswerAsync(throttle, first, address);
+        await AnswerAsync(throttle, first, address);
+        (await IsLimitedAsync(throttle, second, address)).ShouldBeFalse();
+        await AnswerAsync(throttle, second, address);
 
         // Three answers from the address, two and one per account: the address is spent, neither account is.
-        (await throttle.IsLimitedAsync(first, address, Ct)).ShouldBeTrue();
-        (await throttle.IsLimitedAsync(second, address, Ct)).ShouldBeTrue();
-        (await throttle.IsLimitedAsync(NewUserId(), address, Ct)).ShouldBeTrue("a third account from the same address");
-        (await throttle.IsLimitedAsync(first, NewAddress(), Ct)).ShouldBeFalse("the same account from another address");
+        (await IsLimitedAsync(throttle, first, address)).ShouldBeTrue();
+        (await IsLimitedAsync(throttle, second, address)).ShouldBeTrue();
+        (await IsLimitedAsync(throttle, NewUserId(), address)).ShouldBeTrue("a third account from the same address");
+        (await IsLimitedAsync(throttle, first, NewAddress())).ShouldBeFalse("the same account from another address");
     }
 
     [Fact]
@@ -71,12 +72,12 @@ public sealed class DuplicateCrThrottleRedisTests(DatabaseFixture db, RedisFixtu
 
         for (var i = 0; i < DuplicateCrThrottle.Limit; i++)
         {
-            await (i % 2 == 0 ? one : two).RecordAsync(user, NewAddress(), Ct);
+            await AnswerAsync(i % 2 == 0 ? one : two, user, NewAddress());
         }
 
-        (await one.IsLimitedAsync(user, NewAddress(), Ct)).ShouldBeTrue();
-        (await two.IsLimitedAsync(user, NewAddress(), Ct)).ShouldBeTrue();
-        (await two.IsLimitedAsync(NewUserId(), NewAddress(), Ct)).ShouldBeFalse();
+        (await IsLimitedAsync(one, user, NewAddress())).ShouldBeTrue();
+        (await IsLimitedAsync(two, user, NewAddress())).ShouldBeTrue();
+        (await IsLimitedAsync(two, NewUserId(), NewAddress())).ShouldBeFalse();
     }
 
     [Fact]
@@ -88,10 +89,10 @@ public sealed class DuplicateCrThrottleRedisTests(DatabaseFixture db, RedisFixtu
         var address = NewAddress();
         for (var i = 0; i < PerAddress; i++)
         {
-            await throttle.RecordAsync(user, address, Ct);
+            await AnswerAsync(throttle, user, address);
         }
 
-        (await throttle.IsLimitedAsync(user, address, Ct)).ShouldBeTrue();
+        (await IsLimitedAsync(throttle, user, address)).ShouldBeTrue();
 
         // Both keys carry the window as their TTL, set by the first count and not pushed back by later ones.
         await using var check = await redis.ConnectAsync();
@@ -103,30 +104,33 @@ public sealed class DuplicateCrThrottleRedisTests(DatabaseFixture db, RedisFixtu
             ttl.ShouldBeLessThanOrEqualTo(window);
         }
 
-        await WaitUntilAsync(async () => !await throttle.IsLimitedAsync(user, address, Ct), TimeSpan.FromSeconds(10));
-        (await store.KeyExistsAsync(DuplicateCrThrottle.AccountKey(user))).ShouldBeFalse();
+        await WaitUntilAsync(async () => !await store.KeyExistsAsync(DuplicateCrThrottle.AccountKey(user)), TimeSpan.FromSeconds(10));
+        (await store.KeyExistsAsync(DuplicateCrThrottle.AddressKey(address))).ShouldBeFalse();
+        (await IsLimitedAsync(throttle, user, address)).ShouldBeFalse();
     }
 
     [Fact]
     public async Task The_keys_are_namespaced_and_carry_only_the_account_id_and_the_address()
     {
         var user = NewUserId();
-        DuplicateCrThrottle.AccountKey(user).ShouldBe($"waslabid:throttle:dup-cr:account:{user}");
-        DuplicateCrThrottle.AddressKey(IPAddress.Parse("203.0.113.7")).ShouldBe("waslabid:throttle:dup-cr:addr:203.0.113.7");
+        DuplicateCrThrottle.AccountKey(user).ShouldBe($"waslabid:throttle:{{dup-cr}}:account:{user}");
+        DuplicateCrThrottle.AddressKey(IPAddress.Parse("203.0.113.7")).ShouldBe("waslabid:throttle:{dup-cr}:addr:203.0.113.7");
         // An IPv4 client seen over IPv6 counts as its IPv4 address; an IPv6 client by its /64, the block one subscriber gets.
-        DuplicateCrThrottle.AddressKey(IPAddress.Parse("::ffff:203.0.113.7")).ShouldBe("waslabid:throttle:dup-cr:addr:203.0.113.7");
-        DuplicateCrThrottle.AddressKey(IPAddress.Parse("2001:db8:1:2:aaaa:bbbb:cccc:dddd")).ShouldBe("waslabid:throttle:dup-cr:addr:2001:db8:1:2::/64");
+        DuplicateCrThrottle.AddressKey(IPAddress.Parse("::ffff:203.0.113.7")).ShouldBe("waslabid:throttle:{dup-cr}:addr:203.0.113.7");
+        DuplicateCrThrottle.AddressKey(IPAddress.Parse("2001:db8:1:2:aaaa:bbbb:cccc:dddd")).ShouldBe("waslabid:throttle:{dup-cr}:addr:2001:db8:1:2::/64");
         DuplicateCrThrottle.AddressKey(null).ShouldBeNull();
+        // One hash tag: both keys of a reservation sit in one Redis Cluster slot, so the script may touch them together.
+        HashSlot(DuplicateCrThrottle.AccountKey(user)).ShouldBe(HashSlot(DuplicateCrThrottle.AddressKey(IPAddress.Parse("198.51.100.1"))!));
 
         var throttle = Throttle(redis.ConnectionString);
         var first = IPAddress.Parse("2001:db8:77:1::1");
         var sameBlock = IPAddress.Parse("2001:db8:77:1:ffff::2");
         for (var i = 0; i < PerAddress; i++)
         {
-            await throttle.RecordAsync(NewUserId(), first, Ct);
+            await AnswerAsync(throttle, NewUserId(), first);
         }
 
-        (await throttle.IsLimitedAsync(NewUserId(), sameBlock, Ct)).ShouldBeTrue();
+        (await IsLimitedAsync(throttle, NewUserId(), sameBlock)).ShouldBeTrue();
         await using var check = await redis.ConnectAsync();
         await check.GetDatabase().KeyDeleteAsync(DuplicateCrThrottle.AddressKey(first));
     }
@@ -138,12 +142,12 @@ public sealed class DuplicateCrThrottleRedisTests(DatabaseFixture db, RedisFixtu
         var user = NewUserId();
         for (var i = 0; i < DuplicateCrThrottle.Limit - 1; i++)
         {
-            await throttle.RecordAsync(user, address: null, Ct);
+            await AnswerAsync(throttle, user, address: null);
         }
 
-        (await throttle.IsLimitedAsync(user, address: null, Ct)).ShouldBeFalse();
-        await throttle.RecordAsync(user, address: null, Ct);
-        (await throttle.IsLimitedAsync(user, address: null, Ct)).ShouldBeTrue();
+        (await IsLimitedAsync(throttle, user, address: null)).ShouldBeFalse();
+        await AnswerAsync(throttle, user, address: null);
+        (await IsLimitedAsync(throttle, user, address: null)).ShouldBeTrue();
     }
 
     [Fact]
@@ -158,18 +162,18 @@ public sealed class DuplicateCrThrottleRedisTests(DatabaseFixture db, RedisFixtu
         var watch = Stopwatch.StartNew();
         for (var i = 0; i < DuplicateCrThrottle.Limit; i++)
         {
-            (await throttle.IsLimitedAsync(user, NewAddress(), Ct)).ShouldBeFalse();
-            await throttle.RecordAsync(user, NewAddress(), Ct);
+            (await IsLimitedAsync(throttle, user, NewAddress())).ShouldBeFalse();
+            await AnswerAsync(throttle, user, NewAddress());
         }
 
         // Not unlimited: the account limit holds in memory, and so does the address limit for other accounts.
-        (await throttle.IsLimitedAsync(user, NewAddress(), Ct)).ShouldBeTrue();
+        (await IsLimitedAsync(throttle, user, NewAddress())).ShouldBeTrue();
         for (var i = 0; i < PerAddress; i++)
         {
-            await throttle.RecordAsync(NewUserId(), address, Ct);
+            await AnswerAsync(throttle, NewUserId(), address);
         }
 
-        (await throttle.IsLimitedAsync(NewUserId(), address, Ct)).ShouldBeTrue();
+        (await IsLimitedAsync(throttle, NewUserId(), address)).ShouldBeTrue();
         watch.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(20), "a refused connection must not wait for a timeout on every call");
 
         var warnings = logs.Entries.Where(e => e.Level >= LogLevel.Warning && e.Category == typeof(DuplicateCrThrottle).FullName).ToList();
@@ -198,28 +202,28 @@ public sealed class DuplicateCrThrottleRedisTests(DatabaseFixture db, RedisFixtu
         var throttle = Throttle($"127.0.0.1:{proxy.Port}", logs: logs);
         var slow = Throttle($"127.0.0.1:{proxy.Port},asyncTimeout=3000");
         var user = NewUserId();
-        await throttle.RecordAsync(user, address: null, Ct);
-        (await throttle.IsLimitedAsync(user, address: null, Ct)).ShouldBeFalse();
-        (await slow.IsLimitedAsync(user, address: null, Ct)).ShouldBeFalse();
+        await AnswerAsync(throttle, user, address: null);
+        (await IsLimitedAsync(throttle, user, address: null)).ShouldBeFalse();
+        (await IsLimitedAsync(slow, user, address: null)).ShouldBeFalse();
         logs.Entries.ShouldNotContain(e => e.Level >= LogLevel.Warning, "Redis answered so far");
 
         proxy.Hang();
 
         var watch = Stopwatch.StartNew();
-        (await throttle.IsLimitedAsync(user, address: null, Ct)).ShouldBeFalse("the in-process count of this outage is empty");
+        (await IsLimitedAsync(throttle, user, address: null)).ShouldBeFalse("the in-process count of this outage is empty");
         var lowered = watch.Elapsed;
         lowered.ShouldBeLessThan(TimeSpan.FromSeconds(2.5));
         watch.Restart();
-        await slow.IsLimitedAsync(user, address: null, Ct);
+        await IsLimitedAsync(slow, user, address: null);
         watch.Elapsed.ShouldBeGreaterThan(TimeSpan.FromSeconds(2.5), "asyncTimeout=3000 in the connection string is kept");
 
         // The outage is counted in memory, and logged once.
         for (var i = 0; i < DuplicateCrThrottle.Limit; i++)
         {
-            await throttle.RecordAsync(user, address: null, Ct);
+            await AnswerAsync(throttle, user, address: null);
         }
 
-        (await throttle.IsLimitedAsync(user, address: null, Ct)).ShouldBeTrue();
+        (await IsLimitedAsync(throttle, user, address: null)).ShouldBeTrue();
         logs.Entries.Where(e => e.Level >= LogLevel.Warning).ShouldHaveSingleItem().Text.ShouldContain("in-process");
     }
 
@@ -235,14 +239,18 @@ public sealed class DuplicateCrThrottleRedisTests(DatabaseFixture db, RedisFixtu
         var watch = Stopwatch.StartNew();
         var throttle = Throttle($"127.0.0.1:{silent.Port}");
         var user = NewUserId();
-        await throttle.RecordAsync(user, address: null, Ct);
-        (await throttle.IsLimitedAsync(user, address: null, Ct)).ShouldBeFalse();
+        await AnswerAsync(throttle, user, address: null);
+        (await IsLimitedAsync(throttle, user, address: null)).ShouldBeFalse();
 
         watch.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(4), "one connect attempt of two seconds, then fail-fast calls");
     }
 
+    /// <summary>
+    /// I-3: an address at its limit gets the network answer on both forms, the same words whatever the number, and never
+    /// the claim that a company is registered: many subscribers of a mobile carrier share one address (carrier-grade NAT).
+    /// </summary>
     [Fact]
-    public async Task An_address_limited_registration_gets_the_same_neutral_answer_and_goes_no_further()
+    public async Task An_address_limited_caller_gets_the_network_answer_on_both_forms_and_no_claim_about_a_company()
     {
         var address = NewAddress();
         await using var host = Host(redis.ConnectionString, address);
@@ -253,26 +261,161 @@ public sealed class DuplicateCrThrottleRedisTests(DatabaseFixture db, RedisFixtu
             (await RegisterAsync(host, VendorRegistrationInputTests.Valid(taken), NewUserId())).Error.ShouldNotBeNull().Code.ShouldBe(VendorErrors.DuplicateCr);
         }
 
-        // A fresh account from the same address, with a number nobody holds: the duplicate answer, word for word, and no
-        // company (the Keycloak Admin API is unreachable here, so going further would answer RegistrationFailed instead).
+        // A fresh account from the same address, with a taken number and with a free one: the network answer both times, and
+        // no company (the Keycloak Admin API is unreachable here, so going further would answer RegistrationFailed instead).
+        var takenToo = VendorRows.NewCrNumber();
+        await VendorRows.RegisterAsync(db.AppConnectionString, TestTenants.Beta, NewUserId(), takenToo, "Taken Holder", Ct);
         var free = VendorRows.NewCrNumber();
-        var limited = (await RegisterAsync(host, VendorRegistrationInputTests.Valid(free), NewUserId())).Error.ShouldNotBeNull();
-        limited.Code.ShouldBe(VendorErrors.DuplicateCr);
-        limited.Message.ShouldBe(DuplicateMessage);
+        foreach (var cr in new[] { takenToo, free })
+        {
+            var limited = (await RegisterAsync(host, VendorRegistrationInputTests.Valid(cr), NewUserId())).Error.ShouldNotBeNull();
+            limited.Code.ShouldBe(VendorErrors.NetworkLimited);
+            limited.Message.ShouldBe(NetworkMessage);
+            limited.Message.ShouldNotContain("already");
+        }
+
         (await VendorRows.CompaniesWithCrAsync(db.OwnerConnectionString, free, Ct)).ShouldBe(0);
 
-        // The dispute form shares the limit and answers as before.
+        // The dispute form shares the limit and gives the same answer.
         await using (var scope = host.ScopeFor(TestTenants.Acme, actingUserId: NewUserId()))
         {
             var refused = (await scope.ServiceProvider.GetRequiredService<ICrDisputes>().RaiseAsync(
                 new CrDisputeRequest(free, "Ours.", VendorPrivacyNotice.CurrentVersion, VendorPrivacyNotice.English), "x@example.test", "X", Ct)).Error.ShouldNotBeNull();
-            refused.Code.ShouldBe(CrDisputeErrors.Limited);
-            refused.Message.ShouldBe("Too many commercial registration numbers were tried. Try again in an hour.");
+            refused.Code.ShouldBe(CrDisputeErrors.NetworkLimited);
+            refused.Message.ShouldBe(NetworkMessage);
         }
 
         // Another address is not limited by this one.
         await using var elsewhere = Host(redis.ConnectionString, NewAddress());
         (await RegisterAsync(elsewhere, VendorRegistrationInputTests.Valid(free), NewUserId())).Error.ShouldNotBeNull().Code.ShouldBe(VendorErrors.RegistrationFailed);
+    }
+
+    /// <summary>I-3: the account's limit keeps today's answers: the duplicate answer on the registration, "Limited" on the dispute form.</summary>
+    [Fact]
+    public async Task An_account_limited_caller_keeps_the_duplicate_answer_and_the_dispute_limit_answer()
+    {
+        var user = NewUserId();
+        await using var host = Host(redis.ConnectionString, NewAddress(), perAddress: 100);
+        for (var attempt = 0; attempt < DuplicateCrThrottle.Limit; attempt++)
+        {
+            var taken = VendorRows.NewCrNumber();
+            await VendorRows.RegisterAsync(db.AppConnectionString, TestTenants.Beta, NewUserId(), taken, "Taken Holder", Ct);
+            (await RegisterAsync(host, VendorRegistrationInputTests.Valid(taken), user)).Error.ShouldNotBeNull().Code.ShouldBe(VendorErrors.DuplicateCr);
+        }
+
+        var free = VendorRows.NewCrNumber();
+        var limited = (await RegisterAsync(host, VendorRegistrationInputTests.Valid(free), user)).Error.ShouldNotBeNull();
+        limited.Code.ShouldBe(VendorErrors.DuplicateCr);
+        limited.Message.ShouldBe(DuplicateMessage);
+
+        await using var scope = host.ScopeFor(TestTenants.Acme, actingUserId: user);
+        var refused = (await scope.ServiceProvider.GetRequiredService<ICrDisputes>().RaiseAsync(
+            new CrDisputeRequest(free, "Ours.", VendorPrivacyNotice.CurrentVersion, VendorPrivacyNotice.English), "x@example.test", "X", Ct)).Error.ShouldNotBeNull();
+        refused.Code.ShouldBe(CrDisputeErrors.Limited);
+        refused.Message.ShouldBe("Too many commercial registration numbers were tried. Try again in an hour.");
+    }
+
+    /// <summary>
+    /// I-2: the place is taken before the lookup, atomically, so ten registrations of one account sent at once with ten
+    /// taken numbers get at most five true answers (each audited); the others get the same words without a lookup.
+    /// </summary>
+    [Fact]
+    public async Task Ten_parallel_registrations_of_one_account_get_at_most_five_true_answers()
+    {
+        var user = NewUserId();
+        await using var host = Host(redis.ConnectionString, NewAddress(), perAddress: 100);
+        var taken = new List<string>();
+        for (var i = 0; i < 10; i++)
+        {
+            var cr = VendorRows.NewCrNumber();
+            await VendorRows.RegisterAsync(db.AppConnectionString, TestTenants.Beta, NewUserId(), cr, "Taken Holder", Ct);
+            taken.Add(cr);
+        }
+
+        var answers = await Task.WhenAll(taken.Select(cr => RegisterAsync(host, VendorRegistrationInputTests.Valid(cr), user)));
+
+        answers.ShouldAllBe(a => a.Error!.Code == VendorErrors.DuplicateCr);
+        (await VendorRows.PlatformAuditsAsync(db.OwnerConnectionString, user, "vendor.duplicate_cr_refused", Ct)).Count.ShouldBe(DuplicateCrThrottle.Limit);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Ten_parallel_reservations_of_one_account_take_five_places_with_and_without_redis(bool withRedis)
+    {
+        var throttle = withRedis ? Throttle(redis.ConnectionString, perAddress: 100) : MemoryThrottle(perAddress: 100);
+        var user = NewUserId();
+
+        var reservations = await Task.WhenAll(Enumerable.Range(0, 10).Select(_ => throttle.ReserveAsync(user, NewAddress(), Ct)));
+
+        reservations.Count(r => r.Granted).ShouldBe(DuplicateCrThrottle.Limit);
+        reservations.Where(r => !r.Granted).ShouldAllBe(r => r.Limit == DuplicateCrLimit.Account);
+    }
+
+    /// <summary>I-2: a number that turned out free gives its place back, so lookups of free numbers never use up the limit.</summary>
+    [Fact]
+    public async Task A_refunded_reservation_gives_its_place_back_and_never_below_zero()
+    {
+        var throttle = Throttle(redis.ConnectionString);
+        var user = NewUserId();
+        var address = NewAddress();
+        for (var i = 0; i < 10; i++)
+        {
+            var reservation = await throttle.ReserveAsync(user, address, Ct);
+            reservation.Granted.ShouldBeTrue();
+            await throttle.RefundAsync(reservation);
+        }
+
+        await using var check = await redis.ConnectAsync();
+        var store = check.GetDatabase();
+        ((long)await store.StringGetAsync(DuplicateCrThrottle.AccountKey(user))).ShouldBe(0);
+        ((long)await store.StringGetAsync(DuplicateCrThrottle.AddressKey(address))).ShouldBe(0);
+
+        // A second refund of the same place does not go below zero.
+        var once = await throttle.ReserveAsync(user, address, Ct);
+        await throttle.RefundAsync(once);
+        await throttle.RefundAsync(once);
+        ((long)await store.StringGetAsync(DuplicateCrThrottle.AccountKey(user))).ShouldBe(0);
+    }
+
+    /// <summary>
+    /// I-1: a Redis that answers reads but refuses writes (out of memory with noeviction, as a read-only replica or a user
+    /// without scripting would) must not leave the limit unlimited: the reservation fails as a whole and is taken in memory,
+    /// the memory still limits once Redis takes writes again, and the outage is logged once with the server's error code.
+    /// </summary>
+    [Fact]
+    public async Task A_redis_that_refuses_writes_falls_back_to_memory_and_the_memory_still_limits_afterwards()
+    {
+        await using var admin = await ConnectionMultiplexer.ConnectAsync(redis.ConnectionString + ",allowAdmin=true");
+        var server = admin.GetServers().Single();
+        var logs = new CapturedLogs();
+        var throttle = Throttle(redis.ConnectionString, perAddress: 100, logs: logs);
+        var user = NewUserId();
+        (await IsLimitedAsync(throttle, user, NewAddress())).ShouldBeFalse("Redis takes writes so far");
+        try
+        {
+            await server.ConfigSetAsync("maxmemory-policy", "noeviction");
+            await server.ConfigSetAsync("maxmemory", "1");
+            (await admin.GetDatabase().StringGetAsync(DuplicateCrThrottle.AccountKey(user))).IsNull.ShouldBeFalse("reads still work");
+
+            for (var i = 0; i < DuplicateCrThrottle.Limit; i++)
+            {
+                await AnswerAsync(throttle, user, NewAddress());
+            }
+
+            (await throttle.ReserveAsync(user, NewAddress(), Ct)).Limit.ShouldBe(DuplicateCrLimit.Account);
+        }
+        finally
+        {
+            await server.ConfigSetAsync("maxmemory", "0");
+        }
+
+        // Redis takes writes again; what the outage counted still limits on this instance until its window ends.
+        (await throttle.ReserveAsync(user, NewAddress(), Ct)).Limit.ShouldBe(DuplicateCrLimit.Account);
+        var warning = logs.Entries.Where(e => e.Level >= LogLevel.Warning).ShouldHaveSingleItem();
+        warning.Text.ShouldContain("server error OOM");
+        warning.Text.ShouldNotContain(user);
+        warning.Text.ShouldNotContain("maxmemory");
     }
 
     [Fact]
@@ -299,6 +442,43 @@ public sealed class DuplicateCrThrottleRedisTests(DatabaseFixture db, RedisFixtu
 
         (await VendorRows.PlatformAuditsAsync(db.OwnerConnectionString, user, "vendor.duplicate_cr_refused", Ct)).Count.ShouldBe(DuplicateCrThrottle.Limit);
     }
+
+    /// <summary>An answer that counts: a place taken and kept.</summary>
+    private static async Task AnswerAsync(DuplicateCrThrottle throttle, string userId, IPAddress? address) =>
+        (await throttle.ReserveAsync(userId, address, Ct)).Granted.ShouldBeTrue();
+
+    /// <summary>Whether a reservation would be refused now; a place taken to find out is given back.</summary>
+    private static async Task<bool> IsLimitedAsync(DuplicateCrThrottle throttle, string userId, IPAddress? address)
+    {
+        var reservation = await throttle.ReserveAsync(userId, address, Ct);
+        await throttle.RefundAsync(reservation);
+        return !reservation.Granted;
+    }
+
+    /// <summary>The Redis Cluster slot of a key: CRC16 of the hash tag between the first braces, modulo 16384.</summary>
+    private static int HashSlot(string key)
+    {
+        var open = key.IndexOf('{', StringComparison.Ordinal);
+        var close = key.IndexOf('}', open + 1);
+        ushort crc = 0;
+        foreach (var b in System.Text.Encoding.UTF8.GetBytes(key[(open + 1)..close]))
+        {
+            crc ^= (ushort)(b << 8);
+            for (var i = 0; i < 8; i++)
+            {
+                crc = (crc & 0x8000) != 0 ? (ushort)((crc << 1) ^ 0x1021) : (ushort)(crc << 1);
+            }
+        }
+
+        return crc % 16384;
+    }
+
+    private static DuplicateCrThrottle MemoryThrottle(int perAddress = PerAddress) =>
+        new(
+            Options.Create(new VendorsOptions { DuplicateCrPerAddress = perAddress }),
+            TimeProvider.System,
+            new HttpContextAccessor(),
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<DuplicateCrThrottle>.Instance);
 
     private DuplicateCrThrottle Throttle(string connectionString, int perAddress = PerAddress, TimeSpan? window = null, CapturedLogs? logs = null)
     {

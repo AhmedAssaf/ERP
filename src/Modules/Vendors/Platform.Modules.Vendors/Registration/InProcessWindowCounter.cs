@@ -64,6 +64,22 @@ internal sealed class InProcessWindowCounter(TimeProvider clock, int limit, Time
         }
     }
 
+    /// <summary>
+    /// Takes back one record of the key (a reservation that did not end in an answer), never below zero; the key's window
+    /// keeps its start.
+    /// </summary>
+    public void Release(string key)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        lock (_gate)
+        {
+            if (_index.TryGetValue(key, out var node) && node.Value.Records > 0)
+            {
+                node.Value.Records--;
+            }
+        }
+    }
+
     private void DropExpired(DateTimeOffset now)
     {
         while (_byStart.First is { } oldest && now - oldest.Value.Start >= window)
