@@ -87,6 +87,61 @@ public sealed class VendorRateLimitTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task A_join_over_the_concurrent_cap_is_refused_without_a_keycloak_call_and_a_later_one_proceeds_once_a_slot_is_free()
+    {
+        var first = await VendorAsync("Concurrent Cap First Joiner");
+        var second = await VendorAsync("Concurrent Cap Second Joiner");
+        var third = await VendorAsync("Concurrent Cap Third Joiner");
+        var inKeycloak = 0;
+        var bothInside = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var keycloakAnswers = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var accounts = new FakeVendorAccounts
+        {
+            State = new(HoldsVendorRole: true, OrganizationAliases: [TestTenants.Acme.KeycloakOrgAlias]),
+            // A Keycloak brownout: the add hangs until the test lets it answer.
+            OnAddOrganization = async _ =>
+            {
+                if (Interlocked.Increment(ref inKeycloak) == 2)
+                {
+                    bothInside.TrySetResult();
+                }
+
+                await keycloakAnswers.Task;
+            },
+        };
+        await using var host = Host(accounts, new ManualClock(DateTimeOffset.UtcNow), o => o.MaxConcurrentJoins = 2);
+
+        var firstJoin = Task.Run(() => JoinAsync(host, TestTenants.Beta, first.CompanyId, first.UserId), Ct);
+        var secondJoin = Task.Run(() => JoinAsync(host, TestTenants.Beta, second.CompanyId, second.UserId), Ct);
+        try
+        {
+            await bothInside.Task.WaitAsync(TimeSpan.FromSeconds(30), Ct);
+
+            // Without the cap the third join would hang in Keycloak with the other two; the wait turns that into a failure.
+            var refused = await JoinAsync(host, TestTenants.Beta, third.CompanyId, third.UserId).WaitAsync(TimeSpan.FromSeconds(30), Ct);
+
+            refused.Error.ShouldNotBeNull().Code.ShouldBe(VendorErrors.JoinRateLimited);
+            accounts.Steps.Count(s => s == "add-organization").ShouldBe(2); // the third join never reached Keycloak
+            (await VendorRows.RelationshipsAsync(db.OwnerConnectionString, third.CompanyId, Ct)).Keys.ShouldBe([TestTenants.Acme.TenantId]);
+            (await VendorRows.AuditsAsync(db.OwnerConnectionString, TestTenants.Beta.TenantId, third.UserId, "vendor.joined", Ct)).ShouldBeEmpty();
+        }
+        finally
+        {
+            keycloakAnswers.TrySetResult();
+        }
+
+        (await firstJoin).Value.RelationshipCreated.ShouldBeTrue();
+        (await secondJoin).Value.RelationshipCreated.ShouldBeTrue();
+
+        var joined = await JoinAsync(host, TestTenants.Beta, third.CompanyId, third.UserId);
+
+        joined.IsSuccess.ShouldBeTrue(joined.Error?.Message);
+        joined.Value.RelationshipCreated.ShouldBeTrue();
+        accounts.Steps.Count(s => s == "add-organization").ShouldBe(3);
+        (await VendorRows.AuditsAsync(db.OwnerConnectionString, TestTenants.Beta.TenantId, third.UserId, "vendor.joined", Ct)).ShouldHaveSingleItem();
+    }
+
+    [Fact]
     public async Task A_companys_consent_change_over_its_limit_is_refused_with_no_row_and_no_audit_and_allowed_after_the_hour()
     {
         var today = await DatabaseTodayAsync();

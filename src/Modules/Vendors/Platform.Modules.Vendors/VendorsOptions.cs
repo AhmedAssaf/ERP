@@ -14,10 +14,13 @@ namespace Platform.Modules.Vendors;
 /// whatever the tenant (W-37), 5 by default.</item>
 /// <item><c>Vendors:JoinsPerTenantPerMinute</c>: joins of one tenant by all its vendors in any minute (W-37), 20 by
 /// default.</item>
+/// <item><c>Vendors:MaxConcurrentJoins</c>: first-time joins in flight at once in one web instance, across tenants, each
+/// holding up to two pooled connections while it waits on Keycloak (W-37), 10 by default.</item>
 /// <item><c>Vendors:ConsentChangesPerCompanyPerHour</c>: consent grants and revocations together that one vendor company
 /// may make in any hour (W-35, F-64), 30 by default.</item>
 /// </list>
-/// The three rate limits are counted per web instance (<see cref="RateLimiting.VendorRateLimits"/>).
+/// The join and consent limits and the join cap are counted per web instance (<see cref="RateLimiting.VendorRateLimits"/>,
+/// <see cref="RateLimiting.ConcurrentJoinGate"/>).
 /// </summary>
 internal sealed class VendorsOptions
 {
@@ -37,6 +40,8 @@ internal sealed class VendorsOptions
     public int JoinsPerUserPerMinute { get; set; } = 5;
 
     public int JoinsPerTenantPerMinute { get; set; } = 20;
+
+    public int MaxConcurrentJoins { get; set; } = 10;
 
     public int ConsentChangesPerCompanyPerHour { get; set; } = 30;
 

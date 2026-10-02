@@ -150,6 +150,8 @@ beta.localhost/vendor or / (same account, not yet related to beta)
   → every join first takes a permit of the join limits (W-37): per user (Vendors:JoinsPerUserPerMinute, 5) and
       per host tenant (Vendors:JoinsPerTenantPerMinute, 20) in any minute; over either, vendor.join_rate_limited
       before any read, Keycloak call, write or audit, logged as a warning with ids only
+  → a first-time join also takes a slot of the instance's cap on joins in flight (Vendors:MaxConcurrentJoins, 10)
+      before its transaction and keeps it through the commit or the undo; no slot within 2 s: the same refusal
   → a related company's user who lost the membership is refused there (vendor.membership_restore_refused);
       only the tenant restores access (W-21, amended 2026-09-29 after the pentest)
 ```
