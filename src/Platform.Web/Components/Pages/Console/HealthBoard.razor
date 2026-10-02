@@ -96,7 +96,7 @@
 
     protected override Task OnInitializedAsync() => LoadAsync();
 
-    // The board's seven and Disk have names in both languages; any other recorded component shows as recorded.
+    // The board's seven, Disk and Telemetry have names in both languages; any other recorded component shows as recorded.
     private string ComponentName(string component) =>
         T[$"Console.Component.{component}"] is { ResourceNotFound: false } name ? name.Value : component;
 

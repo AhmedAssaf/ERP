@@ -128,7 +128,7 @@ Every record carries `service.name` (`waslabid-web` or `waslabid-worker`), `serv
 
 ### 5.4 Metrics
 
-ASP.NET Core request duration and active requests, HttpClient duration, `System.Runtime` (GC, thread pool, exceptions), Npgsql connection pool, Hangfire job duration and failures (`waslabid.jobs.duration`, `waslabid.jobs.failed` with `waslabid.job.type`, the same name as on spans and logs, O-9; aligned 2026-10-01), and the health results (`waslabid.health.status` as 0 Healthy, 1 Degraded, 2 Unhealthy, and `waslabid.health.check.duration`, both per `component`). These technical metrics never carry a tenant label (cardinality, and metrics are kept as long as logs). The business metrics in section 6 are the one exception: they carry the tenant slug, under the rules in 6.1.
+ASP.NET Core request duration and active requests, HttpClient duration, `System.Runtime` (GC, thread pool, exceptions), Npgsql connection pool, Hangfire job duration and failures (`waslabid.jobs.duration`, `waslabid.jobs.failed` with `waslabid.job.type`, the same name as on spans and logs, O-9; aligned 2026-10-01), and the health results (`waslabid.health.status` as 0 Healthy, 1 Degraded, 2 Unhealthy, and `waslabid.health.check.duration`, both per `waslabid.component`, the same key as on logs; aligned 2026-10-02). These technical metrics never carry a tenant label (cardinality, and metrics are kept as long as logs). The business metrics in section 6 are the one exception: they carry the tenant slug, under the rules in 6.1.
 
 ## 6. Business metrics: users, tenders and opportunities
 

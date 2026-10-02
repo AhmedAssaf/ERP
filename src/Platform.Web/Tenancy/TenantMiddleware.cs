@@ -12,8 +12,8 @@ internal sealed class TenantMiddleware(RequestDelegate next)
 {
     public async Task InvokeAsync(HttpContext context, ITenantDirectory directory, TenantAccessor accessor)
     {
-        // Only the exact health path skips tenant resolution; /health/anything is an ordinary tenant path.
-        if (PlatformRequest.IsPlatform(context) || context.Request.Path.Equals("/health", StringComparison.OrdinalIgnoreCase))
+        // Only the exact probe paths skip tenant resolution; /health/anything and /alive/anything are ordinary tenant paths.
+        if (PlatformRequest.IsPlatform(context) || PlatformRequest.IsProbePath(context.Request.Path))
         {
             await next(context);
             return;

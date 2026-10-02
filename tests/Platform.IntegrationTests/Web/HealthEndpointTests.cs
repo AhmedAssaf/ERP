@@ -29,4 +29,25 @@ public class HealthEndpointTests
         response.StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);
         (await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)).ShouldBe("Unhealthy");
     }
+
+    /// <remarks>
+    /// W-10 (O-15): liveness, for the pilot's container health checks. No check runs, so the same unusable database as the
+    /// test above still gives Healthy: the process answers, which is all <c>/alive</c> claims.
+    /// </remarks>
+    [Fact]
+    public async Task Alive_answers_healthy_without_a_database_tenant_or_sign_in()
+    {
+        await using var factory = new WebApplicationFactory<Program>()
+            .WithWebHostBuilder(b => b
+                .UseSetting("ConnectionStrings:Platform", "Host=unused;Database=unused")
+                .UseSetting("ConnectionStrings:KeyRing", TestSecrets.KeyRingConnectionString("Host=unused;Database=unused"))
+                .UseSetting(TestSecrets.CrAuditKeySetting.Key, TestSecrets.CrAuditKeySetting.Value)
+                .UseSetting(TelemetryModule.OtlpEndpointSetting, string.Empty));
+        using var client = factory.CreateClient();
+
+        var response = await client.GetAsync(new Uri("/alive", UriKind.Relative), TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)).ShouldBe("Healthy");
+    }
 }

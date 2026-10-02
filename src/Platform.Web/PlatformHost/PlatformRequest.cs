@@ -38,6 +38,12 @@ internal static class PlatformRequest
         PlatformPaths.Any(p => path.StartsWithSegments(p, StringComparison.OrdinalIgnoreCase));
 
     public static bool IsSharedPath(PathString path) =>
-        path.Equals("/health", StringComparison.OrdinalIgnoreCase)
-        || SharedPaths.Any(p => path.StartsWithSegments(p, StringComparison.OrdinalIgnoreCase));
+        IsProbePath(path) || SharedPaths.Any(p => path.StartsWithSegments(p, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// Readiness (<c>/health</c>) and liveness (<c>/alive</c>, W-10 O-15): answered on every host without a tenant. Only the
+    /// exact paths; a path below them is an ordinary path.
+    /// </summary>
+    public static bool IsProbePath(PathString path) =>
+        path.Equals("/health", StringComparison.OrdinalIgnoreCase) || path.Equals("/alive", StringComparison.OrdinalIgnoreCase);
 }

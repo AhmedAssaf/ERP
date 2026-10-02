@@ -86,7 +86,7 @@ public partial class ResourceKeyUsageTests
         var english = Read(Path.Combine(SharedFolder, "SharedResource.en-US.resx"));
         var built = TenantRoles.All.Select(r => $"Staff.Role.{r}")
             .Concat(Enum.GetNames<HealthStatus>().Append("Unknown").Select(s => $"Console.Status.{s}"))
-            .Concat(HealthComponents.Board.Append(HealthComponents.Disk).Select(c => $"Console.Component.{c}"))
+            .Concat(HealthComponents.Board.Append(HealthComponents.Disk).Append(HealthComponents.Telemetry).Select(c => $"Console.Component.{c}"))
             .Append("Console.TenantStatus.active")
             .Concat(Enum.GetNames<CrLookupOutcome>().Select(o => $"Admin.Vendors.Ownership.Lookup.{o}"))
             .Concat(Enum.GetNames<OwnershipVerificationMethod>().Select(m => $"Admin.Vendors.Ownership.Method.{m}"))

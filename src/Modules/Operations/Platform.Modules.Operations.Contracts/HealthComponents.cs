@@ -14,6 +14,12 @@ public static class HealthComponents
     /// <summary>Checked for alerts (F-60) but not a board tile.</summary>
     public const string Disk = "Disk";
 
+    /// <summary>
+    /// The telemetry pipeline (W-10, O-14): the OpenTelemetry Collector's health and Elasticsearch's cluster health. Checked
+    /// for alerts (F-60) but not a board tile, like <see cref="Disk"/>; only on hosts where both health URLs are configured.
+    /// </summary>
+    public const string Telemetry = "Telemetry";
+
     /// <summary>The board's tiles, in display order.</summary>
     public static IReadOnlyList<string> Board { get; } = [Web, Worker, PostgreSql, ObjectStorage, Keycloak, ClamAv, Email];
 

@@ -110,8 +110,11 @@ public static class TelemetryNames
         /// </summary>
         public const string JobType = Attributes.JobType;
 
-        /// <summary>A <c>HealthComponents</c> name.</summary>
-        public const string Component = "component";
+        /// <summary>
+        /// A <c>HealthComponents</c> name, under the same key as the logs' component (<see cref="Attributes.Component"/>), so a
+        /// health metric and the errors of that component share a key (W-10 task 4 ruling; spec 5.4 aligned 2026-10-02).
+        /// </summary>
+        public const string Component = Attributes.Component;
     }
 
     /// <summary>The meter of the business metrics (spec 6.1).</summary>

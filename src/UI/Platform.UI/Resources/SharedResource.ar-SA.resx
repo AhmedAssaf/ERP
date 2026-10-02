@@ -107,6 +107,7 @@
   <data name="Console.Component.ClamAV" xml:space="preserve"><value>فحص الفيروسات (ClamAV)</value></data>
   <data name="Console.Component.SMTP" xml:space="preserve"><value>البريد الإلكتروني (SMTP)</value></data>
   <data name="Console.Component.Disk" xml:space="preserve"><value>مساحة القرص</value></data>
+  <data name="Console.Component.Telemetry" xml:space="preserve"><value>خط بيانات المراقبة</value></data>
   <data name="Console.Status.Healthy" xml:space="preserve"><value>سليم</value></data>
   <data name="Console.Status.Degraded" xml:space="preserve"><value>متراجع</value></data>
   <data name="Console.Status.Unhealthy" xml:space="preserve"><value>متعطل</value></data>

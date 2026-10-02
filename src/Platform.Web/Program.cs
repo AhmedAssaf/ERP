@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Platform.Modules.Audit;
 using Platform.Modules.Identity;
@@ -245,6 +246,8 @@ app.UseAntiforgery();
 app.UseRateLimiter();
 app.MapStaticAssets().AllowAnonymous();
 app.MapHealthChecks("/health").AllowAnonymous();
+// W-10 (O-15): liveness for container health checks. No check runs: the process answering is the whole answer.
+app.MapHealthChecks("/alive", new HealthCheckOptions { Predicate = _ => false }).AllowAnonymous();
 app.MapCultureEndpoints();
 app.MapSignOutEndpoints();
 app.MapVendorRegistrationEndpoints();
