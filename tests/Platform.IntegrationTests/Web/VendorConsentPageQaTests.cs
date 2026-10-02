@@ -162,7 +162,7 @@ public sealed partial class VendorConsentPageQaTests(DatabaseFixture db) : IAsyn
     {
         var (companyId, userId) = await VendorAsync("Midnight Dialog Company");
         await ConsentRows.AddRecipientAsync(db.OwnerConnectionString, "Midnight Dialog Recipient", Ct);
-        // 00:30 on 10 March in Riyadh is 21:30 on 9 March in UTC.
+        // 00:30 on D in Riyadh is 21:30 on D - 1 in UTC.
         var justAfterMidnight = DatabaseClock.Utc(D.AddDays(-1), new TimeOnly(21, 30));
         await using var host = Host(justAfterMidnight);
         await using var scope = host.ScopeFor(TestTenants.Acme, companyId, userId);

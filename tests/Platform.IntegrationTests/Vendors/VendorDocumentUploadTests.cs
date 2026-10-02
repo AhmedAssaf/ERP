@@ -1072,6 +1072,9 @@ public sealed class VendorDocumentUploadTests(DatabaseFixture db, MinioFixture m
 
         public Task DeleteAsync(string key, CancellationToken cancellationToken = default) => Fail();
 
+        public Task<IReadOnlyList<StoredObjectInfo>> ListAsync(string prefix, CancellationToken cancellationToken = default) =>
+            Task.FromException<IReadOnlyList<StoredObjectInfo>>(new HttpRequestException("Simulated object storage outage."));
+
         private static Task Fail() => Task.FromException(new HttpRequestException("Simulated object storage outage."));
     }
 

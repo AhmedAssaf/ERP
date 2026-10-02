@@ -25,6 +25,13 @@ internal static class DatabaseClock
         return today.AddDays(FutureOffsetDays);
     }
 
+    /// <summary>
+    /// A day one year after today in Riyadh by the database's clock: the expiry of a certificate that is valid whatever day
+    /// the suite runs (a pinned year starts failing the day it passes).
+    /// </summary>
+    public static async Task<DateOnly> ValidUntilAsync(string connectionString, CancellationToken cancellationToken) =>
+        (await FutureRiyadhDayAsync(connectionString, cancellationToken)).AddDays(365 - FutureOffsetDays);
+
     /// <summary>The UTC instant at the given UTC time on the given day.</summary>
     public static DateTimeOffset Utc(DateOnly day, TimeOnly time) => new(day.ToDateTime(time), TimeSpan.Zero);
 }

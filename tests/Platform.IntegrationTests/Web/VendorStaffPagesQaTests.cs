@@ -85,7 +85,8 @@ public sealed partial class VendorStaffPagesQaTests(DatabaseFixture db)
     public async Task The_vendor_card_with_documents_renders_in_arabic_with_gregorian_dates_and_without_raw_keys()
     {
         var (companyId, _) = await VendorAsync("Arabic Card Company", TestTenants.Acme);
-        await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, companyId, VendorDocumentTypes.CrCertificate, new DateOnly(2030, 1, 31), "clean", isCurrent: true, Ct, createdAt: DateTimeOffset.UtcNow);
+        var validUntil = await DatabaseClock.ValidUntilAsync(db.OwnerConnectionString, Ct);
+        await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, companyId, VendorDocumentTypes.CrCertificate, validUntil, "clean", isCurrent: true, Ct, createdAt: DateTimeOffset.UtcNow);
         await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, companyId, VendorDocumentTypes.CrCertificate, new DateOnly(2025, 1, 31), "clean", isCurrent: false, Ct, createdAt: DateTimeOffset.UtcNow.AddDays(-400));
         await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, companyId, VendorDocumentTypes.VatCertificate, new DateOnly(2020, 6, 30), "clean", isCurrent: true, Ct);
         var officer = await AdminRequests.MemberAsync(db, TestTenants.Acme, [TenantRoles.ContractsOfficer], "ar", Ct);
@@ -104,9 +105,9 @@ public sealed partial class VendorStaffPagesQaTests(DatabaseFixture db)
         html.ShouldContain("منتهي");
         html.ShouldContain("استُبدل بملف أحدث");
         html.ShouldContain($"data-blocking=\"{VendorDocumentTypes.VatCertificate}:expired\"");
-        // Gregorian years in both languages; ar-SA's default Umm al-Qura calendar would show 1451 for 31 January 2030.
-        html.ShouldContain("2030");
-        html.ShouldNotContain("1451");
+        // Gregorian years in both languages; ar-SA's default Umm al-Qura calendar would show another year for the same day.
+        html.ShouldContain(validUntil.Year.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        html.ShouldNotContain(new System.Globalization.UmAlQuraCalendar().GetYear(validUntil.ToDateTime(TimeOnly.MinValue)).ToString(System.Globalization.CultureInfo.InvariantCulture));
     }
 
     [Theory]

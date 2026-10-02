@@ -226,9 +226,10 @@ public sealed class BrandingServiceTests(DatabaseFixture db, MinioFixture minio)
     }
 
     [Fact]
-    public async Task A_logo_refused_after_the_upload_leaves_storage_as_it_was()
+    public async Task A_logo_refused_after_the_upload_deletes_nothing_inline()
     {
-        // W-38: the file is written before the database decides, so a refusal must take it out again.
+        // W-38: the object is named by its content, so another save of the same logo may be writing or have just
+        // committed that key; only BrandingLogoCleanupJob removes an unreferenced object, after its grace period.
         var tenant = await TenantRows.InsertAsync(db.OwnerConnectionString, Ct);
         const string stranger = "logo-stranger";
         await using var host = Host();
@@ -238,11 +239,12 @@ public sealed class BrandingServiceTests(DatabaseFixture db, MinioFixture minio)
         var result = await scope.ServiceProvider.GetRequiredService<IBrandingService>().SaveLogoAsync(upload, "image/jpeg", stranger, Ct);
 
         result.Error.ShouldNotBeNull().Code.ShouldBe(BrandingErrors.NotAllowed);
-        (await minio.ListKeysAsync($"tenants/{tenant.TenantId:D}/branding/", Ct)).ShouldBeEmpty();
+        (await minio.ListKeysAsync($"tenants/{tenant.TenantId:D}/branding/", Ct)).Count.ShouldBe(1);
+        (await TenantRows.BrandingAsync(db.AppConnectionString, tenant, Ct)).LogoUrl.ShouldBeNull();
     }
 
     [Fact]
-    public async Task A_refused_upload_of_the_logo_already_in_use_does_not_delete_it_and_a_second_logo_keeps_the_first()
+    public async Task A_refused_upload_of_the_logo_already_in_use_keeps_it_and_a_second_logo_keeps_the_first()
     {
         var tenant = await TenantRows.InsertAsync(db.OwnerConnectionString, Ct);
         const string stranger = "logo-stranger-2";

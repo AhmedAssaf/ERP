@@ -63,6 +63,28 @@ internal sealed class S3ObjectStorage(ObjectStorageSettings settings) : IObjectS
         await Client.DeleteObjectAsync(new DeleteObjectRequest { BucketName = settings.BucketName, Key = key }, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<StoredObjectInfo>> ListAsync(string prefix, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(prefix);
+        var found = new List<StoredObjectInfo>();
+        string? continuation = null;
+        do
+        {
+            var page = await Client.ListObjectsV2Async(
+                new ListObjectsV2Request { BucketName = settings.BucketName, Prefix = prefix, ContinuationToken = continuation },
+                cancellationToken);
+            foreach (var item in page.S3Objects ?? [])
+            {
+                found.Add(new StoredObjectInfo(item.Key, new DateTimeOffset(DateTime.SpecifyKind(item.LastModified ?? DateTime.UtcNow, DateTimeKind.Utc))));
+            }
+
+            continuation = page.IsTruncated == true ? page.NextContinuationToken : null;
+        }
+        while (continuation is not null);
+
+        return found;
+    }
+
     public void Dispose()
     {
         if (_client.IsValueCreated)
