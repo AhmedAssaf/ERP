@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Npgsql;
 using OpenTelemetry.Metrics;
+using OpenTelemetry.Trace;
 using Platform.IntegrationTests.Infrastructure;
 using Platform.Modules.Operations;
 using Platform.Modules.Operations.Health;
@@ -111,32 +112,47 @@ public sealed class TelemetryDataSourceTests(DatabaseFixture db)
     }
 
     /// <summary>
-    /// W-10 follow-up (2026-10-02; spec O-10): a database span is exported without events. In the otel mapping each span event
-    /// is a <c>logs-*</c> document, and Npgsql records <c>received-first-response</c> on every command of the module contexts'
-    /// pool, which Npgsql's own switch does not reach. A failed command keeps its exception type on the span instead of an
-    /// event with the message (which can quote a value, such as the key of a unique violation).
+    /// W-10 follow-up (2026-10-02, fix round 1; spec O-10, 5.2): no span event leaves the host. In the otel mapping each span
+    /// event is a <c>logs-*</c> document; Npgsql records <c>received-first-response</c> on every command and an
+    /// <c>exception</c> event with the message on a failed one, and .NET 10's HttpClient activity records an
+    /// <c>exception</c> event too. Proved on the wire: the web host's real OTLP exporter sends to a fake gRPC receiver, and
+    /// every exported span of the probe trace has no event, only the count of the events the limit dropped; the failed
+    /// database command and the failed outgoing call still name their exception type.
     /// </summary>
     [Fact]
-    public async Task A_database_span_is_exported_without_events_and_a_failed_one_names_its_exception_type()
+    public async Task No_span_event_is_exported_and_failed_database_and_http_spans_name_their_exception_type()
     {
-        var telemetry = new CapturedTelemetry();
-        await using var factory = new PlatformWebFactory(db.AppConnectionString).WithWebHostBuilder(builder => builder.ConfigureTestServices(telemetry.AddTo));
-        using var source = new ActivitySource("WaslaBid.Tests.DatabaseEvents");
-        ActivityTraceId traceId;
+        await using var receiver = await OtlpTraceReceiver.StartAsync(Ct);
+        await using var factory = new PlatformWebFactory(db.AppConnectionString)
+            .WithWebHostBuilder(builder => builder.UseSetting(TelemetryModule.OtlpEndpointSetting, receiver.Endpoint));
+        using var source = new ActivitySource("WaslaBid.Tests.SpanEvents");
+        string traceId;
         await using (var scope = factory.Services.CreateAsyncScope())
         {
             await using var context = await scope.ServiceProvider.GetRequiredService<IDbContextFactory<OperationsDbContext>>().CreateDbContextAsync(Ct);
-            using var parent = source.StartActivity("probe").ShouldNotBeNull("the host's tracer listens to WaslaBid.* sources");
-            traceId = parent.TraceId;
-            await context.Database.ExecuteSqlRawAsync("select 1", Ct);
-            await Should.ThrowAsync<PostgresException>(() => context.Database.ExecuteSqlRawAsync("select 1/0", Ct));
+            using var http = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>().CreateClient();
+            using (var parent = source.StartActivity("probe").ShouldNotBeNull("the host's tracer listens to WaslaBid.* sources"))
+            {
+                traceId = parent.TraceId.ToHexString();
+                await context.Database.ExecuteSqlRawAsync("select 1", Ct);
+                await Should.ThrowAsync<PostgresException>(() => context.Database.ExecuteSqlRawAsync("select 1/0", Ct));
+                await Should.ThrowAsync<HttpRequestException>(() => http.GetAsync($"http://127.0.0.1:{PlatformWebFactory.UnusedLoopbackPort()}/", Ct));
+            }
         }
 
-        var database = telemetry.AllSpans.Where(span => span.TraceId == traceId && span.Source.Name == TelemetryNames.Sources.Npgsql).ToList();
+        factory.Services.GetRequiredService<TracerProvider>().ForceFlush(10_000).ShouldBeTrue("the exporter sent its batch");
+        var exported = receiver.Spans.Where(span => span.TraceId == traceId).ToList();
+
+        exported.ShouldContain(span => span.Name == "probe", $"{receiver.Spans.Count} spans received in all");
+        exported.ShouldAllBe(span => span.Events == 0, "no span event is exported");
+        var database = exported.Where(span => span.Attributes.ContainsKey("db.query.text")).ToList();
         database.Count.ShouldBeGreaterThanOrEqualTo(2);
-        database.ShouldAllBe(span => !span.Events.Any());
-        var failed = database.Where(span => span.Status == ActivityStatusCode.Error).ShouldHaveSingleItem();
-        failed.GetTagItem(TelemetryNames.Attributes.ExceptionType).ShouldBe(typeof(PostgresException).FullName);
+        database.ShouldContain(span => span.DroppedEvents > 0, "Npgsql recorded events; the limit dropped them");
+        database.Where(span => span.Attributes.ContainsKey(TelemetryNames.Attributes.ExceptionType)).ShouldHaveSingleItem()
+            .Attributes[TelemetryNames.Attributes.ExceptionType].ShouldBe(typeof(PostgresException).FullName);
+        var outgoing = exported.Where(span => span.Attributes.ContainsKey("url.full")).ShouldHaveSingleItem();
+        outgoing.Attributes[TelemetryNames.Attributes.ExceptionType].ShouldBe(typeof(HttpRequestException).FullName);
+        outgoing.DroppedEvents.ShouldBeGreaterThan(0, ".NET 10's HttpClient activity recorded its exception event; the limit dropped it");
     }
 
     private static string Marker() => $"w10probe{Guid.NewGuid():N}";

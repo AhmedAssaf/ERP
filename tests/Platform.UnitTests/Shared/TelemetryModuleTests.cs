@@ -87,7 +87,7 @@ public class TelemetryModuleTests
     }
 
     /// <summary>
-    /// W-10 follow-up (2026-10-02; spec section 5.6): the collector's Elasticsearch exporter drops cumulative histograms, so
+    /// W-10 follow-up (2026-10-02; spec section 5.5): the collector's Elasticsearch exporter drops cumulative histograms, so
     /// with the SDK's default (cumulative) no request, database or job duration ever reached <c>metrics-*</c>. The OTLP metric
     /// reader of both hosts (the same registration) prefers delta. The reader is read from the built provider, since the
     /// preference the OTLP exporter hands its reader is what leaves, not what an options object says.
@@ -106,6 +106,21 @@ public class TelemetryModuleTests
 
         reader.ShouldNotBeNull("the OTLP exporter registers one metric reader; OpenTelemetry's internal Reader property may have moved");
         reader.TemporalityPreference.ShouldBe(MetricReaderTemporalityPreference.Delta);
+    }
+
+    /// <summary>
+    /// W-10 follow-up, fix round 1: the OTLP exporter's span event limit is 0 in both hosts' configuration, whatever an
+    /// environment variable or an earlier configuration source says, so no span event leaves (spec O-10, 5.2).
+    /// </summary>
+    [Fact]
+    public void The_span_event_limit_is_zero_even_when_configured_higher()
+    {
+        var builder = new HostApplicationBuilder(new HostApplicationBuilderSettings { DisableDefaults = true, EnvironmentName = "Testing" });
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?> { [TelemetryModule.SpanEventCountLimit] = "128" });
+
+        builder.AddPlatformTelemetry(TelemetryNames.Services.Web);
+
+        builder.Configuration[TelemetryModule.SpanEventCountLimit].ShouldBe("0");
     }
 
     [Theory]

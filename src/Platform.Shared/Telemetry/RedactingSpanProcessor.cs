@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Reflection;
 using OpenTelemetry;
 
 namespace Platform.Shared.Telemetry;
@@ -13,22 +12,14 @@ namespace Platform.Shared.Telemetry;
 /// the status description pass through <see cref="TelemetryRedactor"/>.
 /// </summary>
 /// <remarks>
-/// An event cannot be changed: since .NET 10 an <see cref="ActivityEvent"/> keeps its tags in an internal read-only list,
-/// whatever collection it was created with, and a span's events cannot be removed. So a span with an event whose string tag
-/// would be masked is no longer recorded, and no exporter sends it: nothing unmasked leaves. This is the backstop: the
-/// ASP.NET Core and HttpClient instrumentations record no exception event at all (<see cref="SpanExceptions"/>), so it acts
-/// only on another source's events. A span whose events hold nothing to mask keeps them as they are.
-/// <para>
-/// A database span (source <c>Npgsql</c>) leaves without any event (W-10 follow-up, 2026-10-02): in the otel mapping each
-/// span event is a <c>logs-*</c> document of its own, and Npgsql records <c>received-first-response</c> on every command.
-/// Npgsql's own switch (<c>EnableFirstResponseEvent</c>) reaches only the data sources the hosts build, not the module
-/// contexts' pool, which comes from a bare connection string (and must stay shared with plain connections for the
-/// row-level security pool tests); so the events are taken off here. An exception event leaves its type on the span as
-/// <c>exception.type</c> (as <see cref="SpanExceptions"/> does for requests); Npgsql sets the Error status and
-/// <c>error.type</c> itself. .NET has no public way to remove an event, so the span's private event list is cleared by
-/// reflection; should a runtime rename it, <see cref="CanDropEvents"/> turns false (a unit test fails) and the events
-/// stay, still under the masking backstop above.
-/// </para>
+/// Span events never leave (W-10 follow-up, fix round 1, 2026-10-02): <see cref="TelemetryModule"/> sets the OTLP exporter's
+/// span event limit to 0 (<see cref="TelemetryModule.SpanEventCountLimit"/>), so the exporter writes no event, only their
+/// number. An event cannot be masked (since .NET 10 an <see cref="ActivityEvent"/> keeps its tags in an internal read-only
+/// list) nor removed, and in the otel mapping each one would be a <c>logs-*</c> document of its own (Npgsql records
+/// <c>received-first-response</c> on every command). So this processor no longer looks at what an event holds; it only
+/// copies the type of an <c>exception</c> event onto the span as <c>exception.type</c> when the span has none, so a failed
+/// database command or a .NET 10 HttpClient failure still names its exception, as <see cref="SpanExceptions"/> does for
+/// requests. The masked message and stack are on the log record of the same trace.
 /// </remarks>
 internal sealed class RedactingSpanProcessor : BaseProcessor<Activity>
 {
@@ -40,19 +31,10 @@ internal sealed class RedactingSpanProcessor : BaseProcessor<Activity>
 
     private const string ExceptionEvent = "exception";
 
-    /// <summary>The span's private event list (.NET 10: <c>Activity._events</c>); null if a runtime renames it.</summary>
-    private static readonly FieldInfo? EventsField = typeof(Activity).GetField("_events", BindingFlags.Instance | BindingFlags.NonPublic);
-
-    /// <summary>True when this runtime lets the processor take a database span's events off.</summary>
-    internal static bool CanDropEvents => EventsField is not null;
-
     public override void OnEnd(Activity data)
     {
         ArgumentNullException.ThrowIfNull(data);
-        if (data.Source.Name == TelemetryNames.Sources.Npgsql)
-        {
-            DropEvents(data);
-        }
+        KeepExceptionType(data);
 
         var changed = false;
         foreach (ref readonly var tag in data.EnumerateTagObjects())
@@ -98,49 +80,32 @@ internal sealed class RedactingSpanProcessor : BaseProcessor<Activity>
             data.DisplayName = name;
         }
 
-        foreach (ref readonly var activityEvent in data.EnumerateEvents())
-        {
-            if (NeedsMasking(activityEvent))
-            {
-                data.IsAllDataRequested = false;
-                data.ActivityTraceFlags &= ~ActivityTraceFlags.Recorded;
-                return;
-            }
-        }
     }
 
-    /// <summary>Keeps the type of an exception event as <c>exception.type</c>, then clears the span's events.</summary>
-    private static void DropEvents(Activity data)
+    /// <summary>The type of the span's first <c>exception</c> event as <c>exception.type</c>, unless the span has one.</summary>
+    private static void KeepExceptionType(Activity data)
     {
-        string? exceptionType = null;
-        var any = false;
-        foreach (ref readonly var activityEvent in data.EnumerateEvents())
-        {
-            any = true;
-            if (exceptionType is null && activityEvent.Name == ExceptionEvent)
-            {
-                foreach (ref readonly var tag in activityEvent.EnumerateTagObjects())
-                {
-                    if (tag.Key == TelemetryNames.Attributes.ExceptionType && tag.Value is string type)
-                    {
-                        exceptionType = type;
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (!any || EventsField is null)
+        if (data.GetTagItem(TelemetryNames.Attributes.ExceptionType) is not null)
         {
             return;
         }
 
-        if (exceptionType is not null && data.GetTagItem(TelemetryNames.Attributes.ExceptionType) is null)
+        foreach (ref readonly var activityEvent in data.EnumerateEvents())
         {
-            data.SetTag(TelemetryNames.Attributes.ExceptionType, exceptionType);
-        }
+            if (activityEvent.Name != ExceptionEvent)
+            {
+                continue;
+            }
 
-        EventsField.SetValue(data, null);
+            foreach (ref readonly var tag in activityEvent.EnumerateTagObjects())
+            {
+                if (tag.Key == TelemetryNames.Attributes.ExceptionType && tag.Value is string type)
+                {
+                    data.SetTag(TelemetryNames.Attributes.ExceptionType, type);
+                    return;
+                }
+            }
+        }
     }
 
     private static (bool Changed, object? Value) Replacement(string key, object? value)
@@ -189,22 +154,5 @@ internal sealed class RedactingSpanProcessor : BaseProcessor<Activity>
             default:
                 return (false, value);
         }
-    }
-
-    /// <summary>
-    /// True when a tag of the event is under a secret key name, or a string tag holds a value <see cref="TelemetryRedactor"/>
-    /// would mask.
-    /// </summary>
-    private static bool NeedsMasking(in ActivityEvent activityEvent)
-    {
-        foreach (ref readonly var tag in activityEvent.EnumerateTagObjects())
-        {
-            if (TelemetryRedactor.IsSecretKey(tag.Key) || Mask(tag.Value).Changed)
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 }
