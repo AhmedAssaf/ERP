@@ -58,8 +58,9 @@ internal sealed class CrDisputes(
         }
 
         // W-34: a place in the duplicate-CR limits is taken before the number is looked up (parallel posts cannot all pass
-        // at a count of zero) and kept only for a number without a company, after the dispute's transaction has ended;
-        // every other outcome gives it back. A limited account keeps today's answer; a limited address gets the network
+        // at a count of zero) and kept, after the dispute's transaction has ended, for the answers that tell whether the
+        // number belongs to a company without the claimant having a dispute on it: "no company" and "three open requests"
+        // (the function checks the company first); every other outcome gives it back. A limited account keeps today's answer; a limited address gets the network
         // answer, which names no number.
         var reservation = await duplicates.ReserveAsync(userId, cancellationToken);
         switch (reservation.Limit)
@@ -89,7 +90,10 @@ internal sealed class CrDisputes(
         return outcome.Result;
     }
 
-    /// <summary>The dispute in one transaction; <c>Counts</c> is true when the answer was that no company has the number.</summary>
+    /// <summary>
+    /// The dispute in one transaction; <c>Counts</c> is true for the answers that count toward the duplicate-CR limits: no
+    /// company has the number, or the claimant has three open requests (given only for a number with a company).
+    /// </summary>
     private async Task<(Result<Guid> Result, bool Counts)> RaiseInDatabaseAsync(
         CrDisputeRequest request, string email, string name, TenantContext tenant, string userId, CancellationToken cancellationToken)
     {
@@ -125,7 +129,10 @@ internal sealed class CrDisputes(
                 "ck_cr_disputes_open_limit" => Error.Refused(
                     CrDisputeErrors.TooManyOpen, "You have three open requests. Wait for WaslaBid to close one."),
                 _ => throw new InvalidOperationException($"The dispute was refused under an unexpected rule ({ex.ConstraintName}).", ex),
-            }), false);
+            }),
+            // N-2: vendor.raise_cr_dispute looks the company up before it counts open disputes, so "three open requests"
+            // also says the number belongs to a company; it counts like "no company" does.
+            ex.ConstraintName == "ck_cr_disputes_open_limit");
         }
 
         if (disputeId is not { } id)

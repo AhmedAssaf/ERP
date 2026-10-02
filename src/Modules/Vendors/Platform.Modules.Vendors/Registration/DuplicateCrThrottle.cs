@@ -90,14 +90,17 @@ internal sealed partial class DuplicateCrThrottle
         return 0
         """;
 
-    // Gives one place back in each counter, never below zero; a counter that expired meanwhile is left alone.
+    // Gives one place back in each counter, never below zero; a counter that expired meanwhile is left alone. Returns how
+    // many counters it wrote.
     private const string RefundScript = """
+        local written = 0
         for _, key in ipairs(KEYS) do
           if tonumber(redis.call('GET', key) or '0') > 0 then
             redis.call('DECR', key)
+            written = written + 1
           end
         end
-        return 0
+        return written
         """;
 
     private readonly IHttpContextAccessor _http;
@@ -159,7 +162,13 @@ internal sealed partial class DuplicateCrThrottle
                 var result = (int)await _redis.GetDatabase()
                     .ScriptEvaluateAsync(ReserveScript, keys, [_windowMilliseconds, Limit, _perAddress])
                     .WaitAsync(cancellationToken);
-                RedisAnswered();
+                if (result == 0)
+                {
+                    // Only a script that wrote shows Redis takes the counts again (N-1): a limited answer is read without a
+                    // write, and Redis still answers reads while it refuses writes.
+                    RedisAnswered();
+                }
+
                 return new DuplicateCrReservation((DuplicateCrLimit)result, accountKey, addressKey, InRedis: true);
             }
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
@@ -201,8 +210,10 @@ internal sealed partial class DuplicateCrThrottle
         try
         {
             RedisKey[] keys = reservation.AddressKey is null ? [reservation.AccountKey] : [reservation.AccountKey, reservation.AddressKey];
-            await _redis!.GetDatabase().ScriptEvaluateAsync(RefundScript, keys);
-            RedisAnswered();
+            if ((int)await _redis!.GetDatabase().ScriptEvaluateAsync(RefundScript, keys) > 0)
+            {
+                RedisAnswered();
+            }
         }
         catch (Exception ex)
         {

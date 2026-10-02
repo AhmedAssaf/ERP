@@ -1,6 +1,8 @@
 using System.Net;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 using Platform.IntegrationTests.Infrastructure;
+using StackExchange.Redis;
 
 namespace Platform.IntegrationTests.Vendors;
 
@@ -46,6 +48,20 @@ public sealed class RedisRequiredSettingTests(DatabaseFixture db)
 
         using var client = factory.CreateClient();
         (await client.GetAsync("/alive", Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    /// <summary>
+    /// M-5: a Development test host never reaches the developer's Redis (Development's appsettings point at
+    /// localhost:6379): the factory empties the setting, so no multiplexer is registered and the limits stay in memory.
+    /// </summary>
+    [Fact]
+    public async Task A_development_test_host_registers_no_redis_connection()
+    {
+        using var factory = new PlatformWebFactory(db.AppConnectionString, environment: "Development");
+
+        using var client = factory.CreateClient();
+        (await client.GetAsync("/alive", Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        factory.Services.GetService<IConnectionMultiplexer>().ShouldBeNull();
     }
 
     private static IEnumerable<Exception> Chain(Exception exception)

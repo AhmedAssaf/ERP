@@ -129,15 +129,37 @@ internal sealed partial class VendorRegistrationService(
             return await DuplicateAsync(tenant, userId, input.CrNumber, cancellationToken);
         }
 
-        // The number is free: nothing was told about another company, so the place goes back.
-        await duplicates.RefundAsync(reservation);
+        // The number was free. The place is given back once the outcome is known, and kept only when a parallel
+        // registration took the number before this one saved its company, which ends in the duplicate answer (N-3).
+        var counted = false;
+        try
+        {
+            (var result, counted) = await RegisterFreeNumberAsync(input, email, tenant, userId, cancellationToken);
+            return result;
+        }
+        finally
+        {
+            if (!counted)
+            {
+                await duplicates.RefundAsync(reservation);
+            }
+        }
+    }
 
+    /// <summary>
+    /// Keycloak, then the company, for a number that was free at the lookup; <c>Counted</c> is true when the number was
+    /// taken meanwhile and the answer is the duplicate answer.
+    /// </summary>
+    private async Task<(Result<Guid> Result, bool Counted)> RegisterFreeNumberAsync(
+        NormalizedRegistration input, string email, TenantContext tenant, string userId, CancellationToken cancellationToken)
+    {
+        await using var db = await contexts.CreateDbContextAsync(cancellationToken);
         var grant = new VendorAccessGrant(userId, tenant.KeycloakOrgAlias, RoleAdded: false, OrganizationAdded: false);
         try
         {
             if (!MayRegister(await accounts.DescribeAsync(userId, cancellationToken), tenant))
             {
-                return StaffAccount();
+                return (StaffAccount(), false);
             }
 
             grant = grant with { RoleAdded = await accounts.GrantRoleAsync(userId, cancellationToken) };
@@ -146,7 +168,7 @@ internal sealed partial class VendorRegistrationService(
         catch (IdentityProviderException ex)
         {
             KeycloakFailed(logger, tenant.Slug, userId, ex.InnerException?.GetType().Name ?? ex.GetType().Name);
-            return await UndoAsync(grant, Failed());
+            return (await UndoAsync(grant, Failed()), false);
         }
 
         Guid companyId;
@@ -162,7 +184,7 @@ internal sealed partial class VendorRegistrationService(
         {
             // Another registration took the CR number since the check above; this one gave Keycloak access for nothing.
             var duplicate = await DuplicateAsync(tenant, userId, input.CrNumber, cancellationToken);
-            return await UndoAsync(grant, duplicate);
+            return (await UndoAsync(grant, duplicate), true);
         }
         catch (Exception ex) when (ex is DbException or TimeoutException or OperationCanceledException or InvalidOperationException)
         {
@@ -175,7 +197,7 @@ internal sealed partial class VendorRegistrationService(
                 throw;
             }
 
-            return outcome;
+            return (outcome, false);
         }
 
         users.Forget(userId);
@@ -190,7 +212,7 @@ internal sealed partial class VendorRegistrationService(
                 ["organization_added"] = grant.OrganizationAdded ? "true" : "false",
             }),
             cancellationToken);
-        return Result.Success(companyId);
+        return (Result.Success(companyId), false);
     }
 
     private (TenantContext Tenant, string UserId) Caller() =>

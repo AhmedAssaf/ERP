@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Platform.IntegrationTests.Infrastructure;
+using Platform.Modules.Identity.Contracts;
 using Platform.Modules.Vendors;
 using Platform.Modules.Vendors.Contracts;
 using Platform.Modules.Vendors.Registration;
@@ -418,6 +419,109 @@ public sealed class DuplicateCrThrottleRedisTests(DatabaseFixture db, RedisFixtu
         warning.Text.ShouldNotContain("maxmemory");
     }
 
+    /// <summary>
+    /// N-1: while Redis refuses writes, a script that only reads and answers "limited" is no sign that Redis is back. An
+    /// account already at its limit in Redis and a second account alternate during the outage: one Warning for the
+    /// outage, and no "answers again" record until a write succeeds.
+    /// </summary>
+    [Fact]
+    public async Task A_limited_answer_read_from_a_redis_that_refuses_writes_does_not_end_the_outage()
+    {
+        await using var admin = await ConnectionMultiplexer.ConnectAsync(redis.ConnectionString + ",allowAdmin=true");
+        var server = admin.GetServers().Single();
+        var logs = new CapturedLogs();
+        var throttle = Throttle(redis.ConnectionString, perAddress: 100, logs: logs);
+        string limited = NewUserId(), other = NewUserId();
+        for (var i = 0; i < DuplicateCrThrottle.Limit; i++)
+        {
+            await AnswerAsync(throttle, limited, NewAddress());
+        }
+
+        try
+        {
+            await server.ConfigSetAsync("maxmemory-policy", "noeviction");
+            await server.ConfigSetAsync("maxmemory", "1");
+            for (var round = 0; round < 4; round++)
+            {
+                (await throttle.ReserveAsync(limited, NewAddress(), Ct)).Limit.ShouldBe(DuplicateCrLimit.Account);
+                var reservation = await throttle.ReserveAsync(other, NewAddress(), Ct);
+                reservation.InRedis.ShouldBeFalse("the write was refused, so the place is taken in memory");
+                await throttle.RefundAsync(reservation);
+            }
+        }
+        finally
+        {
+            await server.ConfigSetAsync("maxmemory", "0");
+        }
+
+        var records = logs.Entries.Where(e => e.Category == typeof(DuplicateCrThrottle).FullName).ToList();
+        records.Where(e => e.Level == LogLevel.Warning).ShouldHaveSingleItem();
+        records.ShouldNotContain(e => e.Text.Contains("answers the duplicate-CR throttle again", StringComparison.Ordinal));
+
+        // The first write after the outage ends it, once.
+        await AnswerAsync(throttle, NewUserId(), NewAddress());
+        logs.Entries.Count(e => e.Text.Contains("answers the duplicate-CR throttle again", StringComparison.Ordinal)).ShouldBe(1);
+    }
+
+    /// <summary>
+    /// N-2: the dispute function looks the company up before the cap of three open disputes, so "three open requests" also
+    /// says the number belongs to a company. It counts like any answer: an account with three open disputes gets at most
+    /// the account limit of them, then the limited answer.
+    /// </summary>
+    [Fact]
+    public async Task Too_many_open_answers_count_toward_the_account_limit()
+    {
+        var claimant = NewUserId();
+        await using var host = Host(redis.ConnectionString, NewAddress(), perAddress: 100);
+        for (var i = 0; i < 3; i++)
+        {
+            (await RaiseAsync(host, claimant, await TakenCrAsync())).IsSuccess.ShouldBeTrue();
+        }
+
+        for (var i = 0; i < DuplicateCrThrottle.Limit; i++)
+        {
+            (await RaiseAsync(host, claimant, await TakenCrAsync())).Error.ShouldNotBeNull().Code.ShouldBe(CrDisputeErrors.TooManyOpen);
+        }
+
+        (await RaiseAsync(host, claimant, await TakenCrAsync())).Error.ShouldNotBeNull().Code.ShouldBe(CrDisputeErrors.Limited);
+    }
+
+    /// <summary>
+    /// N-3: a number that was free at the lookup but taken by a parallel registration before this one saved its company
+    /// ends in the duplicate answer, and that answer counts: the place is given back only once the company is saved.
+    /// </summary>
+    [Fact]
+    public async Task A_duplicate_answer_from_a_parallel_registration_of_the_same_number_counts()
+    {
+        var user = NewUserId();
+        var cr = VendorRows.NewCrNumber();
+        var accounts = new FakeVendorAccounts
+        {
+            // Between the lookup and the save, someone else registers the number.
+            OnAddOrganization = _ => VendorRows.RegisterAsync(db.AppConnectionString, TestTenants.Beta, NewUserId(), cr, "Faster Holder", Ct),
+        };
+        await using var host = Host(redis.ConnectionString, NewAddress(), perAddress: 100, accounts: accounts);
+
+        var answer = (await RegisterAsync(host, VendorRegistrationInputTests.Valid(cr), user)).Error.ShouldNotBeNull();
+
+        answer.Code.ShouldBe(VendorErrors.DuplicateCr);
+        await using var check = await redis.ConnectAsync();
+        ((long)await check.GetDatabase().StringGetAsync(DuplicateCrThrottle.AccountKey(user))).ShouldBe(1);
+    }
+
+    /// <summary>N-3: a registration that saves its company gives its place back.</summary>
+    [Fact]
+    public async Task A_saved_registration_gives_its_place_back()
+    {
+        var user = NewUserId();
+        await using var host = Host(redis.ConnectionString, NewAddress(), perAddress: 100, accounts: new FakeVendorAccounts());
+
+        (await RegisterAsync(host, VendorRegistrationInputTests.Valid(), user)).IsSuccess.ShouldBeTrue();
+
+        await using var check = await redis.ConnectAsync();
+        ((long)await check.GetDatabase().StringGetAsync(DuplicateCrThrottle.AccountKey(user))).ShouldBe(0);
+    }
+
     [Fact]
     public async Task One_account_registering_through_two_hosts_is_limited_after_five_answers_in_all()
     {
@@ -494,7 +598,7 @@ public sealed class DuplicateCrThrottleRedisTests(DatabaseFixture db, RedisFixtu
     /// A web instance on the test database whose requests come from <paramref name="address"/>, with the throttle on the
     /// given Redis; the Keycloak Admin API is unreachable, as in <see cref="VendorRegistrationInputTests"/>.
     /// </summary>
-    private ModuleHost Host(string redisConnectionString, IPAddress address, int perAddress = PerAddress) =>
+    private ModuleHost Host(string redisConnectionString, IPAddress address, int perAddress = PerAddress, FakeVendorAccounts? accounts = null) =>
         new(db.AppConnectionString, UnreachableKeycloak(), configure: services =>
         {
             services.AddRedis(new ConfigurationBuilder()
@@ -502,7 +606,26 @@ public sealed class DuplicateCrThrottleRedisTests(DatabaseFixture db, RedisFixtu
                 .Build());
             services.Configure<VendorsOptions>(o => o.DuplicateCrPerAddress = perAddress);
             services.Replace(ServiceDescriptor.Singleton<IHttpContextAccessor>(new FixedAddress(address)));
+            if (accounts is not null)
+            {
+                services.Replace(ServiceDescriptor.Scoped<IVendorAccounts>(_ => accounts));
+            }
         });
+
+    /// <summary>A CR number registered by a throwaway company.</summary>
+    private async Task<string> TakenCrAsync()
+    {
+        var cr = VendorRows.NewCrNumber();
+        await VendorRows.RegisterAsync(db.AppConnectionString, TestTenants.Beta, NewUserId(), cr, "Taken Holder", Ct);
+        return cr;
+    }
+
+    private static async Task<Result<Guid>> RaiseAsync(ModuleHost host, string claimant, string crNumber)
+    {
+        await using var scope = host.ScopeFor(TestTenants.Acme, actingUserId: claimant);
+        return await scope.ServiceProvider.GetRequiredService<ICrDisputes>().RaiseAsync(
+            new CrDisputeRequest(crNumber, "Ours.", VendorPrivacyNotice.CurrentVersion, VendorPrivacyNotice.English), $"{claimant}@example.test", "Claimant", Ct);
+    }
 
     private static async Task<Result<Guid>> RegisterAsync(ModuleHost host, VendorRegistration input, string userId)
     {
