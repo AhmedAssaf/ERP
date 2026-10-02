@@ -88,7 +88,7 @@ public static class VendorsModule
             .Validate(o => o.JoinsPerUserPerMinute > 0, "Setting 'Vendors:JoinsPerUserPerMinute' must be a positive number.")
             .Validate(o => o.JoinsPerTenantPerMinute > 0, "Setting 'Vendors:JoinsPerTenantPerMinute' must be a positive number.")
             .Validate(o => o.MaxConcurrentJoins > 0, "Setting 'Vendors:MaxConcurrentJoins' must be a positive number.")
-            .Validate(o => o.ConsentChangesPerCompanyPerHour > 0, "Setting 'Vendors:ConsentChangesPerCompanyPerHour' must be a positive number.")
+            .Validate(o => o.ConsentGrantsPerCompanyPerHour > 0, "Setting 'Vendors:ConsentGrantsPerCompanyPerHour' must be a positive number.")
             .ValidateOnStart();
         services.TryAddSingleton<CrNumberAudit>();
         services.AddHttpContextAccessor();

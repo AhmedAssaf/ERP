@@ -12,12 +12,12 @@ namespace Platform.Modules.Vendors;
 /// (V-9), 30 by default.</item>
 /// <item><c>Vendors:JoinsPerUserPerMinute</c>: joins of a tenant (<c>/vendor/join</c>) one user may make in any minute,
 /// whatever the tenant (W-37), 5 by default.</item>
-/// <item><c>Vendors:JoinsPerTenantPerMinute</c>: joins of one tenant by all its vendors in any minute (W-37), 20 by
-/// default.</item>
+/// <item><c>Vendors:JoinsPerTenantPerMinute</c>: first-time joins of one tenant by all new vendors in any minute (W-37),
+/// 20 by default.</item>
 /// <item><c>Vendors:MaxConcurrentJoins</c>: first-time joins in flight at once in one web instance, across tenants, each
 /// holding up to two pooled connections while it waits on Keycloak (W-37), 10 by default.</item>
-/// <item><c>Vendors:ConsentChangesPerCompanyPerHour</c>: consent grants and revocations together that one vendor company
-/// may make in any hour (W-35, F-64), 30 by default.</item>
+/// <item><c>Vendors:ConsentGrantsPerCompanyPerHour</c>: consent grants one vendor company may make in any hour (W-35,
+/// F-64), 30 by default; revocations are never limited (PDPL).</item>
 /// </list>
 /// The join and consent limits and the join cap are counted per web instance (<see cref="RateLimiting.VendorRateLimits"/>,
 /// <see cref="RateLimiting.ConcurrentJoinGate"/>).
@@ -43,7 +43,7 @@ internal sealed class VendorsOptions
 
     public int MaxConcurrentJoins { get; set; } = 10;
 
-    public int ConsentChangesPerCompanyPerHour { get; set; } = 30;
+    public int ConsentGrantsPerCompanyPerHour { get; set; } = 30;
 
     internal static string CrAuditKeyProblem =>
         $"Setting '{CrAuditKeySetting}' is missing or is not a base64 key of at least {MinCrAuditKeyBytes} bytes. " +

@@ -50,35 +50,63 @@ public sealed partial class VendorRateLimitPageTests(DatabaseFixture db) : IDisp
         var limits = factory.Services.GetRequiredService<VendorRateLimits>();
         for (var i = 0; i < new VendorsOptions().JoinsPerUserPerMinute; i++)
         {
-            limits.TryJoin(TestTenants.Beta.TenantId, userId).ShouldBeTrue();
+            limits.TryJoinAsUser(TestTenants.Beta.TenantId, userId).ShouldBeTrue();
         }
 
-        using var page = await client.SendAsync(new HttpRequestMessage(HttpMethod.Get, "/vendor/join").As(user), Ct);
-        page.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var form = JoinForm().Match(await page.Content.ReadAsStringAsync(Ct));
-        form.Success.ShouldBeTrue("the page renders the join form");
-        var fields = HiddenInputs().Matches(form.Value)
-            .ToDictionary(m => WebUtility.HtmlDecode(m.Groups["name"].Value), m => WebUtility.HtmlDecode(m.Groups["value"].Value), StringComparer.Ordinal);
-        using var post = await client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/vendor/join") { Content = new FormUrlEncodedContent(fields) }.As(user), Ct);
+        var html = await PostJoinAsync(client, user);
 
-        post.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var html = WebUtility.HtmlDecode(await post.Content.ReadAsStringAsync(Ct));
         html.ShouldContain(htmlTag);
-        html.ShouldContain("data-form-error");
         html.ShouldContain(expected);
         RawKey().IsMatch(html).ShouldBeFalse("no raw resource key");
         accounts.Steps.ShouldBeEmpty();
     }
 
     [Theory]
-    [InlineData("en-US", "Grant consent", "Your company has changed its consents too often in the last hour. Try again later.")]
-    [InlineData("ar-SA", "منح الموافقة", "غيّرت شركتك موافقاتها مرات كثيرة خلال الساعة الماضية. حاول مرة أخرى لاحقًا.")]
-    public async Task A_consent_change_over_the_limit_shows_the_rate_limit_message_in_the_users_language(string culture, string confirm, string expected)
+    [InlineData("en", "<html lang=\"en\" dir=\"ltr\">", "The service is busy. Try again in a moment.")]
+    [InlineData("ar", "<html lang=\"ar\" dir=\"rtl\">", "الخدمة مشغولة الآن. حاول مرة أخرى بعد قليل.")]
+    public async Task A_join_that_finds_the_instance_busy_reads_the_busy_message_in_the_users_language(string locale, string htmlTag, string expected)
+    {
+        var userId = Guid.NewGuid().ToString();
+        await VendorRows.RegisterAsync(db.AppConnectionString, TestTenants.Acme, userId, VendorRows.NewCrNumber(), $"Busy Joiner {locale}", Ct);
+        var accounts = new FakeVendorAccounts { State = new(HoldsVendorRole: true, OrganizationAliases: [TestTenants.Acme.KeycloakOrgAlias]) };
+        var user = new TestUser(userId, [TestTenants.Acme.KeycloakOrgAlias], locale, RealmRoles: [IdentityClaims.VendorRealmRole],
+            Email: $"{userId}@vendor.test", EmailVerified: true);
+        await using var factory = new PlatformWebFactory(db.AppConnectionString).WithWebHostBuilder(builder =>
+            builder.ConfigureTestServices(services => services.Replace(ServiceDescriptor.Scoped<IVendorAccounts>(_ => accounts))));
+        using var client = factory.CreateClient(new() { BaseAddress = new Uri("http://beta.localhost"), AllowAutoRedirect = false });
+
+        // Every slot of the instance's cap on joins in flight is taken (ten by default).
+        var gate = factory.Services.GetRequiredService<ConcurrentJoinGate>();
+        var held = new List<IDisposable>();
+        for (var i = 0; i < new VendorsOptions().MaxConcurrentJoins; i++)
+        {
+            held.Add((await gate.TryEnterAsync(TestTenants.Beta.TenantId, $"holder-{i}", Ct)).ShouldNotBeNull());
+        }
+
+        try
+        {
+            var html = await PostJoinAsync(client, user);
+
+            html.ShouldContain(htmlTag);
+            html.ShouldContain(expected);
+            RawKey().IsMatch(html).ShouldBeFalse("no raw resource key");
+            accounts.Steps.ShouldBeEmpty();
+        }
+        finally
+        {
+            held.ForEach(slot => slot.Dispose());
+        }
+    }
+
+    [Theory]
+    [InlineData("en-US", "Grant consent", "Your company has given too many consents in the last hour. Try again later.")]
+    [InlineData("ar-SA", "منح الموافقة", "منحت شركتك موافقات كثيرة خلال الساعة الماضية. حاول مرة أخرى لاحقًا.")]
+    public async Task A_consent_grant_over_the_limit_shows_the_rate_limit_message_in_the_users_language(string culture, string confirm, string expected)
     {
         var userId = Guid.NewGuid().ToString();
         var companyId = await VendorRows.RegisterAsync(db.AppConnectionString, TestTenants.Acme, userId, VendorRows.NewCrNumber(), $"Consent Limit Page {culture}", Ct);
         var recipientId = await ConsentRows.AddRecipientAsync(db.OwnerConnectionString, $"Recipient of Consent Limit Page {culture}", Ct);
-        await using var host = new ModuleHost(db.AppConnectionString, configure: s => s.Configure<VendorsOptions>(o => o.ConsentChangesPerCompanyPerHour = 1));
+        await using var host = new ModuleHost(db.AppConnectionString, configure: s => s.Configure<VendorsOptions>(o => o.ConsentGrantsPerCompanyPerHour = 1));
         await using var scope = host.ScopeFor(TestTenants.Acme, companyId, userId);
         var today = DateOnly.FromDateTime(DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(3)).DateTime);
         var ledger = scope.ServiceProvider.GetRequiredService<IConsentLedger>();
@@ -98,6 +126,22 @@ public sealed partial class VendorRateLimitPageTests(DatabaseFixture db) : IDisp
     }
 
     public void Dispose() => _page.Dispose();
+
+    /// <summary>Opens <c>/vendor/join</c>, posts its form, and returns the decoded answer page, which shows an error.</summary>
+    private static async Task<string> PostJoinAsync(HttpClient client, TestUser user)
+    {
+        using var page = await client.SendAsync(new HttpRequestMessage(HttpMethod.Get, "/vendor/join").As(user), Ct);
+        page.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var form = JoinForm().Match(await page.Content.ReadAsStringAsync(Ct));
+        form.Success.ShouldBeTrue("the page renders the join form");
+        var fields = HiddenInputs().Matches(form.Value)
+            .ToDictionary(m => WebUtility.HtmlDecode(m.Groups["name"].Value), m => WebUtility.HtmlDecode(m.Groups["value"].Value), StringComparer.Ordinal);
+        using var post = await client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/vendor/join") { Content = new FormUrlEncodedContent(fields) }.As(user), Ct);
+        post.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var html = WebUtility.HtmlDecode(await post.Content.ReadAsStringAsync(Ct));
+        html.ShouldContain("data-form-error");
+        return html;
+    }
 
     private IRenderedComponent<VendorConsent> Render(IConsentLedger ledger, string userId, string culture)
     {

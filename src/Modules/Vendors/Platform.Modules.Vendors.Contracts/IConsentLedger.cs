@@ -69,8 +69,8 @@ public interface IConsentLedger
     /// Grants consent to <paramref name="recipientId"/> for <paramref name="scope"/> from <paramref name="validFrom"/> through
     /// <paramref name="validTo"/>, audited as <c>vendor.consent_granted</c>; returns the grant id. The period starts today
     /// (Riyadh) or later and ends on or after its first day (<see cref="ConsentErrors.InvalidPeriod"/>); an unknown recipient
-    /// is <see cref="ConsentErrors.UnknownRecipient"/>. Grants and revocations together are limited per company (W-35,
-    /// <see cref="ConsentErrors.RateLimited"/>), counted only for a change that passed the other checks and refused before
+    /// is <see cref="ConsentErrors.UnknownRecipient"/>. Grants are limited per company (W-35,
+    /// <see cref="ConsentErrors.RateLimited"/>), counted only for a grant that passed the other checks and refused before
     /// any row or audit entry. Throws <see cref="InvalidOperationException"/> without a vendor context, or when
     /// <paramref name="actorId"/> is not the acting user.
     /// </summary>
@@ -80,8 +80,8 @@ public interface IConsentLedger
     /// <summary>
     /// Revokes a grant of the company with a new row, audited as <c>vendor.consent_revoked</c>; returns the revocation id.
     /// A grant of another company, or no grant, is <see cref="ConsentErrors.GrantNotFound"/>; a revoked one
-    /// <see cref="ConsentErrors.AlreadyRevoked"/>; over the company's limit <see cref="ConsentErrors.RateLimited"/>, as
-    /// for <see cref="GrantAsync"/>. Throws as <see cref="GrantAsync"/> does.
+    /// <see cref="ConsentErrors.AlreadyRevoked"/>. Never rate limited: consent can be withdrawn at any time (PDPL, W-35).
+    /// Throws as <see cref="GrantAsync"/> does.
     /// </summary>
     Task<Result<Guid>> RevokeAsync(Guid grantId, string actorId, CancellationToken cancellationToken = default);
 
@@ -111,8 +111,8 @@ public static class ConsentErrors
     public const string NotVendorAdmin = "consent.not_vendor_admin";
 
     /// <summary>
-    /// W-35: the company made too many grants and revocations together in the last hour
-    /// (<c>Vendors:ConsentChangesPerCompanyPerHour</c>); nothing was written or audited.
+    /// W-35: the company made too many grants in the last hour (<c>Vendors:ConsentGrantsPerCompanyPerHour</c>); nothing was
+    /// written or audited. Revocations are never refused for this.
     /// </summary>
     public const string RateLimited = "consent.rate_limited";
 }

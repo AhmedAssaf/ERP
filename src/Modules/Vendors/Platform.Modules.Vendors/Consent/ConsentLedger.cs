@@ -19,8 +19,9 @@ namespace Platform.Modules.Vendors.Consent;
 /// change that did not happen. Each entry names the host tenant the vendor or the export acted on (null without one).
 /// The database holds the actor and no-backdating rules too (migrations 0015 to 0017). Checks go through <c>vendor.consent_grant_in_force</c> (migration 0012), which works
 /// without a vendor context, as an export needs.
-/// W-35: a grant or revocation that passed its checks takes a permit of the company's consent limit
-/// (<see cref="VendorRateLimits"/>) before its transaction starts; a refused one writes no row and no audit entry.
+/// W-35: a grant that passed its checks takes a permit of the company's grant limit (<see cref="VendorRateLimits"/>) before
+/// its transaction starts; a refused one writes no row and no audit entry. A revocation is never limited (PDPL: consent
+/// can be withdrawn at any time), and each grant is revoked at most once, so the rows stay bounded.
 /// </summary>
 internal sealed class ConsentLedger(
     IDbContextFactory<VendorsDbContext> contexts,
@@ -66,7 +67,7 @@ internal sealed class ConsentLedger(
         }
 
         // W-35: after the checks that write nothing, before the row and its audit entry.
-        if (!rateLimits.TryChangeConsent(companyId, actorId, "grant"))
+        if (!rateLimits.TryGrantConsent(companyId, actorId))
         {
             return RateLimited();
         }
@@ -132,11 +133,6 @@ internal sealed class ConsentLedger(
         if (await db.ConsentEvents.AnyAsync(e => e.RevokesGrantId == grantId, cancellationToken))
         {
             return AlreadyRevoked();
-        }
-
-        if (!rateLimits.TryChangeConsent(companyId, actorId, "revoke"))
-        {
-            return RateLimited();
         }
 
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
@@ -272,7 +268,7 @@ internal sealed class ConsentLedger(
 
     private static Result<Guid> RateLimited() =>
         Result.Failure<Guid>(Error.Refused(
-            ConsentErrors.RateLimited, "Your company has changed its consents too often in the last hour. Try again later."));
+            ConsentErrors.RateLimited, "Your company has given too many consents in the last hour. Try again later."));
 
     private static Result<Guid> AlreadyRevoked() =>
         Result.Failure<Guid>(Error.Conflict(ConsentErrors.AlreadyRevoked, "This consent is already revoked."));

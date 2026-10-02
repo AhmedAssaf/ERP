@@ -53,9 +53,10 @@ internal sealed class SlidingWindowLimiter
     public bool TryAcquire(string key)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
-        var now = _clock.GetUtcNow().UtcTicks;
         lock (_gate)
         {
+            // Read under the lock, so the times recorded for a key never go backwards between two callers.
+            var now = _clock.GetUtcNow().UtcTicks;
             DropIdle(now);
             if (_index.TryGetValue(key, out var node))
             {

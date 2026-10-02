@@ -130,7 +130,7 @@ dotnet user-secrets set "Vendors:CrAuditKey" "$(env_value VENDORS_CR_AUDIT_KEY)"
 unset PGPW WEB_SECRET PLATFORM_SECRET ADMIN_API_SECRET KEY_RING_DB
 ```
 
-The vendor limits are not secrets and need no setting; their defaults hold for development and the pilot, and an `appsettings` file or an environment variable (`Vendors__JoinsPerUserPerMinute`, and so on) overrides them: `Vendors:UploadRequestsPerMinute` (120, V-9), `Vendors:MaxUploadsPerDay` (30, V-9), `Vendors:JoinsPerUserPerMinute` (5) and `Vendors:JoinsPerTenantPerMinute` (20) and `Vendors:MaxConcurrentJoins` (10 first-time joins in flight) for `/vendor/join` (W-37), and `Vendors:ConsentChangesPerCompanyPerHour` (30) for consent grants and revocations together (W-35). The join and consent limits and the join cap are counted in each web process, so with more than one web instance each allows them (W-34).
+The vendor limits are not secrets and need no setting; their defaults hold for development and the pilot, and an `appsettings` file or an environment variable (`Vendors__JoinsPerUserPerMinute`, and so on) overrides them: `Vendors:UploadRequestsPerMinute` (120, V-9), `Vendors:MaxUploadsPerDay` (30, V-9), `Vendors:JoinsPerUserPerMinute` (5), `Vendors:JoinsPerTenantPerMinute` (20 first-time joins) and `Vendors:MaxConcurrentJoins` (10 first-time joins in flight) for `/vendor/join` (W-37), and `Vendors:ConsentGrantsPerCompanyPerHour` (30) for consent grants (W-35; revocations are never limited). The join and consent limits and the join cap are counted in each web process, so with more than one web instance each allows them (W-34).
 
 Then migrate, seed the development tenants `acme` and `beta`, and start the app:
 
