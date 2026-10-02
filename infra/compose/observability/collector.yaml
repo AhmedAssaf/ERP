@@ -21,13 +21,54 @@ processors:
     limit_mib: 200
     spike_limit_mib: 40
 
-  # Second net for what must never be stored: query strings and request headers.
+  # Second net for what must never be stored: query strings, request headers and the user agent (O-11), and Npgsql's data
+  # source name, a connection string (host and user) when the data source has no name (W-10 final fix wave).
   attributes/drop-risky:
     actions:
       - key: url.query
         action: delete
+      - key: user_agent.original
+        action: delete
       - pattern: ^http\.request\.header\..*
         action: delete
+      - key: db.npgsql.data_source
+        action: delete
+
+  # Second net for metrics (the hosts drop the attribute with a metric view): Npgsql's pool name is kept only when it is one of
+  # the hosts' own data source names (Platform.Shared.Data.DataSourceNames, all "platform-..."), never a connection string.
+  transform/pool-name:
+    error_mode: ignore
+    metric_statements:
+      - statements:
+          - delete_key(datapoint.attributes, "db.client.connection.pool.name") where datapoint.attributes["db.client.connection.pool.name"] != nil and not IsMatch(datapoint.attributes["db.client.connection.pool.name"], "^platform-[a-z-]+$")
+
+  # Pentest F-OBS-08 (accepted for the pilot, ADR-0014: OTLP is loopback-only and unauthenticated): the Elasticsearch
+  # exporter routes a document by the data_stream.* (and elasticsearch.index) attributes of its record, scope or resource,
+  # which would let any local sender create streams outside the retention policies. They are removed everywhere, so every
+  # document lands in the logs-, traces- or metrics-generic.otel-default streams the ILM policies cover.
+  transform/strip-routing:
+    error_mode: ignore
+    trace_statements:
+      - statements:
+          - delete_matching_keys(resource.attributes, "^(data_stream[.].*|elasticsearch[.]index)$")
+      - statements:
+          - delete_matching_keys(scope.attributes, "^(data_stream[.].*|elasticsearch[.]index)$")
+      - statements:
+          - delete_matching_keys(span.attributes, "^(data_stream[.].*|elasticsearch[.]index)$")
+    log_statements:
+      - statements:
+          - delete_matching_keys(resource.attributes, "^(data_stream[.].*|elasticsearch[.]index)$")
+      - statements:
+          - delete_matching_keys(scope.attributes, "^(data_stream[.].*|elasticsearch[.]index)$")
+      - statements:
+          - delete_matching_keys(log.attributes, "^(data_stream[.].*|elasticsearch[.]index)$")
+    metric_statements:
+      - statements:
+          - delete_matching_keys(resource.attributes, "^(data_stream[.].*|elasticsearch[.]index)$")
+      - statements:
+          - delete_matching_keys(scope.attributes, "^(data_stream[.].*|elasticsearch[.]index)$")
+      - statements:
+          - delete_matching_keys(datapoint.attributes, "^(data_stream[.].*|elasticsearch[.]index)$")
 
 exporters:
   elasticsearch:
@@ -63,13 +104,13 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [memory_limiter, attributes/drop-risky]
+      processors: [memory_limiter, attributes/drop-risky, transform/strip-routing]
       exporters: [elasticsearch]
     logs:
       receivers: [otlp]
-      processors: [memory_limiter, attributes/drop-risky]
+      processors: [memory_limiter, attributes/drop-risky, transform/strip-routing]
       exporters: [elasticsearch]
     metrics:
       receivers: [otlp]
-      processors: [memory_limiter]
+      processors: [memory_limiter, transform/pool-name, transform/strip-routing]
       exporters: [elasticsearch]
