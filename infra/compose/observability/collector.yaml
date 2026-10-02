@@ -43,8 +43,8 @@ processors:
           - delete_key(datapoint.attributes, "db.client.connection.pool.name") where datapoint.attributes["db.client.connection.pool.name"] != nil and not IsMatch(datapoint.attributes["db.client.connection.pool.name"], "^platform-[a-z-]+$")
 
   # Pentest F-OBS-08 (accepted for the pilot, ADR-0014: OTLP is loopback-only and unauthenticated): the Elasticsearch
-  # exporter routes a document by the data_stream.* (and elasticsearch.index) attributes of its record, scope or resource,
-  # which would let any local sender create streams outside the retention policies. They are removed everywhere, so every
+  # exporter routes a document by the data_stream.* (and elasticsearch.index) attributes of its record (a span event too),
+  # scope or resource, which would let any local sender create streams outside the retention policies. They are removed everywhere, so every
   # document lands in the logs-, traces- or metrics-generic.otel-default streams the ILM policies cover.
   transform/strip-routing:
     error_mode: ignore
@@ -55,6 +55,9 @@ processors:
           - delete_matching_keys(scope.attributes, "^(data_stream[.].*|elasticsearch[.]index)$")
       - statements:
           - delete_matching_keys(span.attributes, "^(data_stream[.].*|elasticsearch[.]index)$")
+      # In otel mode the exporter writes each span event as a logs-* document routed by the event's own attributes.
+      - statements:
+          - delete_matching_keys(spanevent.attributes, "^(data_stream[.].*|elasticsearch[.]index)$")
     log_statements:
       - statements:
           - delete_matching_keys(resource.attributes, "^(data_stream[.].*|elasticsearch[.]index)$")
