@@ -196,7 +196,7 @@ Fill ten more values in `infra/compose/.env` (`.env.example` says how to generat
 `ELASTIC_MONITOR_PASSWORD`, `ELASTIC_COLLECTOR_PASSWORD`, `KIBANA_ENCRYPTION_KEY`, and the retention ages
 `TELEMETRY_LOGS_RETENTION`, `TELEMETRY_TRACES_RETENTION`, `TELEMETRY_METRICS_RETENTION` (3d locally; the pilot uses 30d,
 7d and 30d). Then `docker compose up -d` again; `elastic-setup` exits 0 and the collector and Elasticsearch come up
-within about a minute. The host-side settings:
+within about 30 seconds once the images are pulled (Kibana about 37 seconds more); the limit is four minutes. The host-side settings:
 
 - `Telemetry:OtlpEndpoint` (web host and worker; `http://localhost:4317` in `appsettings.Development.json`). Outside
   Development and Testing a host without it does not start; an explicitly empty value turns export off.
@@ -212,8 +212,9 @@ Kibana is off by default. `docker compose --profile kibana up -d` starts it and 
 `http://127.0.0.1:5601` and sign in as `KIBANA_STAFF_USER` (read only; the `elastic` user is for administration).
 
 Find a failed request: copy the `X-Correlation-Id` response header from the browser's network panel (it is the W3C trace
-id; a `ProblemDetails` body carries it as `traceId`), then in Kibana Discover use the data views for logs and traces
-(or "All logs" in the Observability solution) with `trace_id : "<id>"`. The server span carries `waslabid.tenant.id`; the
+id; a `ProblemDetails` body carries it as `traceId`), then in Kibana Discover: for the logs, use the data view "All logs" with
+KQL `trace_id : "<id>"`; for the trace, switch Discover to ES|QL mode and run `FROM traces-* | WHERE trace_id == "<id>"`
+(no traces data view is shipped). The server span carries `waslabid.tenant.id`; the
 Error log record carries the tenant, `waslabid.component`, the exception type and a masked message. Kibana's APM trace
 view shows no data for these OTel-native traces yet (open follow-up, W-10 row in docs/09); use Discover.
 
