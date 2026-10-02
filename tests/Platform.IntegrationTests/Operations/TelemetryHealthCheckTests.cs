@@ -107,10 +107,11 @@ public sealed class TelemetryHealthCheckTests(DatabaseFixture db, MailpitFixture
 
     /// <summary>
     /// W-10 follow-up (2026-10-02; O-14): at the flood-stage disk watermark Elasticsearch makes every index read-only while the
-    /// cluster stays green, so the pipeline drops every document with a healthy cluster. The check reads the disk use per
-    /// node (<c>_cat/allocation</c>, cluster privilege <c>monitor</c>) and reports the fullest node: Degraded from the high
-    /// watermark (90%, new shards no longer allocated there), Unhealthy from the flood stage (95%, writes blocked). The
-    /// unassigned-shards row has no disk and is skipped.
+    /// cluster stays green, so the pipeline drops every document with a healthy cluster. The check reads each node's file
+    /// system totals (<c>_nodes/stats/fs</c>, cluster privilege <c>monitor</c>; fix round 1) and reports the fullest node, in
+    /// use = total minus available, as Elasticsearch computes its watermarks: Degraded from the high watermark (90%, new
+    /// shards no longer allocated there), Unhealthy from the flood stage (95%, writes blocked). A node without totals is
+    /// skipped.
     /// </summary>
     [Theory]
     [InlineData("11", CheckStatus.Healthy, null)]
@@ -122,8 +123,8 @@ public sealed class TelemetryHealthCheckTests(DatabaseFixture db, MailpitFixture
     public async Task Telemetry_reports_the_fullest_elasticsearch_disk_against_the_watermarks(string percent, CheckStatus expected, string? message)
     {
         await using var collector = await FakeHttpServer.StartAsync(context => AnswerAsync(context, 200, """{"status":"Server available"}"""), Ct);
-        var allocation = $$"""[{"disk.percent":"12"},{"disk.percent":"{{percent}}"},{"disk.percent":null}]""";
-        await using var elasticsearch = await FakeHttpServer.StartAsync(Elasticsearch(Cluster("green"), allocation), Ct);
+        var nodes = """{"nodes":{"a":""" + FileSystem("12") + ""","b":""" + FileSystem(percent) + ""","c":{"fs":{}}}}""";
+        await using var elasticsearch = await FakeHttpServer.StartAsync(Elasticsearch(Cluster("green"), nodes), Ct);
 
         var result = await CheckAsync(collector.BaseAddress, elasticsearch.BaseAddress + "_cluster/health");
 
@@ -142,7 +143,7 @@ public sealed class TelemetryHealthCheckTests(DatabaseFixture db, MailpitFixture
     public async Task A_full_disk_is_reported_beside_a_collector_outage()
     {
         await using var collector = await FakeHttpServer.StartAsync(context => AnswerAsync(context, 503, "{}"), Ct);
-        await using var elasticsearch = await FakeHttpServer.StartAsync(Elasticsearch(Cluster("green"), Allocation("91")), Ct);
+        await using var elasticsearch = await FakeHttpServer.StartAsync(Elasticsearch(Cluster("green"), Nodes("91")), Ct);
 
         var result = await CheckAsync(collector.BaseAddress, elasticsearch.BaseAddress + "_cluster/health");
 
@@ -157,10 +158,11 @@ public sealed class TelemetryHealthCheckTests(DatabaseFixture db, MailpitFixture
     /// </summary>
     [Theory]
     [InlineData(200, "not json at all", "elasticsearch disk usage is unreadable (JsonReaderException)")]
-    [InlineData(200, """{"disk.percent":"97"}""", "elasticsearch disk usage is unreadable")]
-    [InlineData(200, "[]", "elasticsearch disk usage is unreadable")]
-    [InlineData(200, """[{"disk.percent":null}]""", "elasticsearch disk usage is unreadable")]
-    [InlineData(200, """[{"disk.percent":"monitor-password-should-never-appear-7d20"}]""", "elasticsearch disk usage is unreadable")]
+    [InlineData(200, """[{"disk.percent":"97"}]""", "elasticsearch disk usage is unreadable")]
+    [InlineData(200, "{}", "elasticsearch disk usage is unreadable")]
+    [InlineData(200, """{"nodes":{}}""", "elasticsearch disk usage is unreadable")]
+    [InlineData(200, """{"nodes":{"a":{"fs":{"total":{"total_in_bytes":0,"available_in_bytes":0}}}}}""", "elasticsearch disk usage is unreadable")]
+    [InlineData(200, """{"nodes":{"a":{"fs":{"total":{"total_in_bytes":"monitor-password-should-never-appear-7d20","available_in_bytes":1}}}}}""", "elasticsearch disk usage is unreadable")]
     [InlineData(403, """{"error":"monitor-user-4be1c9 lacks a privilege"}""", "elasticsearch disk usage answered HTTP 403")]
     public async Task An_unreadable_disk_answer_is_unhealthy_and_names_no_body(int status, string body, string message)
     {
@@ -175,7 +177,7 @@ public sealed class TelemetryHealthCheckTests(DatabaseFixture db, MailpitFixture
 
     /// <summary>
     /// The disk is read beside the configured cluster health URL, under any path prefix (a proxy), with the monitoring
-    /// credentials, as JSON with the one column the check needs.
+    /// credentials, filtered to the file system totals the check needs.
     /// </summary>
     [Fact]
     public async Task The_disk_is_read_beside_the_cluster_health_url_with_the_monitoring_credentials()
@@ -199,33 +201,53 @@ public sealed class TelemetryHealthCheckTests(DatabaseFixture db, MailpitFixture
 
         result.Status.ShouldBe(CheckStatus.Healthy);
         var expected = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{MonitorUser}:{MonitorPassword}"))).ToString();
-        requests.Select(r => r.PathAndQuery).ShouldBe(["/es/_cluster/health/", "/es/_cat/allocation?format=json&h=disk.percent"]);
+        requests.Select(r => r.PathAndQuery).Order().ShouldBe(["/es/_cluster/health/", "/es/_nodes/stats/fs?filter_path=nodes.*.fs.total"]);
         requests.ShouldAllBe(r => r.Authorization == expected);
     }
 
-    /// <summary>When the cluster itself is red or cannot be read, only that is reported; the disk is not asked.</summary>
-    [Fact]
-    public async Task A_red_cluster_is_reported_without_asking_for_the_disk()
+    /// <summary>
+    /// Fix round 1: the disk is read at the same time as the cluster health (one budget), and when the cluster is red or
+    /// cannot be read the result names only the cluster, whatever the disk says.
+    /// </summary>
+    [Theory]
+    [InlineData("red", "elasticsearch cluster status is red")]
+    [InlineData("purple", "elasticsearch cluster status is unknown")]
+    public async Task A_red_or_unknown_cluster_is_reported_alone_beside_a_full_disk(string clusterStatus, string message)
     {
         await using var collector = await FakeHttpServer.StartAsync(context => AnswerAsync(context, 200, """{"status":"Server available"}"""), Ct);
-        var paths = new List<string>();
-        var answer = Elasticsearch(Cluster("red"), Allocation("99"));
+        await using var elasticsearch = await FakeHttpServer.StartAsync(Elasticsearch(Cluster(clusterStatus), Nodes("99")), Ct);
+
+        var result = await CheckAsync(collector.BaseAddress, elasticsearch.BaseAddress + "_cluster/health");
+
+        result.Status.ShouldBe(CheckStatus.Unhealthy);
+        result.Description.ShouldBe($"Telemetry pipeline: {message}.");
+    }
+
+    /// <summary>Both requests start before either answers: a slow cluster health does not delay the disk read.</summary>
+    [Fact]
+    public async Task The_cluster_health_and_the_disk_are_read_at_the_same_time()
+    {
+        await using var collector = await FakeHttpServer.StartAsync(context => AnswerAsync(context, 200, """{"status":"Server available"}"""), Ct);
+        var both = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var arrived = 0;
+        var answer = Elasticsearch(Cluster("green"));
         await using var elasticsearch = await FakeHttpServer.StartAsync(
-            context =>
+            async context =>
             {
-                lock (paths)
+                if (Interlocked.Increment(ref arrived) == 2)
                 {
-                    paths.Add(context.Request.Path.Value!);
+                    both.TrySetResult();
                 }
 
-                return answer(context);
+                // Each answer waits for the other request: a sequential check would wait 2 s and then fail on this timeout.
+                await both.Task.WaitAsync(TimeSpan.FromSeconds(2), Ct);
+                await answer(context);
             },
             Ct);
 
         var result = await CheckAsync(collector.BaseAddress, elasticsearch.BaseAddress + "_cluster/health");
 
-        result.Description.ShouldBe("Telemetry pipeline: elasticsearch cluster status is red.");
-        paths.ShouldBe(["/_cluster/health"]);
+        result.Status.ShouldBe(CheckStatus.Healthy);
     }
 
     [Fact]
@@ -413,15 +435,20 @@ public sealed class TelemetryHealthCheckTests(DatabaseFixture db, MailpitFixture
 
     private static string Cluster(string status) => $$"""{"cluster_name":"waslabid","status":"{{status}}"}""";
 
-    private static string Allocation(string percent) => $$"""[{"shards":"68","disk.percent":"{{percent}}","node":"es01"}]""";
+    /// <summary>One node's file system totals with <paramref name="percent"/> of 1,000,000 bytes in use.</summary>
+    private static string FileSystem(string percent) =>
+        """{"fs":{"total":{"total_in_bytes":1000000,"free_in_bytes":1,"available_in_bytes":"""
+        + (1000000 - (int.Parse(percent, CultureInfo.InvariantCulture) * 10000)).ToString(CultureInfo.InvariantCulture) + "}}}";
+
+    private static string Nodes(string percent) => """{"nodes":{"wpZ4fewcSD6fcYOt0Y-dng":""" + FileSystem(percent) + "}}";
 
     /// <summary>
-    /// Elasticsearch: <c>_cat/allocation</c> answers <paramref name="allocation"/> with <paramref name="allocationStatus"/>
-    /// (11% used by default), any other path the cluster health <paramref name="cluster"/>.
+    /// Elasticsearch: <c>_nodes/stats/fs</c> answers <paramref name="nodes"/> with <paramref name="nodesStatus"/> (11% used by
+    /// default), any other path the cluster health <paramref name="cluster"/>.
     /// </summary>
-    private static Func<HttpContext, Task> Elasticsearch(string cluster, string? allocation = null, int allocationStatus = 200) =>
-        context => context.Request.Path.Value!.EndsWith("/_cat/allocation", StringComparison.Ordinal)
-            ? AnswerAsync(context, allocationStatus, allocation ?? Allocation("11"))
+    private static Func<HttpContext, Task> Elasticsearch(string cluster, string? nodes = null, int nodesStatus = 200) =>
+        context => context.Request.Path.Value!.EndsWith("/_nodes/stats/fs", StringComparison.Ordinal)
+            ? AnswerAsync(context, nodesStatus, nodes ?? Nodes("11"))
             : AnswerAsync(context, 200, cluster);
 
     private static async Task AnswerAsync(HttpContext context, int status, string body)

@@ -11,9 +11,10 @@ namespace Platform.Modules.Operations.Health;
 /// W-10 (O-14): the telemetry pipeline, so a dead pipeline is alerted by F-60 like Disk is. <c>GET</c> the collector's
 /// <c>health_check</c> extension (healthy on 200) and Elasticsearch's <c>/_cluster/health</c> with the monitoring user's Basic
 /// credentials (healthy on cluster status <c>green</c> or <c>yellow</c>), both at once within the job's per-check timeout.
-/// When the cluster answers green or yellow, its disk use per node follows (<c>_cat/allocation</c>, W-10 follow-up
-/// 2026-10-02): at the flood-stage watermark Elasticsearch makes every index read-only while the cluster stays green, so
-/// the pipeline would drop every document under a healthy check. The fullest node counts: Degraded at or above
+/// Each node's disk is read at the same time (<c>_nodes/stats/fs</c>, W-10 follow-up 2026-10-02, fix round 1), and counts only
+/// when the cluster answers green or yellow, so a red or unreadable cluster is reported alone: at the flood-stage watermark
+/// Elasticsearch makes every index read-only while the cluster stays green, so the pipeline would drop every document under
+/// a healthy check. The fullest node counts, in use = total minus available (as Elasticsearch computes its watermarks): Degraded at or above
 /// <see cref="HighWatermarkPercent"/>, Unhealthy at or above <see cref="FloodStagePercent"/>, Elasticsearch's default
 /// watermarks (on a disk large enough for <c>max_headroom</c> to apply, Elasticsearch blocks writes later than this, so
 /// the check warns early, never late). The result names the part that failed (<c>collector</c>, <c>elasticsearch</c>,
@@ -66,11 +67,13 @@ internal sealed class TelemetryHealthCheck(HttpClient httpClient, TelemetryHealt
         }
     }
 
-    /// <summary>The cluster health, then, only when the cluster is green or yellow, the disk.</summary>
+    /// <summary>The cluster health and the disk at once (one timeout); the disk counts only when the cluster is green or yellow.</summary>
     private async Task<Finding> ProbeElasticsearchAsync(CancellationToken cancellationToken)
     {
-        var cluster = await ProbeClusterAsync(cancellationToken);
-        return cluster is null ? await ProbeDiskAsync(cancellationToken) : Failed(cluster);
+        var cluster = ProbeClusterAsync(cancellationToken);
+        var disk = ProbeDiskAsync(cancellationToken);
+        await Task.WhenAll(cluster, disk);
+        return await cluster is { } failure ? Failed(failure) : await disk;
     }
 
     private async Task<string?> ProbeClusterAsync(CancellationToken cancellationToken)
@@ -111,16 +114,17 @@ internal sealed class TelemetryHealthCheck(HttpClient httpClient, TelemetryHealt
     }
 
     /// <summary>
-    /// The fullest node's <c>disk.percent</c> against the watermarks. The unassigned-shards row (no node, no disk) is skipped;
-    /// an answer with no readable percentage at all is Unhealthy, since whether writes are blocked is then unknown. Only the
-    /// number is ever repeated, never another part of the body.
+    /// The fullest node's disk against the watermarks, from <c>nodes.*.fs.total</c>: in use is
+    /// <c>total_in_bytes - available_in_bytes</c>. A node without positive numeric totals is skipped; an answer with no
+    /// readable node at all is Unhealthy, since whether writes are blocked is then unknown. Only the percentage is ever
+    /// repeated, never another part of the body.
     /// </summary>
     private async Task<Finding> ProbeDiskAsync(CancellationToken cancellationToken)
     {
         const string Unreadable = $"{ElasticsearchDisk} usage is unreadable";
         try
         {
-            using var request = Monitored(settings.ElasticsearchAllocationUrl);
+            using var request = Monitored(settings.ElasticsearchNodesFsUrl);
             using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
@@ -130,15 +134,12 @@ internal sealed class TelemetryHealthCheck(HttpClient httpClient, TelemetryHealt
             await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
             using var json = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
             double? fullest = null;
-            if (json.RootElement.ValueKind == JsonValueKind.Array)
+            if (json.RootElement.ValueKind == JsonValueKind.Object
+                && json.RootElement.TryGetProperty("nodes", out var nodes) && nodes.ValueKind == JsonValueKind.Object)
             {
-                foreach (var node in json.RootElement.EnumerateArray())
+                foreach (var node in nodes.EnumerateObject())
                 {
-                    if (node.ValueKind == JsonValueKind.Object
-                        && node.TryGetProperty("disk.percent", out var value)
-                        && value.ValueKind == JsonValueKind.String
-                        && double.TryParse(value.GetString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var percent)
-                        && double.IsFinite(percent) && percent is >= 0 and <= 100)
+                    if (UsedPercent(node.Value) is { } percent)
                     {
                         fullest = Math.Max(fullest ?? 0, percent);
                     }
@@ -164,6 +165,23 @@ internal sealed class TelemetryHealthCheck(HttpClient httpClient, TelemetryHealt
         {
             return Failed($"{ElasticsearchDisk} usage could not be read ({ex.GetType().Name})");
         }
+    }
+
+    /// <summary>The share of one node's disk in use, in percent, or null without readable totals.</summary>
+    private static double? UsedPercent(JsonElement node)
+    {
+        if (node.ValueKind != JsonValueKind.Object
+            || !node.TryGetProperty("fs", out var fs) || fs.ValueKind != JsonValueKind.Object
+            || !fs.TryGetProperty("total", out var total) || total.ValueKind != JsonValueKind.Object
+            || !total.TryGetProperty("total_in_bytes", out var size) || size.ValueKind != JsonValueKind.Number
+            || !total.TryGetProperty("available_in_bytes", out var available) || available.ValueKind != JsonValueKind.Number
+            || !size.TryGetInt64(out var sizeBytes) || !available.TryGetInt64(out var availableBytes)
+            || sizeBytes <= 0 || availableBytes < 0 || availableBytes > sizeBytes)
+        {
+            return null;
+        }
+
+        return 100.0 * (sizeBytes - availableBytes) / sizeBytes;
     }
 
     /// <summary>A GET with the monitoring user's Basic credentials, when both are configured.</summary>
