@@ -19,7 +19,7 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 
 | Epic | Stories | P0 | P1 | P2 |
 |---|---|---|---|---|
-| E0 Platform foundation | W-01 to W-12, W-19 to W-30, W-33 to W-39 | 16 | 12 | 3 |
+| E0 Platform foundation | W-01 to W-12, W-19 to W-30, W-33 to W-40 | 16 | 13 | 3 |
 | E1 Tenancy and branding | F-01 to F-05, F-01b | 5 | 1 | 0 |
 | E2 Identity, users, roles | F-06 to F-10, F-06b | 3 | 2 | 1 |
 | E3 Vendor registration | F-11 to F-14, F-12b, F-14a, F-63, F-64, F-66 | 4 | 2 | 3 |
@@ -33,9 +33,9 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 | E11 Pilot and market | W-13 to W-18, W-31, W-32 | 8 | 0 | 0 |
 | E12 Platform operations console | F-51 to F-54, F-60, F-61 | 5 | 1 | 0 |
 
-## E0 Platform foundation (W-01 to W-12, W-19 to W-30, W-33 to W-39)
+## E0 Platform foundation (W-01 to W-12, W-19 to W-30, W-33 to W-40)
 
-Hardening before gate 1 (decided 2026-09-29, document 05 section 8): W-21, W-24, W-10 and W-33 harden what is already built and may proceed before W-31; no new slice does.
+Hardening before gate 1 (decided 2026-09-29, document 05 section 8): W-21, W-24, W-10 and W-33 harden what is already built and may proceed before W-31; so may W-40, chosen by the user on 2026-10-02 as hardening of the built vendor slice (P1, an exception to the P0-only list); no new slice does.
 
 | ID | Story | Pri | Size | Status | Depends on |
 |---|---|---|---|---|---|
@@ -67,10 +67,10 @@ Hardening before gate 1 (decided 2026-09-29, document 05 section 8): W-21, W-24,
 | W-34 | Duplicate-CR throttle across accounts and instances (pentest P-5): `DuplicateCrThrottle` allows one account five "already registered" answers an hour and keeps its count in process memory, so several accounts or several web instances multiply the limit; move it to a shared store (Redis, already in the stack) keyed by account and by source address | P1 | S | Backlog; found in the vendor slice pentest 2026-09-28 | F-11 |
 | W-35 | Rate limit on consent grant and revoke (pentest I-1): each call adds an append-only ledger row and an audit row, so a vendor admin can grow both without bound; limit per company with ASP.NET Core rate limiting | P1 | S | Backlog; found in the vendor slice pentest 2026-09-28 | F-64 |
 | W-36 | Separate database role for the worker (pentest I-2, ADR-0012 consequences): the worker connects as `erp_app`, so "no tenant and no vendor context" marks the worker-only functions and also matches every platform-host session (the known gap pinned by a test); the Hangfire tables are owned by the app role; `ops.incidents` and `ops.job_failure_streaks` have no row-level security. A worker role with its own grants closes all three | P1 | M | Backlog; found in the vendor slice pentest 2026-09-28 | W-08, F-51 |
-| W-37 | Rate limit on `/vendor/join`: each join adds a relationship, a Keycloak organization membership and an audit row; limit per user and per tenant | P1 | S | Backlog; found in the vendor slice review 2026-09-28 | F-10 |
+| W-37 | Rate limit on `/vendor/join`: each join adds a relationship, a Keycloak organization membership and an audit row; limit per user and per tenant. Since W-40 each first-time join also holds a pooled database connection across its Keycloak add and needs a second one for the audit write, so a burst of joins during a Keycloak brownout can exhaust the pool; the limit should cover that too | P1 | S | Backlog; found in the vendor slice review 2026-09-28 | F-10 |
 | W-38 | Orphaned logo object when branding is refused late: the logo is written to object storage before the branding is saved, so a save refused after the upload leaves an unreferenced object; delete it on refusal or collect unreferenced logos in a job | P2 | S | Backlog; found in the vendor slice review 2026-09-28 | F-02 |
 | W-39 | Remove the pinned 2031 clocks in `ConsentLedgerQaTests` and `VendorConsentPageQaTests`: they need the application clock to be later than the database's real date, so they start failing on 10 March 2031 (a time bomb); derive the dates from the database's `current_date` instead | P2 | S | Backlog; noted in the vendor slice review 2026-09-28 | F-64 |
-| W-40 | Join undo race: when a vendor's join fails after adding the Keycloak organization membership (a database fault, or the request aborted by a double-click or closed tab, which `VendorJoin` treats like a fault), `VendorJoin.UndoAsync` re-checks the relationship and revokes the membership; a parallel join of the same company that committed just after the re-check and relied on that membership leaves the vendor related to the tenant but outside its organization, so the next join is refused (`vendor.membership_removed`) until tenant staff restore access. Serialise the join's database step and the undo re-check per tenant and company (`pg_advisory_xact_lock`), with a regression test that drives the interleaving through `FakeVendorAccounts.OnAddOrganization` and `OnRevoke` | P1 | S | Backlog; found 2026-10-02 while fixing the flaky concurrent-join test | F-10, F-55 |
+| W-40 | Join undo race: when a vendor's join fails after adding the Keycloak organization membership (a database fault in `vendor.join_tenant()` or the audit write while a second join request of the same company runs, for example after a double-click, which gives two complete requests; `JoinTenant.razor` passes no cancellation token, so a closed tab does not cancel a join), `VendorJoin.UndoAsync` re-checks the relationship and revokes the membership; a parallel join of the same company that committed just after the re-check and relied on that membership leaves the vendor related to the tenant but outside its organization, so the next join is refused (`vendor.membership_removed`) until tenant staff restore access. Serialise the join's database step and the undo re-check per tenant and company (`pg_advisory_xact_lock`), with a regression test that drives the interleaving through `FakeVendorAccounts.OnAddOrganization` and `OnRevoke` | P1 | S | In review 2026-10-02 on branch w-40-join-undo-race: a join holds a transaction advisory lock per tenant and company shared from before its Keycloak add to its commit, and the undo holds it exclusive across its re-check and revoke (`JoinLock`, key `hashtextextended('vendor.join:' || tenant || ':' || company, 0)`, no migration), so the undo waits for a join that relied on the membership and a join that starts meanwhile adds the membership again; the undo gives up after 20 s and leaves the membership (logged). Tests `A_join_arriving_while_a_failed_join_takes_back_its_membership_ends_related_and_in_the_organization`, `A_join_that_relied_on_the_membership_of_a_failed_join_keeps_it` | F-10, F-55 |
 
 Acceptance criteria:
 

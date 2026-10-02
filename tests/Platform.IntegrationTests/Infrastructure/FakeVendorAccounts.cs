@@ -33,6 +33,12 @@ internal sealed class FakeVendorAccounts : IVendorAccounts
     /// </summary>
     public Func<string, Task>? OnAddOrganization { get; set; }
 
+    /// <summary>
+    /// When set, adding the organization answers as Keycloak does, from <see cref="Memberships"/>: true only when the user
+    /// was not a member yet. Otherwise it answers from <see cref="State"/>, whatever an earlier add did.
+    /// </summary>
+    public bool AnswerFromMemberships { get; set; }
+
     public ConcurrentQueue<VendorAccessGrant> Revoked { get; } = new();
 
     public ConcurrentQueue<string> Steps { get; } = new();
@@ -72,6 +78,11 @@ internal sealed class FakeVendorAccounts : IVendorAccounts
         if (OnAddOrganization is not null)
         {
             await OnAddOrganization(userId);
+        }
+
+        if (AnswerFromMemberships)
+        {
+            return Memberships.TryAdd((userId, organizationAlias), true);
         }
 
         Memberships[(userId, organizationAlias)] = true;

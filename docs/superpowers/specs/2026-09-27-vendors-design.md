@@ -144,6 +144,9 @@ acme.localhost/admin/vendors: pending and approved vendors related to acme
 beta.localhost/vendor or / (same account, not yet related to beta)
   → sign-in works (realm), host check fails until related: redirected to /vendor/join, which offers "Work with Beta"
   → organization membership, then relationship(beta, pending), audited vendor.joined in beta's log
+  → a failed database step takes back the membership it added unless related by then; the joins of a company
+      to a tenant (shared) and that undo (exclusive) serialise on a transaction advisory lock (JoinLock, W-40);
+      deployment: idle_in_transaction_session_timeout stays 0 (default) or above the Keycloak worst case (3 × 15 s)
   → a related company's user who lost the membership is refused there (vendor.membership_restore_refused);
       only the tenant restores access (W-21, amended 2026-09-29 after the pentest)
 ```
