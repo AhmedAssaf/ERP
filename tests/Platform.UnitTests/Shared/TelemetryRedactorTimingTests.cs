@@ -73,6 +73,8 @@ public sealed class TelemetryRedactorTimingTests
         ["secret pair, colon repeated"] = n => Repeat("password:", n),
         ["secret pair, json quote never closed"] = n => "\"password\":\"" + Repeat("a", n - 12),
         ["secret pair, json pairs repeated"] = n => Repeat("\"pwd\": \"", n),
+        ["secret pair, json value of escaped quotes"] = n => "\"password\":\"" + Repeat("\\\"", n - 12),
+        ["secret pair, json value of backslashes"] = n => "\"password\":\"" + Repeat("\\", n - 12),
         ["secret pair, long white space before the colon"] = n => "secret" + Repeat(" ", n - 8) + ":x",
         ["email, rfc local part without domain"] = n => Repeat("!#$%&'*+/=?^_`{|}~.", n - 1) + "@",
         ["email, rfc local part, many at signs"] = n => Repeat("a=b@c", n),

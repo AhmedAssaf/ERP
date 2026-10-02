@@ -27,8 +27,8 @@ namespace Platform.Shared.Telemetry;
 /// IBAN numbers all have ten or more. Groups of two or more digits joined by one space or one hyphen, the same separator
 /// throughout, count as one run (<c>055 123 4567</c>, <c>SA03 8000 0000 6080 1016 7519</c>), while a date and time
 /// (<c>2026-10-02 12:34:56</c>), an IP address, a version or a list of single digits is kept. A run inside a hexadecimal
-/// identifier (a trace or span id: sixteen or more hexadecimal characters with at least one letter) or inside a GUID is
-/// kept.</item>
+/// identifier (a span, trace or GUID "N" id: exactly 16 or 32 lower-case hexadecimal characters with at least one letter) or
+/// inside a GUID is kept.</item>
 /// </list>
 /// A value that is not pure ASCII is matched on a normalised copy: Unicode format characters (zero-width joiners and
 /// spaces, direction marks and isolates, the soft hyphen) removed, then NFKC (full-width <c>＠</c> and digits become ASCII),
@@ -44,7 +44,8 @@ public static partial class TelemetryRedactor
     public const string SecretMarker = "[secret]";
 
     private const int DigitRunLength = 10;
-    private const int HexIdentifierLength = 16;
+    private const int SpanIdLength = 16;
+    private const int TraceIdLength = 32;
 
     /// <summary>
     /// The options of every free-length pattern: the non-backtracking engine matches in time linear in the input, whatever
@@ -404,9 +405,14 @@ public static partial class TelemetryRedactor
     /// <summary>A decimal digit of any script (Unicode Nd): Western, Arabic-Indic, Extended Arabic-Indic, Devanagari and so on.</summary>
     private static bool IsDigit(char c) => char.IsDigit(c);
 
-    /// <summary>A trace, span or GUID "N" id: sixteen or more hexadecimal characters, at least one of them a letter.</summary>
+    /// <summary>
+    /// A span id, or a trace or GUID "N" id: exactly 16 or 32 lower-case hexadecimal characters, at least one of them a letter,
+    /// as .NET and W3C write them. Any other length, or upper case, is not an id: a compact IBAN whose country letters happen to
+    /// be hexadecimal (<c>AE07...</c>, <c>DE89...</c>, the 16-character <c>BE68...</c>) has its digits masked (W-10 follow-up,
+    /// PDPL). GUIDs with dashes are recognised by their shape, in either case (<see cref="Guids"/>).
+    /// </summary>
     private static bool IsHexIdentifier(ReadOnlySpan<char> token) =>
-        token.Length >= HexIdentifierLength && !token.ContainsAnyExcept(HexCharacters) && token.ContainsAny(HexLetters);
+        token.Length is SpanIdLength or TraceIdLength && !token.ContainsAnyExcept(HexCharacters) && token.ContainsAny(HexLetters);
 
     /// <summary>
     /// Every GUID (8-4-4-4-12 hexadecimal) in the value that no letter or digit touches on either side, in order. A dash may
@@ -435,10 +441,10 @@ public static partial class TelemetryRedactor
     private static bool IsTokenChar(char c) => char.IsAsciiLetterOrDigit(c) || IsDigit(c);
 
     private static readonly System.Buffers.SearchValues<char> HexCharacters =
-        System.Buffers.SearchValues.Create("0123456789abcdefABCDEF");
+        System.Buffers.SearchValues.Create("0123456789abcdef");
 
     private static readonly System.Buffers.SearchValues<char> HexLetters =
-        System.Buffers.SearchValues.Create("abcdefABCDEF");
+        System.Buffers.SearchValues.Create("abcdef");
 
     private static readonly System.Buffers.SearchValues<char> SchemeCharacters =
         System.Buffers.SearchValues.Create("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-");
@@ -485,11 +491,12 @@ public static partial class TelemetryRedactor
     /// <summary>
     /// A secret key-value pair; the key (the whole run of key characters ending in a secret word) keeps its spelling. Three
     /// forms, tried in this order: a colon and a quoted value (JSON, <c>"key": "value"</c>; the value up to the closing quote
-    /// or the end of the line), a colon and a bare value (<c>key: value</c>), and <c>key = value</c>. The colon forms keep
+    /// or the end of the line, an escaped quote or backslash inside it included), a colon and a bare value
+    /// (<c>key: value</c>), and <c>key = value</c>. The colon forms keep
     /// their separator (group <c>sep</c>); the last is written back as <c>key=</c>. No word boundary and no lazy prefix: the
     /// leftmost match starts at the beginning of the run by itself.
     /// </summary>
-    [GeneratedRegex(@"(?<key>[A-Za-z0-9_.\-]*(?i:password|passwd|pwd|secret|api[_\-]?key))(?:(?<sep>""?\s*:\s*"")[^""\r\n]*|(?<sep>""?\s*:\s*)[^;&\s"",}]*|\s*=\s*[^;&\s]*)", Linear)]
+    [GeneratedRegex(@"(?<key>[A-Za-z0-9_.\-]*(?i:password|passwd|pwd|secret|api[_\-]?key))(?:(?<sep>""?\s*:\s*"")(?:[^""\\\r\n]|\\.)*|(?<sep>""?\s*:\s*)[^;&\s"",}]*|\s*=\s*[^;&\s]*)", Linear)]
     private static partial Regex SecretPair();
 
     /// <summary>The GUID shape; fixed length, so each start is tried over at most 36 characters.</summary>

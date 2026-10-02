@@ -205,6 +205,36 @@ public sealed class TelemetryRedactorTests
     public void A_secret_pair_written_with_a_colon_or_as_json_is_masked(string value, string expected) =>
         TelemetryRedactor.Redact(value).ShouldBe(expected);
 
+    /// <summary>W-10 follow-up N2: an escaped quote or backslash inside a JSON secret value does not end the masked value.</summary>
+    [Theory]
+    [InlineData("{\"password\":\"ab\\\"cdSUFFIX\"}", "{\"password\":\"[secret]\"}")]
+    [InlineData("{\"client_secret\": \"a\\\"b\\\"c\", \"user\": \"u\"}", "{\"client_secret\": \"[secret]\", \"user\": \"u\"}")]
+    [InlineData("{\"pwd\":\"ends with a backslash\\\\\",\"user\":\"u\"}", "{\"pwd\":\"[secret]\",\"user\":\"u\"}")]
+    [InlineData("{\"password\":\"\\\\\\\"hidden\\\\\"}", "{\"password\":\"[secret]\"}")]
+    public void An_escaped_quote_or_backslash_in_a_json_secret_value_is_masked_with_it(string value, string expected) =>
+        TelemetryRedactor.Redact(value).ShouldBe(expected);
+
+    /// <summary>
+    /// W-10 follow-up (PDPL): only a 16 or 32 character lower-case hexadecimal token is an id (span, trace, GUID "N"); a
+    /// compact IBAN whose letters happen to be hexadecimal is not, and its digits are masked.
+    /// </summary>
+    [Theory]
+    [InlineData("IBAN AE070331234567890123456 refused", "IBAN AE[digits] refused")]
+    [InlineData("IBAN DE89370400440532013000 refused", "IBAN DE[digits] refused")]
+    [InlineData("IBAN BE68539007547034 refused", "IBAN BE[digits] refused")]
+    [InlineData("ibans ae070331234567890123456 and de89370400440532013000", "ibans ae[digits] and de[digits]")]
+    public void A_compact_iban_whose_letters_are_hexadecimal_is_masked(string value, string expected) =>
+        TelemetryRedactor.Redact(value).ShouldBe(expected);
+
+    [Theory]
+    [InlineData("span 00f067aa0ba902b7 and trace 4bf92f3577b34da61234567890ce4736")]
+    [InlineData("span 1234567890abcdef")]
+    [InlineData("guid n 3f2504e04f8911d39a0c030512345678")]
+    [InlineData("guid 3F2504E0-4F89-11D3-9A0C-030512345678 upper")]
+    [InlineData("traceparent 00-4bf92f3577b34da61234567890ce4736-00f067aa0ba902b7-01")]
+    public void Span_ids_trace_ids_and_guids_are_still_kept(string value) =>
+        TelemetryRedactor.Redact(value).ShouldBeSameAs(value);
+
     [Theory]
     [InlineData("Invalid password")]
     [InlineData("Secrets: 3 loaded")]
