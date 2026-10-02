@@ -218,8 +218,10 @@ public sealed class BrandingLogoCleanupTests(DatabaseFixture db, MinioFixture mi
         await command.ExecuteNonQueryAsync(Ct);
     }
 
+    // The worker's role (W-36): the job is the worker's; the role also holds every application right, so the same host saves
+    // the logos a tenant admin would.
     private ModuleHost Host(DateTimeOffset now, bool failAudit = false, IObjectStorage? storage = null) => new(
-        db.AppConnectionString,
+        db.WorkerConnectionString,
         clock: new FixedClock(now),
         objectStorage: new ConfigurationBuilder().AddInMemoryCollection(minio.Settings).Build(),
         configure: services =>

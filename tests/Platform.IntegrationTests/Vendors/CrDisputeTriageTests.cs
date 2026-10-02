@@ -575,7 +575,7 @@ public sealed class CrDisputeTriageTests(DatabaseFixture db)
         // Earlier tests' disputes are announced by the first run too; this test counts only its own.
         var (_, _, crNumber) = await VendorAsync("Alerted Dispute Co");
         var alerts = new RecordingAlerts();
-        await using var host = new ModuleHost(db.AppConnectionString, configure: services =>
+        await using var host = new ModuleHost(db.WorkerConnectionString, configure: services =>
         {
             services.Replace(ServiceDescriptor.Scoped<IVendorAccounts>(_ => new FakeVendorAccounts()));
             services.AddSingleton<IPlatformAlerts>(alerts);
@@ -600,13 +600,14 @@ public sealed class CrDisputeTriageTests(DatabaseFixture db)
 
         alerts.Sent.Count.ShouldBe(1);
 
-        // Only the worker's session may list or mark: a platform console session (an acting user) and a tenant session may not.
-        foreach (var (tenant, user) in new (Guid?, string?)[] { (null, "platform-admin"), (TestTenants.Acme.TenantId, "someone") })
+        // Only the worker's role may list or mark (W-36): a platform console session (an acting user, or none) and a tenant
+        // session are refused by the grant.
+        foreach (var (tenant, user) in new (Guid?, string?)[] { (null, "platform-admin"), (null, null), (TestTenants.Acme.TenantId, "someone") })
         {
             await using var session = await OwnershipRows.AppSessionAsync(db.AppConnectionString, tenant, null, user, Ct);
             await using (var list = new NpgsqlCommand("select count(*)::int from vendor.unalerted_cr_disputes(1000)", session))
             {
-                ((int)(await list.ExecuteScalarAsync(Ct))!).ShouldBe(0);
+                (await Should.ThrowAsync<PostgresException>(() => list.ExecuteScalarAsync(Ct))).SqlState.ShouldBe(PostgresErrorCodes.InsufficientPrivilege);
             }
 
             await using var mark = new NpgsqlCommand("select vendor.mark_cr_disputes_alerted(array[@id])", session);

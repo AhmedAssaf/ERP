@@ -78,7 +78,7 @@ public sealed class TelemetryDataSourceTests(DatabaseFixture db)
         var marker = Marker();
         var telemetry = new CapturedTelemetry();
         await using var worker = await JobServerHost.StartAsync(
-            Marked(marker),
+            Marked(marker, db.WorkerConnectionString),
             telemetry.AddTo,
             configureHost: builder => builder.AddPlatformTelemetry(TelemetryNames.Services.Worker),
             cancellationToken: Ct);
@@ -157,8 +157,8 @@ public sealed class TelemetryDataSourceTests(DatabaseFixture db)
 
     private static string Marker() => $"w10probe{Guid.NewGuid():N}";
 
-    private string Marked(string marker) =>
-        new NpgsqlConnectionStringBuilder(db.AppConnectionString) { ApplicationName = marker }.ConnectionString;
+    private string Marked(string marker, string? connectionString = null) =>
+        new NpgsqlConnectionStringBuilder(connectionString ?? db.AppConnectionString) { ApplicationName = marker }.ConnectionString;
 
     /// <summary>The host's exported Npgsql metrics exist and carry no pool name, nor anything of a connection string.</summary>
     private static void ShouldCarryNoPoolName(IReadOnlyList<MetricSnapshot> metrics, string marker)

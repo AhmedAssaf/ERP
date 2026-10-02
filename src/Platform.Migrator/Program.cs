@@ -38,6 +38,18 @@ internal static class EntryPoint
             Console.WriteLine($"Role {KeyRingRole.Name} can log in with the password of connection string 'KeyRing'.");
         }
 
+        // W-36: the worker's own role gets its login from the same secret the worker connects with.
+        var worker = configuration.GetConnectionString(WorkerRole.ConnectionStringName);
+        if (string.IsNullOrWhiteSpace(worker))
+        {
+            Console.WriteLine($"Connection string '{WorkerRole.ConnectionStringName}' is not configured: role {WorkerRole.Name} keeps no login, and the worker cannot start until it has one.");
+        }
+        else
+        {
+            await WorkerRole.EnableLoginAsync(owner, worker);
+            Console.WriteLine($"Role {WorkerRole.Name} can log in with the password of connection string '{WorkerRole.ConnectionStringName}'.");
+        }
+
         if (seedDev)
         {
             var app = configuration.GetConnectionString("Platform");

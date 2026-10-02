@@ -258,7 +258,7 @@ public sealed class JobTelemetryTests(DatabaseFixture db)
     private async Task<JobServerHost> StartWorkerAsync(CapturedTelemetry telemetry)
     {
         var worker = await JobServerHost.StartAsync(
-            db.AppConnectionString,
+            db.WorkerConnectionString,
             telemetry.AddTo,
             configureHost: builder => builder.AddPlatformTelemetry(TelemetryNames.Services.Worker),
             cancellationToken: Ct);

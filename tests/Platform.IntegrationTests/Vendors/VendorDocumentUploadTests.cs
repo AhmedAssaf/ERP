@@ -936,11 +936,14 @@ public sealed class VendorDocumentUploadTests(DatabaseFixture db, MinioFixture m
         return (await Json(complete)).GetProperty("documentId").GetGuid();
     }
 
-    /// <summary>The modules as the worker wires them, with object storage and the given scanner settings, without HTTP.</summary>
+    /// <summary>
+    /// The modules as the worker wires them, as its own role (W-36), with object storage and the given scanner settings,
+    /// without HTTP.
+    /// </summary>
     private ModuleHost ServiceHost(IReadOnlyDictionary<string, string?> scanner, Action<IServiceCollection>? configure = null)
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(minio.Settings.Concat(scanner)).Build();
-        return new ModuleHost(db.AppConnectionString, objectStorage: configuration, configure: services =>
+        return new ModuleHost(db.WorkerConnectionString, objectStorage: configuration, configure: services =>
         {
             services.AddVirusScanner(configuration);
             services.AddVendorJobs();
@@ -1130,7 +1133,7 @@ public sealed class VendorDocumentUploadTests(DatabaseFixture db, MinioFixture m
     private async Task RunRescanJobAsync(IReadOnlyDictionary<string, string?> scanner)
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(minio.Settings.Concat(scanner)).Build();
-        await using var host = new ModuleHost(db.AppConnectionString, objectStorage: configuration, configure: services =>
+        await using var host = new ModuleHost(db.WorkerConnectionString, objectStorage: configuration, configure: services =>
         {
             services.AddVirusScanner(configuration);
             services.AddVendorJobs();

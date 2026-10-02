@@ -55,7 +55,7 @@ public sealed class HealthChecksTests(DatabaseFixture db, MinioFixture minio, Ma
         const string badPassword = "wrong-password-should-never-appear";
         var badConnectionString = new NpgsqlConnectionStringBuilder(db.AppConnectionString) { Password = badPassword }.ConnectionString;
 
-        await using var host = new ModuleHost(db.AppConnectionString);
+        await using var host = new ModuleHost(db.WorkerConnectionString);
         await using var scope = host.ScopeFor(null);
         var healthLog = scope.ServiceProvider.GetRequiredService<IHealthLog>();
 
@@ -167,7 +167,7 @@ public sealed class HealthChecksTests(DatabaseFixture db, MinioFixture minio, Ma
     [Fact]
     public async Task Worker_reports_healthy_when_the_heartbeat_is_recent()
     {
-        await using var worker = await JobServerHost.StartAsync(db.AppConnectionString, cancellationToken: Ct);
+        await using var worker = await JobServerHost.StartAsync(db.WorkerConnectionString, cancellationToken: Ct);
         await WaitUntilAsync(worker.ServerIsRegistered);
 
         var check = new WorkerHeartbeatHealthCheck(worker.Storage, TimeProvider.System);
@@ -178,7 +178,7 @@ public sealed class HealthChecksTests(DatabaseFixture db, MinioFixture minio, Ma
     [Fact]
     public async Task Worker_reports_unhealthy_with_a_message_naming_the_component_when_there_is_no_heartbeat()
     {
-        await using var worker = await JobServerHost.StartAsync(db.AppConnectionString, cancellationToken: Ct);
+        await using var worker = await JobServerHost.StartAsync(db.WorkerConnectionString, cancellationToken: Ct);
         await WaitUntilAsync(worker.ServerIsRegistered);
 
         // The server's heartbeat is real and recent; move the check's clock far enough ahead that it reads stale.
@@ -239,9 +239,9 @@ public sealed class HealthChecksTests(DatabaseFixture db, MinioFixture minio, Ma
         builder.Configuration.AddInMemoryCollection(settings);
         builder.Services.AddLogging();
         builder.Services.AddPlatformShared();
-        builder.Services.AddOperationsModule(db.AppConnectionString);
-        builder.Services.AddOperationsHealthChecks(db.AppConnectionString, builder.Configuration);
-        builder.Services.AddJobServer(db.AppConnectionString, options => options.ServerName = $"health-job-test-{Guid.NewGuid():N}");
+        builder.Services.AddOperationsModule(db.WorkerConnectionString);
+        builder.Services.AddOperationsHealthChecks(db.WorkerConnectionString, builder.Configuration);
+        builder.Services.AddJobServer(db.WorkerConnectionString, options => options.ServerName = $"health-job-test-{Guid.NewGuid():N}");
 
         using var host = builder.Build();
         await host.StartAsync(Ct);

@@ -9,7 +9,10 @@ using Platform.Shared.Tenancy;
 
 namespace Platform.IntegrationTests.Jobs;
 
-/// <summary>W-08: the worker runs Hangfire on PostgreSQL, each job once, as the tenant that enqueued it.</summary>
+/// <summary>
+/// W-08: the worker runs Hangfire on PostgreSQL, each job once, as the tenant that enqueued it; since W-36 as its own role,
+/// <c>erp_worker</c>, on tables the migrator installed.
+/// </summary>
 [Collection(DatabaseCollection.Name)]
 public sealed class JobTests(DatabaseFixture db) : IAsyncLifetime
 {
@@ -33,9 +36,9 @@ public sealed class JobTests(DatabaseFixture db) : IAsyncLifetime
     [Fact]
     public async Task A_job_runs_once_with_two_worker_instances()
     {
-        void Counters(IServiceCollection services) => services.AddSingleton(new CounterTable(db.AppConnectionString));
-        await using var first = await JobServerHost.StartAsync(db.AppConnectionString, Counters, cancellationToken: Ct);
-        await using var second = await JobServerHost.StartAsync(db.AppConnectionString, Counters, cancellationToken: Ct);
+        void Counters(IServiceCollection services) => services.AddSingleton(new CounterTable(db.WorkerConnectionString));
+        await using var first = await JobServerHost.StartAsync(db.WorkerConnectionString, Counters, cancellationToken: Ct);
+        await using var second = await JobServerHost.StartAsync(db.WorkerConnectionString, Counters, cancellationToken: Ct);
         await WaitUntilAsync(() => first.ServerIsRegistered() && second.ServerIsRegistered());
 
         var counters = Enumerable.Range(0, 20).Select(_ => Guid.NewGuid()).ToList();
@@ -62,7 +65,7 @@ public sealed class JobTests(DatabaseFixture db) : IAsyncLifetime
     public async Task A_job_runs_as_the_tenant_that_enqueued_it()
     {
         var results = new ProbeResults();
-        await using var worker = await JobServerHost.StartAsync(db.AppConnectionString, s => s.AddSingleton(results), cancellationToken: Ct);
+        await using var worker = await JobServerHost.StartAsync(db.WorkerConnectionString, s => s.AddSingleton(results), cancellationToken: Ct);
         var probeId = Guid.NewGuid();
 
         string jobId;
@@ -83,7 +86,7 @@ public sealed class JobTests(DatabaseFixture db) : IAsyncLifetime
     public async Task A_job_enqueued_without_a_tenant_runs_without_one()
     {
         var results = new ProbeResults();
-        await using var worker = await JobServerHost.StartAsync(db.AppConnectionString, s => s.AddSingleton(results), cancellationToken: Ct);
+        await using var worker = await JobServerHost.StartAsync(db.WorkerConnectionString, s => s.AddSingleton(results), cancellationToken: Ct);
         var probeId = Guid.NewGuid();
 
         string jobId;
@@ -101,9 +104,10 @@ public sealed class JobTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task The_hangfire_schema_is_prepared_by_the_app_role()
+    public async Task The_hangfire_tables_are_installed_by_the_migrator_as_the_owner()
     {
-        await using var worker = await JobServerHost.StartAsync(db.AppConnectionString, cancellationToken: Ct);
+        // W-36: the hosts never prepare the schema; a worker starting on the migrated database finds the tables in place.
+        await using var worker = await JobServerHost.StartAsync(db.WorkerConnectionString, cancellationToken: Ct);
         await using var connection = new NpgsqlConnection(db.OwnerConnectionString);
         await connection.OpenAsync(Ct);
         await using var command = new NpgsqlCommand(
@@ -116,21 +120,24 @@ public sealed class JobTests(DatabaseFixture db) : IAsyncLifetime
             owners.Add(reader.GetString(0));
         }
 
-        owners.ShouldBe(["erp_app"]);
+        owners.ShouldBe([new NpgsqlConnectionStringBuilder(db.OwnerConnectionString).Username!]);
     }
 
-    [Fact]
-    public async Task The_app_role_may_create_objects_only_in_the_hangfire_schema()
+    [Theory]
+    [InlineData("erp_app")]
+    [InlineData("erp_worker")]
+    public async Task No_runtime_role_may_create_objects_anywhere(string role)
     {
         await using var connection = new NpgsqlConnection(db.OwnerConnectionString);
         await connection.OpenAsync(Ct);
         await using var command = new NpgsqlCommand("""
             select n.nspname
             from pg_namespace n
-            where has_schema_privilege('erp_app', n.oid, 'CREATE')
+            where has_schema_privilege(@role, n.oid, 'CREATE')
             union all
-            select 'database ' || current_database() where has_database_privilege('erp_app', current_database(), 'CREATE')
+            select 'database ' || current_database() where has_database_privilege(@role, current_database(), 'CREATE')
             """, connection);
+        command.Parameters.AddWithValue("role", role);
 
         var creatable = new List<string>();
         await using var reader = await command.ExecuteReaderAsync(Ct);
@@ -139,7 +146,7 @@ public sealed class JobTests(DatabaseFixture db) : IAsyncLifetime
             creatable.Add(reader.GetString(0));
         }
 
-        creatable.ShouldBe(["hangfire"]);
+        creatable.ShouldBeEmpty();
     }
 
     private async Task<List<Guid>> AuditTenantsAsync(Guid probeId)

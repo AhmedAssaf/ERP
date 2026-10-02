@@ -23,12 +23,12 @@ public sealed class UsageJobScheduleTests(DatabaseFixture db)
     [Fact]
     public async Task The_worker_schedules_the_usage_jobs_and_hangfire_runs_them_without_a_tenant()
     {
-        await using var worker = await JobServerHost.StartAsync(db.AppConnectionString, services =>
+        await using var worker = await JobServerHost.StartAsync(db.WorkerConnectionString, services =>
         {
             services.AddMetrics();
-            services.AddTenancyModule(db.AppConnectionString);
-            services.AddIdentityActivityCounts(db.AppConnectionString);
-            services.AddOperationsModule(db.AppConnectionString);
+            services.AddTenancyModule(db.WorkerConnectionString);
+            services.AddIdentityActivityCounts(db.WorkerConnectionString);
+            services.AddOperationsModule(db.WorkerConnectionString);
             services.AddOperationsUsageMetrics();
         }, cancellationToken: Ct);
         var before = DateTimeOffset.UtcNow;

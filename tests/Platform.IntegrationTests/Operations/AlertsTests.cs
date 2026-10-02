@@ -32,7 +32,7 @@ public sealed class AlertsTests(DatabaseFixture db, MailpitFixture mailpit) : IC
         builder.Configuration.AddInMemoryCollection(AlertConfiguration());
         builder.Services.AddLogging();
         builder.Services.AddPlatformShared();
-        builder.Services.AddOperationsModule(db.AppConnectionString);
+        builder.Services.AddOperationsModule(db.WorkerConnectionString);
         builder.Services.AddOperationsAlerts(builder.Configuration);
 
         _host = builder.Build();
@@ -196,11 +196,11 @@ public sealed class AlertsTests(DatabaseFixture db, MailpitFixture mailpit) : IC
     private async Task<JobServerHost> StartWorkerAsync()
     {
         var worker = await JobServerHost.StartAsync(
-            db.AppConnectionString,
+            db.WorkerConnectionString,
             services =>
             {
                 var configuration = new ConfigurationBuilder().AddInMemoryCollection(AlertConfiguration()).Build();
-                services.AddOperationsModule(db.AppConnectionString);
+                services.AddOperationsModule(db.WorkerConnectionString);
                 services.AddOperationsAlerts(configuration);
             },
             configureJobServer: options => options.SchedulePollingInterval = TimeSpan.FromMilliseconds(250),

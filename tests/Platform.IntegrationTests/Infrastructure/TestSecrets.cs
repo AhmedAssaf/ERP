@@ -29,4 +29,14 @@ internal static class TestSecrets
     /// </summary>
     public static string KeyRingConnectionString(string connectionString) =>
         new NpgsqlConnectionStringBuilder(connectionString) { Username = "erp_key_ring", Password = KeyRingPassword }.ConnectionString;
+
+    /// <summary>The password of <c>erp_worker</c> (W-36) for this run; the database fixture gives the role its login with it.</summary>
+    public static string WorkerPassword { get; } = Convert.ToHexString(RandomNumberGenerator.GetBytes(24));
+
+    /// <summary>
+    /// <c>ConnectionStrings:Worker</c> for the database of <paramref name="connectionString"/>: the same server and database,
+    /// as the worker's own role.
+    /// </summary>
+    public static string WorkerConnectionString(string connectionString) =>
+        new NpgsqlConnectionStringBuilder(connectionString) { Username = "erp_worker", Password = WorkerPassword }.ConnectionString;
 }
