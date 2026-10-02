@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 using Platform.Modules.Audit.Contracts;
 using Platform.Modules.Tenancy.Contracts;
@@ -34,7 +35,8 @@ internal sealed partial class BrandingService(
     IActingUserAccessor actingUser,
     ITenantDirectory directory,
     IObjectStorage storage,
-    IAuditWriter audit) : IBrandingService
+    IAuditWriter audit,
+    ILogger<BrandingService> logger) : IBrandingService
 {
     public const int MaxPortalName = 100;
     public const double MinimumContrast = 4.5;
@@ -108,10 +110,33 @@ internal sealed partial class BrandingService(
 
         var logo = processed.Value;
         var hash = Convert.ToHexStringLower(SHA256.HashData(logo.Png));
-        await storage.PutAsync(LogoKey(tenant.TenantId, hash), logo.Png, "image/png", cancellationToken);
-        if (await UpdateAsync(tenant, null, null, LogoPathPrefix + hash + ".png", cancellationToken) is not { } saved)
+        var key = LogoKey(tenant.TenantId, hash);
+        // The file is named by its content, so the same logo may already be stored, and may be the one in use: only an
+        // object this call created is ever taken out again (W-38).
+        bool existed;
+        await using (var present = await storage.OpenAsync(key, cancellationToken))
         {
-            // The stored file stays unreferenced; it is named by its content, so it is harmless and reused on a retry.
+            existed = present is not null;
+        }
+
+        await storage.PutAsync(key, logo.Png, "image/png", cancellationToken);
+        TenantBranding? saved = null;
+        try
+        {
+            saved = await UpdateAsync(tenant, null, null, LogoPathPrefix + hash + ".png", cancellationToken);
+        }
+        finally
+        {
+            if (saved is null && !existed)
+            {
+                // Refused or failed after the upload: leave storage as it was. Best effort; a failure is logged with ids
+                // only and never replaces the caller's result or exception (N-10).
+                await DeleteUnreferencedLogoAsync(tenant.TenantId, hash);
+            }
+        }
+
+        if (saved is null)
+        {
             return Result.Failure<TenantBranding>(NotAllowed());
         }
 
@@ -125,6 +150,19 @@ internal sealed partial class BrandingService(
             }),
             cancellationToken);
         return Result.Success(saved);
+    }
+
+    private async Task DeleteUnreferencedLogoAsync(Guid tenantId, string hash)
+    {
+        try
+        {
+            // Not the caller's token: a cancelled request is one reason the save did not happen.
+            await storage.DeleteAsync(LogoKey(tenantId, hash), CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning("Branding logo cleanup failed ({ExceptionType}) for tenant {TenantId}, logo {LogoHash}; the object stays unreferenced.", ex.GetType().Name, tenantId, hash);
+        }
     }
 
     public async Task<Stream?> OpenLogoAsync(string hash, CancellationToken cancellationToken = default)
