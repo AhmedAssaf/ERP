@@ -195,7 +195,9 @@ Fill ten more values in `infra/compose/.env` (`.env.example` says how to generat
 `KIBANA_SYSTEM_PASSWORD`, `KIBANA_STAFF_USER` (a named user, for example your first name), `KIBANA_STAFF_PASSWORD`,
 `ELASTIC_MONITOR_PASSWORD`, `ELASTIC_COLLECTOR_PASSWORD`, `KIBANA_ENCRYPTION_KEY`, and the retention ages
 `TELEMETRY_LOGS_RETENTION`, `TELEMETRY_TRACES_RETENTION`, `TELEMETRY_METRICS_RETENTION` (3d locally; the pilot uses 30d,
-7d and 30d). Then `docker compose up -d` again; `elastic-setup` exits 0 and the collector and Elasticsearch come up
+7d and 30d). An existing clone must add them before any `docker compose` command: the Compose file requires each one
+(`${NAME:?...}`), so `up`, `ps` and `down` all stop with "Set NAME in infra/compose/.env" until it is there. Then
+`docker compose up -d` again; `elastic-setup` exits 0 and the collector and Elasticsearch come up
 within about 30 seconds once the images are pulled (Kibana about 37 seconds more); the limit is four minutes. The host-side settings:
 
 - `Telemetry:OtlpEndpoint` (web host and worker; `http://localhost:4317` in `appsettings.Development.json`). Outside
@@ -204,7 +206,10 @@ within about 30 seconds once the images are pulled (Kibana about 37 seconds more
   (`http://localhost:9200/_cluster/health`), `Telemetry:ElasticsearchUser` (`waslabid_monitor`), all with Development
   defaults, and the password as a user secret, never in a file (N-10):
   `dotnet user-secrets set "Telemetry:ElasticsearchPassword" "$(env_value ELASTIC_MONITOR_PASSWORD)" --project src/Platform.Worker > /dev/null`
-  (same `env_value` function as above). Without it the worker's "Telemetry" check reports Elasticsearch as unreachable.
+  (same `env_value` function as above). Without it the worker's "Telemetry" check fails with "elasticsearch answered
+  HTTP 401" (Elasticsearch refuses the request without the monitoring user's password).
+- `Telemetry:Environment` (web host and worker): the `deployment.environment.name` on every span, log record and metric;
+  unset, it is the host environment name in lower case (`development` locally). Set `pilot` on the pilot (W-19).
 - Web host: `Observability:KibanaUrl` (`http://127.0.0.1:5601` in Development) gives the "Open in Kibana" link on
   `/platform/usage`; on the pilot Kibana is reached through an SSH tunnel (O-18).
 
