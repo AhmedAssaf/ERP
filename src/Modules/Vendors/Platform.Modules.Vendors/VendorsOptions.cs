@@ -10,7 +10,14 @@ namespace Platform.Modules.Vendors;
 /// <item><c>Vendors:UploadRequestsPerMinute</c>: upload API requests per vendor company per minute (V-9), 120 by default.</item>
 /// <item><c>Vendors:MaxUploadsPerDay</c>: uploads a vendor company may start in any 24 hours, whatever became of them
 /// (V-9), 30 by default.</item>
+/// <item><c>Vendors:JoinsPerUserPerMinute</c>: joins of a tenant (<c>/vendor/join</c>) one user may make in any minute,
+/// whatever the tenant (W-37), 5 by default.</item>
+/// <item><c>Vendors:JoinsPerTenantPerMinute</c>: joins of one tenant by all its vendors in any minute (W-37), 20 by
+/// default.</item>
+/// <item><c>Vendors:ConsentChangesPerCompanyPerHour</c>: consent grants and revocations together that one vendor company
+/// may make in any hour (W-35, F-64), 30 by default.</item>
 /// </list>
+/// The three rate limits are counted per web instance (<see cref="RateLimiting.VendorRateLimits"/>).
 /// </summary>
 internal sealed class VendorsOptions
 {
@@ -26,6 +33,12 @@ internal sealed class VendorsOptions
     public int UploadRequestsPerMinute { get; set; } = 120;
 
     public int MaxUploadsPerDay { get; set; } = 30;
+
+    public int JoinsPerUserPerMinute { get; set; } = 5;
+
+    public int JoinsPerTenantPerMinute { get; set; } = 20;
+
+    public int ConsentChangesPerCompanyPerHour { get; set; } = 30;
 
     internal static string CrAuditKeyProblem =>
         $"Setting '{CrAuditKeySetting}' is missing or is not a base64 key of at least {MinCrAuditKeyBytes} bytes. " +

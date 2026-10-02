@@ -130,6 +130,8 @@ dotnet user-secrets set "Vendors:CrAuditKey" "$(env_value VENDORS_CR_AUDIT_KEY)"
 unset PGPW WEB_SECRET PLATFORM_SECRET ADMIN_API_SECRET KEY_RING_DB
 ```
 
+The vendor limits are not secrets and need no setting; their defaults hold for development and the pilot, and an `appsettings` file or an environment variable (`Vendors__JoinsPerUserPerMinute`, and so on) overrides them: `Vendors:UploadRequestsPerMinute` (120, V-9), `Vendors:MaxUploadsPerDay` (30, V-9), `Vendors:JoinsPerUserPerMinute` (5) and `Vendors:JoinsPerTenantPerMinute` (20) for `/vendor/join` (W-37), and `Vendors:ConsentChangesPerCompanyPerHour` (30) for consent grants and revocations together (W-35). The join and consent limits are counted in each web process, so with more than one web instance each allows them (W-34).
+
 Then migrate, seed the development tenants `acme` and `beta`, and start the app:
 
 ```bash

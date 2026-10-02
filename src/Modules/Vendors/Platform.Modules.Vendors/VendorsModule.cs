@@ -11,6 +11,7 @@ using Platform.Modules.Vendors.Contracts;
 using Platform.Modules.Vendors.Documents;
 using Platform.Modules.Vendors.Ownership;
 using Platform.Modules.Vendors.Persistence;
+using Platform.Modules.Vendors.RateLimiting;
 using Platform.Modules.Vendors.Registration;
 using Platform.Modules.Vendors.Relationships;
 using Platform.Shared.Data;
@@ -84,6 +85,9 @@ public static class VendorsModule
             .Validate(o => VendorsOptions.DecodeCrAuditKey(o.CrAuditKey) is not null, VendorsOptions.CrAuditKeyProblem)
             .Validate(o => o.UploadRequestsPerMinute > 0, "Setting 'Vendors:UploadRequestsPerMinute' must be a positive number.")
             .Validate(o => o.MaxUploadsPerDay > 0, "Setting 'Vendors:MaxUploadsPerDay' must be a positive number.")
+            .Validate(o => o.JoinsPerUserPerMinute > 0, "Setting 'Vendors:JoinsPerUserPerMinute' must be a positive number.")
+            .Validate(o => o.JoinsPerTenantPerMinute > 0, "Setting 'Vendors:JoinsPerTenantPerMinute' must be a positive number.")
+            .Validate(o => o.ConsentChangesPerCompanyPerHour > 0, "Setting 'Vendors:ConsentChangesPerCompanyPerHour' must be a positive number.")
             .ValidateOnStart();
         services.TryAddSingleton<CrNumberAudit>();
         services.AddHttpContextAccessor();
@@ -93,6 +97,8 @@ public static class VendorsModule
         services.AddScoped<IAuthorizationHandler, VendorCompanyHandler>();
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<DuplicateCrThrottle>();
+        // W-35, W-37: the join and consent limits, counted in this process (one web instance in the pilot, W-19).
+        services.TryAddSingleton<VendorRateLimits>();
         services.AddScoped<IVendorRegistration, VendorRegistrationService>();
         // Staff view and approval, and joining another tenant (vendor plan task 5, V-7, V-11).
         services.AddScoped<IVendorDirectory, VendorDirectory>();

@@ -429,6 +429,7 @@
   <data name="Vendor.Consent.Error.AlreadyRevoked" xml:space="preserve"><value>هذه الموافقة ملغاة مسبقًا.</value></data>
   <data name="Vendor.Consent.Error.NotFound" xml:space="preserve"><value>لم يُعثر على هذه الموافقة.</value></data>
   <data name="Vendor.Consent.Error.Generic" xml:space="preserve"><value>تعذّر إتمام التغيير. حاول مرة أخرى بعد قليل.</value></data>
+  <data name="Vendor.Consent.Error.RateLimited" xml:space="preserve"><value>غيّرت شركتك موافقاتها مرات كثيرة خلال الساعة الماضية. حاول مرة أخرى لاحقًا.</value></data>
   <data name="Vendor.Consent.RevokeTitle" xml:space="preserve"><value>سحب الموافقة الممنوحة لـ {0}؟</value></data>
   <data name="Vendor.Consent.RevokeBody" xml:space="preserve"><value>من الآن لا يجوز للجهة المستلمة تسلّم هذه السجلات. تبقى الموافقة وسحبها محفوظين في السجل.</value></data>
   <data name="Vendor.Consent.RevokeConfirm" xml:space="preserve"><value>سحب الموافقة</value></data>
@@ -553,4 +554,5 @@
   <data name="Console.Ownership.OverCap" xml:space="preserve"><value>لا تزال خمسة طلبات أقدم لهذه المنشأة معلّقة ({0} إجمالًا)</value></data>
   <data name="Console.Ownership.UpheldNotRecorded" xml:space="preserve"><value>أصبحت {0} تابعة لـ {1}. تعذر تسجيل نتيجة خدمة تسجيل الدخول، والطلب مُدرج أدناه لإعادة المحاولة.</value></data>
   <data name="Vendor.Join.Error.PendingRetry" xml:space="preserve"><value>نقلت وصلة بد منشأتك إلى حسابك وما زالت تمنحك الوصول إلى {0}. حاول لاحقًا، ولا يلزمك أي إجراء.</value></data>
+  <data name="Vendor.Join.Error.RateLimited" xml:space="preserve"><value>وصلت طلبات الانضمام إلى {0} إلى حدّها خلال الدقيقة الماضية. انتظر دقيقة ثم حاول مرة أخرى.</value></data>
 </root>
