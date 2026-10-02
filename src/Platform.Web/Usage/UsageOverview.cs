@@ -15,8 +15,8 @@ internal sealed record TenantUsage(TenantSummary Tenant, UsageFigure Online, Usa
 
 /// <summary>
 /// What <c>/platform/usage</c> shows (spec 6.6): the four totals, the per-tenant lines, when the active users were counted
-/// (null before the first count), whether that count is stale, and the Grafana dashboard's address when a valid one is
-/// configured (<see cref="GrafanaLink"/>).
+/// (null before the first count), whether that count is stale, and the Kibana dashboard's address when a valid one is
+/// configured (<see cref="KibanaLink"/>).
 /// </summary>
 internal sealed record UsageView(
     UsageFigure Online,
@@ -26,19 +26,19 @@ internal sealed record UsageView(
     IReadOnlyList<TenantUsage> Tenants,
     DateTimeOffset? CountedAt,
     bool Stale,
-    string? GrafanaDashboardUrl);
+    string? KibanaDashboardUrl);
 
 /// <summary>
 /// Gathers the console usage page (W-10, spec 6.6, O-23) from what the platform already holds: tenants from
 /// <see cref="ITenantCatalog"/> (portal names), concurrent users from this instance's <see cref="ConnectedCircuits"/>, and
 /// active users from the usage job's stored result (<see cref="IUsageLog"/>, <c>ops.active_user_counts</c>). It never
-/// queries Prometheus, Loki or Grafana and makes no HTTP call, so the page works without the telemetry stack. A stored
+/// queries Elasticsearch or Kibana and makes no HTTP call, so the page works without the telemetry stack. A stored
 /// result older than <see cref="UsageCounts.StaleAfter"/>, or none, makes every active figure unknown; concurrent users
 /// are always known. Totals count each user once across tenants (the stored across-tenants rows, and distinct users of
 /// the registry). Platform users are not shown: they are the readers. Used only by console pages, after PlatformAdmin passed.
 /// </summary>
 internal sealed class UsageOverview(
-    ITenantCatalog catalog, ConnectedCircuits circuits, IUsageLog usage, TimeProvider clock, GrafanaLink grafana)
+    ITenantCatalog catalog, ConnectedCircuits circuits, IUsageLog usage, TimeProvider clock, KibanaLink kibana)
 {
     public async Task<UsageView> LoadAsync(CancellationToken cancellationToken = default)
     {
@@ -78,6 +78,6 @@ internal sealed class UsageOverview(
             rows,
             latest?.ComputedAt,
             latest is not null && stale,
-            grafana.DashboardUrl);
+            kibana.DashboardUrl);
     }
 }

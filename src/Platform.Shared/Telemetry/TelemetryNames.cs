@@ -10,7 +10,7 @@ namespace Platform.Shared.Telemetry;
 /// <remarks>
 /// Label rules (O-19): tags take the tenant slug and the small fixed value sets below only; never a user id, a vendor
 /// company id, an email, a tender id or reference, or text a tenant defines. Platform users carry no tenant tag.
-/// Prometheus stores the names with dots as underscores (<c>waslabid_users_active</c>).
+/// Elasticsearch keeps the names with their dots (<c>waslabid.users.active</c>).
 /// </remarks>
 public static class TelemetryNames
 {

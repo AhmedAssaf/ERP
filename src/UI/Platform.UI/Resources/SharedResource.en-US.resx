@@ -173,7 +173,7 @@
   <data name="Console.Usage.Today" xml:space="preserve"><value>Today</value></data>
   <data name="Console.Usage.Days7" xml:space="preserve"><value>7 days</value></data>
   <data name="Console.Usage.Days30" xml:space="preserve"><value>30 days</value></data>
-  <data name="Console.Usage.OpenGrafana" xml:space="preserve"><value>Open the history in Grafana</value></data>
+  <data name="Console.Usage.OpenKibana" xml:space="preserve"><value>Open the history in Kibana</value></data>
   <data name="StatTile.Unknown" xml:space="preserve"><value>Unknown</value></data>
   <data name="Admin.Nav.Staff" xml:space="preserve"><value>Staff</value></data>
   <data name="Staff.Title" xml:space="preserve"><value>Staff</value></data>

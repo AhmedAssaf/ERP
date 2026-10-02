@@ -173,7 +173,7 @@
   <data name="Console.Usage.Today" xml:space="preserve"><value>اليوم</value></data>
   <data name="Console.Usage.Days7" xml:space="preserve"><value>7 أيام</value></data>
   <data name="Console.Usage.Days30" xml:space="preserve"><value>30 يومًا</value></data>
-  <data name="Console.Usage.OpenGrafana" xml:space="preserve"><value>عرض السجل في Grafana</value></data>
+  <data name="Console.Usage.OpenKibana" xml:space="preserve"><value>عرض السجل في Kibana</value></data>
   <data name="StatTile.Unknown" xml:space="preserve"><value>غير معروف</value></data>
   <data name="Admin.Nav.Staff" xml:space="preserve"><value>الموظفون</value></data>
   <data name="Staff.Title" xml:space="preserve"><value>الموظفون</value></data>
