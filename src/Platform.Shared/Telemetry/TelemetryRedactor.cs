@@ -1,27 +1,40 @@
+using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Platform.Shared.Telemetry;
 
 /// <summary>
-/// The one masking step of W-10's in-process redaction (plan task 3; spec O-10, section 7.1), used by the log pipeline
-/// (<see cref="RedactingEnricher"/>, <see cref="RedactedEventSink"/>) and by the span processor
+/// The one masking step of W-10's in-process redaction (plan task 3, final fix wave; spec O-10, section 7.1), used by the log
+/// pipeline (<see cref="RedactingEnricher"/>, <see cref="RedactedEventSink"/>) and by the span processor
 /// (<see cref="RedactingSpanProcessor"/>). It catches framework and library text we do not write; our own templates never
 /// take such values in the first place (the template test). Each match becomes a fixed marker, so a reader sees that
 /// something was removed:
 /// <list type="bullet">
-/// <item>an email address, also URL-encoded (<c>%40</c>), becomes <c>[email]</c>;</item>
+/// <item>an email address, also URL-encoded (<c>%40</c>), becomes <c>[email]</c>: the whole local part, every character
+/// RFC 5322 allows unquoted (all that <see cref="Text.EmailAddresses"/> accepts) and letters of any script, and a domain of
+/// dotted labels of letters, marks and digits of any script (an internationalised name such as <c>شركة.السعودية</c>);</item>
 /// <item>a JWT (<c>eyJ...</c> with two dots) becomes <c>[token]</c>, and the credential after <c>Bearer</c> as well;</item>
 /// <item>the credential after <c>Basic</c> (base64 that decodes to <c>user:password</c>, so "basic plan" is kept) becomes
 /// <c>[token]</c>, and so does the value of an <c>Authorization:</c> header line whatever its scheme, up to the end of the
 /// line (W-10 task 4 ruling); a value already reduced to <c>Bearer [token]</c> or <c>Basic [token]</c> keeps its scheme;</item>
-/// <item>the value of a <c>password=</c>, <c>pwd=</c>, <c>secret=</c> or <c>apikey=</c> pair (any key ending so, such as
-/// <c>client_secret</c>; case-insensitive; up to <c>;</c>, <c>&amp;</c> or white space) becomes <c>key=[secret]</c>;</item>
-/// <item>a run of ten or more digits, Western or Arabic-Indic, becomes <c>[digits]</c>: CR, national id, iqama, phone,
-/// VAT and IBAN numbers all have ten or more. A run inside a hexadecimal identifier (a trace or span id: sixteen or more
-/// hexadecimal characters with at least one letter) or inside a GUID is kept.</item>
+/// <item>the value of a <c>password</c>, <c>pwd</c>, <c>secret</c> or <c>apikey</c> pair (any key ending so, such as
+/// <c>client_secret</c>; case-insensitive) becomes <c>[secret]</c>: <c>key=value</c> (up to <c>;</c>, <c>&amp;</c> or white
+/// space; written back as <c>key=[secret]</c>), <c>key: value</c> (up to <c>;</c>, <c>&amp;</c>, <c>,</c>, <c>}</c>, a quote
+/// or white space) and the JSON forms <c>"key":"value"</c> and <c>"key": "value"</c> (the whole quoted value), the colon
+/// forms with their separator kept;</item>
+/// <item>a run of ten or more decimal digits of any script becomes <c>[digits]</c>: CR, national id, iqama, phone, VAT and
+/// IBAN numbers all have ten or more. Groups of two or more digits joined by one space or one hyphen, the same separator
+/// throughout, count as one run (<c>055 123 4567</c>, <c>SA03 8000 0000 6080 1016 7519</c>), while a date and time
+/// (<c>2026-10-02 12:34:56</c>), an IP address, a version or a list of single digits is kept. A run inside a hexadecimal
+/// identifier (a trace or span id: sixteen or more hexadecimal characters with at least one letter) or inside a GUID is
+/// kept.</item>
 /// </list>
-/// A value with nothing to mask comes back as the same instance, without allocating.
+/// A value that is not pure ASCII is matched on a normalised copy: Unicode format characters (zero-width joiners and
+/// spaces, direction marks and isolates, the soft hyphen) removed, then NFKC (full-width <c>＠</c> and digits become ASCII),
+/// so none of them can split or disguise a value. A value with nothing to mask comes back as the same instance, without
+/// allocating; a masked one comes back as the normalised copy with its markers. <see cref="IsSecretKey"/> names the keys
+/// whose whole value is a secret, whatever it holds (the log pipeline replaces the value, the span processor drops the tag).
 /// </summary>
 public static partial class TelemetryRedactor
 {
@@ -47,10 +60,68 @@ public static partial class TelemetryRedactor
             return value;
         }
 
+        // Matched on the normalised copy; the copy leaves only when something in it was masked.
+        var text = Ascii.IsValid(value) ? value : Normalised(value);
+        var masked = Mask(text);
+        return ReferenceEquals(masked, text) ? value : masked;
+    }
+
+    /// <summary>
+    /// True for a key whose whole value is a secret (spec O-10, O-11; W-10 final fix wave): ignoring case and the separators
+    /// <c>-</c>, <c>_</c> and <c>.</c>, a name ending in authorization, cookie, password, passwd, pwd, secret, token, apikey
+    /// or connectionstring (<c>Proxy-Authorization</c>, <c>Set-Cookie</c>, <c>client_secret</c>, <c>access_token</c>,
+    /// <c>X-Api-Key</c>), and Npgsql's <c>db.client.connection.pool.name</c> and <c>db.npgsql.data_source</c>, which hold a
+    /// connection string when a data source has no name. Used for log property names, dictionary keys, structure members and
+    /// span tag keys.
+    /// </summary>
+    public static bool IsSecretKey(string key)
+    {
+        if (string.IsNullOrEmpty(key))
+        {
+            return false;
+        }
+
+        Span<char> buffer = key.Length <= 256 ? stackalloc char[key.Length] : new char[key.Length];
+        var length = 0;
+        foreach (var c in key)
+        {
+            if (c is not ('-' or '_' or '.'))
+            {
+                buffer[length++] = char.ToLowerInvariant(c);
+            }
+        }
+
+        var compact = buffer[..length];
+        foreach (var suffix in SecretKeySuffixes)
+        {
+            if (compact.EndsWith(suffix, StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        foreach (var name in SecretKeyNames)
+        {
+            if (compact.SequenceEqual(name))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static string Mask(string value)
+    {
         // One pattern per kind, each run only when the text holds what every match of it needs; every free-length pattern
-        // is linear (Linear). Regex.Replace returns the very instance it was given when nothing matched. Emails go first, so
-        // a secret pair's value that is an email still ends as [secret].
+        // is linear (Linear). Regex.Replace returns the very instance it was given when nothing matched. Secret pairs go
+        // first, so a pair whose value is an email ends as [secret] and its key is not taken into an email's local part.
         var masked = value;
+        if ((masked.Contains('=') || masked.Contains(':')) && HoldsSecretKey(masked))
+        {
+            masked = SecretPair().Replace(masked, SecretValue);
+        }
+
         if (masked.Contains('@') || masked.Contains("%40", StringComparison.Ordinal))
         {
             masked = Email().Replace(masked, EmailMarker);
@@ -76,13 +147,50 @@ public static partial class TelemetryRedactor
             masked = MaskGroup(masked, AuthorizationHeader(), "value", IsUnmaskedHeaderValue);
         }
 
-        if (masked.Contains('=') && HoldsSecretKey(masked))
-        {
-            masked = SecretPair().Replace(masked, "${key}=" + SecretMarker);
-        }
-
         return MaskDigitRuns(masked);
     }
+
+    /// <summary>
+    /// The copy the patterns match on: format characters (category Cf) removed, a lone surrogate replaced with U+FFFD (NFKC
+    /// refuses one), then NFKC. The same instance when nothing changes.
+    /// </summary>
+    private static string Normalised(string value)
+    {
+        StringBuilder? builder = null;
+        for (var i = 0; i < value.Length; i++)
+        {
+            var c = value[i];
+            var pair = char.IsHighSurrogate(c) && i + 1 < value.Length && char.IsLowSurrogate(value[i + 1]);
+            var lone = !pair && char.IsSurrogate(c);
+            var format = !lone && CharUnicodeInfo.GetUnicodeCategory(value, i) == UnicodeCategory.Format;
+            if ((lone || format) && builder is null)
+            {
+                builder = new StringBuilder(value.Length).Append(value, 0, i);
+            }
+
+            if (lone)
+            {
+                builder!.Append('�');
+            }
+            else if (!format && builder is not null)
+            {
+                builder.Append(value, i, pair ? 2 : 1);
+            }
+
+            if (pair)
+            {
+                i++;
+            }
+        }
+
+        var stripped = builder?.ToString() ?? value;
+        return stripped.IsNormalized(NormalizationForm.FormKC) ? stripped : stripped.Normalize(NormalizationForm.FormKC);
+    }
+
+    /// <summary>The key and separator of a secret pair, then the marker; the <c>=</c> form is written back as <c>key=</c>.</summary>
+    private static readonly MatchEvaluator SecretValue = static match => match.Groups["sep"] is { Success: true } separator
+        ? string.Concat(match.Groups["key"].ValueSpan, separator.ValueSpan, SecretMarker)
+        : string.Concat(match.Groups["key"].ValueSpan, "=", SecretMarker);
 
     /// <summary>
     /// Replaces the named group of every match <paramref name="mask"/> accepts with <see cref="TokenMarker"/>. A value where no
@@ -154,16 +262,20 @@ public static partial class TelemetryRedactor
     }
 
     /// <summary>
-    /// Masks the runs of ten or more digits. One pass over the value, token by token (a maximal run of letters and digits):
-    /// a token that is a hexadecimal identifier is skipped whole; in any other token each long run is masked unless it lies
-    /// in a GUID. The GUIDs are found once per value, by shape, wherever they stand in a dashed run.
+    /// Masks the runs of ten or more digits. One pass over the value, token by token (a maximal run of letters and digits),
+    /// and within a token group by group (a maximal run of digits). A group in a hexadecimal identifier or in a GUID breaks
+    /// any chain and is never masked. Any other group extends the current chain when it follows it after exactly one space
+    /// or hyphen, the chain's separator so far, and both it and the chain's last group have two or more digits; otherwise it
+    /// starts a new chain. A chain of ten or more digits in all becomes one marker, its separators included.
     /// </summary>
     private static string MaskDigitRuns(string value)
     {
-        StringBuilder? builder = null;
-        List<Range>? guids = null;
-        var guidIndex = 0;
-        var copied = 0;
+        if (!HoldsDigitRunLength(value))
+        {
+            return value;
+        }
+
+        var runs = new DigitRuns(value);
         var i = 0;
         while (i < value.Length)
         {
@@ -174,20 +286,12 @@ public static partial class TelemetryRedactor
             }
 
             var tokenStart = i;
-            var longestRun = 0;
-            var run = 0;
             while (i < value.Length && IsTokenChar(value[i]))
             {
-                run = IsDigit(value[i]) ? run + 1 : 0;
-                longestRun = Math.Max(longestRun, run);
                 i++;
             }
 
-            if (longestRun < DigitRunLength || IsHexIdentifier(value.AsSpan(tokenStart, i - tokenStart)))
-            {
-                continue;
-            }
-
+            var hexIdentifier = IsHexIdentifier(value.AsSpan(tokenStart, i - tokenStart));
             for (var j = tokenStart; j < i;)
             {
                 if (!IsDigit(value[j]))
@@ -196,39 +300,109 @@ public static partial class TelemetryRedactor
                     continue;
                 }
 
-                var runStart = j;
+                var groupStart = j;
                 while (j < i && IsDigit(value[j]))
                 {
                     j++;
                 }
 
-                if (j - runStart < DigitRunLength)
-                {
-                    continue;
-                }
-
-                guids ??= Guids(value);
-                while (guidIndex < guids.Count && guids[guidIndex].End.Value <= runStart)
-                {
-                    guidIndex++;
-                }
-
-                if (guidIndex < guids.Count && guids[guidIndex].Start.Value <= runStart && j <= guids[guidIndex].End.Value)
-                {
-                    continue;
-                }
-
-                builder ??= new StringBuilder(value.Length);
-                builder.Append(value, copied, runStart - copied).Append(DigitsMarker);
-                copied = j;
+                runs.Add(groupStart, j, kept: hexIdentifier);
             }
         }
 
-        return builder is null ? value : builder.Append(value, copied, value.Length - copied).ToString();
+        return runs.Finish();
     }
 
-    private static bool IsDigit(char c) =>
-        char.IsAsciiDigit(c) || c is >= '\u0660' and <= '\u0669' || c is >= '\u06F0' and <= '\u06F9';
+    /// <summary>True when the value holds at least ten digits in all, the least any masked run needs.</summary>
+    private static bool HoldsDigitRunLength(string value)
+    {
+        var count = 0;
+        foreach (var c in value)
+        {
+            if (IsDigit(c) && ++count >= DigitRunLength)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>The chain of digit groups being built and the masked copy, if any (<see cref="MaskDigitRuns"/>).</summary>
+    private sealed class DigitRuns(string value)
+    {
+        private StringBuilder? _builder;
+        private List<Range>? _guids;
+        private int _guidIndex;
+        private int _copied;
+        private int _start = -1;
+        private int _end;
+        private int _digits;
+        private int _lastGroup;
+        private char _separator;
+
+        /// <summary>The next group, <c>value[start..end]</c>, in order; <paramref name="kept"/> when its token is a hex identifier.</summary>
+        public void Add(int start, int end, bool kept)
+        {
+            if (kept || InGuid(start, end))
+            {
+                Flush();
+                return;
+            }
+
+            var length = end - start;
+            if (_start >= 0 && start == _end + 1 && value[_end] is ' ' or '-' && (_separator == '\0' || _separator == value[_end])
+                && _lastGroup >= 2 && length >= 2)
+            {
+                _separator = value[_end];
+                _end = end;
+                _digits += length;
+                _lastGroup = length;
+                return;
+            }
+
+            Flush();
+            _start = start;
+            _end = end;
+            _digits = length;
+            _lastGroup = length;
+            _separator = '\0';
+        }
+
+        /// <summary>The masked copy, or the value itself when no chain reached ten digits.</summary>
+        public string Finish()
+        {
+            Flush();
+            return _builder is null ? value : _builder.Append(value, _copied, value.Length - _copied).ToString();
+        }
+
+        private void Flush()
+        {
+            if (_start >= 0 && _digits >= DigitRunLength)
+            {
+                _builder ??= new StringBuilder(value.Length);
+                _builder.Append(value, _copied, _start - _copied).Append(DigitsMarker);
+                _copied = _end;
+            }
+
+            _start = -1;
+        }
+
+        /// <summary>True when the group lies in a GUID; the GUIDs are found once per value, by shape, on the first call.</summary>
+        private bool InGuid(int start, int end)
+        {
+            _guids ??= Guids(value);
+            while (_guidIndex < _guids.Count && _guids[_guidIndex].End.Value <= start)
+            {
+                _guidIndex++;
+            }
+
+            return _guidIndex < _guids.Count && _guids[_guidIndex].Start.Value <= start && end <= _guids[_guidIndex].End.Value;
+        }
+    }
+
+    /// <summary>A decimal digit of any script (Unicode Nd): Western, Arabic-Indic, Extended Arabic-Indic, Devanagari and so on.</summary>
+    private static bool IsDigit(char c) => char.IsDigit(c);
 
     /// <summary>A trace, span or GUID "N" id: sixteen or more hexadecimal characters, at least one of them a letter.</summary>
     private static bool IsHexIdentifier(ReadOnlySpan<char> token) =>
@@ -272,8 +446,21 @@ public static partial class TelemetryRedactor
     /// <summary>The words every key of <see cref="SecretPair"/> holds.</summary>
     private static readonly string[] SecretKeys = ["pass", "pwd", "secret", "apikey", "api_key", "api-key"];
 
-    /// <summary>An email address: a local part, <c>@</c> or its URL encoding <c>%40</c>, a dotted domain.</summary>
-    [GeneratedRegex(@"[A-Za-z0-9._%+\-]+(?:@|%40)[A-Za-z0-9\-]+(?:\.[A-Za-z0-9\-]+)*\.[A-Za-z]{2,}", Linear)]
+    /// <summary>The endings of a secret key name once lower-cased without separators (<see cref="IsSecretKey"/>).</summary>
+    private static readonly string[] SecretKeySuffixes =
+        ["authorization", "cookie", "password", "passwd", "pwd", "secret", "token", "apikey", "connectionstring"];
+
+    /// <summary>Whole secret key names once lower-cased without separators: Npgsql's pool and data source names.</summary>
+    private static readonly string[] SecretKeyNames = ["dbclientconnectionpoolname", "dbnpgsqldatasource"];
+
+    /// <summary>
+    /// An email address. With <c>@</c>: a local part of the RFC 5322 unquoted characters (letters, digits,
+    /// <c>! # $ % &amp; ' * + - / = ? ^ _ ` { | } ~</c> and dots) and letters, marks and digits of any script. With its URL
+    /// encoding <c>%40</c>: a local part of the characters a query string leaves unencoded (letters, digits,
+    /// <c>. _ % + -</c>), so the <c>?</c>, <c>=</c> and <c>&amp;</c> around it are not taken in. Then a domain of two or more
+    /// dotted labels of letters, marks, digits and hyphens of any script.
+    /// </summary>
+    [GeneratedRegex(@"(?:[\p{L}\p{M}\p{N}!#$%&'*+/=?^_`{|}~.\-]+@|[\p{L}\p{M}\p{N}._%+\-]+%40)[\p{L}\p{M}\p{N}\-]+(?:\.[\p{L}\p{M}\p{N}\-]+)+", Linear)]
     private static partial Regex Email();
 
     /// <summary>A JWT: a base64url header starting <c>eyJ</c>, a payload and a signature, separated by dots.</summary>
@@ -296,11 +483,13 @@ public static partial class TelemetryRedactor
     private static partial Regex AuthorizationHeader();
 
     /// <summary>
-    /// A secret key-value pair; the key (the whole run of key characters ending in a secret word) keeps its spelling, the
-    /// separator becomes a plain <c>=</c>. No word boundary and no lazy prefix: the leftmost match starts at the beginning of
-    /// the run by itself.
+    /// A secret key-value pair; the key (the whole run of key characters ending in a secret word) keeps its spelling. Three
+    /// forms, tried in this order: a colon and a quoted value (JSON, <c>"key": "value"</c>; the value up to the closing quote
+    /// or the end of the line), a colon and a bare value (<c>key: value</c>), and <c>key = value</c>. The colon forms keep
+    /// their separator (group <c>sep</c>); the last is written back as <c>key=</c>. No word boundary and no lazy prefix: the
+    /// leftmost match starts at the beginning of the run by itself.
     /// </summary>
-    [GeneratedRegex(@"(?<key>[A-Za-z0-9_.\-]*(?i:password|passwd|pwd|secret|api[_\-]?key))\s*=\s*[^;&\s]*", Linear)]
+    [GeneratedRegex(@"(?<key>[A-Za-z0-9_.\-]*(?i:password|passwd|pwd|secret|api[_\-]?key))(?:(?<sep>""?\s*:\s*"")[^""\r\n]*|(?<sep>""?\s*:\s*)[^;&\s"",}]*|\s*=\s*[^;&\s]*)", Linear)]
     private static partial Regex SecretPair();
 
     /// <summary>The GUID shape; fixed length, so each start is tried over at most 36 characters.</summary>

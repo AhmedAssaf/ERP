@@ -37,7 +37,9 @@ public sealed class RedactingSpanProcessorTests
 
         span.GetTagItem("url.query").ShouldBeNull();
         span.GetTagItem("url.full").ShouldBe("http://keycloak:8080/admin/realms/waslabid/users");
-        span.GetTagItem("url.path").ShouldBe("/vendor/[email]");
+        // W-10 final fix wave: "/" is an RFC 5322 local-part character the platform accepts (EmailAddresses), so the path
+        // segments before the address are taken into the marker with it.
+        span.GetTagItem("url.path").ShouldBe("[email]");
         span.GetTagItem("http.request.header.authorization").ShouldBeNull();
         span.GetTagItem("http.response.header.set-cookie").ShouldBeNull();
         span.GetTagItem("db.query.text").ShouldBe("SELECT 1 /* Password=[secret]; */");
@@ -46,7 +48,7 @@ public sealed class RedactingSpanProcessorTests
         span.GetTagItem(TelemetryNames.Attributes.TenantId).ShouldBe("7d1f3c2e-4f89-11d3-9a0c-030512345678");
         span.StatusDescription.ShouldBe("No user [email].");
         span.Status.ShouldBe(ActivityStatusCode.Error);
-        span.DisplayName.ShouldBe("GET /vendor/[email]");
+        span.DisplayName.ShouldBe("GET [email]");
         span.Recorded.ShouldBeTrue("a span whose values could all be masked is still exported");
     }
 
@@ -113,6 +115,41 @@ public sealed class RedactingSpanProcessorTests
         span.TagObjects.ShouldHaveSingleItem().ShouldBe(new KeyValuePair<string, object?>(TelemetryNames.Attributes.JobType, "HealthCheckJob.RunAsync"));
         span.StatusDescription.ShouldBeNull();
         span.Recorded.ShouldBeTrue();
+    }
+
+    /// <summary>
+    /// W-10 final fix wave (final review; spec O-11): the user agent is a request header value and never leaves; a tag under a
+    /// secret key name (Npgsql's connection-string names, credentials) is dropped whatever its value holds.
+    /// </summary>
+    [Fact]
+    public void A_span_loses_its_user_agent_and_every_tag_under_a_secret_key_name()
+    {
+        using var span = Recorded("SELECT");
+        span.SetTag("user_agent.original", "Mozilla/5.0 (Windows NT 10.0) probe");
+        span.SetTag("db.npgsql.data_source", "Host=postgres;Port=5432;Username=erp_app;Database=erp");
+        span.SetTag("db.client.connection.pool.name", "Host=postgres;Username=erp_app");
+        span.SetTag("client_secret", "opaque-value");
+        span.SetTag("X-Api-Key", "opaque-value");
+        span.SetTag("url.path", "/kept");
+        span.Stop();
+
+        new RedactingSpanProcessor().OnEnd(span);
+
+        span.TagObjects.ShouldBe([new KeyValuePair<string, object?>("url.path", "/kept")]);
+        span.Recorded.ShouldBeTrue();
+    }
+
+    /// <summary>An event tag under a secret key name cannot be removed either, so the span is not exported.</summary>
+    [Fact]
+    public void A_span_with_an_event_tag_under_a_secret_key_name_is_not_exported()
+    {
+        using var span = Recorded("POST");
+        span.AddEvent(new ActivityEvent("sent", tags: new ActivityTagsCollection { ["authorization"] = "opaque-value" }));
+        span.Stop();
+
+        new RedactingSpanProcessor().OnEnd(span);
+
+        span.Recorded.ShouldBeFalse();
     }
 
     private static Activity Recorded(string name)

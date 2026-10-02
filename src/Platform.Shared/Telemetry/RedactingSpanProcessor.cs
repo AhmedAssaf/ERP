@@ -5,8 +5,10 @@ namespace Platform.Shared.Telemetry;
 
 /// <summary>
 /// The last processor of both hosts' tracer pipelines, before the exporters (W-10, plan task 3; spec O-10, O-11, section
-/// 7.1). When a span ends: <c>url.query</c> and every <c>http.request.header.*</c> and <c>http.response.header.*</c> tag are
-/// removed; <c>url.full</c> loses its query and fragment; every other string tag (and string array tag), the display name and
+/// 7.1). When a span ends: <c>url.query</c>, <c>user_agent.original</c> (a request header value, O-11), every
+/// <c>http.request.header.*</c> and <c>http.response.header.*</c> tag and every tag under a secret key name
+/// (<see cref="TelemetryRedactor.IsSecretKey"/>, such as Npgsql's <c>db.npgsql.data_source</c>, a connection string when the
+/// data source has no name) are removed; <c>url.full</c> loses its query and fragment; every other string tag (and string array tag), the display name and
 /// the status description pass through <see cref="TelemetryRedactor"/>.
 /// </summary>
 /// <remarks>
@@ -20,6 +22,7 @@ namespace Platform.Shared.Telemetry;
 internal sealed class RedactingSpanProcessor : BaseProcessor<Activity>
 {
     private const string UrlQuery = "url.query";
+    private const string UserAgent = "user_agent.original";
     private const string UrlFull = "url.full";
     private const string RequestHeaderPrefix = "http.request.header.";
     private const string ResponseHeaderPrefix = "http.response.header.";
@@ -84,7 +87,8 @@ internal sealed class RedactingSpanProcessor : BaseProcessor<Activity>
 
     private static (bool Changed, object? Value) Replacement(string key, object? value)
     {
-        if (key == UrlQuery || key.StartsWith(RequestHeaderPrefix, StringComparison.Ordinal) || key.StartsWith(ResponseHeaderPrefix, StringComparison.Ordinal))
+        if (key is UrlQuery or UserAgent || key.StartsWith(RequestHeaderPrefix, StringComparison.Ordinal)
+            || key.StartsWith(ResponseHeaderPrefix, StringComparison.Ordinal) || TelemetryRedactor.IsSecretKey(key))
         {
             return (true, null);
         }
@@ -129,12 +133,15 @@ internal sealed class RedactingSpanProcessor : BaseProcessor<Activity>
         }
     }
 
-    /// <summary>True when a string tag of the event holds a value <see cref="TelemetryRedactor"/> would mask.</summary>
+    /// <summary>
+    /// True when a tag of the event is under a secret key name, or a string tag holds a value <see cref="TelemetryRedactor"/>
+    /// would mask.
+    /// </summary>
     private static bool NeedsMasking(in ActivityEvent activityEvent)
     {
         foreach (ref readonly var tag in activityEvent.EnumerateTagObjects())
         {
-            if (Mask(tag.Value).Changed)
+            if (TelemetryRedactor.IsSecretKey(tag.Key) || Mask(tag.Value).Changed)
             {
                 return true;
             }

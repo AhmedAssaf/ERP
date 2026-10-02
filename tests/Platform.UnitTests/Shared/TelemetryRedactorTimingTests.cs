@@ -69,6 +69,21 @@ public sealed class TelemetryRedactorTimingTests
         ["authorization, repeated"] = n => Repeat("authorization: ", n),
         ["authorization, long value"] = n => "Authorization: " + Repeat("x", n - 15),
         ["authorization, long white space"] = n => "Authorization:" + Repeat(" ", n - 15) + "x",
+        // W-10 final fix wave: colon and JSON secret pairs, RFC 5322 and Unicode emails, grouped digits, normalisation.
+        ["secret pair, colon repeated"] = n => Repeat("password:", n),
+        ["secret pair, json quote never closed"] = n => "\"password\":\"" + Repeat("a", n - 12),
+        ["secret pair, json pairs repeated"] = n => Repeat("\"pwd\": \"", n),
+        ["secret pair, long white space before the colon"] = n => "secret" + Repeat(" ", n - 8) + ":x",
+        ["email, rfc local part without domain"] = n => Repeat("!#$%&'*+/=?^_`{|}~.", n - 1) + "@",
+        ["email, rfc local part, many at signs"] = n => Repeat("a=b@c", n),
+        ["email, unicode domain without a dot"] = n => "a@" + Repeat("شركة", n - 2),
+        ["email, unicode dotted labels"] = n => "a@" + Repeat("ش.", n - 2),
+        ["digits, spaced pairs"] = n => Repeat("12 ", n),
+        ["digits, alternating separators"] = n => Repeat("12 34-", n),
+        ["digits, single digits spaced"] = n => Repeat("1 ", n),
+        ["normalise, zero-width split digits"] = n => Repeat("1‍", n),
+        ["normalise, full-width at signs and digits"] = n => Repeat("１＠", n),
+        ["normalise, arabic text with direction marks"] = n => Repeat("تم‏ إرسال ", n),
     };
 
     private static string Repeat(string unit, int length)

@@ -1,4 +1,5 @@
 using Platform.Shared.Telemetry;
+using Platform.Shared.Text;
 
 namespace Platform.UnitTests.Shared;
 
@@ -103,4 +104,151 @@ public sealed class TelemetryRedactorTests
         TelemetryRedactor.Redact("cr1010123456").ShouldBe("cr[digits]");
         TelemetryRedactor.Redact("vat:310123456789003").ShouldBe("vat:[digits]");
     }
+
+    // W-10 final fix wave (pentest F-OBS-01 to F-OBS-07, final review): grouped digits, normalisation, Unicode classes,
+    // colon secret pairs and key names. The pentest's own proofs are in Security/TelemetryRedactorBypassTests.
+
+    [Theory]
+    [InlineData("on 2026-10-02 12:34:56")]
+    [InlineData("2026-10-02")]
+    [InlineData("from 2026-10-02 12:34:56 +03:00 to 2026-10-03 00:00:00")]
+    [InlineData("at 2026-10-02T12:34:56.1234567Z")]
+    [InlineData("host 192.168.100.200 answered")]
+    [InlineData("SDK 10.0.401 on 2026-10-02 12:34:56")]
+    [InlineData("company 3f2504e0-4f89-11d3-9a0c-0305e82c3301")]
+    [InlineData("job 12345678-1234-1234-1234-123456789012 done")]
+    [InlineData("trace 4bf92f3577b34da6a3ce929d0e0e4736")]
+    [InlineData("span 00f067aa0ba902b7")]
+    [InlineData("took 00:00:01.2345678")]
+    [InlineData("answered 404")]
+    [InlineData("listening on http://127.0.0.1:5273 and https://acme.localhost:8443")]
+    [InlineData("attempts 1 2 3 4 5 6 7 8 9 10")]
+    public void Dates_times_addresses_versions_ids_and_short_numbers_are_kept(string value) =>
+        TelemetryRedactor.Redact(value).ShouldBeSameAs(value);
+
+    [Theory]
+    [InlineData("Phone: 055 123 4567.", "Phone: [digits].")]
+    [InlineData("Phone: 055-123-4567.", "Phone: [digits].")]
+    [InlineData("call +1 555 123 4567", "call +1 [digits]")]
+    [InlineData("IBAN SA03 8000 0000 6080 1016 7519 refused", "IBAN SA[digits] refused")]
+    [InlineData("on 2026-10-02 call 055 123 4567", "on 2026-10-02 call [digits]")]
+    public void Digit_groups_joined_by_one_space_or_hyphen_count_as_one_run(string value, string expected) =>
+        TelemetryRedactor.Redact(value).ShouldBe(expected);
+
+    [Theory]
+    [InlineData("تم‏ الإرسال إلى الشركة")]
+    [InlineData("ﻻ presentation form, nothing to mask")]
+    [InlineData("soft­hyphen kept")]
+    public void A_value_that_is_not_ascii_with_nothing_to_mask_comes_back_as_the_same_instance(string value) =>
+        TelemetryRedactor.Redact(value).ShouldBeSameAs(value);
+
+    [Theory]
+    [InlineData("ahmad​@example.sa", "[email]")]
+    [InlineData("CR 1010­123456 ‏كتب", "CR [digits] كتب")]
+    [InlineData("CR १०१०१२३४५६ (Devanagari)", "CR [digits] (Devanagari)")]
+    [InlineData("phone ０５５ １２３ ４５６７", "phone [digits]")]
+    public void A_masked_value_comes_back_normalised_without_format_characters(string value, string expected) =>
+        TelemetryRedactor.Redact(value).ShouldBe(expected);
+
+    [Fact]
+    public void A_lone_surrogate_does_not_stop_the_masking()
+    {
+        TelemetryRedactor.Redact("\uD800 to ahmad@example.sa").ShouldEndWith("to [email]");
+        const string nothing = "\uDC00 nothing";
+        TelemetryRedactor.Redact(nothing).ShouldBeSameAs(nothing);
+    }
+
+    public static TheoryData<string> AcceptedAddresses()
+    {
+        var data = new TheoryData<string>
+        {
+            "ahmad@acme.sa",
+            "Ahmad.Alharbi@Acme.COM.sa",
+            "first.last+tenders@mail.acme-co.sa",
+            "1@acme.sa",
+            "a@1acme.sa",
+            "a@acme.123",
+            "x@a.b",
+            "o'neil.and.sons@acme.sa",
+            "very.long.local.part.with.many.dots@sub.domain.example.travel",
+        };
+        foreach (var c in "!#$%&'*+/=?^_`{|}~-")
+        {
+            data.Add($"a{c}b@acme.sa");
+            data.Add($"{c}x@acme.sa");
+            data.Add($"x.{c}@acme.sa");
+        }
+
+        return data;
+    }
+
+    /// <summary>
+    /// Every local-part character <see cref="EmailAddresses"/> accepts (F-06 invitations, F-11 vendor contacts), at the start,
+    /// in the middle and after a dot, and the domain shapes it accepts: nothing of an address is left before the marker.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(AcceptedAddresses))]
+    public void Every_address_the_platform_accepts_is_masked_whole(string address)
+    {
+        EmailAddresses.Normalize(address).ShouldNotBeNull("the platform accepts this address");
+
+        TelemetryRedactor.Redact($"invitation to {address} failed").ShouldBe("invitation to [email] failed");
+        TelemetryRedactor.Redact($"<{address}>").ShouldBe("<[email]>");
+    }
+
+    [Theory]
+    [InlineData("{\"password\":\"hunter2\",\"user\":\"u\"}", "{\"password\":\"[secret]\",\"user\":\"u\"}")]
+    [InlineData("{\"client_secret\": \"two words\", \"user\": \"u\"}", "{\"client_secret\": \"[secret]\", \"user\": \"u\"}")]
+    [InlineData("password: hunter2 next", "password: [secret] next")]
+    [InlineData("apikey : hunter2, next", "apikey : [secret], next")]
+    [InlineData("PASSWORD = hunter2 next", "PASSWORD=[secret] next")]
+    public void A_secret_pair_written_with_a_colon_or_as_json_is_masked(string value, string expected) =>
+        TelemetryRedactor.Redact(value).ShouldBe(expected);
+
+    [Theory]
+    [InlineData("Invalid password")]
+    [InlineData("Secrets: 3 loaded")]
+    [InlineData("password reset requested at 12:30")]
+    public void A_secret_word_without_a_value_is_kept(string value) =>
+        TelemetryRedactor.Redact(value).ShouldBeSameAs(value);
+
+    [Theory]
+    [InlineData("Authorization")]
+    [InlineData("proxy-authorization")]
+    [InlineData("Cookie")]
+    [InlineData("Set-Cookie")]
+    [InlineData("password")]
+    [InlineData("NewPassword")]
+    [InlineData("Pwd")]
+    [InlineData("passwd")]
+    [InlineData("secret")]
+    [InlineData("client_secret")]
+    [InlineData("ClientSecret")]
+    [InlineData("token")]
+    [InlineData("access_token")]
+    [InlineData("api-key")]
+    [InlineData("X-Api-Key")]
+    [InlineData("APIKEY")]
+    [InlineData("connection-string")]
+    [InlineData("ConnectionString")]
+    [InlineData("db.client.connection.pool.name")]
+    [InlineData("db.npgsql.data_source")]
+    [InlineData("DB_NPGSQL_DATA_SOURCE")]
+    public void A_secret_key_name_is_recognised_whatever_its_case_and_separators(string key) =>
+        TelemetryRedactor.IsSecretKey(key).ShouldBeTrue();
+
+    [Theory]
+    [InlineData("TraceId")]
+    [InlineData("SpanId")]
+    [InlineData("waslabid.tenant.id")]
+    [InlineData("url.path")]
+    [InlineData("user_agent.original")]
+    [InlineData("SourceContext")]
+    [InlineData("ConnectionId")]
+    [InlineData("token_type")]
+    [InlineData("PasswordPolicy")]
+    [InlineData("db.system.name")]
+    [InlineData("")]
+    public void An_ordinary_key_name_is_not_a_secret(string key) =>
+        TelemetryRedactor.IsSecretKey(key).ShouldBeFalse();
 }

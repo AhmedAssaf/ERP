@@ -138,6 +138,11 @@ public static class TelemetryModule
             builder.Logging.ClearProviders();
         }
 
+        // The default host adds TraceId, SpanId and ParentId to every record as a scope (activity tracking). The OTLP record
+        // carries trace_id and span_id itself, Serilog takes them from Activity.Current; the scope copies would only be masked
+        // as long numbers when all their hexadecimal digits happen to be decimal ones (W-10 final fix wave).
+        builder.Logging.Configure(options => options.ActivityTrackingOptions = ActivityTrackingOptions.None);
+
         if (exportToCollector)
         {
             builder.Services.AddSingleton<ILogEventSink, OtlpLogSink>();

@@ -1,6 +1,9 @@
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Platform.Shared.Telemetry;
 
 namespace Platform.UnitTests.Shared;
@@ -62,6 +65,23 @@ public class TelemetryModuleTests
         var builder = new HostApplicationBuilder(new HostApplicationBuilderSettings { DisableDefaults = true, EnvironmentName = environment });
 
         Should.NotThrow(() => builder.AddPlatformTelemetry(TelemetryNames.Services.Worker));
+    }
+
+    /// <summary>
+    /// W-10 final fix wave (E): the default host turns on Microsoft.Extensions.Logging activity tracking, which adds TraceId,
+    /// SpanId and ParentId as a scope to every record; the OTLP record carries trace_id and span_id itself, so tracking is off.
+    /// </summary>
+    [Fact]
+    public void Logging_adds_no_activity_ids_of_its_own()
+    {
+        var builder = new HostApplicationBuilder(new HostApplicationBuilderSettings { EnvironmentName = "Testing" });
+        builder.Services.BuildServiceProvider().GetRequiredService<IOptions<LoggerFactoryOptions>>().Value.ActivityTrackingOptions
+            .ShouldNotBe(ActivityTrackingOptions.None, "the default host tracks activities, so this test can fail");
+
+        builder.AddPlatformTelemetry(TelemetryNames.Services.Worker);
+
+        using var services = builder.Services.BuildServiceProvider();
+        services.GetRequiredService<IOptions<LoggerFactoryOptions>>().Value.ActivityTrackingOptions.ShouldBe(ActivityTrackingOptions.None);
     }
 
     [Theory]

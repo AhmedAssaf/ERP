@@ -50,7 +50,9 @@ public sealed partial class TelemetryLogRedactionTests
         var byEmail = Member(structure, "ByEmail").ShouldBeOfType<DictionaryValue>();
         byEmail.Elements.Keys.ShouldBe([new ScalarValue("[email]")]);
         var inner = Member(structure, "Inner").ShouldBeOfType<StructureValue>();
-        Member(inner, "Settings").ShouldBe(Scalar("Password=[secret];Host=[email]"));
+        // W-10 final fix wave: "=" is an RFC 5322 local-part character the platform accepts (EmailAddresses), so "Host=" is
+        // taken into the marker with the address.
+        Member(inner, "Settings").ShouldBe(Scalar("Password=[secret];[email]"));
 
         logEvent.Properties["Context"].ShouldBe(Scalar(typeof(DefaultHttpContext).FullName!));
         logEvent.Properties["Request"].ShouldBe(Scalar(context.Request.GetType().FullName!));
@@ -190,6 +192,103 @@ public sealed partial class TelemetryLogRedactionTests
         logEvent.SpanId.ShouldBeNull();
     }
 
+    /// <summary>
+    /// W-10 final fix wave (A.3; also the deferred task 3 and task 4 gaps): a property, a dictionary key or a structure member
+    /// named as a credential or a connection string has its whole value replaced, whatever scheme or shape it holds (Digest,
+    /// Token, unpadded Basic, a cookie, a number) and also when a header collection is logged without <c>@</c>.
+    /// </summary>
+    [Fact]
+    public void A_value_under_a_secret_key_name_is_replaced_whole()
+    {
+        var sink = new ListSink();
+        var headers = new Dictionary<string, string[]>
+        {
+            ["Authorization"] = ["Token opaque-header-value"],
+            ["Cookie"] = [".AspNetCore.Cookies=CfDJ8opaque"],
+            ["Accept"] = ["text/html"],
+        };
+
+        using (var logger = TelemetryModule.CreateLogger(TelemetryNames.Services.Web, [sink]))
+        {
+            logger.Information(
+                "Probe {Authorization} {Set_Cookie} {ConnectionString} {ApiKey} {Headers} {@Login}",
+                "Digest username=\"monitor\", response=\"6629fae4\"",
+                ".AspNetCore.Cookies=CfDJ8opaque; path=/",
+                "Host=postgres;Username=erp_app;Database=erp",
+                731_245,
+                headers,
+                new { User = "kept", Password = "opaque-password", Token = OpaqueTokens });
+        }
+
+        var logEvent = sink.Events.ShouldHaveSingleItem();
+        logEvent.Properties["Authorization"].ShouldBe(Scalar("[secret]"));
+        logEvent.Properties["Set_Cookie"].ShouldBe(Scalar("[secret]"));
+        logEvent.Properties["ConnectionString"].ShouldBe(Scalar("[secret]"));
+        logEvent.Properties["ApiKey"].ShouldBe(Scalar("[secret]"));
+        var byName = logEvent.Properties["Headers"].ShouldBeOfType<DictionaryValue>().Elements
+            .ToDictionary(e => (string)e.Key.Value!, e => e.Value.ToString());
+        byName["Authorization"].ShouldBe("\"[secret]\"");
+        byName["Cookie"].ShouldBe("\"[secret]\"");
+        byName["Accept"].ShouldBe("[\"text/html\"]");
+        var login = logEvent.Properties["Login"].ShouldBeOfType<StructureValue>();
+        Member(login, "User").ShouldBe(Scalar("kept"));
+        Member(login, "Password").ShouldBe(Scalar("[secret]"));
+        Member(login, "Token").ShouldBe(Scalar("[secret]"));
+        var rendered = logEvent.RenderMessage(CultureInfo.InvariantCulture);
+        foreach (var leaked in new[] { "6629fae4", "CfDJ8", "erp_app", "731245", "opaque" })
+        {
+            rendered.ShouldNotContain(leaked);
+        }
+    }
+
+    /// <summary>
+    /// W-10 final fix wave (E): a trace, span or parent id under its own name is never taken for a long number, even when
+    /// every hexadecimal digit of it is a decimal one; the same digits under another name are masked.
+    /// </summary>
+    [Fact]
+    public void Trace_span_and_parent_ids_under_their_own_names_are_kept_even_when_all_decimal()
+    {
+        var sink = new ListSink();
+
+        using (var logger = TelemetryModule.CreateLogger(TelemetryNames.Services.Web, [sink]))
+        {
+            logger.Information(
+                "Ids {TraceId} {SpanId} {ParentId} {Other}",
+                "12345678901234567890123456789012", "1234567890123456", "0000000000000000", "1234567890123456");
+        }
+
+        var logEvent = sink.Events.ShouldHaveSingleItem();
+        logEvent.Properties["TraceId"].ShouldBe(Scalar("12345678901234567890123456789012"));
+        logEvent.Properties["SpanId"].ShouldBe(Scalar("1234567890123456"));
+        logEvent.Properties["ParentId"].ShouldBe(Scalar("0000000000000000"));
+        logEvent.Properties["Other"].ShouldBe(Scalar("[digits]"));
+    }
+
+    /// <summary>
+    /// W-10 final fix wave (H.3): a Microsoft.Extensions.Logging scope becomes event properties before the last enricher runs,
+    /// so a scope value holding an address is masked like any other property (the order is Serilog's own; this pins it).
+    /// </summary>
+    [Fact]
+    public void A_log_scope_value_holding_an_email_is_masked()
+    {
+        var sink = new ListSink();
+
+        using (var provider = new SerilogLoggerProvider(TelemetryModule.CreateLogger(TelemetryNames.Services.Web, [sink]), dispose: true))
+        {
+            var library = provider.CreateLogger("Some.Library.Mailer");
+            using (library.BeginScope(new Dictionary<string, object?> { ["Contact"] = Email }))
+            using (library.BeginScope("Inviting {Address}", Email))
+            {
+                Library.Plain(library);
+            }
+        }
+
+        var logEvent = sink.Events.ShouldHaveSingleItem();
+        logEvent.Properties["Contact"].ShouldBe(Scalar("[email]"));
+        logEvent.Properties["Address"].ShouldBe(Scalar("[email]"));
+        logEvent.Properties.Values.ShouldAllBe(value => !value.ToString().Contains("ahmad", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void A_query_string_property_is_blanked_in_the_property_and_the_rendered_message()
     {
@@ -243,6 +342,8 @@ public sealed partial class TelemetryLogRedactionTests
     {
         ComponentEnricher.ComponentOf(category, TelemetryNames.Services.Worker).ShouldBe(component);
     }
+
+    private static readonly string[] OpaqueTokens = ["opaque-token"];
 
     private static LogEventPropertyValue Member(StructureValue structure, string name) =>
         structure.Properties.Single(p => p.Name == name).Value;
