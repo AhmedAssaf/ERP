@@ -4,7 +4,8 @@ namespace Platform.Modules.Operations.Health;
 
 /// <summary>
 /// Configuration of the Telemetry check (W-10, O-14): the OpenTelemetry Collector's <c>health_check</c> extension and
-/// Elasticsearch's <c>/_cluster/health</c>, read with the monitoring user (cluster privilege <c>monitor</c> only). The
+/// Elasticsearch's <c>/_cluster/health</c> and, beside it, <c>/_nodes/stats/fs</c> (the disk use per node; W-10 follow-up),
+/// both read with the monitoring user (cluster privilege <c>monitor</c> only). The
 /// password comes from user secrets on a developer machine and the secret store on the pilot, never from an appsettings
 /// file (N-10). A class rather than a record, so no generated <c>ToString</c> ever prints the password.
 /// </summary>
@@ -21,6 +22,7 @@ internal sealed class TelemetryHealthSettings
         ArgumentNullException.ThrowIfNull(elasticsearchHealthUrl);
         CollectorHealthUrl = collectorHealthUrl;
         ElasticsearchHealthUrl = elasticsearchHealthUrl;
+        ElasticsearchNodesFsUrl = NodesFsUrl(elasticsearchHealthUrl);
         ElasticsearchUser = elasticsearchUser;
         ElasticsearchPassword = elasticsearchPassword;
     }
@@ -29,9 +31,23 @@ internal sealed class TelemetryHealthSettings
 
     public Uri ElasticsearchHealthUrl { get; }
 
+    /// <summary>
+    /// <c>_nodes/stats/fs</c> beside the cluster health URL (the same scheme, host, port and any path prefix before
+    /// <c>/_cluster/health</c>), filtered to each node's file system totals.
+    /// </summary>
+    public Uri ElasticsearchNodesFsUrl { get; }
+
     public string? ElasticsearchUser { get; }
 
     public string? ElasticsearchPassword { get; }
+
+    private static Uri NodesFsUrl(Uri healthUrl)
+    {
+        const string Health = "/_cluster/health";
+        var path = healthUrl.AbsolutePath.TrimEnd('/');
+        var prefix = path.EndsWith(Health, StringComparison.OrdinalIgnoreCase) ? path[..^Health.Length] : string.Empty;
+        return new UriBuilder(healthUrl) { Path = prefix + "/_nodes/stats/fs", Query = "filter_path=nodes.*.fs.total", Fragment = string.Empty }.Uri;
+    }
 
     /// <summary>
     /// The settings when both health URLs are configured; null otherwise, and the host then has no Telemetry check (a host

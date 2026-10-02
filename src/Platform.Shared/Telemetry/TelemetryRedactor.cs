@@ -24,11 +24,13 @@ namespace Platform.Shared.Telemetry;
 /// or white space) and the JSON forms <c>"key":"value"</c> and <c>"key": "value"</c> (the whole quoted value), the colon
 /// forms with their separator kept;</item>
 /// <item>a run of ten or more decimal digits of any script becomes <c>[digits]</c>: CR, national id, iqama, phone, VAT and
-/// IBAN numbers all have ten or more. Groups of two or more digits joined by one space or one hyphen, the same separator
-/// throughout, count as one run (<c>055 123 4567</c>, <c>SA03 8000 0000 6080 1016 7519</c>), while a date and time
-/// (<c>2026-10-02 12:34:56</c>), an IP address, a version or a list of single digits is kept. A run inside a hexadecimal
-/// identifier (a span, trace or GUID "N" id: exactly 16 or 32 lower-case hexadecimal characters with at least one letter) or
-/// inside a GUID is kept.</item>
+/// IBAN numbers all have ten or more. Digit groups joined as people write phones and IBANs count as one run
+/// (<c>055 123 4567</c>, <c>055-123 4567</c>, <c>(011) 465 1234</c>, <c>+966 5 5123 4567</c>, <c>055.123.4567</c>,
+/// <c>SA03-8000-0000-6080-1016-7519</c>), while a date and time (<c>2026-10-02 12:34:56</c>), an IP address, a version, a
+/// list of single digits, a platform reference (<c>RFP-2026-000045</c>) and a date with a short suffix (<c>2026-10-02-15</c>)
+/// are kept;
+/// the rules are on <see cref="MaskDigitRuns"/>. A run inside a hexadecimal identifier (a span, trace or GUID "N" id:
+/// exactly 16 or 32 lower-case hexadecimal characters with at least one letter) or inside a GUID is kept.</item>
 /// </list>
 /// A value that is not pure ASCII is matched on a normalised copy: Unicode format characters (zero-width joiners and
 /// spaces, direction marks and isolates, the soft hyphen) removed, then NFKC (full-width <c>＠</c> and digits become ASCII),
@@ -263,11 +265,33 @@ public static partial class TelemetryRedactor
     }
 
     /// <summary>
-    /// Masks the runs of ten or more digits. One pass over the value, token by token (a maximal run of letters and digits),
-    /// and within a token group by group (a maximal run of digits). A group in a hexadecimal identifier or in a GUID breaks
-    /// any chain and is never masked. Any other group extends the current chain when it follows it after exactly one space
-    /// or hyphen, the chain's separator so far, and both it and the chain's last group have two or more digits; otherwise it
-    /// starts a new chain. A chain of ten or more digits in all becomes one marker, its separators included.
+    /// Masks the runs of ten or more digits (W-10 follow-ups 2026-10-02: phones as people group them, references and dates
+    /// kept). One pass collects the digit groups (maximal runs of digits) token by token (a token is a maximal run of ASCII
+    /// letters and digits); a group in a hexadecimal identifier or a GUID is kept and breaks any chain. A second pass, left to
+    /// right, takes at each group the first of these that applies:
+    /// <list type="number">
+    /// <item>a date, three groups joined by the same <c>-</c> or <c>.</c>, <c>yyyy-mm-dd</c> or <c>dd-mm-yyyy</c> with a year
+    /// from 1900 to 2099: kept, and it breaks any chain (<c>2026-10-02 12:34</c>). Only a <c>yyyy-mm-dd</c> date joined by
+    /// hyphens keeps a suffix, a hyphen and one or two digits (<c>2026-10-02-15</c>), unless a chain or a dotted run goes on from that suffix, which then belongs to them (<c>2026-10-02-05 5123 4567</c> is masked, fix round 2); any other hyphen and group after a date
+    /// makes it no date, and it is read as a chain (<c>2026-10-02-153045</c> is masked);</item>
+    /// <item>a platform reference (fix round 1): right after <c>RFP</c>, <c>RFQ</c>, <c>PO</c> or <c>TND</c> (any case) and
+    /// a hyphen, a year from 2000 to 2049, a hyphen and one sequence number of up to six digits from which no chain and no
+    /// dotted run goes on: kept (<c>RFP-2026-000045</c>). Any other word (<c>ID-2012-345678</c>), a longer number or a
+    /// sequence that goes on (<c>RFP-2026-055-123-4567</c>, <c>RFP-2026-055 123 4567</c>) is a chain;</item>
+    /// <item>a dotted run, groups joined by single dots: masked whole when it has three or more groups, every group after the
+    /// first of two or more digits (any, after a <c>+</c>), ten digits or more in all, and is not an IPv4 address (four groups
+    /// of up to three digits, each at most 255, no leading zero); kept otherwise (<c>055.123.4567</c>, <c>966.551.234.567</c>,
+    /// <c>+1.212.555.1234</c> masked; <c>192.168.100.200</c>, <c>10.0.26100.4061</c>, <c>12345678.90</c> kept). A run kept
+    /// whole whose last group goes on into a chain hands that group to it (<c>step 1.055 123 4567</c>);</item>
+    /// <item>otherwise a chain: groups joined by a phone separator (an optional <c>)</c>, up to two spaces or tabs, an
+    /// optional <c>-</c>, up to two spaces or tabs, an optional <c>(</c>; spaces and hyphens may mix: <c>055-123 4567</c>,
+    /// <c>(011) 465 1234</c>), where a group of one digit joins only as a token of its own and never next to another
+    /// single digit (<c>+966 5 5123 4567</c> and <c>0 55 123 4567</c> join; <c>1 2 3 4 5 6 7 8 9 10</c> does not). The
+    /// chain stops before a date and before a group that starts a dotted run, but takes that group when it then reaches ten
+    /// digits and the run is no IPv4 address (<c>055 123 4567.89</c>); with ten or more digits it is masked.</item>
+    /// </list>
+    /// A single group of ten or more digits is always masked, wherever it stands. Every step looks at a bounded number of
+    /// characters per group or consumes the groups it reads, so the time stays linear in the value.
     /// </summary>
     private static string MaskDigitRuns(string value)
     {
@@ -276,42 +300,7 @@ public static partial class TelemetryRedactor
             return value;
         }
 
-        var runs = new DigitRuns(value);
-        var i = 0;
-        while (i < value.Length)
-        {
-            if (!IsTokenChar(value[i]))
-            {
-                i++;
-                continue;
-            }
-
-            var tokenStart = i;
-            while (i < value.Length && IsTokenChar(value[i]))
-            {
-                i++;
-            }
-
-            var hexIdentifier = IsHexIdentifier(value.AsSpan(tokenStart, i - tokenStart));
-            for (var j = tokenStart; j < i;)
-            {
-                if (!IsDigit(value[j]))
-                {
-                    j++;
-                    continue;
-                }
-
-                var groupStart = j;
-                while (j < i && IsDigit(value[j]))
-                {
-                    j++;
-                }
-
-                runs.Add(groupStart, j, kept: hexIdentifier);
-            }
-        }
-
-        return runs.Finish();
+        return new DigitChains(value, DigitGroups(value)).Mask();
     }
 
     /// <summary>True when the value holds at least ten digits in all, the least any masked run needs.</summary>
@@ -329,76 +318,430 @@ public static partial class TelemetryRedactor
         return false;
     }
 
-    /// <summary>The chain of digit groups being built and the masked copy, if any (<see cref="MaskDigitRuns"/>).</summary>
-    private sealed class DigitRuns(string value)
+    /// <summary>
+    /// A maximal run of digits, <c>value[Start..End]</c>. <see cref="Kept"/>: in a hexadecimal identifier or a GUID.
+    /// <see cref="Whole"/>: the whole token. <see cref="AfterReferencePrefix"/>: the token starts right after one of
+    /// <see cref="ReferencePrefixes"/> (any case) and a hyphen (<c>RFP-</c>).
+    /// </summary>
+    private readonly record struct DigitGroup(int Start, int End, bool Kept, bool Whole, bool AfterReferencePrefix)
     {
-        private StringBuilder? _builder;
-        private List<Range>? _guids;
-        private int _guidIndex;
-        private int _copied;
-        private int _start = -1;
-        private int _end;
-        private int _digits;
-        private int _lastGroup;
-        private char _separator;
+        public int Length => End - Start;
+    }
 
-        /// <summary>The next group, <c>value[start..end]</c>, in order; <paramref name="kept"/> when its token is a hex identifier.</summary>
-        public void Add(int start, int end, bool kept)
+    /// <summary>Every digit group of the value, in order (<see cref="MaskDigitRuns"/>).</summary>
+    private static List<DigitGroup> DigitGroups(string value)
+    {
+        var groups = new List<DigitGroup>();
+        var guids = new GuidRanges(value);
+        var previousStart = -1;
+        var previousEnd = -1;
+        var previousIsWord = false;
+        var i = 0;
+        while (i < value.Length)
         {
-            if (kept || InGuid(start, end))
+            if (!IsTokenChar(value[i]))
             {
-                Flush();
-                return;
+                i++;
+                continue;
             }
 
-            var length = end - start;
-            if (_start >= 0 && start == _end + 1 && value[_end] is ' ' or '-' && (_separator == '\0' || _separator == value[_end])
-                && _lastGroup >= 2 && length >= 2)
+            var tokenStart = i;
+            var isWord = true;
+            while (i < value.Length && IsTokenChar(value[i]))
             {
-                _separator = value[_end];
-                _end = end;
-                _digits += length;
-                _lastGroup = length;
-                return;
+                isWord &= char.IsAsciiLetter(value[i]);
+                i++;
             }
 
-            Flush();
-            _start = start;
-            _end = end;
-            _digits = length;
-            _lastGroup = length;
-            _separator = '\0';
+            var hexIdentifier = IsHexIdentifier(value.AsSpan(tokenStart, i - tokenStart));
+            var afterPrefix = previousIsWord && previousEnd == tokenStart - 1 && value[previousEnd] == '-'
+                && IsReferencePrefix(value.AsSpan(previousStart, previousEnd - previousStart));
+            for (var j = tokenStart; j < i;)
+            {
+                if (!IsDigit(value[j]))
+                {
+                    j++;
+                    continue;
+                }
+
+                var start = j;
+                while (j < i && IsDigit(value[j]))
+                {
+                    j++;
+                }
+
+                var kept = hexIdentifier || guids.Contains(start, j);
+                groups.Add(new DigitGroup(start, j, kept, start == tokenStart && j == i, afterPrefix && start == tokenStart));
+            }
+
+            previousStart = tokenStart;
+            previousEnd = i;
+            previousIsWord = isWord;
         }
 
-        /// <summary>The masked copy, or the value itself when no chain reached ten digits.</summary>
-        public string Finish()
+        return groups;
+    }
+
+    /// <summary>
+    /// The platform's own reference prefixes (fix round 1, controller ruling 2026-10-02): tenders, requests for proposal and
+    /// quotation, purchase orders. Only these keep a reference such as <c>RFP-2026-000045</c> unmasked.
+    /// </summary>
+    private static readonly string[] ReferencePrefixes = ["RFP", "RFQ", "PO", "TND"];
+
+    private static bool IsReferencePrefix(ReadOnlySpan<char> word)
+    {
+        foreach (var prefix in ReferencePrefixes)
         {
-            Flush();
+            if (word.Equals(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>What separates two neighbouring digit groups (<see cref="DigitChains.Between"/>).</summary>
+    private enum Separator
+    {
+        None,
+        Hyphen,
+        Dot,
+        Phone,
+    }
+
+    /// <summary>The masking pass over the digit groups of one value, and the masked copy, if any (<see cref="MaskDigitRuns"/>).</summary>
+    private sealed class DigitChains(string value, List<DigitGroup> groups)
+    {
+        /// <summary>The most digits a reference's sequence number has (<c>RFP-2026-000045</c>).</summary>
+        private const int MaxSequenceDigits = 6;
+
+        /// <summary>The most digits a date's suffix has (<c>2026-10-02-15</c>).</summary>
+        private const int MaxDateSuffixDigits = 2;
+
+        private StringBuilder? _builder;
+        private int _copied;
+
+        public string Mask()
+        {
+            var i = 0;
+            while (i < groups.Count)
+            {
+                if (groups[i].Kept)
+                {
+                    i++;
+                }
+                else if (DateEnd(i) is var date and > 0)
+                {
+                    i = date;
+                }
+                else if (ReferenceEnd(i) is var reference and > 0)
+                {
+                    i = reference;
+                }
+                else if (Between(i, i + 1) == Separator.Dot)
+                {
+                    i = DottedRun(i);
+                }
+                else
+                {
+                    i = Chain(i);
+                }
+            }
+
             return _builder is null ? value : _builder.Append(value, _copied, value.Length - _copied).ToString();
         }
 
-        private void Flush()
+        /// <summary>
+        /// A chain from group <paramref name="first"/>, masked at ten digits or more; the index after its last group. A chain
+        /// that stops short of ten digits only because the next group starts a dotted run is tried once more with that group
+        /// (<c>055 123 4567.89</c>), the dotted part after it left to the next step, unless that run is an IPv4 address.
+        /// </summary>
+        private int Chain(int first)
         {
-            if (_start >= 0 && _digits >= DigitRunLength)
+            var last = first;
+            var digits = groups[first].Length;
+            while (CanJoin(last, last + 1) && !StartsDottedRun(last + 1))
             {
-                _builder ??= new StringBuilder(value.Length);
-                _builder.Append(value, _copied, _start - _copied).Append(DigitsMarker);
-                _copied = _end;
+                last++;
+                digits += groups[last].Length;
             }
 
-            _start = -1;
+            if (digits < DigitRunLength && CanJoin(last, last + 1) && digits + groups[last + 1].Length >= DigitRunLength
+                && !IsIPv4(last + 1, DottedRunEnd(last + 1)))
+            {
+                last++;
+                digits += groups[last].Length;
+            }
+
+            if (digits >= DigitRunLength)
+            {
+                Replace(groups[first].Start, groups[last].End);
+            }
+
+            return last + 1;
         }
 
-        /// <summary>True when the group lies in a GUID; the GUIDs are found once per value, by shape, on the first call.</summary>
-        private bool InGuid(int start, int end)
+        /// <summary>True when group <paramref name="next"/> may follow group <paramref name="previous"/> in a chain.</summary>
+        private bool CanJoin(int previous, int next) => JoinsShape(previous, next) && DateEnd(next) < 0;
+
+        /// <summary>
+        /// <see cref="CanJoin"/> without the date test: the separator and the group lengths only. Never calls back into
+        /// <see cref="DateEnd"/>, so <see cref="DateEnd"/> may use it without recursing.
+        /// </summary>
+        private bool JoinsShape(int previous, int next)
         {
-            _guids ??= Guids(value);
-            while (_guidIndex < _guids.Count && _guids[_guidIndex].End.Value <= start)
+            if (next >= groups.Count || groups[next].Kept || Between(previous, next) is not (Separator.Hyphen or Separator.Phone))
             {
-                _guidIndex++;
+                return false;
             }
 
-            return _guidIndex < _guids.Count && _guids[_guidIndex].Start.Value <= start && end <= _guids[_guidIndex].End.Value;
+            var (before, after) = (groups[previous], groups[next]);
+            return (before.Length > 1 || before.Whole) && (after.Length > 1 || after.Whole) && (before.Length > 1 || after.Length > 1);
+        }
+
+        private bool StartsDottedRun(int index) => Between(index, index + 1) == Separator.Dot;
+
+        /// <summary>The index after the dotted run that starts at group <paramref name="first"/>.</summary>
+        private int DottedRunEnd(int first)
+        {
+            var end = first + 1;
+            while (end < groups.Count && !groups[end].Kept && Between(end - 1, end) == Separator.Dot)
+            {
+                end++;
+            }
+
+            return end;
+        }
+
+        /// <summary>
+        /// The dotted run from group <paramref name="first"/>: masked whole when shaped like a grouped number, otherwise only
+        /// its groups of ten digits or more; the index after it. A run kept whole whose last group goes on into a chain (a
+        /// space or hyphen and another group) hands that group to the chain (<c>step 1.055 123 4567</c>), unless the run is an
+        /// IPv4 address.
+        /// </summary>
+        private int DottedRun(int first)
+        {
+            var end = DottedRunEnd(first);
+            var count = end - first;
+            int digits = 0, shortestAfterFirst = int.MaxValue;
+            for (var k = first; k < end; k++)
+            {
+                digits += groups[k].Length;
+                if (k > first)
+                {
+                    shortestAfterFirst = Math.Min(shortestAfterFirst, groups[k].Length);
+                }
+            }
+
+            var plus = groups[first].Start > 0 && value[groups[first].Start - 1] == '+';
+            var ipv4 = IsIPv4(first, end);
+            if (count >= 3 && (shortestAfterFirst >= 2 || plus) && digits >= DigitRunLength && !ipv4)
+            {
+                Replace(groups[first].Start, groups[end - 1].End);
+                return end;
+            }
+
+            for (var k = first; k < end; k++)
+            {
+                if (groups[k].Length >= DigitRunLength)
+                {
+                    Replace(groups[k].Start, groups[k].End);
+                }
+            }
+
+            return !ipv4 && groups[end - 1].Length < DigitRunLength && CanJoin(end - 1, end) ? end - 1 : end;
+        }
+
+        /// <summary>
+        /// Four groups of one to three digits, each at most 255, none of two or more digits starting with 0 (real addresses
+        /// never print one; <c>055.123.45.67</c> is a phone).
+        /// </summary>
+        private bool IsIPv4(int first, int end)
+        {
+            if (end - first != 4)
+            {
+                return false;
+            }
+
+            for (var k = first; k < end; k++)
+            {
+                if (groups[k].Length > 3 || Number(groups[k]) > 255
+                    || (groups[k].Length > 1 && CharUnicodeInfo.GetDecimalDigitValue(value[groups[k].Start]) == 0))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// The index after a platform reference starting at group <paramref name="first"/>, or -1: right after one of
+        /// <see cref="ReferencePrefixes"/> and a hyphen, a year from 2000 to 2049, a hyphen and one sequence number of up to
+        /// <see cref="MaxSequenceDigits"/> digits from which no chain (a hyphen or phone separator and a group) and no dotted
+        /// run goes on (so <c>RFP-2026-055-123-4567</c>, <c>RFP-2026-055 123 4567</c> and <c>RFP-2026-055.123.4567</c> are
+        /// masked; <c>RFP-2026-000045 055 123 4567</c> is masked as one run).
+        /// </summary>
+        private int ReferenceEnd(int first)
+        {
+            if (!groups[first].AfterReferencePrefix || !IsReferenceYear(first))
+            {
+                return -1;
+            }
+
+            var sequence = first + 1;
+            // Fix round 2 (prefer masking): a sequence number that a chain or a dotted run goes on from is no reference, so
+            // the chain rule reads the whole (RFP-2026-055 123 4567, RFP-2026-055.123.4567).
+            if (sequence >= groups.Count || groups[sequence].Kept || Between(first, sequence) != Separator.Hyphen
+                || groups[sequence].Length > MaxSequenceDigits || CanJoin(sequence, sequence + 1) || StartsDottedRun(sequence))
+            {
+                return -1;
+            }
+
+            return sequence + 1;
+        }
+
+        private bool IsReferenceYear(int index) =>
+            index < groups.Count && !groups[index].Kept && groups[index].Length == 4 && Number(groups[index]) is >= 2000 and <= 2049;
+
+        /// <summary>
+        /// The index after a date starting at group <paramref name="first"/>, or -1. A date is three groups joined by the same
+        /// <c>-</c> or <c>.</c>: <c>yyyy-mm-dd</c> or <c>dd-mm-yyyy</c> with a year from 1900 to 2099. Only a <c>yyyy-mm-dd</c>
+        /// date joined by hyphens may carry a suffix, one hyphen and one or two digits that no further hyphen and group
+        /// follows (<c>2026-10-02-15</c>); a suffix that a chain or a dotted run goes on from is left to them
+        /// (<c>2026-10-02-05 5123 4567</c> masks from the suffix); any other hyphen and group after a date makes it no date (it
+        /// is then a chain: <c>2026-10-02-153045</c> is masked).
+        /// </summary>
+        private int DateEnd(int first)
+        {
+            if (first + 2 >= groups.Count || groups[first].Kept || groups[first + 1].Kept || groups[first + 2].Kept)
+            {
+                return -1;
+            }
+
+            var gap = Between(first, first + 1);
+            if (gap is not (Separator.Hyphen or Separator.Dot) || Between(first + 1, first + 2) != gap)
+            {
+                return -1;
+            }
+
+            var (a, b, c) = (groups[first], groups[first + 1], groups[first + 2]);
+            var isoDate = (a.Length, b.Length, c.Length) == (4, 2, 2) && IsYear(a) && IsMonth(b) && IsDay(c);
+            var dayFirst = (a.Length, b.Length, c.Length) == (2, 2, 4) && IsDay(a) && IsMonth(b) && IsYear(c);
+            if (!isoDate && !dayFirst)
+            {
+                return -1;
+            }
+
+            var suffix = first + 3;
+            if (Between(first + 2, suffix) != Separator.Hyphen)
+            {
+                return suffix;
+            }
+
+            var shortSuffix = isoDate && gap == Separator.Hyphen && !groups[suffix].Kept && groups[suffix].Length <= MaxDateSuffixDigits
+                && Between(suffix, suffix + 1) != Separator.Hyphen;
+            if (!shortSuffix)
+            {
+                return -1;
+            }
+
+            // Fix round 2: a suffix that a chain or a dotted run goes on from is left to them (2026-10-02-05 5123 4567).
+            // JoinsShape, not CanJoin: CanJoin asks DateEnd of the next group, which would recurse along a run of dates.
+            return JoinsShape(suffix, suffix + 1) || StartsDottedRun(suffix) ? suffix : suffix + 1;
+        }
+
+        private bool IsYear(DigitGroup group) => Number(group) is >= 1900 and <= 2099;
+
+        private bool IsMonth(DigitGroup group) => Number(group) is >= 1 and <= 12;
+
+        private bool IsDay(DigitGroup group) => Number(group) is >= 1 and <= 31;
+
+        /// <summary>The value of a group of at most four digits of any script.</summary>
+        private int Number(DigitGroup group)
+        {
+            var number = 0;
+            for (var k = group.Start; k < group.End; k++)
+            {
+                number = (number * 10) + CharUnicodeInfo.GetDecimalDigitValue(value[k]);
+            }
+
+            return number;
+        }
+
+        /// <summary>
+        /// The separator between groups <paramref name="previous"/> and <paramref name="next"/>: one <c>-</c>, one <c>.</c>,
+        /// a phone separator (<see cref="MaskDigitRuns"/>), or none of them. At most seven characters are read.
+        /// </summary>
+        public Separator Between(int previous, int next)
+        {
+            if (next >= groups.Count)
+            {
+                return Separator.None;
+            }
+
+            var gap = value.AsSpan(groups[previous].End, groups[next].Start - groups[previous].End);
+            if (gap.Length == 1 && gap[0] is '-' or '.')
+            {
+                return gap[0] == '-' ? Separator.Hyphen : Separator.Dot;
+            }
+
+            var k = 0;
+            if (k < gap.Length && gap[k] == ')')
+            {
+                k++;
+            }
+
+            k = SkipBlanks(gap, k);
+            if (k < gap.Length && gap[k] == '-')
+            {
+                k++;
+            }
+
+            k = SkipBlanks(gap, k);
+            if (k < gap.Length && gap[k] == '(')
+            {
+                k++;
+            }
+
+            return k == gap.Length && k > 0 ? Separator.Phone : Separator.None;
+        }
+
+        private static int SkipBlanks(ReadOnlySpan<char> gap, int k)
+        {
+            for (var blanks = 0; blanks < 2 && k < gap.Length && gap[k] is ' ' or '\t'; blanks++)
+            {
+                k++;
+            }
+
+            return k;
+        }
+
+        private void Replace(int start, int end)
+        {
+            _builder ??= new StringBuilder(value.Length);
+            _builder.Append(value, _copied, start - _copied).Append(DigitsMarker);
+            _copied = end;
+        }
+    }
+
+    /// <summary>The GUIDs of one value, found once by shape on the first question, asked in increasing order.</summary>
+    private sealed class GuidRanges(string value)
+    {
+        private List<Range>? _guids;
+        private int _index;
+
+        /// <summary>True when <c>value[start..end]</c> lies in a GUID; calls come in increasing <paramref name="start"/>.</summary>
+        public bool Contains(int start, int end)
+        {
+            _guids ??= Guids(value);
+            while (_index < _guids.Count && _guids[_index].End.Value <= start)
+            {
+                _index++;
+            }
+
+            return _index < _guids.Count && _guids[_index].Start.Value <= start && end <= _guids[_index].End.Value;
         }
     }
 

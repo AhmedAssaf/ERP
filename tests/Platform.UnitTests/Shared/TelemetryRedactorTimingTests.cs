@@ -88,6 +88,30 @@ public sealed class TelemetryRedactorTimingTests
         ["normalise, zero-width split digits"] = n => Repeat("1‍", n),
         ["normalise, full-width at signs and digits"] = n => Repeat("１＠", n),
         ["normalise, arabic text with direction marks"] = n => Repeat("تم‏ إرسال ", n),
+        // W-10 follow-ups (2026-10-02): phone separators, dotted runs, dates and references.
+        ["digits, tab and double-space groups"] = n => Repeat("12\t 34  ", n),
+        ["digits, parenthesised groups"] = n => Repeat("(12) ", n),
+        ["digits, spaced hyphens"] = n => Repeat("12 - ", n),
+        ["digits, dotted groups"] = n => Repeat("12.", n),
+        ["digits, dotted single digits"] = n => Repeat("1.", n),
+        ["digits, ipv4 addresses"] = n => Repeat("1.22.3.44 ", n),
+        ["digits, dates"] = n => Repeat("2026-10-02-", n),
+        ["digits, dates spaced"] = n => Repeat("2026-10-02 ", n),
+        ["digits, references"] = n => Repeat("RFP-2026-", n),
+        ["digits, one long reference"] = n => "RFP-2026" + Repeat("-1", n - 8),
+        ["digits, single digits between pairs"] = n => Repeat("1 22 ", n),
+        ["digits, every separator"] = n => Repeat("12 -34.(56) \t7.", n),
+        ["digits, long gap"] = n => "12" + Repeat(" ", n - 4) + "34",
+        // Fix round 1: platform references, dated suffixes, plus-prefixed dotted runs, chains stopped by a dot.
+        ["digits, platform references"] = n => Repeat("RFP-2026-000045 ", n),
+        ["digits, dates with short suffixes"] = n => Repeat("2026-10-02-15 ", n),
+        ["digits, plus-prefixed dotted runs"] = n => Repeat("+1.2.3.4 ", n),
+        ["digits, chains stopped by a dot"] = n => Repeat("1.22 33.44 ", n),
+        // Fix round 2: a reference whose sequence goes on into a chain or a dotted run, leading-zero dotted quads.
+        ["digits, references running into chains"] = n => Repeat("RFP-2026-055 1 ", n),
+        ["digits, references running into dotted runs"] = n => Repeat("PO-2026-05.1 ", n),
+        ["digits, leading-zero dotted quads"] = n => Repeat("055.123.45.67 ", n),
+        ["digits, dates with suffixes running into dotted runs"] = n => Repeat("2026-10-02-15.", n),
     };
 
     private static string Repeat(string unit, int length)

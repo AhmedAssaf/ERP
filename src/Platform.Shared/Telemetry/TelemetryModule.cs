@@ -33,6 +33,14 @@ public static class TelemetryModule
     /// <summary><c>deployment.environment.name</c> (<c>development</c>, <c>pilot</c>); unset: the host environment in lower case.</summary>
     public const string EnvironmentSetting = "Telemetry:Environment";
 
+    /// <summary>
+    /// The OTLP exporter's span event limit, the standard variable the exporter reads from the host's configuration. Set to
+    /// 0 by <see cref="AddPlatformTelemetry"/> (W-10 follow-up, fix round 1): no span event ever leaves the process. An event
+    /// cannot be masked once recorded, and in the otel mapping each one is a <c>logs-*</c> document (Npgsql records one on
+    /// every command); the exception type stays on the span (<see cref="RedactingSpanProcessor"/>).
+    /// </summary>
+    public const string SpanEventCountLimit = "OTEL_SPAN_EVENT_COUNT_LIMIT";
+
     /// <summary>Built-in meters of .NET 9 and later and of Npgsql (spec 5.4): runtime, connection pool, HttpClient.</summary>
     private static readonly string[] Meters = ["System.Runtime", TelemetryNames.Sources.Npgsql, "System.Net.Http", TelemetryNames.Sources.OwnPrefix];
 
@@ -60,6 +68,9 @@ public static class TelemetryModule
                 $"Setting '{OtlpEndpointSetting}' is not configured. It is required outside Development: logs leave the host only over OTLP.");
         }
 
+        // Last configuration source, so neither an environment variable nor an appsettings file can raise the limit; read
+        // by the OTLP exporter when the tracer provider is built.
+        builder.Configuration.AddInMemoryCollection([new(SpanEventCountLimit, "0")]);
         builder.Services.AddSingleton(resource);
         AddLogging(builder, endpoint is not null);
 
@@ -98,7 +109,14 @@ public static class TelemetryModule
                     : null);
                 if (endpoint is not null)
                 {
-                    metrics.AddOtlpExporter(options => UseCollector(options, endpoint));
+                    // Delta (W-10 follow-up, spec 5.5): the collector's Elasticsearch exporter drops cumulative histograms,
+                    // so request, database and job durations reach metrics-* only as deltas. Counters become deltas too;
+                    // up-down counters stay cumulative and gauges have no temporality, so the usage gauges are unchanged.
+                    metrics.AddOtlpExporter((options, reader) =>
+                    {
+                        UseCollector(options, endpoint);
+                        reader.TemporalityPreference = MetricReaderTemporalityPreference.Delta;
+                    });
                 }
             });
 

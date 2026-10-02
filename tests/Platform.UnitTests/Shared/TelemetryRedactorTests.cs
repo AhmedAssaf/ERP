@@ -129,10 +129,129 @@ public sealed class TelemetryRedactorTests
     [Theory]
     [InlineData("Phone: 055 123 4567.", "Phone: [digits].")]
     [InlineData("Phone: 055-123-4567.", "Phone: [digits].")]
-    [InlineData("call +1 555 123 4567", "call +1 [digits]")]
+    [InlineData("call +1 555 123 4567", "call +[digits]")]
     [InlineData("IBAN SA03 8000 0000 6080 1016 7519 refused", "IBAN SA[digits] refused")]
     [InlineData("on 2026-10-02 call 055 123 4567", "on 2026-10-02 call [digits]")]
     public void Digit_groups_joined_by_one_space_or_hyphen_count_as_one_run(string value, string expected) =>
+        TelemetryRedactor.Redact(value).ShouldBe(expected);
+
+    // W-10 follow-ups (2026-10-02; spec 7.1, items 4 and 5): phones as people group them, references and dates kept. The
+    // two tables are one decision: every row is a test, the rules in TelemetryRedactor were chosen to pass all of them.
+
+    [Theory]
+    [InlineData("call +966 5 5123 4567", "call +[digits]")]
+    [InlineData("call +966 55 123 4567", "call +[digits]")]
+    [InlineData("call 0 55 123 4567", "call [digits]")]
+    [InlineData("call 055-123 4567", "call [digits]")]
+    [InlineData("call 055 123-4567", "call [digits]")]
+    [InlineData("call (011) 465 1234", "call ([digits]")]
+    [InlineData("call +966 (11) 465 1234", "call +[digits]")]
+    [InlineData("call 055.123.4567", "call [digits]")]
+    [InlineData("call 055\t123\t4567", "call [digits]")]
+    [InlineData("call 055  123  4567", "call [digits]")]
+    [InlineData("call 055 - 123 - 4567 now", "call [digits] now")]
+    [InlineData("phones 055.123.4567 and 055 123 4567", "phones [digits] and [digits]")]
+    [InlineData("ip-like 966.551.234.567", "ip-like [digits]")]
+    [InlineData("ip-like 1.012.345.678", "ip-like [digits]")]
+    [InlineData("call +1.212.555.1234", "call +[digits]")]
+    [InlineData("call +966.5.5123.4567", "call +[digits]")]
+    [InlineData("call 055.123.45.67", "call [digits]")]
+    [InlineData("call +055.123.45.67", "call +[digits]")]
+    [InlineData("call 055 123 4567.89", "call [digits].89")]
+    [InlineData("step 1.055 123 4567", "step 1.[digits]")]
+    [InlineData("on 2026-10-02 12:34:56 call 055-123 4567", "on 2026-10-02 12:34:56 call [digits]")]
+    public void Phones_grouped_as_people_write_them_are_masked(string value, string expected) =>
+        TelemetryRedactor.Redact(value).ShouldBe(expected);
+
+    [Theory]
+    [InlineData("host 192.168.100.200 answered")]
+    [InlineData("hosts 10.0.0.1 10.0.0.2 10.20.30.40 192.168.100.200")]
+    [InlineData("db 192.168.100.200:5432 up")]
+    [InlineData("gateway 192.168.0.1 and broadcast 10.0.0.255")]
+    [InlineData("SDK 10.0.401")]
+    [InlineData("Windows 10.0.26100.4061")]
+    [InlineData("on 2026-10-02 12:34:56")]
+    [InlineData("on 02-10-2026 12:34")]
+    [InlineData("at 2026.10.02 12:34")]
+    [InlineData("from 2026-10-02 10:00 to 2026-10-03 12")]
+    [InlineData("days 2026-10-02\t2026-10-03\t2026-10-04")]
+    [InlineData("took 00:00:01.2345678")]
+    [InlineData("took 12:34:56.1234567 in 2026-10-02")]
+    [InlineData("amount 12345678.90")]
+    [InlineData("job 12345678-1234-1234-1234-123456789012 done")]
+    [InlineData("trace 4bf92f3577b34da6a3ce929d0e0e4736 span 00f067aa0ba902b7")]
+    [InlineData("listening on http://127.0.0.1:5273 and :8443")]
+    [InlineData("answered 404 after 3 attempts")]
+    [InlineData("attempts 1 2 3 4 5 6 7 8 9 10")]
+    [InlineData("pages (1) (2) (3) (4) (5) (6) (7) (8) (9) (10)")]
+    public void Addresses_versions_dates_times_ids_and_short_numbers_stay_unmasked_beside_the_phone_rules(string value) =>
+        TelemetryRedactor.Redact(value).ShouldBeSameAs(value);
+
+    /// <summary>
+    /// The one conflict kept (item 4): a phone written digit by digit has the shape of a list of single digits
+    /// (<c>attempts 1 2 3 4 5 6 7 8 9 10</c>), so two single-digit groups never join; nobody types a number so.
+    /// </summary>
+    [Fact]
+    public void A_phone_written_digit_by_digit_is_kept_like_a_list_of_single_digits() =>
+        TelemetryRedactor.Redact("call 0 5 5 1 2 3 4 5 6 7 8").ShouldBe("call 0 5 5 1 2 3 4 5 6 7 8");
+
+    /// <summary>
+    /// Fix round 1 (controller ruling, 2026-10-02): only the platform's own reference prefixes (<c>RFP</c>, <c>RFQ</c>,
+    /// <c>PO</c>, <c>TND</c>, any case) followed by a year and one sequence number of up to six digits are kept; a date keeps a
+    /// suffix of one or two digits only.
+    /// </summary>
+    [Theory]
+    [InlineData("tender RFP-2026-000045 opened")]
+    [InlineData("/tenders/rfp-2026-000045/offers")]
+    [InlineData("quote RFQ-2026-12 sent")]
+    [InlineData("order PO-2026-000123 issued")]
+    [InlineData("Po-2026-1 issued")]
+    [InlineData("tender TND-2026-014 closed")]
+    [InlineData("tnd-2049-999999")]
+    [InlineData("item W-10-2026-09-30 done")]
+    [InlineData("export 2026-10-02-15 ready")]
+    [InlineData("export 2026-10-02-7")]
+    [InlineData("export 2026-10-02-15 12:00")]
+    [InlineData("RFP-2026-000045 and RFP-2026-000046")]
+    [InlineData("see RFP-2026-000045, then 12 items")]
+    [InlineData("PO-2012-345678 accepted")]
+    public void References_and_dates_with_a_short_suffix_stay_unmasked(string value) =>
+        TelemetryRedactor.Redact(value).ShouldBeSameAs(value);
+
+    [Theory]
+    [InlineData("call 055-123-4567", "call [digits]")]
+    [InlineData("IBAN SA03-8000-0000-6080-1016-7519 refused", "IBAN SA[digits] refused")]
+    [InlineData("mobile-055-123-4567", "mobile-[digits]")]
+    [InlineData("tel-1-212-555-1234", "tel-[digits]")]
+    [InlineData("CR-1010-123456", "CR-[digits]")]
+    [InlineData("ID-2123-456789", "ID-[digits]")]
+    [InlineData("CR-2050-123456", "CR-[digits]")]
+    [InlineData("acct-2026-0000-6080-1016-7519", "acct-[digits]")]
+    [InlineData("RFP-2026-0551234567", "RFP-[digits]")]
+    [InlineData("RFP-2026-000045 055 123 4567", "RFP-[digits]")]
+    [InlineData("po-2026-123456 789 0123", "po-[digits]")]
+    [InlineData("RFP-2026-055 123 4567", "RFP-[digits]")]
+    [InlineData("Po-2026-055 1234567", "Po-[digits]")]
+    [InlineData("RFP-2026-055 123-4567", "RFP-[digits]")]
+    [InlineData("RFP-2026-055  -123-4567", "RFP-[digits]")]
+    [InlineData("RFP-2026-0551 234 567", "RFP-[digits]")]
+    [InlineData("RFP-2026-055.123.4567", "RFP-2026-[digits]")]
+    [InlineData("export 2026-10-02-05 5123 4567", "export 2026-10-02-[digits]")]
+    [InlineData("export 2026-10-02-05.512.34567", "export 2026-10-02-[digits]")]
+    [InlineData("export 2026-10-02-055-123-4567", "export [digits]")]
+    [InlineData("ID-2012-345678", "ID-[digits]")]
+    [InlineData("Iqama-2012-345-678", "Iqama-[digits]")]
+    [InlineData("upload CR-2030-123456.pdf", "upload CR-[digits].pdf")]
+    [InlineData("x-2026-0551-234-567", "x-[digits]")]
+    [InlineData("card-2031-4567-8901-2345", "card-[digits]")]
+    [InlineData("RFP-2026-055-123-4567", "RFP-[digits]")]
+    [InlineData("RFP-2026-05512345", "RFP-[digits]")]
+    [InlineData("PO-2026-10-02-0001 issued", "PO-[digits] issued")]
+    [InlineData("F-29-2026-1234 scored", "F-[digits] scored")]
+    [InlineData("backup 2026-10-02-153045 kept", "backup [digits] kept")]
+    [InlineData("export 2026-10-02-15-0551234", "export [digits]")]
+    [InlineData("طلب-2026-000045", "طلب-[digits]")]
+    public void Hyphen_grouped_phones_ibans_and_ids_are_still_masked_beside_the_reference_rules(string value, string expected) =>
         TelemetryRedactor.Redact(value).ShouldBe(expected);
 
     [Theory]

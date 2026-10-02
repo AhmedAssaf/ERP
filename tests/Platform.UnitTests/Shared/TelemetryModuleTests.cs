@@ -3,7 +3,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Reflection;
 using Microsoft.Extensions.Options;
+using OpenTelemetry.Metrics;
 using Platform.Shared.Telemetry;
 
 namespace Platform.UnitTests.Shared;
@@ -82,6 +84,43 @@ public class TelemetryModuleTests
 
         using var services = builder.Services.BuildServiceProvider();
         services.GetRequiredService<IOptions<LoggerFactoryOptions>>().Value.ActivityTrackingOptions.ShouldBe(ActivityTrackingOptions.None);
+    }
+
+    /// <summary>
+    /// W-10 follow-up (2026-10-02; spec section 5.5): the collector's Elasticsearch exporter drops cumulative histograms, so
+    /// with the SDK's default (cumulative) no request, database or job duration ever reached <c>metrics-*</c>. The OTLP metric
+    /// reader of both hosts (the same registration) prefers delta. The reader is read from the built provider, since the
+    /// preference the OTLP exporter hands its reader is what leaves, not what an options object says.
+    /// </summary>
+    [Fact]
+    public void The_otlp_metric_reader_exports_delta_temporality()
+    {
+        var builder = new HostApplicationBuilder(new HostApplicationBuilderSettings { DisableDefaults = true, EnvironmentName = "Testing" });
+        // A closed loopback port: nothing is listening, the reader is only built and shut down.
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?> { [TelemetryModule.OtlpEndpointSetting] = "http://127.0.0.1:9" });
+        builder.AddPlatformTelemetry(TelemetryNames.Services.Worker);
+
+        using var services = builder.Services.BuildServiceProvider();
+        var provider = services.GetRequiredService<MeterProvider>();
+        var reader = provider.GetType().GetProperty("Reader", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(provider) as MetricReader;
+
+        reader.ShouldNotBeNull("the OTLP exporter registers one metric reader; OpenTelemetry's internal Reader property may have moved");
+        reader.TemporalityPreference.ShouldBe(MetricReaderTemporalityPreference.Delta);
+    }
+
+    /// <summary>
+    /// W-10 follow-up, fix round 1: the OTLP exporter's span event limit is 0 in both hosts' configuration, whatever an
+    /// environment variable or an earlier configuration source says, so no span event leaves (spec O-10, 5.2).
+    /// </summary>
+    [Fact]
+    public void The_span_event_limit_is_zero_even_when_configured_higher()
+    {
+        var builder = new HostApplicationBuilder(new HostApplicationBuilderSettings { DisableDefaults = true, EnvironmentName = "Testing" });
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?> { [TelemetryModule.SpanEventCountLimit] = "128" });
+
+        builder.AddPlatformTelemetry(TelemetryNames.Services.Web);
+
+        builder.Configuration[TelemetryModule.SpanEventCountLimit].ShouldBe("0");
     }
 
     [Theory]
