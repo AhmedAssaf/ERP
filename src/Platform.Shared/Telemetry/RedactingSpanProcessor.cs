@@ -19,7 +19,9 @@ namespace Platform.Shared.Telemetry;
 /// <c>received-first-response</c> on every command). So this processor no longer looks at what an event holds; it only
 /// copies the type of an <c>exception</c> event onto the span as <c>exception.type</c> when the span has none, so a failed
 /// database command or a .NET 10 HttpClient failure still names its exception, as <see cref="SpanExceptions"/> does for
-/// requests. The masked message and stack are on the log record of the same trace.
+/// requests. The masked message and stack are on a log record of the same trace only when something logs the exception (the
+/// exception handler for a request, the job filter for a job); a caller that catches it without logging leaves only the
+/// type and the Error status.
 /// </remarks>
 internal sealed class RedactingSpanProcessor : BaseProcessor<Activity>
 {
@@ -79,7 +81,6 @@ internal sealed class RedactingSpanProcessor : BaseProcessor<Activity>
         {
             data.DisplayName = name;
         }
-
     }
 
     /// <summary>The type of the span's first <c>exception</c> event as <c>exception.type</c>, unless the span has one.</summary>

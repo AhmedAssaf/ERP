@@ -50,7 +50,6 @@ internal sealed class OtlpTraceReceiver : IAsyncDisposable
 
     private async Task HandleAsync(HttpContext context)
     {
-
         using var body = new MemoryStream();
         await context.Request.Body.CopyToAsync(body);
         if (context.Request.Path.Value?.EndsWith(".TraceService/Export", StringComparison.Ordinal) == true)
