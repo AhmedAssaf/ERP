@@ -1,6 +1,6 @@
 -- W-38: the logo cleanup job (BrandingLogoCleanupJob) deletes logo objects that no tenant references. It has no tenant
 -- context, so it reads every tenant's logo_url through this security-definer function (the table itself is not granted
--- to erp_app), which refuses a session with a tenant or vendor context, as tenancy.list_tenants does since 0007. It
+-- to erp_app), which answers only a session with no tenant, vendor or user context: the worker's (the form of identity.activity_counts). It
 -- returns the stored logo URLs only: no names, colours or hosts. No new table, so no new row-level security policy.
 
 do $$
@@ -19,8 +19,8 @@ create function tenancy.referenced_logos()
     set search_path = tenancy, pg_temp
 as $$
 begin
-    if platform.current_tenant() is not null or platform.current_vendor_company() is not null then
-        raise exception 'The referenced logos are listed for platform jobs only.' using errcode = 'insufficient_privilege';
+    if platform.current_tenant() is not null or platform.current_vendor_company() is not null or platform.current_user_id() is not null then
+        raise exception 'The referenced logos are listed by the worker only.' using errcode = 'insufficient_privilege';
     end if;
 
     return query

@@ -25,10 +25,13 @@ internal sealed class BrandingLogoCleanupOptions
 /// or have just committed that very key. This job deletes, under each tenant's <c>branding/</c> prefix, the logo objects
 /// that no tenant references and that were last written more than the grace period ago.
 /// <para>
-/// The referenced logos are read first, then the objects are listed; an object written after the read is younger than the
-/// grace period whatever it is named, and a replacing put refreshes the time, so an in-flight save cannot lose its object.
-/// Objects not named like a logo are never touched. Deleting is idempotent and one failure does not stop the run. The log
-/// carries counts, tenant ids and error types only (N-10).
+/// The guarantee: an object is deleted only if, right before its delete, its last write is older than the grace period
+/// and no tenant references it (the references are read again for each delete, and the object's metadata is requested
+/// again). A save that writes the object puts it first, which refreshes the time, and commits its reference seconds
+/// later, so a save can lose its object only if it takes longer than the grace period or its commit lands in the few
+/// milliseconds between that last check and the delete. Objects not named like a logo are never touched. Deleting is
+/// idempotent; one failure, in a delete or in listing one tenant's prefix, does not stop the run. The log carries
+/// counts, tenant ids and error types only (N-10).
 /// </para>
 /// </summary>
 internal sealed partial class BrandingLogoCleanupJob(
@@ -43,35 +46,56 @@ internal sealed partial class BrandingLogoCleanupJob(
     [AutomaticRetry(Attempts = 0)]
     public async Task RunAsync(CancellationToken cancellationToken)
     {
-        var referenced = await ReferencedKeysAsync(cancellationToken);
         var cutoff = clock.GetUtcNow() - options.Value.GracePeriod;
         int examined = 0, deleted = 0, failed = 0;
 
         foreach (var tenantId in (await tenants.ListAsync(cancellationToken)).Keys)
         {
-            var objects = await storage.ListAsync($"tenants/{tenantId:D}/branding/", cancellationToken);
-            foreach (var item in objects.Where(o => LogoKey().IsMatch(o.Key)))
+            try
             {
-                examined++;
-                if (referenced.Contains(item.Key) || item.LastModified > cutoff)
+                var objects = await storage.ListAsync($"tenants/{tenantId:D}/branding/", cancellationToken);
+                var candidates = objects.Where(o => LogoKey().IsMatch(o.Key) && o.LastModified <= cutoff).ToList();
+                examined += objects.Count(o => LogoKey().IsMatch(o.Key));
+                if (candidates.Count == 0)
                 {
                     continue;
                 }
 
-                try
+                var referenced = await ReferencedKeysAsync(cancellationToken);
+                foreach (var item in candidates.Where(c => !referenced.Contains(c.Key)))
                 {
-                    await storage.DeleteAsync(item.Key, cancellationToken);
-                    deleted++;
+                    if (await DeleteIfStillUnusedAsync(item.Key, cutoff, cancellationToken))
+                    {
+                        deleted++;
+                    }
                 }
-                catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
-                {
-                    failed++;
-                    LogDeleteFailed(logger, tenantId, ex.GetType().Name);
-                }
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+            {
+                failed++;
+                LogTenantFailed(logger, tenantId, ex.GetType().Name);
             }
         }
 
         LogRun(logger, examined, deleted, failed);
+    }
+
+    /// <summary>Checks the object and the references once more, right before the delete; false when it was skipped.</summary>
+    private async Task<bool> DeleteIfStillUnusedAsync(string key, DateTimeOffset cutoff, CancellationToken cancellationToken)
+    {
+        // A re-upload of the same content refreshes the object and commits its reference after the listing.
+        if (await storage.GetInfoAsync(key, cancellationToken) is not { } current || current.LastModified > cutoff)
+        {
+            return false;
+        }
+
+        if ((await ReferencedKeysAsync(cancellationToken)).Contains(key))
+        {
+            return false;
+        }
+
+        await storage.DeleteAsync(key, cancellationToken);
+        return true;
     }
 
     private async Task<HashSet<string>> ReferencedKeysAsync(CancellationToken cancellationToken)
@@ -97,9 +121,9 @@ internal sealed partial class BrandingLogoCleanupJob(
     [GeneratedRegex(@"^tenants/[0-9a-f-]{36}/branding/logo-[a-f0-9]{64}\.png\z", RegexOptions.CultureInvariant)]
     private static partial Regex LogoKey();
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Branding logo cleanup: {Examined} logo objects examined, {Deleted} unreferenced ones deleted, {Failed} failed.")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Branding logo cleanup: {Examined} logo objects examined, {Deleted} unreferenced ones deleted, {Failed} tenants failed.")]
     private static partial void LogRun(ILogger logger, int examined, int deleted, int failed);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "A logo object of tenant {TenantId} could not be deleted ({ErrorType}); the next run tries again.")]
-    private static partial void LogDeleteFailed(ILogger logger, Guid tenantId, string errorType);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The logo cleanup of tenant {TenantId} failed ({ErrorType}); the run goes on with the next tenant and the next run tries again.")]
+    private static partial void LogTenantFailed(ILogger logger, Guid tenantId, string errorType);
 }

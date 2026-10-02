@@ -126,6 +126,54 @@ public sealed class BrandingLogoCleanupTests(DatabaseFixture db, MinioFixture mi
     }
 
     [Fact]
+    public async Task An_old_unreferenced_object_that_is_refreshed_after_the_listing_is_kept()
+    {
+        var tenant = await TenantRows.InsertAsync(db.OwnerConnectionString, Ct);
+        var now = DateTimeOffset.UtcNow;
+        var storage = new MemoryStorage();
+        var key = FakeKey(tenant.TenantId, 'c');
+        storage.Put(key, now.AddHours(-3));
+        // A second save of the same logo puts the object again after the job listed it, and commits later.
+        storage.AfterList = () => storage.Put(key, now);
+        await using var host = Host(now, storage: storage);
+
+        await RunJobAsync(host);
+
+        storage.Has(key).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task An_old_unreferenced_object_that_gets_a_reference_after_the_listing_is_kept()
+    {
+        var tenant = await TenantRows.InsertAsync(db.OwnerConnectionString, Ct);
+        var hash = new string('d', 64);
+        var key = FakeKey(tenant.TenantId, 'd');
+        var storage = new MemoryStorage();
+        storage.Put(key, DateTimeOffset.UtcNow.AddHours(-3));
+        storage.AfterList = () => SetLogoUrlAsync(tenant.TenantId, $"/branding/logo/{hash}.png").GetAwaiter().GetResult();
+        await using var host = Host(DateTimeOffset.UtcNow, storage: storage);
+
+        await RunJobAsync(host);
+
+        storage.Has(key).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task A_listing_error_for_one_tenant_does_not_end_the_run()
+    {
+        var failing = await TenantRows.InsertAsync(db.OwnerConnectionString, Ct);
+        var other = await TenantRows.InsertAsync(db.OwnerConnectionString, Ct);
+        var storage = new MemoryStorage { FailListFor = $"tenants/{failing.TenantId:D}/branding/" };
+        var orphan = FakeKey(other.TenantId, 'e');
+        storage.Put(orphan, DateTimeOffset.UtcNow.AddHours(-3));
+        await using var host = Host(DateTimeOffset.UtcNow, storage: storage);
+
+        await RunJobAsync(host);
+
+        storage.Has(orphan).ShouldBeFalse();
+    }
+
+    [Fact]
     public void The_worker_schedules_the_logo_cleanup_every_hour()
     {
         var services = new ServiceCollection();
@@ -160,13 +208,28 @@ public sealed class BrandingLogoCleanupTests(DatabaseFixture db, MinioFixture mi
         await scope.ServiceProvider.GetRequiredService<BrandingLogoCleanupJob>().RunAsync(Ct);
     }
 
-    private ModuleHost Host(DateTimeOffset now, bool failAudit = false) => new(
+    private async Task SetLogoUrlAsync(Guid tenantId, string url)
+    {
+        await using var connection = new Npgsql.NpgsqlConnection(db.OwnerConnectionString);
+        await connection.OpenAsync(Ct);
+        await using var command = new Npgsql.NpgsqlCommand("update tenancy.tenants set logo_url = @url where id = @id", connection);
+        command.Parameters.AddWithValue("url", url);
+        command.Parameters.AddWithValue("id", tenantId);
+        await command.ExecuteNonQueryAsync(Ct);
+    }
+
+    private ModuleHost Host(DateTimeOffset now, bool failAudit = false, IObjectStorage? storage = null) => new(
         db.AppConnectionString,
         clock: new FixedClock(now),
         objectStorage: new ConfigurationBuilder().AddInMemoryCollection(minio.Settings).Build(),
         configure: services =>
         {
             services.AddBrandingJobs(new ConfigurationBuilder().Build());
+            if (storage is not null)
+            {
+                services.Replace(ServiceDescriptor.Singleton(storage));
+            }
+
             if (failAudit)
             {
                 services.Replace(ServiceDescriptor.Scoped<IAuditWriter>(_ => new FailingAudit()));
@@ -176,6 +239,53 @@ public sealed class BrandingLogoCleanupTests(DatabaseFixture db, MinioFixture mi
     private sealed class FixedClock(DateTimeOffset now) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => now;
+    }
+
+    /// <summary>Object storage in memory with write times the test sets, and hooks for what happens between the job's steps.</summary>
+    private sealed class MemoryStorage : IObjectStorage
+    {
+        private readonly Dictionary<string, DateTimeOffset> _objects = [];
+
+        public Action? AfterList { get; set; }
+
+        public string? FailListFor { get; init; }
+
+        public void Put(string key, DateTimeOffset modified) => _objects[key] = modified;
+
+        public bool Has(string key) => _objects.ContainsKey(key);
+
+        public Task PutAsync(string key, ReadOnlyMemory<byte> content, string contentType, CancellationToken cancellationToken = default)
+        {
+            Put(key, DateTimeOffset.UtcNow);
+            return Task.CompletedTask;
+        }
+
+        public Task PutAsync(string key, Stream content, string contentType, CancellationToken cancellationToken = default) =>
+            PutAsync(key, ReadOnlyMemory<byte>.Empty, contentType, cancellationToken);
+
+        public Task<StoredObject?> OpenAsync(string key, CancellationToken cancellationToken = default) =>
+            Task.FromResult<StoredObject?>(null);
+
+        public Task DeleteAsync(string key, CancellationToken cancellationToken = default)
+        {
+            _objects.Remove(key);
+            return Task.CompletedTask;
+        }
+
+        public Task<StoredObjectInfo?> GetInfoAsync(string key, CancellationToken cancellationToken = default) =>
+            Task.FromResult(_objects.TryGetValue(key, out var modified) ? new StoredObjectInfo(key, modified) : null);
+
+        public Task<IReadOnlyList<StoredObjectInfo>> ListAsync(string prefix, CancellationToken cancellationToken = default)
+        {
+            if (prefix == FailListFor)
+            {
+                throw new HttpRequestException("Simulated listing failure.");
+            }
+
+            IReadOnlyList<StoredObjectInfo> found = [.. _objects.Where(o => o.Key.StartsWith(prefix, StringComparison.Ordinal)).Select(o => new StoredObjectInfo(o.Key, o.Value))];
+            AfterList?.Invoke();
+            return Task.FromResult(found);
+        }
     }
 
     private sealed class FailingAudit : IAuditWriter

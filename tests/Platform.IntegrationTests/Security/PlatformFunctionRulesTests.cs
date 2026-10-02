@@ -135,6 +135,23 @@ public sealed class PlatformFunctionRulesTests(DatabaseFixture db)
         (await StateAsync(vendorOnly, "select * from tenancy.list_tenants()")).ShouldBe("refused");
     }
 
+    [Fact]
+    public async Task The_referenced_logos_answer_only_a_session_without_a_tenant_vendor_or_user_context()
+    {
+        var (companyId, vendorUser) = await VendorAsync();
+        const string sql = "select * from tenancy.referenced_logos()";
+
+        // The worker: none of the three. Every other session (the connection role is the same) is refused.
+        await using var worker = await AppConnectionAsync(null, null, null);
+        (await StateAsync(worker, sql)).ShouldNotBe("refused");
+        await using var staff = await AppConnectionAsync(TestTenants.Acme.TenantId, null, "acme.admin");
+        (await StateAsync(staff, sql)).ShouldBe("refused");
+        await using var vendorOnly = await AppConnectionAsync(null, companyId, vendorUser);
+        (await StateAsync(vendorOnly, sql)).ShouldBe("refused");
+        await using var console = await AppConnectionAsync(null, null, "platform-admin");
+        (await StateAsync(console, sql)).ShouldBe("refused");
+    }
+
     private async Task<(Guid CompanyId, string UserId)> VendorAsync()
     {
         var userId = Guid.NewGuid().ToString();
