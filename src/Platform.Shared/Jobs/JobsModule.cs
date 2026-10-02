@@ -1,12 +1,13 @@
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.PostgreSql;
-using Hangfire.PostgreSql.Factories;
 using Hangfire.Server;
 using Hangfire.States;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Npgsql;
+using Platform.Shared.Data;
 using Platform.Shared.Tenancy;
 
 namespace Platform.Shared.Jobs;
@@ -36,6 +37,9 @@ public sealed class JobServerSettings
 public static class JobsModule
 {
     public const string SchemaName = "hangfire";
+
+    /// <summary>The key of Hangfire's own named data source (<see cref="DataSourceNames.Jobs"/>).</summary>
+    private const string DataSourceKey = "Platform.Shared.Jobs";
 
     /// <summary>Registers the storage and a scoped <see cref="IBackgroundJobClient"/> that stamps the current tenant.</summary>
     public static IServiceCollection AddJobClient(this IServiceCollection services, string connectionString) =>
@@ -99,7 +103,10 @@ public static class JobsModule
 
         // A web host may start before the database is reachable and prepares the schema on first use; the worker
         // must not run without storage, so it fails at start instead.
-        services.TryAddSingleton<JobStorage>(_ =>
+        // Named (W-10): an unnamed data source is named after its connection string in metrics and spans. The container owns
+        // and disposes it.
+        services.TryAddKeyedSingleton(DataSourceKey, (_, _) => new NpgsqlDataSourceBuilder(connectionString) { Name = DataSourceNames.Jobs }.Build());
+        services.TryAddSingleton<JobStorage>(sp =>
         {
             var options = new PostgreSqlStorageOptions
             {
@@ -108,12 +115,18 @@ public static class JobsModule
                 EnableLongPolling = true,
                 AllowDegradedModeWithoutStorage = !failFast,
             };
-            return new PostgreSqlStorage(new NpgsqlConnectionFactory(connectionString, options), options);
+            return new PostgreSqlStorage(new DataSourceConnectionFactory(sp.GetRequiredKeyedService<NpgsqlDataSource>(DataSourceKey)), options);
         });
         services.TryAddScoped<IBackgroundJobClient>(sp => new BackgroundJobClient(
             sp.GetRequiredService<JobStorage>(),
             new TenantStampingFilterProvider(JobFilterProviders.Providers, new TenantJobFilter(sp.GetRequiredService<ITenantAccessor>()))));
         return services;
+    }
+
+    /// <summary>Hangfire's connections from the named data source, never from a bare connection string.</summary>
+    private sealed class DataSourceConnectionFactory(NpgsqlDataSource dataSource) : IConnectionFactory
+    {
+        public NpgsqlConnection GetOrCreateConnection() => dataSource.CreateConnection();
     }
 
     /// <summary>The global filters (retries, culture, continuations) plus this scope's tenant stamp.</summary>

@@ -4,6 +4,7 @@ using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Npgsql;
+using Platform.Shared.Data;
 
 namespace Platform.Web.Edge;
 
@@ -63,7 +64,8 @@ internal static class KeyRing
             pooled.MaxPoolSize = DefaultMaxPoolSize;
         }
 
-        services.AddKeyedSingleton(DataSourceKey, (_, _) => NpgsqlDataSource.Create(pooled.ConnectionString));
+        // Named (W-10): an unnamed data source is named after its connection string in metrics and spans.
+        services.AddKeyedSingleton(DataSourceKey, (_, _) => new NpgsqlDataSourceBuilder(pooled.ConnectionString) { Name = DataSourceNames.KeyRing }.Build());
         services.AddSingleton<IKeyRingCheck, DatabaseKeyRingCheck>();
         services.AddSingleton<KeyRingProbe>();
         services.AddSingleton(sp => new PostgresXmlRepository(

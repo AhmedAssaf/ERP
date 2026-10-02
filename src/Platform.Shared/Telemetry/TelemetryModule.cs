@@ -36,6 +36,9 @@ public static class TelemetryModule
     /// <summary>Built-in meters of .NET 9 and later and of Npgsql (spec 5.4): runtime, connection pool, HttpClient.</summary>
     private static readonly string[] Meters = ["System.Runtime", TelemetryNames.Sources.Npgsql, "System.Net.Http", TelemetryNames.Sources.OwnPrefix];
 
+    /// <summary>The tags an Npgsql metric keeps: every one Npgsql 10 records except <c>db.client.connection.pool.name</c>.</summary>
+    private static readonly string[] NpgsqlMetricTags = ["db.system.name", "db.client.connection.state", "server.address", "server.port", "error.type"];
+
     /// <summary>
     /// Registers the resource, tracing (Npgsql, every <c>WaslaBid.*</c> source, HttpClient; parent-based, everything
     /// sampled, O-5), metrics (runtime, Npgsql, HttpClient, every <c>WaslaBid.*</c> meter) and logging (Serilog as a provider),
@@ -86,6 +89,12 @@ public static class TelemetryModule
             .WithMetrics(metrics =>
             {
                 metrics.AddMeter(Meters);
+                // Npgsql names a pool after its connection string unless its data source has a name. Every data source the
+                // hosts build is named (Platform.Shared.Data.DataSourceNames), but Hangfire's LISTEN connection (long polling)
+                // is cloned from a bare connection string; so the pool name never leaves on a metric (O-10, W-10 final fix wave).
+                metrics.AddView(instrument => instrument.Meter.Name == TelemetryNames.Sources.Npgsql
+                    ? new MetricStreamConfiguration { TagKeys = NpgsqlMetricTags }
+                    : null);
                 if (endpoint is not null)
                 {
                     metrics.AddOtlpExporter(options => UseCollector(options, endpoint));
