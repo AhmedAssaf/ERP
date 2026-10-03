@@ -94,6 +94,12 @@ public static class VendorErrors
 
     public const string RegistrationFailed = "vendor.registration_failed";
 
+    /// <summary>
+    /// W-34: too many CR numbers were tried from the caller's network (the source address's limit) in the last hour. The
+    /// answer names no number and says nothing about any company.
+    /// </summary>
+    public const string NetworkLimited = "vendor.network_limited";
+
     /// <summary>The identity provider did not add the vendor to the tenant's organization; nothing was joined.</summary>
     public const string JoinFailed = "vendor.join_failed";
 
@@ -108,4 +114,17 @@ public static class VendorErrors
     /// yet (W-33); the platform admin retries it. Nothing was changed.
     /// </summary>
     public const string MembershipPendingRetry = "vendor.membership_pending_retry";
+
+    /// <summary>
+    /// W-37: the user, or all new vendors of the host tenant together, joined too often in the last minute
+    /// (<c>Vendors:JoinsPerUserPerMinute</c>, <c>Vendors:JoinsPerTenantPerMinute</c>). Nothing was changed and Keycloak was
+    /// not asked.
+    /// </summary>
+    public const string JoinRateLimited = "vendor.join_rate_limited";
+
+    /// <summary>
+    /// W-37: this web instance already has <c>Vendors:MaxConcurrentJoins</c> joins waiting on the identity provider and no
+    /// slot came free within two seconds. Nothing was changed and Keycloak was not asked.
+    /// </summary>
+    public const string JoinBusy = "vendor.join_busy";
 }

@@ -108,6 +108,7 @@
   <data name="Console.Component.SMTP" xml:space="preserve"><value>Email (SMTP)</value></data>
   <data name="Console.Component.Disk" xml:space="preserve"><value>Disk space</value></data>
   <data name="Console.Component.Telemetry" xml:space="preserve"><value>Telemetry pipeline</value></data>
+  <data name="Console.Component.Redis" xml:space="preserve"><value>Shared cache (Redis)</value></data>
   <data name="Console.Status.Healthy" xml:space="preserve"><value>Healthy</value></data>
   <data name="Console.Status.Degraded" xml:space="preserve"><value>Degraded</value></data>
   <data name="Console.Status.Unhealthy" xml:space="preserve"><value>Failing</value></data>
@@ -429,6 +430,7 @@
   <data name="Vendor.Consent.Error.AlreadyRevoked" xml:space="preserve"><value>This consent is already revoked.</value></data>
   <data name="Vendor.Consent.Error.NotFound" xml:space="preserve"><value>This consent was not found.</value></data>
   <data name="Vendor.Consent.Error.Generic" xml:space="preserve"><value>The change could not be completed. Try again in a moment.</value></data>
+  <data name="Vendor.Consent.Error.RateLimited" xml:space="preserve"><value>Your company has given too many consents in the last hour. Try again later.</value></data>
   <data name="Vendor.Consent.RevokeTitle" xml:space="preserve"><value>Revoke consent to {0}?</value></data>
   <data name="Vendor.Consent.RevokeBody" xml:space="preserve"><value>From now on the recipient may not receive these records. The consent and its revocation stay on record.</value></data>
   <data name="Vendor.Consent.RevokeConfirm" xml:space="preserve"><value>Revoke consent</value></data>
@@ -524,6 +526,7 @@
   <data name="Vendor.Dispute.Error.TooManyOpen" xml:space="preserve"><value>You have three open requests. Wait for WaslaBid to close one.</value></data>
   <data name="Vendor.Dispute.Error.AlreadyVendor" xml:space="preserve"><value>This account already belongs to a vendor company. Use a separate account for this request.</value></data>
   <data name="Vendor.Dispute.Error.Limited" xml:space="preserve"><value>Too many commercial registration numbers were tried from this account. Try again in an hour.</value></data>
+  <data name="Vendor.Error.NetworkLimited" xml:space="preserve"><value>Too many registration attempts from your network. Try again in an hour.</value></data>
   <data name="Vendor.Dispute.Error.Generic" xml:space="preserve"><value>The request could not be sent. Try again in a moment.</value></data>
   <data name="Admin.Vendors.Ownership.SelfDeclared" xml:space="preserve"><value>(self-declared)</value></data>
   <data name="Admin.Vendors.Ownership.EmailVerified" xml:space="preserve"><value>(email verified)</value></data>
@@ -553,4 +556,6 @@
   <data name="Console.Ownership.OverCap" xml:space="preserve"><value>Five older requests for this company are still pending ({0} in all)</value></data>
   <data name="Console.Ownership.UpheldNotRecorded" xml:space="preserve"><value>{0} now belongs to {1}. The sign-in service outcome could not be recorded; the request is listed below for a retry.</value></data>
   <data name="Vendor.Join.Error.PendingRetry" xml:space="preserve"><value>WaslaBid moved your company to your account and is still giving you access to {0}. Try again later; there is nothing for you to do.</value></data>
+  <data name="Vendor.Join.Error.RateLimited" xml:space="preserve"><value>There have been too many requests to join {0} in the last minute. Wait a minute and try again.</value></data>
+  <data name="Vendor.Join.Error.Busy" xml:space="preserve"><value>The service is busy. Try again in a moment.</value></data>
 </root>

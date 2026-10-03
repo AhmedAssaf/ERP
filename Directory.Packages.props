@@ -51,9 +51,16 @@
          SkiaSharp brings the Windows and macOS native assets; containers need the Linux build without fontconfig. -->
     <PackageVersion Include="SkiaSharp" Version="4.152.1" />
     <PackageVersion Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.152.1" />
+    <!-- W-34: the duplicate-CR throttle's shared counters in Redis and the worker's Redis health check. StackExchange.Redis
+         3.3.1 is current stable (MIT); no known advisories (OSV checked 2026-10-03, also for its RESPite 3.3.1 and
+         System.IO.Hashing 10.0.12). -->
+    <PackageVersion Include="StackExchange.Redis" Version="3.3.1" />
     <PackageVersion Include="Testcontainers" Version="4.15.0" />
     <PackageVersion Include="Testcontainers.Keycloak" Version="4.15.0" />
     <PackageVersion Include="Testcontainers.PostgreSql" Version="4.15.0" />
+    <!-- Tests only (W-34): a Redis container for the throttle and the health check; same release as Testcontainers, no
+         known advisories (OSV checked 2026-10-03). -->
+    <PackageVersion Include="Testcontainers.Redis" Version="4.15.0" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0" />
     <PackageVersion Include="xunit.v3" Version="4.0.1" />
   </ItemGroup>

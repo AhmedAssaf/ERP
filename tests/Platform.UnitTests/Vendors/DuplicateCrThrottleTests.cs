@@ -4,7 +4,8 @@ namespace Platform.UnitTests.Vendors;
 
 /// <summary>
 /// V-6: one user is told a CR number is taken at most five times in an hour; then the registration answers every number
-/// the same way. The memory is bounded like the denial audit throttle's.
+/// the same way. The memory is bounded like the denial audit throttle's. Since W-34 the counts live in Redis; this is the
+/// in-process limit the throttle uses without Redis or while Redis does not answer (<see cref="InProcessWindowCounter"/>).
 /// </summary>
 public sealed class DuplicateCrThrottleTests
 {
@@ -12,7 +13,7 @@ public sealed class DuplicateCrThrottleTests
     public void A_user_is_limited_after_five_refusals_until_the_hour_from_the_first_ends()
     {
         var clock = new ManualClock();
-        var throttle = new DuplicateCrThrottle(clock);
+        var throttle = AccountCounter(clock);
 
         for (var i = 0; i < DuplicateCrThrottle.Limit; i++)
         {
@@ -35,7 +36,7 @@ public sealed class DuplicateCrThrottleTests
     [Fact]
     public void The_memory_is_bounded_and_the_oldest_user_is_evicted_first()
     {
-        var throttle = new DuplicateCrThrottle(new ManualClock());
+        var throttle = AccountCounter(new ManualClock());
         for (var i = 0; i < DuplicateCrThrottle.Limit; i++)
         {
             throttle.Record("first");
@@ -54,6 +55,9 @@ public sealed class DuplicateCrThrottleTests
         throttle.Count.ShouldBe(DuplicateCrThrottle.Capacity);
         throttle.IsLimited("first").ShouldBeFalse();
     }
+
+    private static InProcessWindowCounter AccountCounter(TimeProvider clock) =>
+        new(clock, DuplicateCrThrottle.Limit, DuplicateCrThrottle.Window, DuplicateCrThrottle.Capacity);
 
     private sealed class ManualClock : TimeProvider
     {

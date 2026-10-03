@@ -7,6 +7,7 @@ using Platform.Modules.Identity.Contracts;
 using Platform.Modules.Vendors.Access;
 using Platform.Modules.Vendors.Contracts;
 using Platform.Modules.Vendors.Persistence;
+using Platform.Modules.Vendors.RateLimiting;
 using Platform.Shared.Results;
 using Platform.Shared.Tenancy;
 
@@ -27,6 +28,15 @@ namespace Platform.Modules.Vendors.Relationships;
 /// never takes back a membership that a parallel join found in Keycloak and then committed its relationship on: either
 /// that join commits first and the undo keeps the membership, or it starts after the undo and adds the membership again.
 /// A company that already works with the tenant never gets a membership back from here (<see cref="RejoinAsync"/>).
+/// W-37: every call first takes a permit of the user's join limit (<see cref="VendorRateLimits.TryJoinAsUser"/>); a call
+/// refused there (<see cref="VendorErrors.JoinRateLimited"/>) reads nothing, asks Keycloak nothing and writes nothing. A
+/// first-time join then takes a slot of <see cref="ConcurrentJoinGate"/> before it opens the transaction that holds its
+/// connection across the Keycloak add, and keeps it through its commit or its undo, so at most
+/// <c>Vendors:MaxConcurrentJoins</c> such joins hold connections at once in this instance, across all tenants; no slot
+/// within <see cref="ConcurrentJoinGate.DefaultWait"/> is <see cref="VendorErrors.JoinBusy"/>. With the slot it takes a
+/// permit of the tenant's join limit (<see cref="VendorRateLimits.TryJoinTenant"/>): only first-time joins count there, so
+/// related vendors posting the form again cannot use up a new vendor's chance, and a busy refusal does not use it up
+/// either. Each refusal comes before any Keycloak call or write.
 /// </summary>
 internal sealed partial class VendorJoin(
     IDbContextFactory<VendorsDbContext> contexts,
@@ -35,6 +45,8 @@ internal sealed partial class VendorJoin(
     IActingUserAccessor actingUser,
     IVendorAccounts accounts,
     IAuditWriter audit,
+    VendorRateLimits rateLimits,
+    ConcurrentJoinGate joinGate,
     ILogger<VendorJoin> logger) : IVendorJoin
 {
     public async Task<Result<VendorJoined>> JoinAsync(CancellationToken cancellationToken = default)
@@ -42,6 +54,12 @@ internal sealed partial class VendorJoin(
         var tenant = tenants.Current ?? throw new InvalidOperationException("A vendor joins a tenant on that tenant's host; this scope has none.");
         var vendor = vendors.Current ?? throw new InvalidOperationException("A vendor joins a tenant in its company's vendor context; this scope has none.");
         var userId = actingUser.UserId ?? throw new InvalidOperationException("A vendor joins a tenant as a signed-in user; this scope has none.");
+
+        // W-37: the user's own limit, before any read, Keycloak call or write; the limiter logs the refusal with ids only.
+        if (!rateLimits.TryJoinAsUser(tenant.TenantId, userId))
+        {
+            return RateLimited();
+        }
 
         bool related;
         await using (var db = await contexts.CreateDbContextAsync(cancellationToken))
@@ -57,6 +75,19 @@ internal sealed partial class VendorJoin(
         if (related)
         {
             return await RejoinAsync(tenant, vendor.CompanyId, userId, cancellationToken);
+        }
+
+        // W-37: a slot of the instance's cap on joins in flight, held through the commit or the undo below, then the
+        // tenant's permit (first-time joins only); either refusal comes before the transaction, Keycloak call or write.
+        using var slot = await joinGate.TryEnterAsync(tenant.TenantId, userId, cancellationToken);
+        if (slot is null)
+        {
+            return Result.Failure<VendorJoined>(Error.Refused(VendorErrors.JoinBusy, "The service is busy. Try again in a moment."));
+        }
+
+        if (!rateLimits.TryJoinTenant(tenant.TenantId, userId))
+        {
+            return RateLimited();
         }
 
         // W-40: from here to the commit this join holds the join lock shared (JoinLock), so an undo of a parallel failed
@@ -215,6 +246,10 @@ internal sealed partial class VendorJoin(
         return await db.Database.SqlQuery<bool>(
             $"select vendor.claimant_awaiting_organization({organizationAlias}) as \"Value\"").SingleAsync(cancellationToken);
     }
+
+    private static Result<VendorJoined> RateLimited() =>
+        Result.Failure<VendorJoined>(Error.Refused(
+            VendorErrors.JoinRateLimited, "There have been too many requests to join this organization in the last minute. Wait a minute and try again."));
 
     private static Result<VendorJoined> Failed() =>
         Result.Failure<VendorJoined>(Error.Refused(VendorErrors.JoinFailed, "Joining this organization could not be completed. Try again in a moment."));

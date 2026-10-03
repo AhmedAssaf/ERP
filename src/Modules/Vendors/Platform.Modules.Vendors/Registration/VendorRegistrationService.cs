@@ -41,6 +41,9 @@ internal sealed partial class VendorRegistrationService(
     /// <summary>V-6: the same words whatever the company, so the form tells nothing about it.</summary>
     internal const string DuplicateMessage = "This company already has an account on WaslaBid. Ask its administrator to add you.";
 
+    /// <summary>W-34: the source address's limit; the same words whatever the number, and no claim about any company.</summary>
+    internal const string NetworkLimitedMessage = "Too many registration attempts from your network. Try again in an hour.";
+
     private const string CrConstraint = "ux_companies_cr_number";
 
     public IReadOnlyList<Error> Validate(VendorRegistration registration) => VendorInput.Validate(registration);
@@ -96,23 +99,67 @@ internal sealed partial class VendorRegistrationService(
             return StaffAccount();
         }
 
-        // A limited user gets the duplicate answer whatever the number, before the number is looked up.
-        if (duplicates.IsLimited(userId))
+        // W-34: a place in the duplicate-CR limits is taken before the number is looked up, so parallel requests cannot
+        // all pass at a count of zero. A limited account gets the duplicate answer whatever the number; a limited address
+        // gets the network answer, which names no number (a subscriber behind a shared address is not told their own
+        // company is registered).
+        var reservation = await duplicates.ReserveAsync(userId, cancellationToken);
+        switch (reservation.Limit)
         {
-            return DuplicateAnswer();
+            case DuplicateCrLimit.Account:
+                return DuplicateAnswer();
+            case DuplicateCrLimit.Address:
+                return Result.Failure<Guid>(Error.Refused(VendorErrors.NetworkLimited, NetworkLimitedMessage));
         }
 
-        if (await db.Database.SqlQuery<bool>($"select vendor.cr_exists({input.CrNumber}) as \"Value\"").SingleAsync(cancellationToken))
+        bool taken;
+        try
+        {
+            taken = await db.Database.SqlQuery<bool>($"select vendor.cr_exists({input.CrNumber}) as \"Value\"").SingleAsync(cancellationToken);
+        }
+        catch
+        {
+            // No answer was given: the place goes back.
+            await duplicates.RefundAsync(reservation);
+            throw;
+        }
+
+        if (taken)
         {
             return await DuplicateAsync(tenant, userId, input.CrNumber, cancellationToken);
         }
 
+        // The number was free. The place is given back once the outcome is known, and kept only when a parallel
+        // registration took the number before this one saved its company, which ends in the duplicate answer (N-3).
+        var counted = false;
+        try
+        {
+            (var result, counted) = await RegisterFreeNumberAsync(input, email, tenant, userId, cancellationToken);
+            return result;
+        }
+        finally
+        {
+            if (!counted)
+            {
+                await duplicates.RefundAsync(reservation);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Keycloak, then the company, for a number that was free at the lookup; <c>Counted</c> is true when the number was
+    /// taken meanwhile and the answer is the duplicate answer.
+    /// </summary>
+    private async Task<(Result<Guid> Result, bool Counted)> RegisterFreeNumberAsync(
+        NormalizedRegistration input, string email, TenantContext tenant, string userId, CancellationToken cancellationToken)
+    {
+        await using var db = await contexts.CreateDbContextAsync(cancellationToken);
         var grant = new VendorAccessGrant(userId, tenant.KeycloakOrgAlias, RoleAdded: false, OrganizationAdded: false);
         try
         {
             if (!MayRegister(await accounts.DescribeAsync(userId, cancellationToken), tenant))
             {
-                return StaffAccount();
+                return (StaffAccount(), false);
             }
 
             grant = grant with { RoleAdded = await accounts.GrantRoleAsync(userId, cancellationToken) };
@@ -121,7 +168,7 @@ internal sealed partial class VendorRegistrationService(
         catch (IdentityProviderException ex)
         {
             KeycloakFailed(logger, tenant.Slug, userId, ex.InnerException?.GetType().Name ?? ex.GetType().Name);
-            return await UndoAsync(grant, Failed());
+            return (await UndoAsync(grant, Failed()), false);
         }
 
         Guid companyId;
@@ -137,7 +184,7 @@ internal sealed partial class VendorRegistrationService(
         {
             // Another registration took the CR number since the check above; this one gave Keycloak access for nothing.
             var duplicate = await DuplicateAsync(tenant, userId, input.CrNumber, cancellationToken);
-            return await UndoAsync(grant, duplicate);
+            return (await UndoAsync(grant, duplicate), true);
         }
         catch (Exception ex) when (ex is DbException or TimeoutException or OperationCanceledException or InvalidOperationException)
         {
@@ -150,7 +197,7 @@ internal sealed partial class VendorRegistrationService(
                 throw;
             }
 
-            return outcome;
+            return (outcome, false);
         }
 
         users.Forget(userId);
@@ -165,7 +212,7 @@ internal sealed partial class VendorRegistrationService(
                 ["organization_added"] = grant.OrganizationAdded ? "true" : "false",
             }),
             cancellationToken);
-        return Result.Success(companyId);
+        return (Result.Success(companyId), false);
     }
 
     private (TenantContext Tenant, string UserId) Caller() =>
@@ -218,11 +265,11 @@ internal sealed partial class VendorRegistrationService(
     /// <summary>
     /// V-6: refused with the neutral message and audited in the platform audit under the keyed HMAC-SHA256 of the CR
     /// number (<see cref="CrNumberAudit"/>), never the number itself and never in a tenant's log (the host tenant need
-    /// not learn which companies its visitors tried). Counts towards the user's limit (<see cref="DuplicateCrThrottle"/>).
+    /// not learn which companies its visitors tried). The place reserved in the user's and the source address's limits
+    /// is kept (<see cref="DuplicateCrThrottle"/>).
     /// </summary>
     private async Task<Result<Guid>> DuplicateAsync(TenantContext tenant, string userId, string crNumber, CancellationToken cancellationToken)
     {
-        duplicates.Record(userId);
         await platformAudit.WriteAsync(
             new PlatformAuditEntry(userId, "vendor.duplicate_cr_refused", CrNumberAudit.SubjectType, crAudit.Hmac(crNumber), new Dictionary<string, string?>
             {

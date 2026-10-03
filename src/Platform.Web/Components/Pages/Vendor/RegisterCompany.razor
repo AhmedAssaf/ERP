@@ -168,6 +168,8 @@
             _formError = result.Error.Code switch
             {
                 VendorErrors.DuplicateCr => T["Vendor.Register.Error.Duplicate"],
+                // W-34: the source address's limit; names no number and claims nothing about a company.
+                VendorErrors.NetworkLimited => T["Vendor.Error.NetworkLimited"],
                 VendorErrors.AlreadyRegistered => T["Vendor.Register.AlreadyRegistered"],
                 VendorErrors.StaffAccount => T["Vendor.Register.Error.StaffAccount"],
                 _ => T["Vendor.Register.Error.Generic"],
