@@ -96,7 +96,7 @@ public sealed class RedactingEnricher : ILogEventEnricher
     private static LogEventPropertyValue Redact(string? name, LogEventPropertyValue value) =>
         name is not null && TelemetryRedactor.IsSecretKey(name)
             ? value is ScalarValue { Value: TelemetryRedactor.SecretMarker } ? value : Secret
-            : Redact(value);
+            : value is ScalarValue scalar ? Redact(scalar, name) : Redact(value);
 
     private static bool IsHexIdentifier(LogEventPropertyValue value) =>
         value is ScalarValue { Value: string id } && id.Length is 16 or 32 && !id.AsSpan().ContainsAnyExcept(HexCharacters);
@@ -111,8 +111,15 @@ public sealed class RedactingEnricher : ILogEventEnricher
         _ => value,
     };
 
-    private static ScalarValue Redact(ScalarValue scalar)
+    private static ScalarValue Redact(ScalarValue scalar, string? name = null)
     {
+        // A number of ten or more digits (a CR number, an iqama) is masked like the same digits in text, unless the name says
+        // it is a measurement (user ruling 2026-10-03, spec 7.1).
+        if (NumericRedaction.IsLongNumber(scalar.Value) && !NumericRedaction.IsLogMeasurement(name))
+        {
+            return new ScalarValue(TelemetryRedactor.DigitsMarker);
+        }
+
         var text = scalar.Value switch
         {
             null => null,
