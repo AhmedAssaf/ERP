@@ -7,9 +7,26 @@
     <TailwindAsset>tailwindcss-windows-x64.exe</TailwindAsset>
     <TailwindSha256>e0e260ce048014e9268f6237ff18f8ccf02cef521cbd0ae04e82c2cdf7aa3955</TailwindSha256>
   </PropertyGroup>
-  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+  <!-- The CLI is chosen by operating system and machine architecture (the OS architecture, so an arm64 container under
+       emulation and the Arm pilot VM both get linux-arm64). Checksums are from the release's sha256sums.txt, checked 2026-10-03. -->
+  <PropertyGroup>
+    <TailwindArch>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)</TailwindArch>
+  </PropertyGroup>
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Linux')) And '$(TailwindArch)' == 'X64'">
     <TailwindAsset>tailwindcss-linux-x64</TailwindAsset>
     <TailwindSha256>dc61b3ac6b8c9ca874c0cc4c57b2409791a64c5540404ca5f5367360babc313a</TailwindSha256>
+  </PropertyGroup>
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Linux')) And '$(TailwindArch)' == 'Arm64'">
+    <TailwindAsset>tailwindcss-linux-arm64</TailwindAsset>
+    <TailwindSha256>55fd0b241214eff3de1e8ee4f22796662f2d2e7a49bcfca7477cfd0bac398195</TailwindSha256>
+  </PropertyGroup>
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('OSX')) And '$(TailwindArch)' == 'Arm64'">
+    <TailwindAsset>tailwindcss-macos-arm64</TailwindAsset>
+    <TailwindSha256>cdf646702987a743464dff4d9c60fd4480d1c1e73dd819a9a67f1078815dce9d</TailwindSha256>
+  </PropertyGroup>
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('OSX')) And '$(TailwindArch)' == 'X64'">
+    <TailwindAsset>tailwindcss-macos-x64</TailwindAsset>
+    <TailwindSha256>7922e0953f2110c05976e3bf58f14e643d90427575e766b7d433f5f80cbee7e1</TailwindSha256>
   </PropertyGroup>
   <PropertyGroup>
     <TailwindExe>$(TailwindDir)$(TailwindAsset)</TailwindExe>
@@ -51,14 +68,14 @@
 
   <!-- Downloads the pinned Tailwind standalone CLI once (no Node.js in the build). SHA-256 is checked by TailwindVerify below, every build, not just here. -->
   <Target Name="TailwindDownload" Condition="!Exists('$(TailwindExe)')">
-    <Error Condition="'$(TailwindAsset)' == ''" Text="Tailwind: no standalone binary is configured for this operating system." />
+    <Error Condition="'$(TailwindAsset)' == ''" Text="Tailwind: no standalone binary is configured for this operating system and architecture." />
     <DownloadFile SourceUrl="https://github.com/tailwindlabs/tailwindcss/releases/download/$(TailwindVersion)/$(TailwindAsset)" DestinationFolder="$(TailwindDir)" />
     <Exec Condition="!$([MSBuild]::IsOSPlatform('Windows'))" Command="chmod +x &quot;$(TailwindExe)&quot;" />
   </Target>
 
   <!-- Verifies the Tailwind binary's SHA-256 on every build (not only right after it is downloaded), so a tampered or corrupted cached binary is caught too. -->
   <Target Name="TailwindVerify" DependsOnTargets="TailwindDownload">
-    <Error Condition="'$(TailwindAsset)' == ''" Text="Tailwind: no standalone binary is configured for this operating system." />
+    <Error Condition="'$(TailwindAsset)' == ''" Text="Tailwind: no standalone binary is configured for this operating system and architecture." />
     <GetFileHash Files="$(TailwindExe)" Algorithm="SHA256">
       <Output TaskParameter="Hash" PropertyName="TailwindActualSha256" />
     </GetFileHash>

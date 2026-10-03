@@ -38,13 +38,15 @@
     ]
   },
   "smtpServer": {
-    "host": "smtp-relay",
-    "port": "587",
+    "host": "${SMTP_HOST}",
+    "port": "${SMTP_PORT}",
     "from": "${SMTP_FROM}",
     "fromDisplayName": "WaslaBid",
-    "auth": "false",
+    "auth": "true",
+    "user": "${SMTP_USERNAME}",
+    "password": "${SMTP_PASSWORD}",
     "ssl": "false",
-    "starttls": "false"
+    "starttls": "true"
   },
   "authenticatorConfig": [
     {

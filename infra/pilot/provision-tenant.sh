@@ -174,7 +174,7 @@ pending="$(body_of "$out" | jq -r '.requiredActions // [] | length')"
 if [ "$pending" -gt 0 ]; then
   redirect="$(jq -rn --arg u "https://$HOST/" '$u|@uri')"
   out="$(kc PUT "/users/$USER_ID/execute-actions-email?client_id=waslabid-web&redirect_uri=$redirect&lifespan=259200" '["UPDATE_PASSWORD","CONFIGURE_TOTP"]')"
-  [ "$(code_of "$out")" = 204 ] || die "sending the setup email failed ($(code_of "$out")): check the SMTP relay (docker compose ... logs smtp-relay), then run this again"
+  [ "$(code_of "$out")" = 204 ] || die "sending the setup email failed ($(code_of "$out")): check the SMTP credentials (docker compose ... logs keycloak) and docs/19 step 4, then run this again"
   log "   sent to $EMAIL (link valid 72 hours)"
 else
   log "   not needed: the account has finished its setup"

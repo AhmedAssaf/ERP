@@ -8,7 +8,7 @@ namespace Platform.Modules.Operations.Alerts;
 /// </summary>
 internal sealed class MailKitAlertSender(AlertSettings settings) : IAlertSender
 {
-    private readonly MailKitEmailSender _email = new(new EmailSettings(settings.SmtpHost, settings.SmtpPort, settings.From));
+    private readonly MailKitEmailSender _email = new(new EmailSettings(settings.Smtp, settings.From));
 
     public async Task SendAsync(AlertMessage message, CancellationToken cancellationToken = default)
     {

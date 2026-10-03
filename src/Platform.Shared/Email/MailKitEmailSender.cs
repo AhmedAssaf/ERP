@@ -30,12 +30,13 @@ public sealed class MailKitEmailSender(EmailSettings settings) : IEmailSender
         try
         {
             using var client = new SmtpClient();
-            await client.ConnectAsync(settings.SmtpHost, settings.SmtpPort, SecureSocketOptions.Auto, cancellationToken);
+            await settings.Smtp.ConnectAsync(client, cancellationToken);
             await client.SendAsync(mime, cancellationToken);
             await client.DisconnectAsync(true, cancellationToken);
         }
         catch (Exception ex) when (ex is IOException or SocketException or CommandException or ProtocolException
-            or ServiceNotConnectedException or SslHandshakeException or AuthenticationException)
+            or ServiceNotConnectedException or SslHandshakeException or AuthenticationException
+            or NotSupportedException)
         {
             throw new EmailDeliveryException($"The SMTP server did not take the email ({ex.GetType().Name}).", ex);
         }

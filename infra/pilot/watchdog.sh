@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # W-19: dead-man's switch for what the worker cannot report about itself. Every F-60 alert is sent BY the worker, so a
 # stopped worker, a stopped Docker or a missed backup would otherwise be silent. Run every five minutes by
-# waslabid-watchdog.timer (systemd/). One email when a check fails and one when it recovers, through the stack's SMTP
-# relay to ALERT_RECIPIENT; failures are also written to the journal (journalctl -u waslabid-watchdog).
+# waslabid-watchdog.timer (systemd/). One email when a check fails and one when it recovers, straight to OCI Email
+# Delivery (curl, STARTTLS) to ALERT_RECIPIENT; failures are also written to the journal (journalctl -u waslabid-watchdog).
 #
 # Checks: the worker's Hangfire heartbeat (younger than 3 minutes), web /health (readiness), the last backup (younger
 # than 26 hours), the root file system (below 85 %), and a pending reboot older than 7 days (security updates).
@@ -24,16 +24,25 @@ RECIPIENT="$(env_value ALERT_RECIPIENT)"
 FROM="$(env_value SMTP_FROM)"
 PLATFORM_HOST="$(env_value PLATFORM_HOST)"
 
+# Straight to OCI Email Delivery from the VM (STARTTLS on port 587, required). The login goes to curl on stdin, never on
+# its command line, so it is not visible in the process list or the journal (N-10).
 send_mail() {
-  local subject="$1" body="$2" relay
-  relay="$(container_of smtp-relay)"
-  if [ -z "$relay" ]; then
-    echo "watchdog: cannot send '$subject': the SMTP relay is not running" >&2
+  local subject="$1" body="$2" host port user password rc
+  host="$(env_value SMTP_HOST)"; port="$(env_value SMTP_PORT)"
+  user="$(env_value SMTP_USERNAME)"; password="$(env_value SMTP_PASSWORD)"
+  if [ -z "$host" ] || [ -z "$user" ] || [ -z "$password" ]; then
+    echo "watchdog: cannot send '$subject': SMTP_HOST, SMTP_USERNAME or SMTP_PASSWORD is empty in .env" >&2
     return 1
   fi
-  printf 'From: %s\nTo: %s\nSubject: %s\nContent-Type: text/plain; charset=utf-8\n\n%s\n\nVM: %s\nTime (UTC): %s\n' \
-    "$FROM" "$RECIPIENT" "$subject" "$body" "$(hostname)" "$(date -u '+%Y-%m-%d %H:%M')" \
-    | docker exec -i "$relay" sendmail -t -f "$FROM"
+  printf 'Date: %s\nMessage-ID: <%s.%s@%s>\nFrom: %s\nTo: %s\nSubject: %s\nContent-Type: text/plain; charset=utf-8\n\n%s\n\nVM: %s\nTime (UTC): %s\n' \
+    "$(date -R)" "$(date -u +%s)" "$$" "$(hostname)" "$FROM" "$RECIPIENT" "$subject" "$body" "$(hostname)" \
+    "$(date -u '+%Y-%m-%d %H:%M')" > "$WATCH_DIR/mail.tmp"
+  printf 'user = "%s:%s"\n' "$user" "$password" \
+    | curl -sS --fail --max-time 30 --ssl-reqd --crlf -K - "smtp://${host}:${port:-587}" \
+        --mail-from "$FROM" --mail-rcpt "$RECIPIENT" -T "$WATCH_DIR/mail.tmp" >/dev/null
+  rc=$?
+  rm -f "$WATCH_DIR/mail.tmp"
+  return $rc
 }
 
 # report <check> <ok 0|1> <message>
@@ -54,7 +63,7 @@ Runbook: docs/19-pilot-runbook.md section 6." && date -u +%s > "$marker"
 }
 
 if ! docker info >/dev/null 2>&1; then
-  # Without Docker there is no relay either: the journal is all that is left (and the OCI alarm, docs/19 section 6).
+  # Without Docker the stack is down: the journal is all that is left (and the OCI alarm, docs/19 section 6).
   echo "watchdog: Docker is not answering" >&2
   exit 1
 fi
