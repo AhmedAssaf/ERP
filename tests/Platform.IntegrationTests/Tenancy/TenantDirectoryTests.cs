@@ -34,6 +34,26 @@ public class TenantDirectoryTests(DatabaseFixture db)
         tenant.ShouldBeNull();
     }
 
+    [Fact]
+    public async Task Only_a_looked_up_host_is_cached_with_its_answer()
+    {
+        await using var host = new ModuleHost(db.AppConnectionString);
+        await using var scope = host.ScopeFor(null);
+        var directory = scope.ServiceProvider.GetRequiredService<ITenantDirectory>();
+
+        directory.TryGetCached("acme.localhost", out _).ShouldBeFalse();
+        directory.TryGetCached("nobody.localhost", out _).ShouldBeFalse();
+        await directory.FindByHostAsync("ACME.localhost", Ct);
+        await directory.FindByHostAsync("nobody.localhost", Ct);
+
+        directory.TryGetCached("acme.localhost", out var found).ShouldBeTrue();
+        found.ShouldBe(TestTenants.Acme);
+        directory.TryGetCached("NOBODY.localhost", out var missing).ShouldBeTrue();
+        missing.ShouldBeNull();
+        directory.TryGetCached("a b", out var malformed).ShouldBeTrue();
+        malformed.ShouldBeNull();
+    }
+
     [Theory]
     [MemberData(nameof(MalformedHosts))]
     public async Task Malformed_host_resolves_to_nothing_without_touching_the_database(string malformed)

@@ -201,7 +201,7 @@ builder.Services.AddEdgeForwardedHeaders(builder.Configuration, builder.Environm
 builder.Services.AddKeyRing(builder.Configuration, builder.Environment);
 // Pilot enabler (docs/19): Caddy's on-demand TLS asks GET /internal/tls-ask on its own listener (TlsAsk:*) before it
 // obtains a certificate for a tenant host; off when TlsAsk:Port is empty.
-builder.Services.AddTlsAsk(builder.Configuration);
+builder.Services.AddTlsAsk(builder.Configuration, builder.Environment);
 
 var app = builder.Build();
 

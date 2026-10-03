@@ -34,7 +34,9 @@ while [ $# -gt 0 ]; do
   esac
 done
 if [ -z "$SLUG" ] || [ -z "$NAME" ] || [ -z "$EMAIL" ] || [ -z "$FIRST" ] || [ -z "$LAST" ]; then sed -n '2,18p' "$0"; exit 2; fi
-[[ "$SLUG" =~ ^[a-z0-9-]{2,40}$ ]] || die "slug must match ^[a-z0-9-]{2,40}$"
+# The slug is the tenant host's first DNS label: 2 to 40 letters, digits and hyphens, no hyphen first or last (the web
+# host's ask endpoint refuses such a label, so its host would never get a certificate).
+[[ "$SLUG" =~ ^[a-z0-9][a-z0-9-]{0,38}[a-z0-9]$ ]] || die "slug must be 2 to 40 of a-z, 0-9 and '-', not starting or ending with '-'"
 [[ "$COLOR" =~ ^#[0-9A-Fa-f]{6}$ ]] || die "color must be #RRGGBB"
 [ "$CULTURE" = "ar-SA" ] || [ "$CULTURE" = "en-US" ] || die "culture must be ar-SA or en-US"
 [[ "$EMAIL" =~ ^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$ ]] || die "admin email looks invalid"

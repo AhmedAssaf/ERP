@@ -207,14 +207,19 @@ sequenceDiagram
     C-->>B: handshake completes
 ```
 
-The ask endpoint is safe to leave unauthenticated because of where it listens: a separate Kestrel port (8081) that serves
-that one path and nothing else, with no tenant resolution, sign-in or page behind it; Compose publishes no port of the web
-host, and no Caddy site block proxies to 8081, so only containers on the edge network (Caddy and Keycloak) reach it. The
-port is told apart by the connection's local port, never by the `Host` header. Through Caddy (port 8080) any `/internal`
-path is a 404 on every host. The answer reveals only whether a host is a tenant host, which DNS and HTTPS show anyway.
-The rate limit (20 lookups a second per instance) and the directory's cache keep a flood of made-up names under the base
-domain from loading PostgreSQL; a refused name is asked again at its next handshake. Certificates are only ever issued
-for `<one label>.<TENANT_BASE_DOMAIN>` that a tenant owns, which also bounds the Let's Encrypt rate limits (50 new
+The ask endpoint is unauthenticated. What makes that acceptable is where it listens and how little it says. It sits on a
+separate Kestrel port (8081) that serves that one path and nothing else, with no tenant resolution, sign-in or page behind
+it. The port is told apart by the connection's local port, never by the `Host` header. Compose publishes no port of the
+web host and no Caddy site block proxies to 8081, so nothing on the internet reaches it. Through Caddy (port 8080) any
+`/internal` path is a 404 on every host. Inside the VM it is not limited to Caddy: the web host listens on all its
+interfaces, so every container on the edge network (Caddy, Keycloak) and on the backend network (databases, storage,
+telemetry, ClamAV, the relay, the worker, the one-shots) can call it. What such a caller gains is a tenant-existence
+oracle and nothing more: whether a host is a tenant host, which DNS and HTTPS show anyway. The platform host, Keycloak's
+hosts (from the two OIDC authorities) and any `TlsAsk:ExcludedHosts` are never allowed. Only a well-formed name under the
+base domain that the tenant directory has not cached costs a database lookup, and those are limited to 20 a second per
+instance. Junk names, the kind a handshake flood aimed at the VM's address sends, cost nothing and cannot use up the rate
+for a new tenant; a refused name is asked again at its next handshake. Certificates are only ever issued for
+`<one label>.<TENANT_BASE_DOMAIN>` that a tenant owns, which also bounds the Let's Encrypt rate limits (50 new
 certificates per registered domain a week). Custom domains (F-03) are not allowed yet.
 
 **Step 9. Smoke checks.** The `tests/e2e` scripts drive `*.localhost`, Mailpit and the development users, so they do not
@@ -321,7 +326,10 @@ start), checks that every object the snapshot lists is stored, and removes every
 
 **Upgrade:** merge to `main`; on the laptop `infra/pilot/build-images.sh <vm>`; on the VM `sudo infra/pilot/backup.sh`
 (a restore point taken just before), `sudo git fetch && sudo git checkout <tag>`, `sudo infra/pilot/deploy.sh --tag <tag>`.
-Avoid deploying in the last hours before a tender deadline (N-04). Third-party images: change the version and digest in
+Avoid deploying in the last hours before a tender deadline (N-04). First upgrade past on-demand TLS (PR #24) on a VM set
+up earlier: add `TENANT_BASE_DOMAIN` (for example `example.sa`, matching `KEYCLOAK_TENANT_URL`) to `infra/pilot/.env`
+before running `deploy.sh`, which otherwise stops at the Compose check ("Set TENANT_BASE_DOMAIN"); remove `TENANT_HOSTS`
+(it is ignored, and `deploy.sh` warns while it is there). Third-party images: change the version and digest in
 both Compose files (development first), let CI verify signatures and scan, then deploy.
 
 **Rollback:** the previous tag is in `/var/lib/waslabid/previous-tag` and its images stay on the VM.
@@ -333,7 +341,7 @@ the backup taken before the upgrade (`restore.sh --full --force`), then deploy t
 
 | Item | Effect on the pilot | Next step |
 |---|---|---|
-| ~~No `ask` endpoint for on-demand TLS~~ | Closed 2026-10-03, PR <tbd>: `GET /internal/tls-ask` on the web host's port 8081 and on-demand TLS for tenant hosts in the Caddyfile (step 8); a new tenant needs no deploy | Custom domains (F-03, W-11) stay open |
+| ~~No `ask` endpoint for on-demand TLS~~ | Closed 2026-10-03, PR #24: `GET /internal/tls-ask` on the web host's port 8081 and on-demand TLS for tenant hosts in the Caddyfile (step 8); a new tenant needs no deploy | Custom domains (F-03, W-11) stay open |
 | Tailwind's standalone CLI is configured for linux-x64 only | Images cannot be built on the arm64 VM; they are built on an amd64 machine and shipped | Add a linux-arm64 entry to `Platform.UI.csproj` (developer) |
 | The application's SMTP client has no authentication setting | A local relay holds the SMTP credentials | `Smtp:Username`/`Password` in the app would remove the relay (developer, optional) |
 | One VM, no replica | N-04 (99.5%) is not guaranteed; a VM loss means up to an hour down and up to a day of data (nightly backup) | Accepted for the pilot; WAL archiving or managed PostgreSQL when hosting is re-decided in December 2026 |

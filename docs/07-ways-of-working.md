@@ -429,9 +429,10 @@ On-demand TLS (the pilot's Caddy, docs/19 section 9): optional settings of the w
 
 | Setting | What it is | Pilot |
 |---|---|---|
-| `TlsAsk:Port` | A second listener that serves only `GET /internal/tls-ask?domain=<host>` (200 allowed, 404 refused, 400 without a domain, 429 over the rate). Kestrel must bind it too (`ASPNETCORE_HTTP_PORTS=8080;8081`); no Caddy site block proxies to it. On every other port any `/internal` path is a 404 | `8081` |
-| `TlsAsk:TenantBaseDomain` | Required with the port. Allowed: a host one label under it that `tenancy.tenant_hosts` holds, never the platform host or an IP literal; upper case and one trailing dot are normalised | `TENANT_BASE_DOMAIN` |
-| `TlsAsk:RequestsPerSecond` | Lookups per second for the instance (burst the same), default 20 | default |
+| `TlsAsk:Port` | A second listener that serves only `GET /internal/tls-ask?domain=<host>` (200 allowed, 404 refused, 400 without a domain, 429 over the rate). Refused at start unless Kestrel binds it beside another port (`Kestrel:Endpoints`, else `URLS`, else `HTTP_PORTS`/`HTTPS_PORTS`, so `ASPNETCORE_HTTP_PORTS=8080;8081`); no Caddy site block proxies to it. On every other port any `/internal` path is a 404 | `8081` |
+| `TlsAsk:TenantBaseDomain` | Required with the port; at least two labels outside Development and Testing. Allowed: a host one label under it that `tenancy.tenant_hosts` holds, never an IP literal; upper case and one trailing dot are normalised | `TENANT_BASE_DOMAIN` |
+| `TlsAsk:ExcludedHosts` | Hosts never allowed, beside `Platform:Host` and the hosts of `Oidc:Authority` and `PlatformOidc:Authority`, which are always excluded | empty |
+| `TlsAsk:RequestsPerSecond` | Database lookups per second for the instance (burst the same), default 20. A malformed name, a name outside the base domain or a host the tenant directory has cached costs nothing | default |
 
 #### The worker's database role (W-36)
 
