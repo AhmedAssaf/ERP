@@ -13,6 +13,7 @@ using Platform.Modules.Vendors;
 using Platform.Modules.Workflow;
 using Platform.Shared;
 using Platform.Shared.Data;
+using Platform.Shared.Jobs;
 
 namespace Platform.IntegrationTests.Data;
 
@@ -159,6 +160,7 @@ public sealed class WorkerRoleUpgradeTests(DatabaseFixture db)
 }
 
 /// <summary>A job that only needs to be stored, never run.</summary>
+[PlatformJob]
 public static class UpgradeProbe
 {
     public static void Run()

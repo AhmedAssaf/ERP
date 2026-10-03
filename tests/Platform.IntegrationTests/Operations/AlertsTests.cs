@@ -11,6 +11,7 @@ using Platform.Modules.Operations.Alerts;
 using Platform.Modules.Operations.Contracts;
 using Platform.Modules.Operations.Health;
 using Platform.Shared;
+using Platform.Shared.Jobs;
 
 namespace Platform.IntegrationTests.Operations;
 
@@ -359,6 +360,7 @@ public sealed class AlertsTests(DatabaseFixture db, MailpitFixture mailpit) : IC
 
 /// <summary>A job that always fails, with near-zero retry delays so the third attempt (plan task 4's alert
 /// trigger) arrives quickly instead of waiting out Hangfire's real back-off schedule.</summary>
+[PlatformJob]
 public sealed class AlwaysFailingTestJob
 {
 #pragma warning disable CA1822 // Instance method by convention: Hangfire jobs are activated per execution.
@@ -368,6 +370,7 @@ public sealed class AlwaysFailingTestJob
 }
 
 /// <summary>A recurring-job body that fails or succeeds per recurring id, with no retries (like "health-check").</summary>
+[PlatformJob]
 public sealed class ToggleTestJob
 {
     public static readonly System.Collections.Concurrent.ConcurrentDictionary<string, bool> ShouldFail = new();
@@ -385,6 +388,7 @@ public sealed class ToggleTestJob
 }
 
 /// <summary>A failing job whose argument stands in for a secret (N-10): the alert must never echo it.</summary>
+[PlatformJob]
 public sealed class SecretArgumentFailingTestJob
 {
 #pragma warning disable CA1822 // Instance method by convention: Hangfire jobs are activated per execution.

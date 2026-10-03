@@ -8,7 +8,8 @@
 --    (WorkerRole, N-10: the password is never in a script). It is a member of erp_app with INHERIT and without SET: the
 --    worker runs every module's jobs, tenant-scoped ones included, so it needs what erp_app has, plus its own rights, and
 --    it never switches to erp_app. erp_app is not a member of erp_worker. CREATEROLE (or superuser) is needed to create
---    the role, and admin rights on erp_app to grant the membership; the Compose owner erp is a superuser.
+--    the role, and admin rights on erp_app to grant the membership (skipped when a pre-provisioned role already has it);
+--    the Compose owner erp is a superuser.
 -- 2. Hangfire's tables leave erp_app. They were created by Hangfire.PostgreSql at a host's first start as erp_app (0003),
 --    so the application role could alter, drop or truncate them. From now on the migrator installs and upgrades them as
 --    the owner (MigrationRunner, after the platform migrations) and the hosts never prepare the schema. erp_app loses
@@ -18,15 +19,45 @@
 --    one from the console and show the dashboard. Default privileges give tables a later Hangfire version adds the same.
 --    erp_worker has these through erp_app.
 
+-- A role an administrator created beforehand (docs/07, the pilot) is accepted only as this migration would create it: no
+-- superuser, BYPASSRLS, CREATEROLE, CREATEDB or REPLICATION attribute, no membership but erp_app (inherit, no set), and
+-- no member that can use its rights. The membership is granted only when it is missing, so a pre-provisioned role that
+-- has it needs no admin rights on erp_app here.
 do $$
+declare
+    v_worker  pg_roles%rowtype;
+    v_app_oid oid := (select oid from pg_roles where rolname = 'erp_app');
 begin
-    if not exists (select 1 from pg_roles where rolname = 'erp_worker') then
+    select * into v_worker from pg_roles where rolname = 'erp_worker';
+    if not found then
         create role erp_worker nologin inherit;
+        select * into v_worker from pg_roles where rolname = 'erp_worker';
+    end if;
+
+    if v_worker.rolsuper or v_worker.rolbypassrls or v_worker.rolcreaterole or v_worker.rolcreatedb or v_worker.rolreplication then
+        raise exception 'Role erp_worker exists with superuser, BYPASSRLS, CREATEROLE, CREATEDB or REPLICATION; remove the attribute before migrating.';
+    end if;
+
+    if exists (select 1 from pg_auth_members m where m.member = v_worker.oid and m.roleid <> v_app_oid) then
+        raise exception 'Role erp_worker is a member of a role other than erp_app; revoke that membership before migrating.';
+    end if;
+
+    -- A CREATEROLE owner holds ADMIN OPTION on a role it created (PostgreSQL 16), without INHERIT or SET; only a member that
+    -- can use erp_worker's rights is refused.
+    if exists (select 1 from pg_auth_members m where m.roleid = v_worker.oid and (m.inherit_option or m.set_option)) then
+        raise exception 'Another role can use erp_worker''s rights (a member with INHERIT or SET); revoke that membership before migrating.';
+    end if;
+
+    if exists (select 1 from pg_auth_members m
+               where m.member = v_worker.oid and m.roleid = v_app_oid and (not m.inherit_option or m.set_option)) then
+        raise exception 'Role erp_worker is a member of erp_app without INHERIT or with SET; grant it with inherit true, set false.';
+    end if;
+
+    if not exists (select 1 from pg_auth_members m where m.member = v_worker.oid and m.roleid = v_app_oid) then
+        grant erp_app to erp_worker with inherit true, set false;
     end if;
 end
 $$;
-
-grant erp_app to erp_worker with inherit true, set false;
 
 do $$
 begin

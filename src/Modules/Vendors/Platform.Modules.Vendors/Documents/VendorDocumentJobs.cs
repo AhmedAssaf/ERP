@@ -6,6 +6,7 @@ using Platform.Modules.Vendors.Persistence;
 using Platform.Shared.Scanning;
 using Platform.Shared.Storage;
 using Platform.Shared.Tenancy;
+using Platform.Shared.Jobs;
 
 namespace Platform.Modules.Vendors.Documents;
 
@@ -22,6 +23,7 @@ namespace Platform.Modules.Vendors.Documents;
 /// outages in a row (<see cref="MaxConsecutiveOutages"/>) stop the run; a scan verdict or a charged file resets the
 /// count, while a missing file or a document no longer pending leaves it as it is.
 /// </summary>
+[PlatformJob]
 internal sealed partial class VendorDocumentRescanJob(
     IDbContextFactory<VendorsDbContext> contexts, IServiceScopeFactory scopes, ILogger<VendorDocumentRescanJob> logger)
 {
@@ -188,6 +190,7 @@ internal sealed partial class VendorDocumentRescanJob(
 /// possible document and quarantine keys are deleted with it. No document row can name those keys, since a document
 /// and its upload's outcome commit together.
 /// </summary>
+[PlatformJob]
 internal sealed partial class VendorUploadCleanupJob(
     IDbContextFactory<VendorsDbContext> contexts, IObjectStorage storage, ILogger<VendorUploadCleanupJob> logger)
 {

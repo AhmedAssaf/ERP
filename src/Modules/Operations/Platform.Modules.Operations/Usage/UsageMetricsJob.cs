@@ -4,6 +4,7 @@ using Platform.Modules.Identity.Contracts;
 using Platform.Modules.Operations.Contracts;
 using Platform.Modules.Tenancy.Contracts;
 using Platform.Shared.Telemetry;
+using Platform.Shared.Jobs;
 
 namespace Platform.Modules.Operations.Usage;
 
@@ -16,6 +17,7 @@ namespace Platform.Modules.Operations.Usage;
 /// "usage-activity-prune" runs <see cref="PruneAsync"/> once a day: hourly buckets older than 35 days are deleted
 /// (spec 6.4 and 6.8, Q7 as recommended). Either job failing fails its run, so F-60's job-failure alert applies.
 /// </summary>
+[PlatformJob]
 internal sealed partial class UsageMetricsJob(
     IUserActivityCounts activity,
     ITenantSlugs tenantSlugs,

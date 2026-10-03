@@ -6,6 +6,7 @@ using Npgsql;
 using Platform.IntegrationTests.Infrastructure;
 using Platform.Modules.Audit.Contracts;
 using Platform.Shared.Tenancy;
+using Platform.Shared.Jobs;
 
 namespace Platform.IntegrationTests.Jobs;
 
@@ -212,6 +213,7 @@ public sealed class CounterTable(string connectionString)
     }
 }
 
+[PlatformJob]
 public sealed class CounterJob(CounterTable counters)
 {
     public async Task IncrementAsync(Guid counterId)
@@ -227,6 +229,7 @@ public sealed class ProbeResults
     public ConcurrentDictionary<Guid, TenantContext?> Seen { get; } = new();
 }
 
+[PlatformJob(TenantScoped = true)]
 public sealed class TenantProbeJob(ITenantAccessor tenants, IAuditWriter audit, ProbeResults results)
 {
     public void Record(Guid probeId) => results.Seen[probeId] = tenants.Current;

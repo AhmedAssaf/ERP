@@ -156,7 +156,25 @@ public sealed class WorkerRoleTests(DatabaseFixture db)
         {
             (await ActivityRows.TryAsync(worker, insertIncident, Ct)).ShouldBe("ok");
             (await ActivityRows.TryAsync(worker, insertStreak, Ct)).ShouldBe("ok");
-            (await ActivityRows.TryAsync(worker, "update ops.incidents set last_message = last_message where false", Ct)).ShouldBe("ok");
+        }
+
+        // Updating a real incident (incidents_worker_update) works for the worker without a context; deleting one never does.
+        await ExecuteAsOwnerAsync(insertIncident);
+        try
+        {
+            var update = $"update ops.incidents set last_message = 'w36 probe' where component = '{component}'";
+            await using (var worker = await ActivityRows.AppSessionAsync(db.WorkerConnectionString, null, null, null, Ct))
+            {
+                (await AffectedAsync(worker, update)).ShouldBe(1);
+                (await ActivityRows.TryAsync(worker, $"delete from ops.incidents where component = '{component}'", Ct)).ShouldBe("refused");
+            }
+
+            await using var workerWithTenant = await ActivityRows.AppSessionAsync(db.WorkerConnectionString, TestTenants.Acme.TenantId, null, null, Ct);
+            (await AffectedAsync(workerWithTenant, update)).ShouldBe(0, "the update policy sees no row in a tenant context");
+        }
+        finally
+        {
+            await ExecuteAsOwnerAsync($"delete from ops.incidents where component = '{component}'");
         }
 
         await using var withTenant = await ActivityRows.AppSessionAsync(db.WorkerConnectionString, TestTenants.Acme.TenantId, null, null, Ct);
@@ -197,8 +215,14 @@ public sealed class WorkerRoleTests(DatabaseFixture db)
         await using (var owner = new NpgsqlConnection(db.OwnerConnectionString))
         {
             await owner.OpenAsync(Ct);
-            await using var command = new NpgsqlCommand(
-                "select distinct tableowner from pg_tables where schemaname = 'hangfire'", owner);
+            // Every relation (tables, sequences, indexes), function and type in the schema.
+            await using var command = new NpgsqlCommand("""
+                select distinct pg_get_userbyid(c.relowner) from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'hangfire'
+                union
+                select distinct pg_get_userbyid(p.proowner) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'hangfire'
+                union
+                select distinct pg_get_userbyid(t.typowner) from pg_type t join pg_namespace n on n.oid = t.typnamespace where n.nspname = 'hangfire'
+                """, owner);
             await using var reader = await command.ExecuteReaderAsync(Ct);
             var owners = new List<string>();
             while (await reader.ReadAsync(Ct))
@@ -215,6 +239,7 @@ public sealed class WorkerRoleTests(DatabaseFixture db)
             (await ActivityRows.TryAsync(session, "create table hangfire.probe (id int)", Ct)).ShouldBe("refused");
             (await ActivityRows.TryAsync(session, "alter table hangfire.job add column probe int", Ct)).ShouldBe("refused");
             (await ActivityRows.TryAsync(session, "drop table hangfire.lock", Ct)).ShouldBe("refused");
+            (await ActivityRows.TryAsync(session, "truncate hangfire.job", Ct)).ShouldBe("refused");
         }
     }
 
@@ -262,6 +287,120 @@ public sealed class WorkerRoleTests(DatabaseFixture db)
         }
     }
 
+    [Fact]
+    public async Task The_worker_role_has_no_dangerous_attribute_and_only_its_membership_of_the_app_role()
+    {
+        await using var owner = new NpgsqlConnection(db.OwnerConnectionString);
+        await owner.OpenAsync(Ct);
+        await using (var attributes = new NpgsqlCommand(
+            "select rolsuper or rolbypassrls or rolcreaterole or rolcreatedb or rolreplication, rolcanlogin, rolinherit from pg_roles where rolname = 'erp_worker'", owner))
+        await using (var reader = await attributes.ExecuteReaderAsync(Ct))
+        {
+            (await reader.ReadAsync(Ct)).ShouldBeTrue();
+            reader.GetBoolean(0).ShouldBeFalse("no superuser, BYPASSRLS, CREATEROLE, CREATEDB or REPLICATION");
+            reader.GetBoolean(1).ShouldBeTrue("the migrator gave it its login");
+            reader.GetBoolean(2).ShouldBeTrue();
+        }
+
+        await using var memberships = new NpgsqlCommand("""
+            select r.rolname || ' inherit=' || m.inherit_option || ' set=' || m.set_option
+            from pg_auth_members m join pg_roles r on r.oid = m.roleid
+            where m.member = (select oid from pg_roles where rolname = 'erp_worker')
+            union all
+            select 'member ' || pg_get_userbyid(m.member)
+            from pg_auth_members m
+            where m.roleid = (select oid from pg_roles where rolname = 'erp_worker') and (m.inherit_option or m.set_option)
+            """, owner);
+        var rows = new List<string>();
+        await using (var reader = await memberships.ExecuteReaderAsync(Ct))
+        {
+            while (await reader.ReadAsync(Ct))
+            {
+                rows.Add(reader.GetString(0));
+            }
+        }
+
+        rows.ShouldBe(["erp_app inherit=true set=false"]);
+    }
+
+    public static TheoryData<string> UnsafeWorkerRoles => new(
+        "alter role erp_worker createdb",
+        "alter role erp_worker bypassrls",
+        "grant pg_monitor to erp_worker",
+        "create role w36_probe_member nologin; grant erp_worker to w36_probe_member",
+        "revoke erp_app from erp_worker; grant erp_app to erp_worker with inherit true, set true");
+
+    [Theory]
+    [MemberData(nameof(UnsafeWorkerRoles))]
+    public async Task Platform_migration_0008_refuses_a_worker_role_it_would_not_have_created(string change)
+    {
+        await using var owner = new NpgsqlConnection(db.OwnerConnectionString);
+        await owner.OpenAsync(Ct);
+        // Role DDL is transactional: the change and the migration run in one transaction that is always rolled back.
+        await using var transaction = await owner.BeginTransactionAsync(Ct);
+        try
+        {
+#pragma warning disable CA2100 // The statements are the tests' own and the migration's.
+            await using (var alter = new NpgsqlCommand(change, owner, transaction))
+            {
+                await alter.ExecuteNonQueryAsync(Ct);
+            }
+
+            await using var migration = new NpgsqlCommand(await PlatformMigrationAsync("0008_platform_worker_role.sql"), owner, transaction);
+#pragma warning restore CA2100
+            var refused = await Should.ThrowAsync<PostgresException>(() => migration.ExecuteNonQueryAsync(Ct));
+            refused.SqlState.ShouldBe("P0001", change);
+            refused.MessageText.ShouldContain("erp_worker", Case.Sensitive, change);
+        }
+        finally
+        {
+            await transaction.RollbackAsync(CancellationToken.None);
+        }
+    }
+
+    [Fact]
+    public async Task Platform_migration_0008_accepts_the_role_it_created_again()
+    {
+        await using var owner = new NpgsqlConnection(db.OwnerConnectionString);
+        await owner.OpenAsync(Ct);
+        await using var transaction = await owner.BeginTransactionAsync(Ct);
+        try
+        {
+#pragma warning disable CA2100 // The migration's own text.
+            await using var migration = new NpgsqlCommand(await PlatformMigrationAsync("0008_platform_worker_role.sql"), owner, transaction);
+#pragma warning restore CA2100
+            await migration.ExecuteNonQueryAsync(Ct);
+        }
+        finally
+        {
+            await transaction.RollbackAsync(CancellationToken.None);
+        }
+    }
+
+    private static async Task<string> PlatformMigrationAsync(string script)
+    {
+        await using var stream = typeof(SharedModule).Assembly.GetManifestResourceStream($"Migrations.{script}")!;
+        using var reader = new StreamReader(stream);
+        return await reader.ReadToEndAsync(Ct);
+    }
+
+    /// <summary>Rows the statement changes, inside a transaction that is rolled back.</summary>
+    private static async Task<int> AffectedAsync(NpgsqlConnection connection, string sql)
+    {
+        await using var transaction = await connection.BeginTransactionAsync(Ct);
+        try
+        {
+#pragma warning disable CA2100 // The statements are the tests' own.
+            await using var command = new NpgsqlCommand(sql, connection, transaction);
+#pragma warning restore CA2100
+            return await command.ExecuteNonQueryAsync(Ct);
+        }
+        finally
+        {
+            await transaction.RollbackAsync(CancellationToken.None);
+        }
+    }
+
     private static async Task<int> CountAsync(NpgsqlConnection connection, string sql)
     {
 #pragma warning disable CA2100 // The statements are the tests' own.
@@ -282,6 +421,7 @@ public sealed class WorkerRoleTests(DatabaseFixture db)
 }
 
 /// <summary>A job with no dependencies, enqueued by the web host's client and run by the worker.</summary>
+[PlatformJob]
 public static class WorkerRoleProbe
 {
     public static void Run()
