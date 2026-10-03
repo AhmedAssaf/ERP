@@ -1,12 +1,13 @@
 # W-19: the pilot's edge (Caddy 2.10). Values in {$...} come from infra/pilot/.env through docker-compose.yml.
 #
-# Certificates: automatic HTTPS (Let's Encrypt, ZeroSSL as fallback) for a STATIC list of hosts. The F-03 shape, on-demand
-# TLS for any tenant host the app vouches for, needs an `ask` endpoint the web host does not have yet (a required
-# follow-up, docs/19 section 9). Until then a new tenant host means: add it to TENANT_HOSTS and re-run deploy.sh.
-# The target shape, once the endpoint exists:
-#
-#   { on_demand_tls { ask http://web:8080/internal/tls/allowed } }   # 200 only for a host in tenancy.tenant_hosts
-#   https:// { tls { on_demand } import app_headers reverse_proxy web:8080 }
+# Certificates (Let's Encrypt, ZeroSSL as fallback): the platform host and Keycloak's host are obtained at start. Tenant
+# hosts use on-demand TLS: at the first handshake for a name Caddy holds no certificate for, it asks the web host
+# (GET /internal/tls-ask?domain=<name> on its internal listener web:8081, which no site block below proxies to and
+# Compose publishes nowhere) and obtains a certificate only on a 200: the name is one label under TENANT_BASE_DOMAIN and a
+# tenant owns it (tenancy.tenant_hosts). A new tenant therefore needs DNS and provision-tenant.sh, never a Caddy redeploy.
+# The tenant site is the catch-all `https://`, not `*.{$TENANT_BASE_DOMAIN}`: an on-demand wildcard site also covers the
+# platform and auth hosts, whose certificates Caddy 2.10 then no longer obtains at start (seen 2026-10-03); the ask
+# endpoint enforces the base domain instead.
 #
 # Forwarded headers (W-24): Caddy trusts no incoming X-Forwarded-* (no trusted_proxies), so it sends the client address it
 # sees as X-Forwarded-For, the scheme as X-Forwarded-Proto, and the Host header unchanged. The web host takes the first
@@ -14,6 +15,10 @@
 # tenant always comes from Host.
 {
 	email {$ACME_EMAIL}
+	# Required by Caddy for on-demand TLS; any answer but 200 (404, 429, an error, no answer) refuses the name.
+	on_demand_tls {
+		ask http://web:8081/internal/tls-ask
+	}
 	servers {
 		# HTTP/3 off: the firewall opens TCP 80 and 443 only.
 		protocols h1 h2
@@ -45,13 +50,25 @@
 	}
 }
 
-# The platform console and the tenant hosts: one web host decides by Host (PlatformHostMiddleware, TenantMiddleware).
-# TENANT_HOSTS arrives as "a.example.sa, b.example.sa" (lib.sh normalise_hosts); a bare comma between two hosts is refused.
-{$PLATFORM_HOST}, {$TENANT_HOSTS} {
+(app_site) {
 	import app_headers
 	encode zstd gzip
 	# Blazor Server's WebSocket and the chunked uploads (4 MB per request, ADR-0001) pass through with Caddy's defaults.
+	# Only the public listener: the ask listener (8081) is never a proxy target.
 	reverse_proxy web:8080
+}
+
+# The platform console: one web host decides by Host (PlatformHostMiddleware, TenantMiddleware).
+{$PLATFORM_HOST} {
+	import app_site
+}
+
+# Every tenant host, certificate on demand (above). The more specific site blocks (platform, auth) win over this one.
+https:// {
+	tls {
+		on_demand
+	}
+	import app_site
 }
 
 # Keycloak's public issuer. The Admin console and the master realm answer only from the operator's address; the web host

@@ -44,9 +44,14 @@ PFX="$PILOT_DIR/secrets/key-ring.pfx"
 log "validating the Compose file"
 dc --profile tools config --quiet
 
-# Before anything changes: a Caddyfile or host list Caddy refuses would take every site down once Caddy is recreated,
-# so the deploy stops here and the running Caddy keeps serving.
-log "validating the Caddyfile with TENANT_HOSTS = $(normalise_hosts "$(env_value TENANT_HOSTS)")"
+# Tenant hosts get certificates on demand (Caddyfile, the web host's ask listener), so no host list is deployed; the
+# base domain and the invitation URL must agree.
+BASE_DOMAIN="$(tenant_base_domain)" || die "fix TENANT_BASE_DOMAIN or KEYCLOAK_TENANT_URL in $ENV_FILE; nothing was changed"
+[ -z "$(env_value TENANT_HOSTS)" ] || warn "TENANT_HOSTS in $ENV_FILE is no longer used (tenant certificates are on demand); remove it"
+
+# Before anything changes: a Caddyfile Caddy refuses would take every site down once Caddy is recreated, so the deploy
+# stops here and the running Caddy keeps serving.
+log "validating the Caddyfile (tenant hosts: <slug>.$BASE_DOMAIN, certificates on demand)"
 caddy_validate || die "Caddy refuses the Caddyfile with these values; nothing was changed"
 
 PREFIX="$(env_value IMAGE_PREFIX)"; PREFIX="${PREFIX:-waslabid}"
@@ -100,6 +105,10 @@ for _ in $(seq 1 24); do
 done
 if [ "$status" = "200" ]; then log "web /health 200 (readiness: database, key ring)"; else warn "web /health answered $status after 2 minutes"; failures=$((failures + 1)); fi
 if [ "$(web_status /alive)" = "200" ]; then log "web /alive 200"; else warn "web /alive did not answer 200"; failures=$((failures + 1)); fi
+# The ask listener answers 400 to a request without a domain; nothing else on either port does. 000 means Kestrel does not
+# listen on 8081 (ASPNETCORE_HTTP_PORTS) and no tenant host would ever get a certificate.
+ask="$(web_status /internal/tls-ask 8081)"
+if [ "$ask" = "400" ]; then log "web on-demand TLS ask listener (8081) answers"; else warn "web ask listener on 8081 answered $ask, expected 400"; failures=$((failures + 1)); fi
 
 age=""
 for _ in $(seq 1 24); do

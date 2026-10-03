@@ -6,13 +6,15 @@
 #        --admin-email admin@acme.example.sa --admin-first Sara --admin-last Alqahtani
 #
 # It does, in this order:
-#   1. checks that <slug>.<tenant domain> (KEYCLOAK_TENANT_URL) is in TENANT_HOSTS, so Caddy has its certificate
+#   1. checks that <slug>.<TENANT_BASE_DOMAIN> is the host KEYCLOAK_TENANT_URL gives and is neither the platform nor
+#      the auth host (its certificate comes on demand at the first HTTPS request once step 3 has run; no deploy)
 #   2. Keycloak (realm waslabid, Admin API on 127.0.0.1:8080 as waslabid-ops, or the bootstrap admin before day one):
 #      the organization (alias = slug), the tenant host's redirect and sign-out URIs on client waslabid-web, the tenant
 #      admin's account (required actions UPDATE_PASSWORD and CONFIGURE_TOTP) and its organization membership
 #   3. PostgreSQL: tenancy.tenants, tenancy.tenant_hosts and the tenant admin's member row, keyed by email; the row binds
 #      to the Keycloak user on that user's first sign-in, as in development (F-07)
 #   4. the setup email (link valid 72 hours), again on every run while the account's setup is unfinished
+#   5. asks the web host's on-demand TLS endpoint whether the host is allowed (it is once step 3 has run)
 # Not done (no page needs it before the tender slice): the default approval chain (F-56 seed).
 set -euo pipefail
 # shellcheck source=infra/pilot/lib.sh
@@ -28,10 +30,10 @@ while [ $# -gt 0 ]; do
     --admin-email) EMAIL="$(printf '%s' "${2:?}" | tr '[:upper:]' '[:lower:]')"; shift 2 ;;
     --admin-first) FIRST="${2:?}"; shift 2 ;;
     --admin-last) LAST="${2:?}"; shift 2 ;;
-    *) sed -n '2,17p' "$0"; exit 2 ;;
+    *) sed -n '2,18p' "$0"; exit 2 ;;
   esac
 done
-if [ -z "$SLUG" ] || [ -z "$NAME" ] || [ -z "$EMAIL" ] || [ -z "$FIRST" ] || [ -z "$LAST" ]; then sed -n '2,17p' "$0"; exit 2; fi
+if [ -z "$SLUG" ] || [ -z "$NAME" ] || [ -z "$EMAIL" ] || [ -z "$FIRST" ] || [ -z "$LAST" ]; then sed -n '2,18p' "$0"; exit 2; fi
 [[ "$SLUG" =~ ^[a-z0-9-]{2,40}$ ]] || die "slug must match ^[a-z0-9-]{2,40}$"
 [[ "$COLOR" =~ ^#[0-9A-Fa-f]{6}$ ]] || die "color must be #RRGGBB"
 [ "$CULTURE" = "ar-SA" ] || [ "$CULTURE" = "en-US" ] || die "culture must be ar-SA or en-US"
@@ -50,8 +52,10 @@ if [ -z "$HOST" ] || [ "$HOST" = "$TENANT_URL" ]; then die "KEYCLOAK_TENANT_URL 
 LOCALE="${CULTURE%%-*}"
 
 log "1. tenant host $HOST"
-if ! grep -qx "$HOST" <<<"$(env_value TENANT_HOSTS | tr -s ', ' '\n')"; then
-  die "$HOST is not in TENANT_HOSTS: add it in $ENV_FILE, point its DNS record at the VM, run deploy.sh, then run this again"
+BASE_DOMAIN="$(tenant_base_domain)" || die "fix TENANT_BASE_DOMAIN or KEYCLOAK_TENANT_URL in $ENV_FILE"
+[ "$HOST" = "$SLUG.$BASE_DOMAIN" ] || die "$HOST is not $SLUG.$BASE_DOMAIN (KEYCLOAK_TENANT_URL and TENANT_BASE_DOMAIN disagree)"
+if [ "$HOST" = "$(env_value PLATFORM_HOST)" ] || [ "$HOST" = "$(env_value AUTH_HOST)" ]; then
+  die "$HOST is the platform or auth host; choose another slug"
 fi
 
 KC=http://127.0.0.1:8080
@@ -174,4 +178,18 @@ else
   log "   not needed: the account has finished its setup"
 fi
 unset TOKEN
+log "5. on-demand certificate for $HOST"
+# The web host's directory remembers a missing host for 5 seconds, so a lookup just before step 3 can still say no.
+ask="000"
+for _ in 1 2 3 4; do
+  ask="$(web_status "/internal/tls-ask?domain=$HOST" 8081)"
+  [ "$ask" = "200" ] && break
+  sleep 3
+done
+if [ "$ask" = "200" ]; then
+  log "   allowed: Caddy obtains the certificate at the first HTTPS request (DNS for $HOST must point at this VM)"
+else
+  warn "the ask endpoint answered $ask for $HOST, expected 200: no certificate will be issued (docs/19 section 9)"
+fi
+
 log "done: $EMAIL opens the setup link, sets a password and an authenticator, then signs in at https://$HOST/"
