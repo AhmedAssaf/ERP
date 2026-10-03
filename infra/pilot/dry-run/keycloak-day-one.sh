@@ -66,7 +66,7 @@ done < "$ENV_FILE" > "$tmp"
 unset secret
 chmod 600 "$tmp"; mv "$tmp" "$ENV_FILE"
 TOKEN="$(ops_token)"
-[ -n "$TOKEN" ] && [ "$TOKEN" != null ] || die "waslabid-ops cannot sign in with the secret just stored"
+if [ -z "$TOKEN" ] || [ "$TOKEN" = null ]; then die "waslabid-ops cannot sign in with the secret just stored"; fi
 
 log "7.3 deleting the bootstrap admin (signed in as waslabid-ops from here on)"
 TOKEN="$(admin_token)"
