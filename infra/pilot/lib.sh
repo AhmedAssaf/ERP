@@ -36,27 +36,23 @@ env_value() {
   printf '%s' "${line#*=}"
 }
 
-# Host list in the form Caddy accepts as site addresses: "a.example.sa, b.example.sa". The value in .env may use
-# commas, spaces or both; Caddy refuses "a,b" ("Site addresses cannot contain a comma"), which would take the whole
-# site down when Caddy is recreated. Refuses anything that is not a lower-case host name.
-normalise_hosts() {
-  local raw="$1" host found=()
-  for host in $(printf '%s' "$raw" | tr ',' ' ' | tr '[:upper:]' '[:lower:]'); do
-    [[ "$host" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$ ]] \
-      || { echo "not a host name: '$host'" >&2; return 1; }
-    found+=("$host")
-  done
-  [ "${#found[@]}" -gt 0 ] || { echo "the host list is empty" >&2; return 1; }
-  local IFS=,
-  printf '%s' "${found[*]}" | sed 's/,/, /g'
+# The tenant base domain (TENANT_BASE_DOMAIN): tenant hosts are <slug>.<base>, certificates are issued on demand only for
+# those (the web host's ask endpoint, TlsAsk:TenantBaseDomain), and KEYCLOAK_TENANT_URL must have the same shape, or
+# invitation links would point at hosts that never get a certificate. Prints the lower-cased base domain.
+tenant_base_domain() {
+  local base url
+  base="$(env_value TENANT_BASE_DOMAIN | tr '[:upper:]' '[:lower:]')"
+  [[ "$base" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$ ]] \
+    || { echo "TENANT_BASE_DOMAIN is not a host name such as example.sa: '$base'" >&2; return 1; }
+  url="$(env_value KEYCLOAK_TENANT_URL)"
+  [ "$url" = "https://{slug}.$base/" ] \
+    || { echo "KEYCLOAK_TENANT_URL must be https://{slug}.$base/ (tenant hosts are one label under TENANT_BASE_DOMAIN), not '$url'" >&2; return 1; }
+  printf '%s' "$base"
 }
 
-# Compose with the pilot's file, env file and the image tag deploy.sh chose. TENANT_HOSTS is normalised here, and the
-# shell value wins over the env file in Compose's interpolation, so every script and compose.sh hand Caddy a valid list.
+# Compose with the pilot's file, env file and the image tag deploy.sh chose.
 dc() {
-  local hosts
-  hosts="$(normalise_hosts "$(env_value TENANT_HOSTS)")" || die "TENANT_HOSTS in $ENV_FILE is not a list of host names"
-  TENANT_HOSTS="$hosts" docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" "$@"
+  docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" "$@"
 }
 
 # The pinned image of one service. (`docker compose config --images <service>` ignores the service and lists them all.)
@@ -67,12 +63,11 @@ service_image() {
 # Validates the Caddyfile with the pinned Caddy image and the values Compose would pass, before Caddy is (re)created:
 # a broken edge config must never replace a running one.
 caddy_validate() {
-  local image hosts
+  local image
   image="$(service_image caddy)"
-  hosts="$(normalise_hosts "$(env_value TENANT_HOSTS)")" || return 1
   docker run --rm --network none -v "$PILOT_DIR/Caddyfile:/etc/caddy/Caddyfile:ro" \
     -e ACME_EMAIL="$(env_value ACME_EMAIL)" -e PLATFORM_HOST="$(env_value PLATFORM_HOST)" \
-    -e AUTH_HOST="$(env_value AUTH_HOST)" -e TENANT_HOSTS="$hosts" -e ADMIN_ALLOW_CIDR="$(env_value ADMIN_ALLOW_CIDR)" \
+    -e AUTH_HOST="$(env_value AUTH_HOST)" -e ADMIN_ALLOW_CIDR="$(env_value ADMIN_ALLOW_CIDR)" \
     "$image" caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile > /dev/null
 }
 
@@ -109,12 +104,13 @@ print(f"SCRAM-SHA-256${iterations}:{b64(salt)}${b64(hashlib.sha256(client_key).d
 '
 }
 
-# HTTP status of GET <path> on the web host, asked from inside its own container (no curl in the image).
+# HTTP status of GET <path> on the web host, asked from inside its own container (no curl in the image). The port is
+# 8080 (the app) unless given; 8081 is the on-demand TLS ask listener.
 web_status() {
-  local cid
+  local cid port="${2:-8080}"
   cid="$(container_of web)"
   [ -n "$cid" ] || { echo 000; return; }
-  docker exec "$cid" bash -c "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET $1 HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 && head -n 1 <&3 | cut -d' ' -f2" 2>/dev/null || echo 000
+  docker exec "$cid" bash -c "exec 3<>/dev/tcp/127.0.0.1/$port && printf 'GET $1 HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 && head -n 1 <&3 | cut -d' ' -f2" 2>/dev/null || echo 000
 }
 
 # Seconds since the newest Hangfire server heartbeat (the worker), or empty when there is none.

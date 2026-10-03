@@ -31,6 +31,7 @@ flowchart LR
                 AV["ClamAV"]
             end
             CADDY --> WEB & KC
+            CADDY -.->|"on-demand TLS ask, port 8081"| WEB
             WEB --> PG & RD & S3 & AV & COL
             WRK --> PG & RD & S3 & AV & COL
             KC --> PG
@@ -66,7 +67,7 @@ Memory limits (W-10 spec section 9, applied in `docker-compose.yml`):
 |---|---|
 | `docker-compose.yml` | The pilot stack: production settings, limits, networks, health checks, no port but 80 and 443 |
 | `docker/app.Dockerfile` | Web, worker and migrator images: .NET 10 pinned by digest, non-root (uid 1654), read-only root file system |
-| `Caddyfile` | TLS for a static host list, security headers, Keycloak admin only from your IP |
+| `Caddyfile` | TLS (tenant hosts on demand, after the web host's ask endpoint), security headers, Keycloak admin only from your IP |
 | `keycloak/import/*.json` | The two realms for production: no development users, no test client, placeholders from `.env` |
 | `postgres/bootstrap.sql` | Roles `erp_app` and `keycloak`, databases, extensions; passwords sent only as SCRAM verifiers |
 | `.env.example`, `generate-secrets.sh` | Every setting with a generation hint; the script fills empty secrets and makes the key-ring certificate |
@@ -89,6 +90,7 @@ Where each host setting outside Development comes from (docs/07 section 4):
 | `Oidc:*`, `PlatformOidc:*`, `Platform:Host` | `AUTH_HOST`, `PLATFORM_HOST`, the two client secrets |
 | `KeycloakAdmin:BaseUrl`, `ClientSecret`, `TenantUrl` | `http://keycloak:8080` (internal), `WASLABID_ADMIN_API_SECRET`, `KEYCLOAK_TENANT_URL` |
 | `ForwardedHeaders:KnownProxies` (W-24) | Caddy's pinned address `CADDY_EDGE_IP` (172.30.10.2) |
+| `TlsAsk:Port`, `TlsAsk:TenantBaseDomain` (web, docs/07 section 4) | `8081` (with `ASPNETCORE_HTTP_PORTS=8080;8081`), `TENANT_BASE_DOMAIN` |
 | `DataProtection:CertificatePath`, `CertificatePassword` (W-24) | `secrets/key-ring.pfx` as a Compose secret, `KEY_RING_CERT_PASSWORD` |
 | `ObjectStorage:*`, `Health:MinIo:*` | MinIO user `waslabid-app` (bucket only), `health-probe` (list only) |
 | `ClamAv:*`, `Smtp:*`, `Platform:AlertRecipients`, `Platform:DiskPath` | `clamav:3310`, `SMTP_HOST`/`SMTP_PORT` (STARTTLS), `SMTP_USERNAME`/`SMTP_PASSWORD` and `SMTP_FROM`, `ALERT_RECIPIENT`, the database volume |
@@ -108,7 +110,7 @@ region. The home region cannot be changed later, and Always Free resources exist
 console user.
 
 **Step 2. DNS.** Point A records at the VM's public IP (step 3 gives it): `platform.example.sa`, `auth.example.sa`, and
-one per tenant host (`acme.example.sa`). TTL 300 seconds, so a rebuilt VM is reachable quickly. Add the SPF and DKIM
+either a wildcard `*.example.sa` (no DNS change per tenant) or one per tenant host (`acme.example.sa`). TTL 300 seconds, so a rebuilt VM is reachable quickly. Add the SPF and DKIM
 records that Email Delivery shows in step 4.
 
 **Step 3. The VM.** Networking, Virtual Cloud Networks, "VCN with Internet Connectivity". In the public subnet's security
@@ -201,9 +203,40 @@ sudo infra/pilot/provision-tenant.sh --slug acme --name "Acme Contracting" --cul
 ```
 
 The tenant admin gets a setup email (password and authenticator, 72 hours) and signs in at `https://acme.example.sa/`.
-A new tenant later: add its host to `TENANT_HOSTS` (hosts separated by spaces or commas; the scripts pass Caddy
-`a, b`, and `deploy.sh` validates the Caddyfile with the new list before it touches Caddy, so a typo stops the deploy
-instead of the site) and DNS, run `deploy.sh` (Caddy gets the certificate), then this script.
+A new tenant later: only DNS (none with the wildcard record) and this script; no `.env` change and no deploy. The tenant
+host is `<slug>.<TENANT_BASE_DOMAIN>`; the script's last step checks that the web host now allows it, and Caddy obtains
+its certificate at the first HTTPS request (a few seconds; the first visitor waits for it). How that is guarded:
+
+```mermaid
+sequenceDiagram
+    participant B as Browser
+    participant C as Caddy (443)
+    participant W as Web host, ask listener 8081
+    participant D as tenancy.tenant_hosts
+    participant L as Let's Encrypt
+    B->>C: TLS handshake, SNI acme.example.sa (no certificate yet)
+    C->>W: GET /internal/tls-ask?domain=acme.example.sa
+    W->>W: one label under TENANT_BASE_DOMAIN? not the platform host, not an IP? within the rate?
+    W->>D: resolve_host (cached 60 s, a miss 5 s)
+    W-->>C: 200 (anything else refuses)
+    C->>L: obtain certificate
+    C-->>B: handshake completes
+```
+
+The ask endpoint is unauthenticated. What makes that acceptable is where it listens and how little it says. It sits on a
+separate Kestrel port (8081) that serves that one path and nothing else, with no tenant resolution, sign-in or page behind
+it. The port is told apart by the connection's local port, never by the `Host` header. Compose publishes no port of the
+web host and no Caddy site block proxies to 8081, so nothing on the internet reaches it. Through Caddy (port 8080) any
+`/internal` path is a 404 on every host. Inside the VM it is not limited to Caddy: the web host listens on all its
+interfaces, so every container on the edge network (Caddy, Keycloak) and on the backend network (databases, storage,
+telemetry, ClamAV, the relay, the worker, the one-shots) can call it. What such a caller gains is a tenant-existence
+oracle and nothing more: whether a host is a tenant host, which DNS and HTTPS show anyway. The platform host, Keycloak's
+hosts (from the two OIDC authorities) and any `TlsAsk:ExcludedHosts` are never allowed. Only a well-formed name under the
+base domain that the tenant directory has not cached costs a database lookup, and those are limited to 20 a second per
+instance. Junk names, the kind a handshake flood aimed at the VM's address sends, cost nothing and cannot use up the rate
+for a new tenant; a refused name is asked again at its next handshake. Certificates are only ever issued for
+`<one label>.<TENANT_BASE_DOMAIN>` that a tenant owns, which also bounds the Let's Encrypt rate limits (50 new
+certificates per registered domain a week). Custom domains (F-03) are not allowed yet.
 
 **Step 9. Smoke checks.** The `tests/e2e` scripts drive `*.localhost`, Mailpit and the development users, so they do not
 run against the pilot yet (follow-up in section 9). By hand, in ar-SA and en-US:
@@ -233,7 +266,7 @@ flowchart LR
     E --> F["Migrator<br/>must succeed"]
     F --> G["Web and worker<br/>new tag"]
     G --> H["Caddy"]
-    H --> I["Verify: /health 200,<br/>worker heartbeat, HTTPS,<br/>Keycloak issuer"]
+    H --> I["Verify: /health 200,<br/>ask listener 8081, worker heartbeat,<br/>HTTPS, Keycloak issuer"]
 ```
 
 The migrator applies every module's migrations as the owner, installs Hangfire's tables and secures them (`jobs/`
@@ -309,7 +342,10 @@ start), checks that every object the snapshot lists is stored, and removes every
 
 **Upgrade:** merge to `main`; on the laptop `infra/pilot/build-images.sh <vm>`; on the VM `sudo infra/pilot/backup.sh`
 (a restore point taken just before), `sudo git fetch && sudo git checkout <tag>`, `sudo infra/pilot/deploy.sh --tag <tag>`.
-Avoid deploying in the last hours before a tender deadline (N-04). Third-party images: change the version and digest in
+Avoid deploying in the last hours before a tender deadline (N-04). First upgrade past on-demand TLS (PR #24) on a VM set
+up earlier: add `TENANT_BASE_DOMAIN` (for example `example.sa`, matching `KEYCLOAK_TENANT_URL`) to `infra/pilot/.env`
+before running `deploy.sh`, which otherwise stops at the Compose check ("Set TENANT_BASE_DOMAIN"); remove `TENANT_HOSTS`
+(it is ignored, and `deploy.sh` warns while it is there). Third-party images: change the version and digest in
 both Compose files (development first), let CI verify signatures and scan, then deploy.
 
 **Rollback:** the previous tag is in `/var/lib/waslabid/previous-tag` and its images stay on the VM.
@@ -321,7 +357,7 @@ the backup taken before the upgrade (`restore.sh --full --force`), then deploy t
 
 | Item | Effect on the pilot | Next step |
 |---|---|---|
-| No `ask` endpoint for on-demand TLS (F-03) | Tenant hosts are a static list; each new host needs `.env`, DNS and a deploy | Build `GET /internal/tls/allowed` on the web host (developer), then switch the Caddyfile to the commented shape |
+| ~~No `ask` endpoint for on-demand TLS~~ | Closed 2026-10-03, PR #24: `GET /internal/tls-ask` on the web host's port 8081 and on-demand TLS for tenant hosts in the Caddyfile (step 8); a new tenant needs no deploy | Custom domains (F-03, W-11) stay open |
 | The SMTP credential lives in the web host (internet-facing), the worker and Keycloak | A compromise of any of them can send mail as the approved sender | A dedicated IAM user whose only power is sending (step 4); rotate on suspicion; the sender domain's SPF/DKIM/DMARC limit abuse |
 | Keycloak's realm setting `starttls: true` may only request STARTTLS, not require it (Keycloak 26 behaviour not checked offline; the application and the watchdog do require it) | A stripped STARTTLS could send Keycloak's SMTP login in clear text on the path to the provider | Check on the VM at step 7 (Keycloak mail with a tampered path, or the Jakarta Mail `mail.smtp.starttls.required` setting) and record the answer here |
 | The SMTP health check logs in on every run (about 1,440 times a day) | Counts against Email Delivery's rate and login limits and shows in its logs; a provider lockout after failures would also stop real mail | Watch the first week; lengthen the check interval or stop logging in if the provider objects |
@@ -354,3 +390,10 @@ a comma", reproduced), and validates the normalised `a, b`; the restore of a dum
 ("these roles cannot connect after the restore: erp_key_ring"), and the current `bootstrap.sql` restores the grant;
 Keycloak, Elasticsearch and the collector are healthy with every capability dropped (effective set 0); the arm64 web,
 worker and migrator images built with a docker-container builder have no fixable HIGH or CRITICAL finding.
+
+On-demand TLS (2026-10-03), checked locally with the pinned Caddy 2.10 image: `caddy validate` passes on the pilot
+Caddyfile; with Caddy's local issuer in place of Let's Encrypt and a stub ask server, a handshake for a host the stub
+allows obtained its certificate and was served, a refused host and a host outside the base domain failed the handshake,
+and the platform and auth certificates were still obtained at start. A `*.<base domain>` site was tried first and
+rejected: with `on_demand` it also covers the platform and auth hosts, whose certificates were then no longer obtained at
+start. The endpoint itself is covered by `TlsAskEndpointTests` (integration). Not checked: Let's Encrypt on a real host.

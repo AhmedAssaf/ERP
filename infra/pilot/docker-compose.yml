@@ -69,7 +69,6 @@ services:
       ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL in infra/pilot/.env}
       PLATFORM_HOST: ${PLATFORM_HOST:?Set PLATFORM_HOST in infra/pilot/.env}
       AUTH_HOST: ${AUTH_HOST:?Set AUTH_HOST in infra/pilot/.env}
-      TENANT_HOSTS: ${TENANT_HOSTS:?Set TENANT_HOSTS in infra/pilot/.env}
       ADMIN_ALLOW_CIDR: ${ADMIN_ALLOW_CIDR:?Set ADMIN_ALLOW_CIDR in infra/pilot/.env}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
@@ -111,6 +110,12 @@ services:
     environment:
       <<: *host-env
       ASPNETCORE_ENVIRONMENT: Production
+      # Two listeners: 8080 is the app behind Caddy's site blocks; 8081 serves only Caddy's on-demand TLS ask
+      # (GET /internal/tls-ask, docs/19 section 9) and is no site block's upstream. Neither port is published.
+      ASPNETCORE_HTTP_PORTS: "8080;8081"
+      TlsAsk__Port: "8081"
+      # Certificates only for <one label>.<this domain> that a tenant owns (the shape of KEYCLOAK_TENANT_URL).
+      TlsAsk__TenantBaseDomain: ${TENANT_BASE_DOMAIN:?Set TENANT_BASE_DOMAIN in infra/pilot/.env}
       ConnectionStrings__Platform: Host=postgres;Port=5432;Database=platform;Username=erp_app;Password=${ERP_APP_DB_PASSWORD:?Set ERP_APP_DB_PASSWORD in infra/pilot/.env};GSS Encryption Mode=Disable
       ConnectionStrings__KeyRing: Host=postgres;Port=5432;Database=platform;Username=erp_key_ring;Password=${ERP_KEY_RING_DB_PASSWORD:?Set ERP_KEY_RING_DB_PASSWORD in infra/pilot/.env};GSS Encryption Mode=Disable
       # W-24: forwarded headers only from Caddy's pinned address; the Data Protection key ring encrypted with the certificate.
