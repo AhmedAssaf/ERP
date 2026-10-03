@@ -417,6 +417,8 @@ flowchart TB
 
 Read it as: everything inside the dashed box lives in one Saudi cloud region. Only email, SMS, and the model API cross the boundary, and none of them receive full offer files unless the provider is in-Kingdom.
 
+This is the version 1 target. The pilot (W-19) runs the same components on one Oracle Cloud VM in Jeddah with Docker Compose instead of Kubernetes: one instance of each service, PostgreSQL and object storage (MinIO) on the VM with nightly encrypted backups to Oracle Object Storage in Jeddah, and email through Oracle Email Delivery in Jeddah. Its diagram is in `docs/19-pilot-runbook.md` section 1.
+
 ```mermaid
 flowchart TB
     subgraph INET["Internet"]
