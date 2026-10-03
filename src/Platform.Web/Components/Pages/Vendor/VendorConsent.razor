@@ -4,7 +4,8 @@
     give a new consent to a recipient on the platform's list; a dialog to revoke one, which adds a row and leaves the grant
     as it was. Vendor admins only: the Vendor policy opens the page, and the ledger refuses any change by someone who is not
     the company's vendor admin; staff get 403. Interactive, for the dialogs; the company is the circuit's vendor context and
-    the actor its signed-in user, never form input.
+    the actor its signed-in user, never form input. The company's grants are rate limited in the ledger (W-35; a refusal
+    shows in the grant dialog); revoking is never limited (PDPL).
 *@
 @page "/vendor/consent"
 @attribute [Authorize(Policy = VendorPolicies.Vendor)]
@@ -193,6 +194,9 @@
                         break;
                     case ConsentErrors.NotVendorAdmin:
                         _grantError = T["Vendor.Consent.Error.NotAdmin"];
+                        break;
+                    case ConsentErrors.RateLimited:
+                        _grantError = T["Vendor.Consent.Error.RateLimited"];
                         break;
                     default:
                         _grantError = T["Vendor.Consent.Error.Generic"];

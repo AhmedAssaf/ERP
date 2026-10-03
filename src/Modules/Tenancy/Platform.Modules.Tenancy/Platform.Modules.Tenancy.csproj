@@ -8,6 +8,8 @@
   <ItemGroup>
     <!-- Logo re-encoding (F-02, D-10). The Linux native build without fontconfig is for the containers; Windows and macOS
          native assets come with SkiaSharp itself. -->
+    <!-- W-38: the logo cleanup job (the same Hangfire.Core the Vendors module uses for its jobs). -->
+    <PackageReference Include="Hangfire.Core" />
     <PackageReference Include="SkiaSharp" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" />
   </ItemGroup>

@@ -9,7 +9,9 @@
     after it passed; the company and user come from that context and the principal, never from the form. A company that
     already works with this tenant is told so, and keeps the button for a user still in the organization whose token does
     not carry it yet; a user the tenant removed is refused (W-21: only the tenant restores access, audited as
-    vendor.membership_restore_refused).
+    vendor.membership_restore_refused). Too many joins by this user or new vendors of this tenant in the last minute are
+    refused before anything happens (W-37, vendor.join_rate_limited), and so is a join that finds this instance's cap on
+    joins in flight full (vendor.join_busy).
 *@
 @page "/vendor/join"
 @attribute [Authorize(Policy = VendorPolicies.JoiningVendor)]
@@ -75,6 +77,8 @@
             {
                 VendorErrors.MembershipRemoved => T["Vendor.Join.Error.AccessRemoved", TenantName],
                 VendorErrors.MembershipPendingRetry => T["Vendor.Join.Error.PendingRetry", TenantName],
+                VendorErrors.JoinRateLimited => T["Vendor.Join.Error.RateLimited", TenantName],
+                VendorErrors.JoinBusy => T["Vendor.Join.Error.Busy"],
                 _ => T["Vendor.Join.Error.Generic"],
             };
         }

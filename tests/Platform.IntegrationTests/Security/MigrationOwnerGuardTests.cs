@@ -24,6 +24,7 @@ public sealed class MigrationOwnerGuardTests(DatabaseFixture db)
     {
         { "vendors", "0014_vendors_function_callers.sql" },
         { "tenancy", "0008_tenancy_branding_vendor_users_and_owner.sql" },
+        { "tenancy", "0009_tenancy_referenced_logos.sql" },
         { "operations", "0005_operations_owner_guard.sql" },
         { "identity", "0002_identity_staff_tenants.sql" },
         { "vendors", "0027_vendors_superseded_outcome_kept.sql" },

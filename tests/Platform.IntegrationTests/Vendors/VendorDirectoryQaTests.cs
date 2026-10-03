@@ -27,7 +27,7 @@ public sealed class VendorDirectoryQaTests(DatabaseFixture db)
     public async Task Related_companies_and_current_documents_return_no_rows_without_a_tenant()
     {
         var (companyId, _) = await VendorAsync("No Tenant Probe", TestTenants.Acme);
-        await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, companyId, VendorDocumentTypes.CrCertificate, new DateOnly(2030, 1, 31), "clean", isCurrent: true, Ct);
+        await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, companyId, VendorDocumentTypes.CrCertificate, await DatabaseClock.ValidUntilAsync(db.OwnerConnectionString, Ct), "clean", isCurrent: true, Ct);
 
         var probe = await ProbeAsync(tenantId: null, vendorCompanyId: null, userId: null, companyId);
 
@@ -41,7 +41,7 @@ public sealed class VendorDirectoryQaTests(DatabaseFixture db)
     public async Task Acme_never_reads_a_beta_only_company_or_its_documents_through_the_directory_functions()
     {
         var (betaOnlyId, _) = await VendorAsync("Beta Supplies Co", TestTenants.Beta);
-        await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, betaOnlyId, VendorDocumentTypes.CrCertificate, new DateOnly(2030, 1, 31), "clean", isCurrent: true, Ct);
+        await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, betaOnlyId, VendorDocumentTypes.CrCertificate, await DatabaseClock.ValidUntilAsync(db.OwnerConnectionString, Ct), "clean", isCurrent: true, Ct);
 
         var acme = await ProbeAsync(TestTenants.Acme.TenantId, vendorCompanyId: null, userId: null, betaOnlyId);
         var beta = await ProbeAsync(TestTenants.Beta.TenantId, vendorCompanyId: null, userId: null, betaOnlyId);
@@ -61,14 +61,15 @@ public sealed class VendorDirectoryQaTests(DatabaseFixture db)
     public async Task Related_current_documents_hands_out_only_the_current_clean_file_of_each_type()
     {
         var (companyId, _) = await VendorAsync("Current Files Only", TestTenants.Acme);
-        await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, companyId, VendorDocumentTypes.CrCertificate, new DateOnly(2030, 1, 31), "clean", isCurrent: true, Ct);
+        var validUntil = await DatabaseClock.ValidUntilAsync(db.OwnerConnectionString, Ct);
+        await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, companyId, VendorDocumentTypes.CrCertificate, validUntil, "clean", isCurrent: true, Ct);
         await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, companyId, VendorDocumentTypes.CrCertificate, new DateOnly(2025, 1, 31), "clean", isCurrent: false, Ct);
-        await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, companyId, VendorDocumentTypes.VatCertificate, new DateOnly(2030, 1, 31), "pending_scan", isCurrent: false, Ct);
-        await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, companyId, VendorDocumentTypes.VatCertificate, new DateOnly(2030, 1, 31), "infected", isCurrent: false, Ct);
+        await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, companyId, VendorDocumentTypes.VatCertificate, validUntil, "pending_scan", isCurrent: false, Ct);
+        await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, companyId, VendorDocumentTypes.VatCertificate, validUntil, "infected", isCurrent: false, Ct);
 
         var rows = await CurrentDocumentsAsync(TestTenants.Acme.TenantId, companyId);
 
-        rows.ShouldBe([(VendorDocumentTypes.CrCertificate, new DateOnly(2030, 1, 31))]);
+        rows.ShouldBe([(VendorDocumentTypes.CrCertificate, validUntil)]);
     }
 
     [Fact]
@@ -78,7 +79,7 @@ public sealed class VendorDirectoryQaTests(DatabaseFixture db)
         // tenant view's security-definer functions must not open a way round it for a vendor session on that host.
         var (ownId, ownUser) = await VendorAsync("First Supplier Est", TestTenants.Acme);
         var (competitorId, _) = await VendorAsync("Second Competitor Co", TestTenants.Acme);
-        await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, competitorId, VendorDocumentTypes.CrCertificate, new DateOnly(2030, 1, 31), "clean", isCurrent: true, Ct);
+        await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, competitorId, VendorDocumentTypes.CrCertificate, await DatabaseClock.ValidUntilAsync(db.OwnerConnectionString, Ct), "clean", isCurrent: true, Ct);
 
         var probe = await ProbeAsync(TestTenants.Acme.TenantId, ownId, ownUser, competitorId);
 

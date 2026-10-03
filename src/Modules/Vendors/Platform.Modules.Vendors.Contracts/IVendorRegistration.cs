@@ -114,4 +114,17 @@ public static class VendorErrors
     /// yet (W-33); the platform admin retries it. Nothing was changed.
     /// </summary>
     public const string MembershipPendingRetry = "vendor.membership_pending_retry";
+
+    /// <summary>
+    /// W-37: the user, or all new vendors of the host tenant together, joined too often in the last minute
+    /// (<c>Vendors:JoinsPerUserPerMinute</c>, <c>Vendors:JoinsPerTenantPerMinute</c>). Nothing was changed and Keycloak was
+    /// not asked.
+    /// </summary>
+    public const string JoinRateLimited = "vendor.join_rate_limited";
+
+    /// <summary>
+    /// W-37: this web instance already has <c>Vendors:MaxConcurrentJoins</c> joins waiting on the identity provider and no
+    /// slot came free within two seconds. Nothing was changed and Keycloak was not asked.
+    /// </summary>
+    public const string JoinBusy = "vendor.join_busy";
 }

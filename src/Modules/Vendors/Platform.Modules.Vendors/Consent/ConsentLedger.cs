@@ -4,6 +4,7 @@ using Platform.Modules.Operations.Contracts;
 using Platform.Modules.Vendors.Contracts;
 using Platform.Modules.Vendors.Documents;
 using Platform.Modules.Vendors.Persistence;
+using Platform.Modules.Vendors.RateLimiting;
 using Platform.Shared.Results;
 using Platform.Shared.Tenancy;
 
@@ -18,6 +19,9 @@ namespace Platform.Modules.Vendors.Consent;
 /// change that did not happen. Each entry names the host tenant the vendor or the export acted on (null without one).
 /// The database holds the actor and no-backdating rules too (migrations 0015 to 0017). Checks go through <c>vendor.consent_grant_in_force</c> (migration 0012), which works
 /// without a vendor context, as an export needs.
+/// W-35: a grant that passed its checks takes a permit of the company's grant limit (<see cref="VendorRateLimits"/>) before
+/// its transaction starts; a refused one writes no row and no audit entry. A revocation is never limited (PDPL: consent
+/// can be withdrawn at any time), and each grant is revoked at most once, so the rows stay bounded.
 /// </summary>
 internal sealed class ConsentLedger(
     IDbContextFactory<VendorsDbContext> contexts,
@@ -25,6 +29,7 @@ internal sealed class ConsentLedger(
     ITenantAccessor tenants,
     IActingUserAccessor actingUser,
     IPlatformAudit platformAudit,
+    VendorRateLimits rateLimits,
     TimeProvider clock) : IConsentLedger
 {
     private const string VendorAdminRole = "vendor-admin";
@@ -59,6 +64,12 @@ internal sealed class ConsentLedger(
         if (!await db.Recipients.AnyAsync(r => r.Id == recipientId, cancellationToken))
         {
             return Result.Failure<Guid>(Error.Validation(ConsentErrors.UnknownRecipient, "This recipient is not on the platform's list."));
+        }
+
+        // W-35: after the checks that write nothing, before the row and its audit entry.
+        if (!rateLimits.TryGrantConsent(companyId, actorId))
+        {
+            return RateLimited();
         }
 
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
@@ -254,6 +265,10 @@ internal sealed class ConsentLedger(
     private static Result<Guid> InvalidPeriod() =>
         Result.Failure<Guid>(Error.Validation(
             ConsentErrors.InvalidPeriod, "A consent period starts today or later and ends on or after its first day."));
+
+    private static Result<Guid> RateLimited() =>
+        Result.Failure<Guid>(Error.Refused(
+            ConsentErrors.RateLimited, "Your company has given too many consents in the last hour. Try again later."));
 
     private static Result<Guid> AlreadyRevoked() =>
         Result.Failure<Guid>(Error.Conflict(ConsentErrors.AlreadyRevoked, "This consent is already revoked."));

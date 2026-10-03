@@ -1,5 +1,8 @@
 using System.Data.Common;
+using Hangfire;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Npgsql;
 using Platform.Modules.Tenancy.Branding;
 using Platform.Modules.Tenancy.Contracts;
@@ -37,6 +40,32 @@ public static class TenancyModule
         // F-02: needs IAuditWriter (Audit module) and IObjectStorage (AddPlatformShared, configured by AddObjectStorage).
         services.AddScoped<IBrandingService, BrandingService>();
         return services;
+    }
+
+    public const string LogoCleanupJobId = "branding-logo-cleanup";
+
+    /// <summary>
+    /// The worker's cleanup of unreferenced logo objects (W-38). Needs the platform services, object storage and the job
+    /// client of the worker host; <paramref name="configuration"/> may set <c>Branding:LogoCleanup:GracePeriod</c>.
+    /// </summary>
+    public static IServiceCollection AddBrandingJobs(this IServiceCollection services, IConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configuration);
+        services.AddOptions<BrandingLogoCleanupOptions>().Bind(configuration.GetSection(BrandingLogoCleanupOptions.Section))
+            .Validate(o => o.GracePeriod >= TimeSpan.FromMinutes(1), "Setting 'Branding:LogoCleanup:GracePeriod' must be at least one minute.")
+            .ValidateOnStart();
+        services.TryAddSingleton(TimeProvider.System);
+        services.TryAddScoped<BrandingLogoCleanupJob>();
+        return services;
+    }
+
+    /// <summary>Schedules the logo cleanup hourly (<see cref="AddBrandingJobs"/>). Call once after the worker host is built.</summary>
+    public static void ScheduleBrandingJobs(IServiceProvider services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        new RecurringJobManager(services.GetRequiredService<JobStorage>())
+            .AddOrUpdate<BrandingLogoCleanupJob>(LogoCleanupJobId, job => job.RunAsync(CancellationToken.None), Cron.Hourly());
     }
 
     public static Task<IReadOnlyList<string>> MigrateAsync(NpgsqlConnection connection, CancellationToken cancellationToken = default) =>
