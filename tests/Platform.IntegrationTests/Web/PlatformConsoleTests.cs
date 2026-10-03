@@ -179,6 +179,23 @@ public sealed partial class PlatformConsoleTests(DatabaseFixture db, MinioFixtur
     }
 
     [Fact]
+    public async Task Rerunning_a_job_as_another_user_than_the_acting_user_is_refused_before_the_job_moves()
+    {
+        await using var factory = Factory();
+        var jobId = await CreateFailedJobAsync(factory, TestTenants.Acme);
+
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            scope.ServiceProvider.GetRequiredService<ActingUserAccessor>().Set(Admin);
+            await Should.ThrowAsync<InvalidOperationException>(
+                () => scope.ServiceProvider.GetRequiredService<IPlatformJobs>().RequeueAsync(jobId, "someone.else", Ct));
+        }
+
+        using var connection = factory.Services.GetRequiredService<JobStorage>().GetConnection();
+        connection.GetStateData(jobId).Name.ShouldBe(FailedState.StateName);
+    }
+
+    [Fact]
     public async Task Rerunning_a_failed_job_requeues_it_and_audits_the_admin_and_tenant()
     {
         await using var factory = Factory();
@@ -187,6 +204,7 @@ public sealed partial class PlatformConsoleTests(DatabaseFixture db, MinioFixtur
         RequeueOutcome outcome;
         await using (var scope = factory.Services.CreateAsyncScope())
         {
+            scope.ServiceProvider.GetRequiredService<ActingUserAccessor>().Set(Admin);
             outcome = await scope.ServiceProvider.GetRequiredService<IPlatformJobs>().RequeueAsync(jobId, Admin, Ct);
         }
 
@@ -208,6 +226,7 @@ public sealed partial class PlatformConsoleTests(DatabaseFixture db, MinioFixtur
         // A second request finds the job no longer failed: nothing changes and nothing more is audited.
         await using (var scope = factory.Services.CreateAsyncScope())
         {
+            scope.ServiceProvider.GetRequiredService<ActingUserAccessor>().Set(Admin);
             (await scope.ServiceProvider.GetRequiredService<IPlatformJobs>().RequeueAsync(jobId, Admin, Ct)).ShouldBe(RequeueOutcome.NotFailed);
         }
 

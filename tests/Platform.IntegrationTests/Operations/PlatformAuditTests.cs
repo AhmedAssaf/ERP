@@ -16,7 +16,7 @@ public sealed class PlatformAuditTests(DatabaseFixture db) : IAsyncLifetime
     public async ValueTask InitializeAsync()
     {
         _host = new ModuleHost(db.AppConnectionString);
-        await using var scope = _host.ScopeFor(null);
+        await using var scope = _host.PlatformScope("platform-admin");
         await scope.ServiceProvider.GetRequiredService<IPlatformAudit>()
             .WriteAsync(new PlatformAuditEntry("platform-admin", SeedAction, "component", "clamav"), Ct);
     }

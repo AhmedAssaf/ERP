@@ -498,11 +498,11 @@ public sealed class ConsentLedgerTests(DatabaseFixture db) : IAsyncLifetime
         return await action(scope.ServiceProvider.GetRequiredService<IConsentLedger>());
     }
 
-    /// <summary>A check as an export would run it: no tenant, no vendor context, an operator or job as the acting user.</summary>
+    /// <summary>A check as an export would run it: no tenant, no vendor context, an operator as the acting user (W-41: an application-role session always has one; only the worker audits without).</summary>
     private static async Task<ConsentCheckResult> Check(
         ModuleHost host, Guid companyId, Guid recipientId, ConsentScope scope, string? actingUserId = null)
     {
-        await using var request = host.ScopeFor(tenant: (TenantContext?)null, actingUserId: actingUserId);
+        await using var request = host.ScopeFor(tenant: (TenantContext?)null, actingUserId: actingUserId ?? "export-operator");
         return await request.ServiceProvider.GetRequiredService<IConsentLedger>().CheckAsync(companyId, recipientId, scope, Ct);
     }
 

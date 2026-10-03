@@ -69,6 +69,7 @@ public sealed class WorkerRoleUpgradeTests(DatabaseFixture db)
                 "tenancy/0010_tenancy_worker_role.sql",
                 "identity/0004_identity_worker_role.sql",
                 "operations/0007_operations_worker_role.sql",
+                "operations/0008_operations_platform_audit_actor.sql",
                 "vendors/0028_vendors_worker_role.sql",
             ]);
             (await OwnersAsync(owner)).ShouldBe([new NpgsqlConnectionStringBuilder(owner).Username!]);
