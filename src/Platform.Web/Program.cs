@@ -88,7 +88,8 @@ builder.Services.AddVendorUploadRateLimit();
 builder.Services.AddVendorDisputeRateLimit();
 builder.Services.AddScoped<VendorContextResolver>();
 // The web host only enqueues and reads jobs (D-6): Hangfire storage without a server, plus the dashboard (task 7).
-builder.Services.AddJobClient(platformDb);
+// W-42: every job it creates is signed with Jobs:SigningKey, which the worker verifies; refused at start when missing.
+builder.Services.AddJobClient(platformDb, JobSigningKeys.FromConfiguration(builder.Configuration));
 builder.Services.AddJobsDashboard();
 builder.Services.AddOperationsConsole(builder.Configuration);
 builder.Services.AddScoped<TenantOverview>();

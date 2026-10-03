@@ -29,6 +29,8 @@ public sealed class MigrationOwnerGuardTests(DatabaseFixture db)
         { "identity", "0002_identity_staff_tenants.sql" },
         { "vendors", "0027_vendors_superseded_outcome_kept.sql" },
         { "identity", "0003_identity_user_activity.sql" },
+        // W-42: forced row-level security on Hangfire's tables, which the owner installs and upgrades.
+        { "jobs", "0001_jobs_recurring_entries_and_replay.sql" },
     };
 
     [Theory]
@@ -86,10 +88,12 @@ public sealed class MigrationOwnerGuardTests(DatabaseFixture db)
             "tenancy" => typeof(TenancyModule).Assembly,
             "operations" => typeof(OperationsModule).Assembly,
             "identity" => typeof(Platform.Modules.Identity.IdentityModule).Assembly,
+            "jobs" => typeof(Platform.Shared.Jobs.JobsModule).Assembly,
             _ => throw new ArgumentOutOfRangeException(nameof(module), module, null),
         };
 
-        await using var stream = assembly.GetManifestResourceStream("Migrations." + script)
+        var prefix = module == "jobs" ? "JobsMigrations." : "Migrations.";
+        await using var stream = assembly.GetManifestResourceStream(prefix + script)
             ?? throw new InvalidOperationException($"The {module} module has no migration {script}.");
         using var reader = new StreamReader(stream);
         return await reader.ReadToEndAsync(Ct);

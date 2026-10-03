@@ -19,6 +19,8 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Data\Migrations\*.sql" LogicalName="Migrations.%(Filename)%(Extension)" />
+    <!-- W-42: the jobs set, applied by the migrator after Hangfire's install (JobsModule.MigrateAsync). -->
+    <EmbeddedResource Include="Jobs\Migrations\*.sql" LogicalName="JobsMigrations.%(Filename)%(Extension)" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Platform.UnitTests" />

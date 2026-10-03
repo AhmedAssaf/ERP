@@ -16,7 +16,7 @@ public sealed class JobServerRegistrationTests
     {
         var services = new ServiceCollection();
 
-        services.AddJobServer("Host=localhost;Database=none;Username=erp_worker;Password=unused");
+        services.AddJobServer("Host=localhost;Database=none;Username=erp_worker;Password=unused", JobSigningKeys.FromBytes(new byte[32]));
 
         TypeHelper.CurrentTypeResolver.ShouldBe(JobAllowList.ResolveType);
         Should.Throw<JobRefusedException>(() => TypeHelper.CurrentTypeResolver("System.Diagnostics.Process, System.Diagnostics.Process"));

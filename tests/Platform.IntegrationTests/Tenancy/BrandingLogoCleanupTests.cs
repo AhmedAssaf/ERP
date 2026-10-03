@@ -176,8 +176,9 @@ public sealed class BrandingLogoCleanupTests(DatabaseFixture db, MinioFixture mi
     [Fact]
     public void The_worker_schedules_the_logo_cleanup_every_hour()
     {
+        // As the worker's role: since W-42 only the worker writes recurring entries.
         var services = new ServiceCollection();
-        services.AddJobClient(db.AppConnectionString);
+        services.AddJobClient(db.WorkerConnectionString, TestSecrets.JobKeys);
         using var provider = services.BuildServiceProvider();
         var storage = provider.GetRequiredService<JobStorage>();
         try

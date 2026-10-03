@@ -21,6 +21,9 @@ internal sealed class JobServerHost : IAsyncDisposable
 
     public JobStorage Storage => _host.Services.GetRequiredService<JobStorage>();
 
+    /// <summary>The worker's signed recurring job manager (W-42): jobs it triggers carry a valid signature.</summary>
+    public RecurringJobManager RecurringJobs => _host.Services.GetRequiredService<RecurringJobManager>();
+
     public static async Task<JobServerHost> StartAsync(
         string appConnectionString,
         Action<IServiceCollection>? configure = null,
@@ -35,7 +38,7 @@ internal sealed class JobServerHost : IAsyncDisposable
         builder.Services.AddLogging();
         builder.Services.AddPlatformShared();
         builder.Services.AddAuditModule(appConnectionString);
-        builder.Services.AddJobServer(appConnectionString, options =>
+        builder.Services.AddJobServer(appConnectionString, TestSecrets.JobKeys, options =>
         {
             options.ServerName = serverName;
             options.WorkerCount = 4;

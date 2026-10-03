@@ -26,6 +26,14 @@ public static class HealthComponents
     /// </summary>
     public const string Redis = "Redis";
 
+    /// <summary>
+    /// The worker's recurring jobs (W-42): Unhealthy when the worker's recurring job guard found an entry missing or altered
+    /// and restored it, Healthy on its next pass with every entry intact. Checked for alerts (F-60) but not a board tile,
+    /// like <see cref="Disk"/>; recorded every five minutes by the guard itself, not by the health-check job, so a deleted
+    /// health-check entry is reported too.
+    /// </summary>
+    public const string Jobs = "Jobs";
+
     /// <summary>The board's tiles, in display order.</summary>
     public static IReadOnlyList<string> Board { get; } = [Web, Worker, PostgreSql, ObjectStorage, Keycloak, ClamAv, Email];
 

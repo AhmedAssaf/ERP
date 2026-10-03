@@ -8,16 +8,18 @@ namespace Platform.Shared.Jobs;
 /// <summary>
 /// Gives every job its own DI scope and, when the job carries a tenant, sets it once on the scope's
 /// <see cref="TenantAccessor"/> before the job is resolved, so EF Core's connection interceptor applies RLS for it.
-/// A tenant snapshot that disagrees with the <c>TenantId</c> parameter fails the job instead of guessing.
+/// W-42: the tenant comes from <see cref="JobGate.Admit"/>, which reads the parameters once and admits the job only with a
+/// valid signature over exactly those values and a nonce that has not run as another job; the values checked are the
+/// values used. A tenant snapshot that disagrees with the <c>TenantId</c> parameter fails the job instead of guessing.
 /// </summary>
-public sealed class TenantJobActivator(IServiceScopeFactory scopes) : JobActivator
+public sealed class TenantJobActivator(IServiceScopeFactory scopes, JobGate gate) : JobActivator
 {
     public override JobActivatorScope BeginScope(JobActivatorContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        var tenant = context.GetJobParameter<TenantContext?>(TenantJobFilter.TenantParameter);
-        var tenantId = context.GetJobParameter<Guid?>(TenantJobFilter.TenantIdParameter);
-        if (tenant?.TenantId != tenantId)
+        var binding = gate.Admit(context.Connection, context.BackgroundJob);
+        var tenant = binding.Tenant;
+        if (tenant?.TenantId != binding.TenantId)
         {
             throw new InvalidOperationException(
                 $"Job {context.BackgroundJob.Id} carries inconsistent tenant parameters; it is not run.");

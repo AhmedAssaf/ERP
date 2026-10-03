@@ -36,6 +36,7 @@ internal sealed class PlatformWebFactory(
         builder.UseSetting("PlatformOidc:Authority", oidc?.PlatformAuthority ?? "https://keycloak.invalid/realms/waslabid-platform");
         builder.UseSetting("PlatformOidc:ClientSecret", oidc?.PlatformClientSecret ?? "unused-in-tests");
         builder.UseSetting(TestSecrets.CrAuditKeySetting.Key, TestSecrets.CrAuditKeySetting.Value);
+        builder.UseSetting(TestSecrets.JobSigningKeySetting.Key, TestSecrets.JobSigningKeySetting.Value);
         // W-10: explicitly empty means off, with no fallback to OTEL_EXPORTER_OTLP_ENDPOINT, so a test host never exports to
         // a developer's collector (Development's appsettings point at localhost:4317). Tests that export set it again.
         builder.UseSetting(TelemetryModule.OtlpEndpointSetting, string.Empty);

@@ -18,20 +18,30 @@ public static class SqlMigrator
     private const long AdvisoryLockKey = 0x5741534C4249; // "WASLBI"
     private const string ResourcePrefix = "Migrations.";
 
+    public static Task<IReadOnlyList<string>> ApplyAsync(
+        NpgsqlConnection connection, string module, Assembly assembly, CancellationToken cancellationToken = default) =>
+        ApplyAsync(connection, module, assembly, ResourcePrefix, cancellationToken);
+
+    /// <summary>
+    /// The scripts of <paramref name=assembly/> whose resource names start with <paramref name=resourcePrefix/>: an assembly
+    /// holding two migration sets keeps them apart (Platform.Shared: <c>Migrations.</c> for platform, <c>JobsMigrations.</c>
+    /// for the jobs set the migrator runs after Hangfire's install, W-42).
+    /// </summary>
     public static async Task<IReadOnlyList<string>> ApplyAsync(
-        NpgsqlConnection connection, string module, Assembly assembly, CancellationToken cancellationToken = default)
+        NpgsqlConnection connection, string module, Assembly assembly, string resourcePrefix, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(assembly);
+        ArgumentException.ThrowIfNullOrWhiteSpace(resourcePrefix);
 
         var resources = assembly.GetManifestResourceNames()
-            .Where(n => n.StartsWith(ResourcePrefix, StringComparison.Ordinal) && n.EndsWith(".sql", StringComparison.Ordinal))
+            .Where(n => n.StartsWith(resourcePrefix, StringComparison.Ordinal) && n.EndsWith(".sql", StringComparison.Ordinal))
             .Order(StringComparer.Ordinal)
             .ToList();
 
         var scripts = new List<(string Script, string Sql)>(resources.Count);
         foreach (var resource in resources)
         {
-            scripts.Add((resource[ResourcePrefix.Length..], await ReadAsync(assembly, resource, cancellationToken)));
+            scripts.Add((resource[resourcePrefix.Length..], await ReadAsync(assembly, resource, cancellationToken)));
         }
 
         return await ApplyAsync(connection, module, scripts, cancellationToken);

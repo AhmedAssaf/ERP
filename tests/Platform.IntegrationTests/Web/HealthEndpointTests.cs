@@ -20,6 +20,7 @@ public class HealthEndpointTests
                 .UseSetting("ConnectionStrings:Platform", "Host=unused;Database=unused")
                 .UseSetting("ConnectionStrings:KeyRing", TestSecrets.KeyRingConnectionString("Host=unused;Database=unused"))
                 .UseSetting(TestSecrets.CrAuditKeySetting.Key, TestSecrets.CrAuditKeySetting.Value)
+                .UseSetting(TestSecrets.JobSigningKeySetting.Key, TestSecrets.JobSigningKeySetting.Value)
                 // W-10: never export to a developer's collector from a test host.
                 .UseSetting(TelemetryModule.OtlpEndpointSetting, string.Empty));
         using var client = factory.CreateClient();
@@ -42,6 +43,7 @@ public class HealthEndpointTests
                 .UseSetting("ConnectionStrings:Platform", "Host=unused;Database=unused")
                 .UseSetting("ConnectionStrings:KeyRing", TestSecrets.KeyRingConnectionString("Host=unused;Database=unused"))
                 .UseSetting(TestSecrets.CrAuditKeySetting.Key, TestSecrets.CrAuditKeySetting.Value)
+                .UseSetting(TestSecrets.JobSigningKeySetting.Key, TestSecrets.JobSigningKeySetting.Value)
                 .UseSetting(TelemetryModule.OtlpEndpointSetting, string.Empty));
         using var client = factory.CreateClient();
 

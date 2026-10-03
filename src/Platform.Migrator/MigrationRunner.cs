@@ -28,6 +28,9 @@ public static class MigrationRunner
             JobsModule.InstallSchema(hangfire);
         }
 
+        // W-42: the jobs set secures Hangfire's own tables (the recurring entries are the worker's), so it runs right after.
+        applied.AddRange(Named("jobs", await JobsModule.MigrateAsync(connection, cancellationToken)));
+
         applied.AddRange(Named("audit", await AuditModule.MigrateAsync(connection, cancellationToken)));
         applied.AddRange(Named("tenancy", await TenancyModule.MigrateAsync(connection, cancellationToken)));
         applied.AddRange(Named("identity", await IdentityModule.MigrateAsync(connection, cancellationToken)));

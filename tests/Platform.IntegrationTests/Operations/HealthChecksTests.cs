@@ -241,7 +241,7 @@ public sealed class HealthChecksTests(DatabaseFixture db, MinioFixture minio, Ma
         builder.Services.AddPlatformShared();
         builder.Services.AddOperationsModule(db.WorkerConnectionString);
         builder.Services.AddOperationsHealthChecks(db.WorkerConnectionString, builder.Configuration);
-        builder.Services.AddJobServer(db.WorkerConnectionString, options => options.ServerName = $"health-job-test-{Guid.NewGuid():N}");
+        builder.Services.AddJobServer(db.WorkerConnectionString, TestSecrets.JobKeys, options => options.ServerName = $"health-job-test-{Guid.NewGuid():N}");
 
         using var host = builder.Build();
         await host.StartAsync(Ct);

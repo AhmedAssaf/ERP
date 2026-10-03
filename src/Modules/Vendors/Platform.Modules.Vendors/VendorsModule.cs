@@ -14,6 +14,7 @@ using Platform.Modules.Vendors.Persistence;
 using Platform.Modules.Vendors.RateLimiting;
 using Platform.Modules.Vendors.Registration;
 using Platform.Modules.Vendors.Relationships;
+using Platform.Shared.Jobs;
 using Platform.Shared.Caching;
 using Platform.Shared.Data;
 using Platform.Shared.Scanning;
@@ -174,7 +175,7 @@ public static class VendorsModule
     public static void ScheduleVendorJobs(IServiceProvider services)
     {
         ArgumentNullException.ThrowIfNull(services);
-        var jobs = new RecurringJobManager(services.GetRequiredService<JobStorage>());
+        var jobs = services.GetRequiredService<RecurringJobCatalog>();
         jobs.AddOrUpdate<VendorDocumentRescanJob>(DocumentRescanJobId, job => job.RunAsync(CancellationToken.None), "*/5 * * * *");
         jobs.AddOrUpdate<VendorUploadCleanupJob>(UploadCleanupJobId, job => job.RunAsync(CancellationToken.None), Cron.Hourly());
         if (services.GetService<IServiceProviderIsService>()?.IsService(typeof(CrDisputeAlertJob)) == true)
