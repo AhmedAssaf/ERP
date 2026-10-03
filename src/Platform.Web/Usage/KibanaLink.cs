@@ -7,14 +7,17 @@ namespace Platform.Web.Usage;
 /// <see cref="Setting"/>. Only an absolute <c>http</c> or <c>https</c> address makes a link; anything else (a relative
 /// path, <c>javascript:</c>, <c>data:</c>, <c>file:</c>, a host without a scheme) makes none, and one warning per process
 /// names the scheme only: a well-known one by name, any other as "other", a relative value as "relative", never the value.
-/// Read once: the setting is deployment configuration, not something that changes while the host runs.
+/// The link keeps the address's scheme, host, port and path, takes the dashboard's fragment, and drops any query and user
+/// information. Read once: the setting is deployment configuration, not something that changes while the host runs.
 /// </summary>
 internal sealed partial class KibanaLink(IConfiguration configuration, ILogger<KibanaLink> logger)
 {
     /// <summary>The setting that links the page to the dashboard.</summary>
     public const string Setting = "Observability:KibanaUrl";
 
-    private const string DashboardPath = "app/dashboards#/view/waslabid-usage";
+    private const string DashboardPath = "app/dashboards";
+
+    private const string DashboardFragment = "/view/waslabid-usage";
 
     // Schemes a misconfiguration plausibly carries; any other scheme could be part of a host name ("kibana.local:5601"
     // parses as the scheme "kibana.local") and is logged as "other".
@@ -40,7 +43,19 @@ internal sealed partial class KibanaLink(IConfiguration configuration, ILogger<K
             : null;
         if (uri is not null && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps) && !string.IsNullOrEmpty(uri.Host))
         {
-            return $"{trimmed.TrimEnd('/')}/{DashboardPath}";
+            // Built on the address's parts (W-10 follow-up): the dashboard's path goes after the configured path (a Kibana
+            // space is a path prefix, /s/{id}), and its fragment replaces a configured one. A query and user information are
+            // dropped, never shown on the page (N-10): Kibana needs nothing from a query (its global state _g lives inside
+            // the hash route), while a proxy in front of it may take a token there; Kibana asks for its own login.
+            var link = new UriBuilder(uri)
+            {
+                UserName = string.Empty,
+                Password = string.Empty,
+                Query = string.Empty,
+                Path = $"{uri.AbsolutePath.TrimEnd('/')}/{DashboardPath}",
+                Fragment = DashboardFragment,
+            };
+            return link.Uri.AbsoluteUri;
         }
 
         var scheme = uri is null ? "relative" : KnownSchemes.Contains(uri.Scheme) ? uri.Scheme.ToLowerInvariant() : "other";
