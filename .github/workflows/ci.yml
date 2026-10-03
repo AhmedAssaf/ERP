@@ -143,15 +143,16 @@ jobs:
         run: bash .github/scripts/verify-elastic-signatures.sh
 
       # Blocking (W-19): the pilot's Compose file resolves with every required setting present (throwaway values from
-      # .env.example, never real secrets), the production Caddyfile is valid with two tenant hosts written "a,b" (the
-      # scripts' normalise_hosts and caddy_validate, as deploy.sh runs them), and the deployment scripts pass shellcheck.
+      # .env.example, never real secrets), the base domain agrees with the invitation URL (tenant_base_domain), the
+      # production Caddyfile with its on-demand TLS ask is valid (caddy_validate, as deploy.sh runs them), and the
+      # deployment scripts pass shellcheck.
       - name: Validate the pilot deployment files
         run: |
           export ENV_FILE="$RUNNER_TEMP/pilot.env" IMAGE_TAG=ci
-          sed -E -e 's/^([A-Z_]+)=$/\1=ci-placeholder/' -e 's/^TENANT_HOSTS=.*/TENANT_HOSTS=acme.example.sa,beta.example.sa/' \
-            infra/pilot/.env.example > "$ENV_FILE"
+          sed -E -e 's/^([A-Z_]+)=$/\1=ci-placeholder/' infra/pilot/.env.example > "$ENV_FILE"
           . infra/pilot/lib.sh
           dc --profile tools --profile kibana config --quiet
+          tenant_base_domain > /dev/null
           caddy_validate
           shellcheck -x -P infra/pilot infra/pilot/*.sh
 

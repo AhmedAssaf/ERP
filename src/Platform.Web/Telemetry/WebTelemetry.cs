@@ -40,8 +40,8 @@ internal static class WebTelemetry
     ];
 
     /// <summary>
-    /// Paths that never get a span (spec 5.2): readiness and liveness probes, the framework's files, the class libraries'
-    /// static assets, and the Blazor hub (its negotiation, and the WebSocket request that lives as long as the circuit; the
+    /// Paths that never get a span (spec 5.2): readiness and liveness probes, the on-demand TLS ask, the framework's files,
+    /// the class libraries' static assets, and the Blazor hub (its negotiation, and the WebSocket request that lives as long as the circuit; the
     /// circuit's own work is traced by the Blazor activity sources). Matched by path because the instrumentation's
     /// filter runs when the request starts, before routing has chosen an endpoint; the children of an unsampled request (a
     /// probe's database call) are not sampled either. Static assets mapped elsewhere (the scoped CSS bundle
@@ -51,6 +51,8 @@ internal static class WebTelemetry
     [
         "/health",
         "/alive",
+        // Caddy's on-demand TLS ask (Edge/TlsAsk): one call per new host name, refusals included; allowed names are logged.
+        "/internal/tls-ask",
         "/_framework",
         "/_content",
         "/_blazor",

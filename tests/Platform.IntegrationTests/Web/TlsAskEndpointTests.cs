@@ -1,0 +1,381 @@
+using System.Net;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
+using Platform.IntegrationTests.Infrastructure;
+using Platform.Modules.Tenancy.Contracts;
+using Platform.Shared.Tenancy;
+using Platform.Web.Telemetry;
+
+namespace Platform.IntegrationTests.Web;
+
+/// <summary>
+/// The pilot's on-demand TLS (docs/19): Caddy asks <c>GET /internal/tls-ask?domain=&lt;host&gt;</c> before it obtains a
+/// certificate, and issues one only on a 200. The endpoint answers only on its own listener (<c>TlsAsk:Port</c>), which no
+/// Caddy site block proxies to; on the public listener the path is a 404 like any unknown path. A host is allowed when it is
+/// one label under <c>TlsAsk:TenantBaseDomain</c> and a tenant owns it (<c>tenancy.tenant_hosts</c>); the platform host never.
+/// The test server has no sockets, so each request sets the connection's local port itself.
+/// </summary>
+[Collection(DatabaseCollection.Name)]
+public sealed class TlsAskEndpointTests(DatabaseFixture db)
+{
+    private const int AskPort = 8081;
+    private const int PublicPort = 8080;
+    private const string AskPath = "/internal/tls-ask";
+
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    [Fact]
+    public async Task A_known_tenant_host_is_allowed_on_the_ask_listener()
+    {
+        await using var factory = Factory();
+
+        var status = await AskAsync(factory, TestTenants.Acme.Slug + ".localhost");
+
+        status.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Theory]
+    [InlineData("ACME.LOCALHOST")]
+    [InlineData("acme.localhost.")]
+    [InlineData("Beta.Localhost.")]
+    public async Task Upper_case_and_a_trailing_dot_are_normalised(string domain)
+    {
+        await using var factory = Factory();
+
+        var status = await AskAsync(factory, domain);
+
+        status.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Theory]
+    [InlineData("nobody.localhost")] // under the base domain, but no tenant owns it
+    [InlineData("localhost")] // the base domain itself
+    [InlineData("x.acme.localhost")] // two labels under the base domain
+    [InlineData("acme.localhost.evil.example")] // a tenant host as a prefix of another domain
+    [InlineData("evilacme.localhost")]
+    [InlineData("acme.localhost..")]
+    [InlineData(".acme.localhost")]
+    [InlineData("-acme.localhost")]
+    [InlineData("acme.localhost:443")]
+    [InlineData("acme_x.localhost")]
+    [InlineData("acme.localhost/x")]
+    [InlineData("127.0.0.1")]
+    [InlineData("::1")]
+    [InlineData("[::1]")]
+    [InlineData("10.0.0.1.localhost")]
+    [InlineData("%20acme.localhost")]
+    [InlineData("")]
+    public async Task Anything_but_a_tenant_host_one_label_under_the_base_domain_is_refused(string domain)
+    {
+        await using var factory = Factory();
+
+        var status = await AskAsync(factory, Uri.UnescapeDataString(domain));
+
+        status.ShouldBe(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task A_host_longer_than_a_dns_name_is_refused()
+    {
+        await using var factory = Factory();
+
+        var status = await AskAsync(factory, new string('a', 250) + ".localhost");
+
+        status.ShouldBe(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task A_tenant_host_outside_the_configured_base_domain_is_refused()
+    {
+        // acme.localhost is in tenancy.tenant_hosts, but certificates are issued only under the configured base domain
+        // (custom domains are F-03 and not part of the pilot).
+        await using var factory = Factory(("TlsAsk:TenantBaseDomain", "example.invalid"));
+
+        var status = await AskAsync(factory, "acme.localhost");
+
+        status.ShouldBe(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task The_platform_host_is_refused_even_if_it_looks_like_a_tenant_host()
+    {
+        // Platform:Host has its own certificate from its own site block; the ask endpoint never vouches for it.
+        await using var factory = Factory(("Platform:Host", "acme.localhost"));
+
+        var status = await AskAsync(factory, "acme.localhost");
+
+        status.ShouldBe(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Without_a_domain_or_with_two_the_request_is_bad()
+    {
+        await using var factory = Factory();
+
+        (await SendAsync(factory, AskPort, HttpMethods.Get, AskPath, string.Empty)).ShouldBe(HttpStatusCode.BadRequest);
+        (await SendAsync(factory, AskPort, HttpMethods.Get, AskPath, "?domain=acme.localhost&domain=beta.localhost"))
+            .ShouldBe(HttpStatusCode.BadRequest);
+    }
+
+    /// <remarks>
+    /// The 404 must come from the <c>/internal</c> guard, before tenant resolution: the counting directory proves that no
+    /// lookup happened, which tenant resolution (a 404 for an unknown host, pages for a tenant host) would have made.
+    /// </remarks>
+    [Theory]
+    [InlineData("/internal/tls-ask", "acme.localhost")]
+    [InlineData("/INTERNAL/TLS-ASK", "acme.localhost")]
+    [InlineData("/internal/tls-ask/", "acme.localhost")]
+    [InlineData("/internal/anything", "acme.localhost")]
+    [InlineData("/internal/tls-ask", "web:8081")] // the ask listener's address written into Host: never a way in
+    [InlineData("/internal/tls-ask", "web")]
+    public async Task On_the_public_listener_internal_paths_are_a_404_before_tenant_resolution(string path, string host)
+    {
+        var directory = new CountingDirectory();
+        await using var factory = Factory(directory);
+
+        var status = await SendAsync(factory, PublicPort, HttpMethods.Get, path, "?domain=acme.localhost", host: host);
+
+        status.ShouldBe(HttpStatusCode.NotFound);
+        directory.Lookups.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task The_counting_directory_sees_tenant_resolution_on_the_public_listener()
+    {
+        // The control for the test above: an ordinary path on the public listener does reach tenant resolution.
+        var directory = new CountingDirectory();
+        await using var factory = Factory(directory);
+
+        await SendAsync(factory, PublicPort, HttpMethods.Get, "/internalx", string.Empty, host: "web:8081");
+
+        directory.Lookups.ShouldContain("web");
+    }
+
+    [Fact]
+    public async Task Without_an_ask_port_the_path_is_a_404_on_every_listener()
+    {
+        await using var factory = new PlatformWebFactory(db.AppConnectionString);
+
+        var status = await SendAsync(factory, AskPort, HttpMethods.Get, AskPath, "?domain=acme.localhost", host: "acme.localhost");
+
+        status.ShouldBe(HttpStatusCode.NotFound);
+    }
+
+    [Theory]
+    [InlineData("GET", "/")]
+    [InlineData("GET", "/health")]
+    [InlineData("GET", "/alive")]
+    [InlineData("GET", "/platform")]
+    [InlineData("GET", "/internal/tls-ask/x")]
+    [InlineData("POST", "/internal/tls-ask")]
+    [InlineData("HEAD", "/internal/tls-ask")]
+    public async Task The_ask_listener_serves_nothing_else(string method, string path)
+    {
+        await using var factory = Factory();
+
+        // Even with a tenant's Host header: the ask listener never reaches tenant resolution or the pages.
+        var status = await SendAsync(factory, AskPort, method, path, "?domain=acme.localhost", host: "acme.localhost");
+
+        status.ShouldBe(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Database_lookups_beyond_the_rate_are_refused_with_429()
+    {
+        await using var factory = Factory(("TlsAsk:RequestsPerSecond", "1"));
+
+        // Two names of the right shape that the directory has not seen: each needs a database lookup.
+        var first = await AskAsync(factory, "nobody-one.localhost");
+        var second = await AskAsync(factory, "nobody-two.localhost");
+
+        first.ShouldBe(HttpStatusCode.NotFound);
+        second.ShouldBe(HttpStatusCode.TooManyRequests);
+    }
+
+    [Fact]
+    public async Task A_flood_of_junk_names_does_not_use_up_the_rate_for_a_tenant_host()
+    {
+        await using var factory = Factory(("TlsAsk:RequestsPerSecond", "1"));
+
+        // A handshake flood aimed at the IP address: names outside the base domain, malformed names, no domain at all.
+        for (var i = 0; i < 50; i++)
+        {
+            (await AskAsync(factory, $"junk{i}.example.invalid")).ShouldBe(HttpStatusCode.NotFound);
+            (await AskAsync(factory, $"bad_{i}.localhost")).ShouldBe(HttpStatusCode.NotFound);
+            (await SendAsync(factory, AskPort, HttpMethods.Get, AskPath, string.Empty)).ShouldBe(HttpStatusCode.BadRequest);
+        }
+
+        (await AskAsync(factory, "acme.localhost")).ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task A_host_the_directory_has_cached_answers_without_taking_from_the_rate()
+    {
+        await using var factory = Factory(("TlsAsk:RequestsPerSecond", "1"));
+
+        var first = await AskAsync(factory, "acme.localhost");
+        var again = await AskAsync(factory, "acme.localhost");
+        var stillCached = await AskAsync(factory, "acme.localhost");
+
+        first.ShouldBe(HttpStatusCode.OK);
+        again.ShouldBe(HttpStatusCode.OK);
+        stillCached.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task The_auth_hosts_from_the_oidc_authorities_are_refused()
+    {
+        await using var tenantRealm = Factory(("Oidc:Authority", "https://acme.localhost/realms/waslabid"));
+        await using var platformRealm = Factory(("PlatformOidc:Authority", "https://beta.localhost/realms/waslabid-platform"));
+
+        (await AskAsync(tenantRealm, "acme.localhost")).ShouldBe(HttpStatusCode.NotFound);
+        (await AskAsync(platformRealm, "beta.localhost")).ShouldBe(HttpStatusCode.NotFound);
+        (await AskAsync(platformRealm, "acme.localhost")).ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Excluded_hosts_are_refused()
+    {
+        await using var factory = Factory(("TlsAsk:ExcludedHosts:0", "BETA.localhost."));
+
+        (await AskAsync(factory, "beta.localhost")).ShouldBe(HttpStatusCode.NotFound);
+        (await AskAsync(factory, "acme.localhost")).ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public void The_ask_path_gets_no_span()
+    {
+        WebTelemetry.IsTraced(AskPath).ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData("HTTP_PORTS", "8081")] // the ask port as the only listener: the app would have none
+    [InlineData("HTTP_PORTS", "8080")] // the ask port not bound at all
+    [InlineData("HTTP_PORTS", "")]
+    public void An_ask_port_that_is_not_a_second_bound_port_stops_the_host(string key, string value)
+    {
+        using var factory = Factory((key, value));
+
+        var refused = Should.Throw<InvalidOperationException>(() => factory.Server);
+
+        refused.Message.ShouldContain("TlsAsk:Port");
+    }
+
+    [Theory]
+    [InlineData("HTTP_PORTS", "8080;8081")]
+    [InlineData("HTTPS_PORTS", "8081")] // beside HTTP_PORTS 8080
+    public void The_ask_port_beside_another_bound_port_is_accepted(string key, string value)
+    {
+        using var factory = key == "HTTPS_PORTS" ? Factory(("HTTP_PORTS", "8080"), (key, value)) : Factory((key, value));
+
+        Should.NotThrow(() => factory.Server);
+    }
+
+    [Fact]
+    public void Urls_count_as_bound_ports()
+    {
+        using var factory = Factory(("HTTP_PORTS", string.Empty), ("URLS", "http://+:8080;http://*:8081"));
+
+        Should.NotThrow(() => factory.Server);
+    }
+
+    [Fact]
+    public void Outside_development_and_testing_a_single_label_base_domain_stops_the_host()
+    {
+        using var factory = new PlatformWebFactory(db.AppConnectionString, environment: "Production").WithWebHostBuilder(builder =>
+        {
+            builder.UseSetting("TlsAsk:Port", "8081");
+            builder.UseSetting("HTTP_PORTS", "8080;8081");
+            builder.UseSetting("TlsAsk:TenantBaseDomain", "localhost");
+        });
+
+        var refused = Should.Throw<InvalidOperationException>(() => factory.Server);
+
+        refused.Message.ShouldContain("TlsAsk:TenantBaseDomain");
+    }
+
+    [Theory]
+    [InlineData("TlsAsk:ExcludedHosts:0", "not a host")]
+    [InlineData("TlsAsk:TenantBaseDomain", "")]
+    [InlineData("TlsAsk:TenantBaseDomain", "*.example.sa")]
+    [InlineData("TlsAsk:TenantBaseDomain", "https://example.sa")]
+    [InlineData("TlsAsk:TenantBaseDomain", ".example.sa")]
+    [InlineData("TlsAsk:Port", "0")]
+    [InlineData("TlsAsk:Port", "70000")]
+    [InlineData("TlsAsk:Port", "eighty")]
+    [InlineData("TlsAsk:RequestsPerSecond", "0")]
+    public void An_unusable_ask_setting_stops_the_host(string key, string value)
+    {
+        using var factory = Factory((key, value));
+
+        var refused = Should.Throw<InvalidOperationException>(() => factory.Server);
+
+        refused.Message.ShouldContain(key);
+    }
+
+    private WebApplicationFactory<Program> Factory(params (string Key, string Value)[] settings) => Factory(null, settings);
+
+    private WebApplicationFactory<Program> Factory(ITenantDirectory? directory, params (string Key, string Value)[] settings) =>
+        new PlatformWebFactory(db.AppConnectionString).WithWebHostBuilder(builder =>
+        {
+            builder.UseSetting("TlsAsk:Port", AskPort.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            builder.UseSetting("TlsAsk:TenantBaseDomain", "localhost");
+            // As in the pilot's container (ASPNETCORE_HTTP_PORTS); the test server binds nothing, the host only checks it.
+            builder.UseSetting("HTTP_PORTS", $"{PublicPort};{AskPort}");
+            foreach (var (key, value) in settings)
+            {
+                builder.UseSetting(key, value);
+            }
+
+            if (directory is not null)
+            {
+                builder.ConfigureTestServices(services => services.AddSingleton(directory));
+            }
+        });
+
+    private static Task<HttpStatusCode> AskAsync(WebApplicationFactory<Program> factory, string domain) =>
+        SendAsync(factory, AskPort, HttpMethods.Get, AskPath, QueryString.Create("domain", domain).Value!);
+
+    /// <summary>
+    /// Sends one request as if it arrived on <paramref name="localPort"/>. Caddy's ask call goes straight to <c>web:8081</c>,
+    /// so its Host header is that address unless a test names a tenant host.
+    /// </summary>
+    private static async Task<HttpStatusCode> SendAsync(
+        WebApplicationFactory<Program> factory, int localPort, string method, string path, string query, string host = "web:8081")
+    {
+        var context = await factory.Server.SendAsync(
+            c =>
+            {
+                c.Request.Method = method;
+                c.Request.Scheme = "http";
+                c.Request.Host = new HostString(host);
+                c.Request.Path = path;
+                c.Request.QueryString = new QueryString(string.IsNullOrEmpty(query) ? null : query);
+                c.Connection.LocalPort = localPort;
+                c.Connection.RemoteIpAddress = IPAddress.Parse("172.30.10.2");
+            },
+            Ct);
+        return (HttpStatusCode)context.Response.StatusCode;
+    }
+
+    /// <summary>Knows the two seeded tenant hosts and records every host it is asked about.</summary>
+    private sealed class CountingDirectory : ITenantDirectory
+    {
+        private readonly System.Collections.Concurrent.ConcurrentQueue<string> _lookups = new();
+
+        public IReadOnlyCollection<string> Lookups => _lookups;
+
+        public Task<TenantContext?> FindByHostAsync(string host, CancellationToken cancellationToken = default)
+        {
+            _lookups.Enqueue(host);
+            return Task.FromResult(host switch { "acme.localhost" => TestTenants.Acme, "beta.localhost" => TestTenants.Beta, _ => null });
+        }
+
+        public void Invalidate(string host)
+        {
+        }
+    }
+}

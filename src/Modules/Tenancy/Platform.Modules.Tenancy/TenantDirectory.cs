@@ -56,6 +56,18 @@ internal sealed class TenantDirectory(
         return tenant;
     }
 
+    public bool TryGetCached(string host, out TenantContext? tenant)
+    {
+        var normalized = Normalize(host);
+        if (normalized is null)
+        {
+            tenant = null;
+            return true;
+        }
+
+        return _cache.TryGetValue(normalized, out tenant);
+    }
+
     public void Invalidate(string host)
     {
         var normalized = Normalize(host);

@@ -199,6 +199,9 @@ builder.Services.AddPlatformUI();
 // PostgreSQL for every instance under its own role (ConnectionStrings:KeyRing), encrypted outside Development (DataProtection:*).
 builder.Services.AddEdgeForwardedHeaders(builder.Configuration, builder.Environment);
 builder.Services.AddKeyRing(builder.Configuration, builder.Environment);
+// Pilot enabler (docs/19): Caddy's on-demand TLS asks GET /internal/tls-ask on its own listener (TlsAsk:*) before it
+// obtains a certificate for a tenant host; off when TlsAsk:Port is empty.
+builder.Services.AddTlsAsk(builder.Configuration, builder.Environment);
 
 var app = builder.Build();
 
@@ -212,6 +215,8 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+// Before the host and tenant middleware: the ask listener serves only /internal/tls-ask, and /internal is a 404 elsewhere.
+app.UseTlsAsk();
 app.UseMiddleware<PlatformHostMiddleware>();
 app.UseMiddleware<TenantMiddleware>();
 // W-10 (O-9): the tenant's id and slug on the server span and on every log record of the request from here on.
