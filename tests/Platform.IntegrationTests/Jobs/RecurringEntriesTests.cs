@@ -101,7 +101,7 @@ public sealed class RecurringEntriesTests(DatabaseFixture db)
             // This test's incident only: an earlier test's closed "Jobs" incident may fall inside the window.
             var open = (await IncidentsAsync(worker, since)).Where(i => i.Component == HealthComponents.Jobs && i.ClosedAt is null).ToList();
             open.ShouldHaveSingleItem().LastMessage.ShouldNotBeNull().ShouldContain(deleted);
-            open[0].LastMessage.ShouldContain(retimed);
+            open[0].LastMessage!.ShouldContain(retimed);
 
             (await guard.RunOnceAsync(Ct)).ShouldBeEmpty("restored");
             var after = await IncidentsAsync(worker, since);
