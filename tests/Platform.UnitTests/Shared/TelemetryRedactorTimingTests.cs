@@ -24,6 +24,8 @@ public sealed class TelemetryRedactorTimingTests
     private const int Ratio = 200;
     private const int Attempts = 5;
     private const int BaselineAttempts = 3;
+    private const int RatioAttempts = 7;
+    private static readonly TimeSpan RatioSlack = TimeSpan.FromMilliseconds(5);
 
     public static TheoryData<string, int> Cases()
     {
@@ -55,6 +57,55 @@ public sealed class TelemetryRedactorTimingTests
             $"{pattern} at {length} characters took {fastest.TotalMilliseconds:F1} ms (baseline {baseline.TotalMilliseconds:F2} ms)");
     }
 
+    public static TheoryData<string> Patterns()
+    {
+        var data = new TheoryData<string>();
+        foreach (var name in Inputs.Keys)
+        {
+            data.Add(name);
+        }
+
+        return data;
+    }
+
+    /// <summary>
+    /// Load independent (review of the follow-ups sweep, 2026-10-03): doubling the input at most about doubles the time, so a
+    /// per-step cost that grows with the input (a quadratic of about 285 ms at 64 KB, under the budget above) still fails.
+    /// The two sizes are timed alternately, best of <see cref="RatioAttempts"/> each, so a slow moment touches both; the
+    /// assertion is <c>t(64 KB) &lt; 3 t(32 KB) + </c><see cref="RatioSlack"/>, the slack absorbing timer noise on runs of a
+    /// fraction of a millisecond (a quadratic at 285 ms is about 71 ms at 32 KB and fails by far).
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(Patterns))]
+    public void Doubling_an_adversarial_value_at_most_about_doubles_the_time(string pattern)
+    {
+        var half = Inputs[pattern](32 * 1024);
+        var full = Inputs[pattern](64 * 1024);
+        TelemetryRedactor.Redact(half);
+        TelemetryRedactor.Redact(full);
+
+        var (fastestHalf, fastestFull) = (TimeSpan.MaxValue, TimeSpan.MaxValue);
+        for (var attempt = 0; attempt < RatioAttempts; attempt++)
+        {
+            var halfTime = Time(half);
+            var fullTime = Time(full);
+            fastestHalf = halfTime < fastestHalf ? halfTime : fastestHalf;
+            fastestFull = fullTime < fastestFull ? fullTime : fastestFull;
+        }
+
+        fastestFull.ShouldBeLessThan(
+            (fastestHalf * 3) + RatioSlack,
+            $"{pattern}: 64 KB took {fastestFull.TotalMilliseconds:F2} ms, 32 KB {fastestHalf.TotalMilliseconds:F2} ms");
+    }
+
+    private static TimeSpan Time(string value)
+    {
+        var watch = Stopwatch.StartNew();
+        TelemetryRedactor.Redact(value);
+        watch.Stop();
+        return watch.Elapsed;
+    }
+
     /// <summary>The fastest of up to <paramref name="attempts"/> runs, stopping early once one is under <paramref name="enough"/>.</summary>
     private static TimeSpan Fastest(string value, int attempts, TimeSpan enough)
     {
@@ -74,7 +125,9 @@ public sealed class TelemetryRedactorTimingTests
     {
         // The reviewer's input: dotted words with no key until the very end.
         ["secret pair, dotted run"] = n => Repeat("a.", n - 7) + " pwd x=",
-        ["secret pair, many keys"] = n => Repeat("passwordpwd", n - 1) + "=",
+        // Ends in a whole key at every length, so both sizes of the linearity check do the same work (a cut "passwordp=" is
+        // no pair and costs a tenth of a matched one).
+        ["secret pair, many keys"] = n => Repeat("passwordpwd", n - 4) + "pwd=",
         ["email, local part without domain"] = n => Repeat("a", n - 1) + "@",
         ["email, many at signs"] = n => Repeat("a@a.", n),
         ["email, encoded at signs"] = n => Repeat("a%40", n),

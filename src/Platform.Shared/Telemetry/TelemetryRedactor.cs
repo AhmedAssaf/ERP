@@ -281,8 +281,8 @@ public static partial class TelemetryRedactor
     /// dotted run goes on: kept (<c>RFP-2026-000045</c>). Any other word (<c>ID-2012-345678</c>), a longer number or a
     /// sequence that goes on (<c>RFP-2026-055-123-4567</c>, <c>RFP-2026-055 123 4567</c>) is a chain;</item>
     /// <item>a dotted run, groups joined by single dots or by single commas (never the two mixed): masked whole when it has
-    /// three or more groups, every group after the first of two or more digits for dots and three or more for commas (any,
-    /// after a <c>+</c>; so <c>055,123,4567</c> and <c>1,234,567,890</c> are masked and <c>12,34,56,78,90</c> is kept), ten digits or more in all, and is not an IPv4 address (four groups
+    /// three or more groups, every group after the first of two or more digits for dots and three or more for commas (two after a
+    /// first group starting with a zero; any after a <c>+</c>; so <c>055,123,4567</c> and <c>1,234,567,890</c> are masked and <c>12,34,56,78,90</c> is kept), ten digits or more in all, and is not an IPv4 address (four groups
     /// of up to three digits, each at most 255, no leading zero); kept otherwise (<c>055.123.4567</c>, <c>966.551.234.567</c>,
     /// <c>+1.212.555.1234</c> masked; <c>192.168.100.200</c>, <c>10.0.26100.4061</c>, <c>12345678.90</c> kept). A run kept
     /// whole whose last group goes on into a chain hands that group to it (<c>step 1.055 123 4567</c>);</item>
@@ -439,7 +439,10 @@ public static partial class TelemetryRedactor
         /// <summary>The fewest digits of each group after the first in a dotted run that is masked whole (<c>055.123.45.67</c>).</summary>
         private const int MinDotGroupDigits = 2;
 
-        /// <summary>The same for a run joined by commas or U+066C (<c>055,123,4567</c>, <c>1,234,567,890</c>).</summary>
+        /// <summary>
+        /// The same for a run joined by commas or U+066C (<c>055,123,4567</c>, <c>1,234,567,890</c>), unless its first group
+        /// starts with a zero (<c>055,123,45,67</c>), which takes <see cref="MinDotGroupDigits"/>.
+        /// </summary>
         private const int MinCommaGroupDigits = 3;
 
         private StringBuilder? _builder;
@@ -565,8 +568,10 @@ public static partial class TelemetryRedactor
             var plus = groups[first].Start > 0 && value[groups[first].Start - 1] == '+';
             var ipv4 = IsIPv4(first, end);
             // A comma run needs groups of three or more after the first (thousands, 055,123,4567), so a list of short numbers
-            // (12,34,56,78,90) stays a list; a dotted run, groups of two or more.
-            var shortest = Between(first, first + 1) == Separator.Comma ? MinCommaGroupDigits : MinDotGroupDigits;
+            // (12,34,56,78,90) stays a list, or two or more when the first group starts with a zero, as a phone does
+            // (055,123,45,67); a dotted run, groups of two or more.
+            var leadingZero = groups[first].Length > 1 && CharUnicodeInfo.GetDecimalDigitValue(value[groups[first].Start]) == 0;
+            var shortest = Between(first, first + 1) == Separator.Comma && !leadingZero ? MinCommaGroupDigits : MinDotGroupDigits;
             if (count >= 3 && (shortestAfterFirst >= shortest || plus) && digits >= DigitRunLength && !ipv4)
             {
                 Replace(groups[first].Start, groups[end - 1].End);

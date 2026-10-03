@@ -7,7 +7,8 @@ namespace Platform.Web.Usage;
 /// <see cref="Setting"/>. Only an absolute <c>http</c> or <c>https</c> address makes a link; anything else (a relative
 /// path, <c>javascript:</c>, <c>data:</c>, <c>file:</c>, a host without a scheme) makes none, and one warning per process
 /// names the scheme only: a well-known one by name, any other as "other", a relative value as "relative", never the value.
-/// The link keeps the address's path and query, takes the dashboard's fragment and drops any user information. Read once: the setting is deployment configuration, not something that changes while the host runs.
+/// The link keeps the address's scheme, host, port and path, takes the dashboard's fragment, and drops any query and user
+/// information. Read once: the setting is deployment configuration, not something that changes while the host runs.
 /// </summary>
 internal sealed partial class KibanaLink(IConfiguration configuration, ILogger<KibanaLink> logger)
 {
@@ -42,13 +43,15 @@ internal sealed partial class KibanaLink(IConfiguration configuration, ILogger<K
             : null;
         if (uri is not null && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps) && !string.IsNullOrEmpty(uri.Host))
         {
-            // Built on the address's parts (W-10 follow-up): the dashboard's path goes after the configured path and before
-            // a configured query (a Kibana space or global state), and its fragment replaces a configured one. User
-            // information is dropped, never shown on the page (N-10); Kibana asks for its own login.
+            // Built on the address's parts (W-10 follow-up): the dashboard's path goes after the configured path (a Kibana
+            // space is a path prefix, /s/{id}), and its fragment replaces a configured one. A query and user information are
+            // dropped, never shown on the page (N-10): Kibana needs nothing from a query (its global state _g lives inside
+            // the hash route), while a proxy in front of it may take a token there; Kibana asks for its own login.
             var link = new UriBuilder(uri)
             {
                 UserName = string.Empty,
                 Password = string.Empty,
+                Query = string.Empty,
                 Path = $"{uri.AbsolutePath.TrimEnd('/')}/{DashboardPath}",
                 Fragment = DashboardFragment,
             };

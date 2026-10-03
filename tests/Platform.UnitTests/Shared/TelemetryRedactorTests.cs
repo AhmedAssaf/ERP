@@ -199,9 +199,10 @@ public sealed class TelemetryRedactorTests
     /// Review follow-ups sweep (2026-10-03; spec 7.1, known gaps): a dash of another kind (en dash, em dash, the Unicode hyphens
     /// and minus) and an underscore join groups as a hyphen does, alone or between blanks for the dashes; a comma or the Arabic
     /// thousands separator U+066C joins them as a dot does, with every group after the first of three or more digits (any
-    /// length after a <c>+</c>), so a list of short numbers stays a list. The last three rows are the over-masks accepted with
-    /// them (spec 7.1): a comma list of longer numbers, a compact timestamp after an underscore, a reference with a number
-    /// joined by a comma.
+    /// length after a <c>+</c>; two or more when the first group starts with a zero, as a phone does: <c>055,123,45,67</c>), so a
+    /// list of short numbers stays a list. Four rows are over-masks accepted with them (spec 7.1): a comma list of longer
+    /// numbers, a compact timestamp after an underscore, a reference with a number joined by a comma, and a dated file name
+    /// with its time joined by an underscore (as <c>2026-10-02-153045</c> already was).
     /// </summary>
     [Theory]
     [InlineData("call 055–123–4567", "call [digits]")]
@@ -222,6 +223,9 @@ public sealed class TelemetryRedactorTests
     [InlineData("ports 5432,5433,6379", "ports [digits]")]
     [InlineData("backup_20261002_123456.zip", "backup_[digits].zip")]
     [InlineData("RFP-2026-000045,12", "RFP-[digits],12")]
+    [InlineData("log_2026-10-03_12-34-56.txt", "log_[digits].txt")]
+    [InlineData("call 055,123,45,67", "call [digits]")]
+    [InlineData("call ٠٥٥٬١٢٣٬٤٥٬٦٧", "call [digits]")]
     public void Phones_grouped_with_other_dashes_underscores_and_commas_are_masked(string value, string expected) =>
         TelemetryRedactor.Redact(value).ShouldBe(expected);
 
@@ -238,6 +242,8 @@ public sealed class TelemetryRedactorTests
     [InlineData("amount ١٢٬٣٤٥٬٦٧٨")]
     [InlineData("hosts 192.168.0.1,10.0.0.1")]
     [InlineData("values 100,200,150,250")]
+    [InlineData("values 012,34,56,78")]
+    [InlineData("codes 0,12,34,56,78")]
     [InlineData("see RFP-2026-000045, 12 items")]
     [InlineData("job_12345678-1234-1234-1234-123456789012_done")]
     [InlineData("span_00f067aa0ba902b7_trace_4bf92f3577b34da6a3ce929d0e0e4736")]

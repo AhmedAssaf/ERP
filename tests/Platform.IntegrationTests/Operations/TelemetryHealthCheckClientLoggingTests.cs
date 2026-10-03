@@ -14,10 +14,11 @@ namespace Platform.IntegrationTests.Operations;
 
 /// <summary>
 /// W-10 follow-up (final review, task 4; closed 2026-10-03), N-10: the Telemetry check's HTTP client has the factory's
-/// loggers removed. Their Trace-level request record carries each header's raw value as a structured property, so with
-/// <c>System.Net.Http</c> logged at Trace the monitoring user's Basic credentials would reach a log record. With every
-/// category at Trace, a check that sends the credentials leaves no record from the client's categories and none holding the
-/// user, the password or their base64 form. No database or host is started.
+/// loggers removed, so the check writes no request records at all. Since .NET 9 the factory's loggers redact header values
+/// by default, so the credential assertion alone would pass without <c>RemoveAllLoggers()</c>; what catches its removal is
+/// the category assertion: with every category at Trace, a check that sends the credentials leaves no record from the
+/// client's <c>System.Net.Http.HttpClient.*</c> categories (and none holding the user, the password or their base64 form).
+/// No database or host is started.
 /// </summary>
 public sealed class TelemetryHealthCheckClientLoggingTests
 {
