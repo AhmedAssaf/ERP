@@ -187,6 +187,12 @@ public sealed class JobAuthenticityTests(DatabaseFixture db) : IAsyncDisposable
                 ("id", long.Parse(jobId, System.Globalization.CultureInfo.InvariantCulture)));
             var refused = await WaitForStateAsync(worker, jobId, FailedState.StateName, returnMessage: true);
             refused.ShouldContain("already running");
+
+            // A third run through the real server while the first still works (as the console's re-run would move the
+            // failed job back to the queue): the refused second run must not have released the first run's lock.
+            new BackgroundJobClient(AppStorage()).ChangeState(jobId, new EnqueuedState(), FailedState.StateName).ShouldBeTrue();
+            await WaitUntilAsync(() => AlreadyRunningFailures(worker, jobId) >= 2);
+            SlowProbe.Started[marker].ShouldBe(1, "the first run still holds its lock; neither later run was invoked");
         }
         finally
         {
@@ -196,6 +202,12 @@ public sealed class JobAuthenticityTests(DatabaseFixture db) : IAsyncDisposable
         await Task.Delay(TimeSpan.FromSeconds(1), Ct);
         SlowProbe.Started[marker].ShouldBe(1, "invoked once");
     }
+
+    private static int AlreadyRunningFailures(JobServerHost worker, string jobId) =>
+        worker.Storage.GetMonitoringApi().JobDetails(jobId).History.Count(h =>
+            h.StateName == FailedState.StateName
+            && h.Data.TryGetValue("ExceptionMessage", out var message)
+            && message.Contains("already running", StringComparison.Ordinal));
 
     [Fact]
     public async Task A_run_lock_is_released_only_by_the_run_that_took_it()
