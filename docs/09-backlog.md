@@ -304,7 +304,7 @@ Design: `docs/superpowers/specs/2026-09-26-ai-offer-review-design.md` and ADR-00
 
 | ID | Story | Pri | Size | Status | Depends on |
 |---|---|---|---|---|---|
-| W-13 | Three interviews with procurement or contracts managers, written up (kit: docs/15 and `docs/15-interview-tracker.xlsx`) | P0 | M | Backlog | |
+| W-13 | Three interviews with procurement or contracts managers, written up (kit: docs/15 and `docs/15-interview-tracker.xlsx`) | P0 | M | Backlog. Kit refreshed 2026-10-03; demo script docs/18; interviews not yet held | |
 | W-14 | Reference App demo or former-customer call answering the seven questions in document 04 section 10 | P0 | S | Backlog | |
 | W-15 | First customer signed for the pilot with a named tender and date | P0 | L | Backlog | W-13 |
 | W-16 | Pricing page draft: monthly per-tenant price, first tender free (the flat per-company model in document 11 section 8 is a hypothesis; the model is decided at W-31) | P0 | S | Backlog | W-13 |
