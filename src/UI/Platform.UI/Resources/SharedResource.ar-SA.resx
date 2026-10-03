@@ -108,6 +108,7 @@
   <data name="Console.Component.SMTP" xml:space="preserve"><value>البريد الإلكتروني (SMTP)</value></data>
   <data name="Console.Component.Disk" xml:space="preserve"><value>مساحة القرص</value></data>
   <data name="Console.Component.Telemetry" xml:space="preserve"><value>خط بيانات المراقبة</value></data>
+  <data name="Console.Component.Redis" xml:space="preserve"><value>ذاكرة التخزين المؤقت المشتركة (Redis)</value></data>
   <data name="Console.Status.Healthy" xml:space="preserve"><value>سليم</value></data>
   <data name="Console.Status.Degraded" xml:space="preserve"><value>متراجع</value></data>
   <data name="Console.Status.Unhealthy" xml:space="preserve"><value>متعطل</value></data>
@@ -525,6 +526,7 @@
   <data name="Vendor.Dispute.Error.TooManyOpen" xml:space="preserve"><value>لديك ثلاثة طلبات مفتوحة. انتظر حتى تغلق وصلة بد أحدها.</value></data>
   <data name="Vendor.Dispute.Error.AlreadyVendor" xml:space="preserve"><value>هذا الحساب تابع لمنشأة موردة. استخدم حسابًا آخر لهذا الطلب.</value></data>
   <data name="Vendor.Dispute.Error.Limited" xml:space="preserve"><value>جُرّبت أرقام سجل تجاري كثيرة من هذا الحساب. حاول مرة أخرى بعد ساعة.</value></data>
+  <data name="Vendor.Error.NetworkLimited" xml:space="preserve"><value>محاولات تسجيل كثيرة من شبكتك. حاول مرة أخرى بعد ساعة.</value></data>
   <data name="Vendor.Dispute.Error.Generic" xml:space="preserve"><value>تعذر إرسال الطلب. حاول مرة أخرى بعد قليل.</value></data>
   <data name="Admin.Vendors.Ownership.SelfDeclared" xml:space="preserve"><value>(كما أدخله بنفسه)</value></data>
   <data name="Admin.Vendors.Ownership.EmailVerified" xml:space="preserve"><value>(بريد موثَّق)</value></data>

@@ -69,7 +69,7 @@ docker compose up -d
 |---|---|---|---|
 | PostgreSQL 16 with pgvector | Platform and Keycloak databases, RLS-ready roles | 5432 | POSTGRES_USER, POSTGRES_PASSWORD |
 | Keycloak 26 | Identity, Organizations per tenant | 8080 (admin console), 9000 (health) | KEYCLOAK_ADMIN, KEYCLOAK_ADMIN_PASSWORD |
-| Redis 7 | Circuit state, locks, rate limits | 6379 | none |
+| Redis 7 | Rate-limit counters: since W-34 the duplicate-CR limits of the web host (per account and per source address), checked by the worker for F-60 alerts; later circuit state and locks. No persistence, so a restart clears the counters | 6379 | none |
 | MinIO | S3-compatible object storage, bucket `erp-dev` | 9002 (API), 9003 (console) | MINIO_ROOT_USER, MINIO_ROOT_PASSWORD |
 | ClamAV | Virus scanning for vendor uploads: the web host scans every completed upload over TCP `INSTREAM`, the worker retries pending ones (F-12), and the health board checks it | 3310 | none |
 | Mailpit | Catches all outgoing email, shows it in a web UI | 1025 (SMTP), 8025 (UI) | none |
@@ -130,7 +130,9 @@ dotnet user-secrets set "Vendors:CrAuditKey" "$(env_value VENDORS_CR_AUDIT_KEY)"
 unset PGPW WEB_SECRET PLATFORM_SECRET ADMIN_API_SECRET KEY_RING_DB
 ```
 
-The vendor limits are not secrets and need no setting; their defaults hold for development and the pilot, and an `appsettings` file or an environment variable (`Vendors__JoinsPerUserPerMinute`, and so on) overrides them: `Vendors:UploadRequestsPerMinute` (120, V-9), `Vendors:MaxUploadsPerDay` (30, V-9), `Vendors:JoinsPerUserPerMinute` (5), `Vendors:JoinsPerTenantPerMinute` (20 first-time joins) and `Vendors:MaxConcurrentJoins` (10 first-time joins in flight) for `/vendor/join` (W-37), and `Vendors:ConsentGrantsPerCompanyPerHour` (30) for consent grants (W-35; revocations are never limited). The join and consent limits and the join cap are counted in each web process, so with more than one web instance each allows them (W-34).
+Redis needs no secret locally: `ConnectionStrings:Redis` is `localhost:6379` in `appsettings.Development.json` of `Platform.Web` (the duplicate-CR throttle, W-34) and of `Platform.Worker` (the Redis health check, alerted like Disk and Telemetry). The pilot's value carries a password and lives in the secret store, never in the repository (N-10). Outside Development and Testing the web host refuses to start without it; in Development and Testing it then keeps the limits in process memory. The worker starts without it but then never checks Redis, so F-60 never alerts on a Redis outage: set it on the pilot's worker as well (W-19). Integration test hosts never use the developer's Redis: `PlatformWebFactory` sets the setting empty unless a test passes a Testcontainer's; with it, a Redis that is down never stops the host (`abortConnect=false`), and the throttle falls back to process memory, logging one Warning per outage.
+
+The vendor limits are not secrets and need no setting; their defaults hold for development and the pilot, and an `appsettings` file or an environment variable (`Vendors__JoinsPerUserPerMinute`, and so on) overrides them: `Vendors:UploadRequestsPerMinute` (120, V-9), `Vendors:MaxUploadsPerDay` (30, V-9), `Vendors:JoinsPerUserPerMinute` (5), `Vendors:JoinsPerTenantPerMinute` (20 first-time joins) and `Vendors:MaxConcurrentJoins` (10 first-time joins in flight) for `/vendor/join` (W-37), `Vendors:ConsentGrantsPerCompanyPerHour` (30) for consent grants (W-35; revocations are never limited), and `Vendors:DuplicateCrPerAddress` (20) and `Vendors:DuplicateCrWindow` (`01:00:00`) for the duplicate-CR limits (W-34; five per account is fixed). The duplicate-CR limits are shared through Redis; the join and consent limits and the join cap are counted in each web process, so with more than one web instance each allows them (they could move to Redis the same way as W-34's).
 
 Then migrate, seed the development tenants `acme` and `beta`, and start the app:
 

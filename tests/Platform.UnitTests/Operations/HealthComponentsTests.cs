@@ -12,4 +12,13 @@ public sealed class HealthComponentsTests
         HealthComponents.Board.ShouldNotContain(HealthComponents.Telemetry);
         HealthComponents.Board.Count.ShouldBe(7);
     }
+
+    /// <summary>W-34: Redis is checked and alerted like Telemetry and Disk; the board is unchanged.</summary>
+    [Fact]
+    public void Redis_is_not_a_board_tile()
+    {
+        HealthComponents.Redis.ShouldBe("Redis");
+        HealthComponents.Board.ShouldNotContain(HealthComponents.Redis);
+        HealthComponents.Board.Count.ShouldBe(7);
+    }
 }

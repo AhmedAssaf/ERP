@@ -14,6 +14,7 @@ using Platform.Modules.Vendors;
 using Platform.Modules.Vendors.Contracts;
 using Platform.Modules.Workflow;
 using Platform.Shared;
+using Platform.Shared.Caching;
 using Platform.Shared.Jobs;
 using Platform.Shared.Telemetry;
 using Platform.UI;
@@ -41,6 +42,8 @@ if (!builder.Environment.IsDevelopment() && !builder.Environment.IsEnvironment("
     {
         "Oidc:Authority", "Oidc:ClientSecret", "Platform:Host", "PlatformOidc:Authority", "PlatformOidc:ClientSecret",
         "KeycloakAdmin:BaseUrl", "KeycloakAdmin:ClientSecret", "KeycloakAdmin:TenantUrl",
+        // W-34: without Redis every instance would keep its own duplicate-CR counts (Platform.Shared/Caching).
+        RedisConnection.Setting,
     })
     {
         if (string.IsNullOrWhiteSpace(builder.Configuration[key]))

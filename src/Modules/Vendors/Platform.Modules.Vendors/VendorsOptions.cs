@@ -10,6 +10,10 @@ namespace Platform.Modules.Vendors;
 /// <item><c>Vendors:UploadRequestsPerMinute</c>: upload API requests per vendor company per minute (V-9), 120 by default.</item>
 /// <item><c>Vendors:MaxUploadsPerDay</c>: uploads a vendor company may start in any 24 hours, whatever became of them
 /// (V-9), 30 by default.</item>
+/// <item><c>Vendors:DuplicateCrPerAddress</c>: "already registered" answers per source address in the window, whatever the
+/// account (W-34), 20 by default; each account has its own limit of five as well (V-6).</item>
+/// <item><c>Vendors:DuplicateCrWindow</c>: the window of both duplicate-CR limits, from the first answer, one hour by
+/// default (<c>01:00:00</c>); at least one second.</item>
 /// <item><c>Vendors:JoinsPerUserPerMinute</c>: joins of a tenant (<c>/vendor/join</c>) one user may make in any minute,
 /// whatever the tenant (W-37), 5 by default.</item>
 /// <item><c>Vendors:JoinsPerTenantPerMinute</c>: first-time joins of one tenant by all new vendors in any minute (W-37),
@@ -36,6 +40,10 @@ internal sealed class VendorsOptions
     public int UploadRequestsPerMinute { get; set; } = 120;
 
     public int MaxUploadsPerDay { get; set; } = 30;
+
+    public int DuplicateCrPerAddress { get; set; } = 20;
+
+    public TimeSpan DuplicateCrWindow { get; set; } = TimeSpan.FromHours(1);
 
     public int JoinsPerUserPerMinute { get; set; } = 5;
 

@@ -5,7 +5,7 @@ namespace Platform.IntegrationTests.Web;
 
 /// <summary>
 /// Outside Development and Testing the host refuses to start without its OIDC, platform host and Keycloak Admin API
-/// settings (the Admin API invites staff, F-06).
+/// settings (the Admin API invites staff, F-06), or without Redis (W-34: the shared duplicate-CR limits).
 /// </summary>
 public class StartupConfigurationTests
 {
@@ -18,6 +18,7 @@ public class StartupConfigurationTests
     [InlineData("KeycloakAdmin:BaseUrl")]
     [InlineData("KeycloakAdmin:ClientSecret")]
     [InlineData("KeycloakAdmin:TenantUrl")]
+    [InlineData("ConnectionStrings:Redis")]
     public void Production_host_without_an_oidc_setting_does_not_start(string key)
     {
         using var factory = new PlatformWebFactory("Host=unused;Database=unused")

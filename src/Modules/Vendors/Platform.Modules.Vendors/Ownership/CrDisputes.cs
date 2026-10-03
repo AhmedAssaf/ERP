@@ -13,7 +13,7 @@ namespace Platform.Modules.Vendors.Ownership;
 /// The claimant's side of a CR dispute (W-33, <see cref="ICrDisputes"/>): a signed-in person on a tenant host, outside
 /// any vendor session, claims the company registered under a CR number. The claimant is the acting user; the email and
 /// name come from the caller's verified token, never from the form. A CR number without a company counts toward the
-/// duplicate-CR limit of the registration (V-6), so the dispute form is no faster way to probe CR numbers.
+/// duplicate-CR limits of the registration (V-6, W-34), so the dispute form is no faster way to probe CR numbers.
 /// </summary>
 internal sealed class CrDisputes(
     IDbContextFactory<VendorsDbContext> contexts,
@@ -57,11 +57,46 @@ internal sealed class CrDisputes(
             return Result.Failure<Guid>(first);
         }
 
-        if (duplicates.IsLimited(userId))
+        // W-34: a place in the duplicate-CR limits is taken before the number is looked up (parallel posts cannot all pass
+        // at a count of zero) and kept, after the dispute's transaction has ended, for the answers that tell whether the
+        // number belongs to a company without the claimant having a dispute on it: "no company" and "three open requests"
+        // (the function checks the company first); every other outcome gives it back. A limited account keeps today's answer; a limited address gets the network
+        // answer, which names no number.
+        var reservation = await duplicates.ReserveAsync(userId, cancellationToken);
+        switch (reservation.Limit)
         {
-            return Result.Failure<Guid>(Error.Refused(CrDisputeErrors.Limited, "Too many commercial registration numbers were tried. Try again in an hour."));
+            case DuplicateCrLimit.Account:
+                return Result.Failure<Guid>(Error.Refused(CrDisputeErrors.Limited, "Too many commercial registration numbers were tried. Try again in an hour."));
+            case DuplicateCrLimit.Address:
+                return Result.Failure<Guid>(Error.Refused(CrDisputeErrors.NetworkLimited, VendorRegistrationService.NetworkLimitedMessage));
         }
 
+        (Result<Guid> Result, bool Counts) outcome;
+        try
+        {
+            outcome = await RaiseInDatabaseAsync(request, email, name, tenant, userId, cancellationToken);
+        }
+        catch
+        {
+            await duplicates.RefundAsync(reservation);
+            throw;
+        }
+
+        if (!outcome.Counts)
+        {
+            await duplicates.RefundAsync(reservation);
+        }
+
+        return outcome.Result;
+    }
+
+    /// <summary>
+    /// The dispute in one transaction; <c>Counts</c> is true for the answers that count toward the duplicate-CR limits: no
+    /// company has the number, or the claimant has three open requests (given only for a number with a company).
+    /// </summary>
+    private async Task<(Result<Guid> Result, bool Counts)> RaiseInDatabaseAsync(
+        CrDisputeRequest request, string email, string name, TenantContext tenant, string userId, CancellationToken cancellationToken)
+    {
         var crNumber = VendorInput.Digits(request.CrNumber);
         var statement = VendorInput.NormalizeFreeText(request.Statement);
         var culture = VendorPrivacyNotice.Cultures.Contains(request.PrivacyNoticeCulture, StringComparer.Ordinal)
@@ -81,11 +116,11 @@ internal sealed class CrDisputes(
         }
         catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UniqueViolation && ex.ConstraintName == "ux_cr_disputes_open")
         {
-            return Result.Failure<Guid>(Error.Conflict(CrDisputeErrors.AlreadyOpen, "You already have an open request for this company. WaslaBid will contact you."));
+            return (Result.Failure<Guid>(Error.Conflict(CrDisputeErrors.AlreadyOpen, "You already have an open request for this company. WaslaBid will contact you.")), false);
         }
         catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.CheckViolation)
         {
-            return Result.Failure<Guid>(ex.ConstraintName switch
+            return (Result.Failure<Guid>(ex.ConstraintName switch
             {
                 "ck_cr_disputes_claimant_not_vendor" => Error.Refused(
                     CrDisputeErrors.AlreadyVendor, "This account already belongs to a vendor company. Sign in with a separate account."),
@@ -94,14 +129,16 @@ internal sealed class CrDisputes(
                 "ck_cr_disputes_open_limit" => Error.Refused(
                     CrDisputeErrors.TooManyOpen, "You have three open requests. Wait for WaslaBid to close one."),
                 _ => throw new InvalidOperationException($"The dispute was refused under an unexpected rule ({ex.ConstraintName}).", ex),
-            });
+            }),
+            // N-2: vendor.raise_cr_dispute looks the company up before it counts open disputes, so "three open requests"
+            // also says the number belongs to a company; it counts like "no company" does.
+            ex.ConstraintName == "ck_cr_disputes_open_limit");
         }
 
         if (disputeId is not { } id)
         {
-            duplicates.Record(userId);
-            return Result.Failure<Guid>(Error.NotFound(
-                CrDisputeErrors.NoCompany, "No company on WaslaBid has this commercial registration number. Register your company instead."));
+            return (Result.Failure<Guid>(Error.NotFound(
+                CrDisputeErrors.NoCompany, "No company on WaslaBid has this commercial registration number. Register your company instead.")), true);
         }
 
         await audit.WriteAsync(
@@ -114,7 +151,7 @@ internal sealed class CrDisputes(
             }),
             cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        return Result.Success(id);
+        return (Result.Success(id), false);
     }
 
     public async Task<IReadOnlyList<OwnCrDispute>> ListOwnAsync(CancellationToken cancellationToken = default)

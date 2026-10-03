@@ -17,7 +17,8 @@ public sealed record OidcSettings(string Authority, string ClientSecret, string?
 /// The web host, in the Testing environment unless another is given. By default a header-driven test scheme replaces
 /// cookie and OIDC sign-in; pass <see cref="OidcSettings"/> to keep the real handlers against a Keycloak instance instead.
 /// </summary>
-internal sealed class PlatformWebFactory(string appConnectionString, OidcSettings? oidc = null, string environment = "Testing")
+internal sealed class PlatformWebFactory(
+    string appConnectionString, OidcSettings? oidc = null, string environment = "Testing", string? redisConnectionString = null)
     : WebApplicationFactory<Program>
 {
     /// <summary>The platform console's host name in tests, as <c>Platform:Host</c> sets it in Development.</summary>
@@ -38,6 +39,9 @@ internal sealed class PlatformWebFactory(string appConnectionString, OidcSetting
         // W-10: explicitly empty means off, with no fallback to OTEL_EXPORTER_OTLP_ENDPOINT, so a test host never exports to
         // a developer's collector (Development's appsettings point at localhost:4317). Tests that export set it again.
         builder.UseSetting(TelemetryModule.OtlpEndpointSetting, string.Empty);
+        // W-34: never the developer's live Redis (Development's appsettings point at localhost:6379); without a value the
+        // throttle keeps its limits in process memory. A test that needs Redis passes its own (a Testcontainer).
+        builder.UseSetting("ConnectionStrings:Redis", redisConnectionString ?? string.Empty);
         if (environment is not ("Testing" or "Development"))
         {
             // W-10: required outside Development and Testing; a free local port, refused at once. (A fixed well-known port such
@@ -51,6 +55,8 @@ internal sealed class PlatformWebFactory(string appConnectionString, OidcSetting
             builder.UseSetting("ForwardedHeaders:KnownProxies:0", "10.0.0.1");
             builder.UseSetting("DataProtection:CertificatePath", TestCertificates.KeyRingPath);
             builder.UseSetting("DataProtection:CertificatePassword", TestCertificates.KeyRingPassword);
+            // W-34: required outside Development and Testing; a free local port, so the throttle falls back to process memory.
+            builder.UseSetting("ConnectionStrings:Redis", redisConnectionString ?? $"127.0.0.1:{UnusedLoopbackPort()}");
         }
 
         if (oidc is not null)
