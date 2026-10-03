@@ -35,7 +35,7 @@ Dependencies use story IDs. A story is not Ready until its dependencies are Done
 
 ## E0 Platform foundation (W-01 to W-12, W-19 to W-30, W-33 to W-40)
 
-Hardening before gate 1 (decided 2026-09-29, document 05 section 8): W-21, W-24, W-10 and W-33 harden what is already built and may proceed before W-31; so may W-40, chosen by the user on 2026-10-02 as hardening of the built vendor slice (P1, an exception to the P0-only list), and W-34 to W-39, chosen by the user on 2026-10-03 on the same terms, as were W-41, W-42 and the EDOT image signature check (W-10 follow-up) later that day, and then the preparation of W-19 (deploy artifacts and runbook, no deployment) and a sweep of the low-severity review follow-ups; no new slice does.
+Hardening before gate 1 (decided 2026-09-29, document 05 section 8): W-21, W-24, W-10 and W-33 harden what is already built and may proceed before W-31; so may W-40, chosen by the user on 2026-10-02 as hardening of the built vendor slice (P1, an exception to the P0-only list), and W-34 to W-39, chosen by the user on 2026-10-03 on the same terms, as were W-41, W-42 and the EDOT image signature check (W-10 follow-up) later that day, and then the preparation of W-19 (deploy artifacts and runbook, no deployment) and a sweep of the low-severity review follow-ups, and three pilot enablers (a TLS ask endpoint, SMTP login in the app, image builds on the Arm VM) plus the ruling to mask number-typed log values of ten or more digits; no new slice does.
 
 | ID | Story | Pri | Size | Status | Depends on |
 |---|---|---|---|---|---|
