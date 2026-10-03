@@ -131,6 +131,15 @@ jobs:
           key: trivy-db-${{ runner.os }}-${{ github.run_id }}
           restore-keys: trivy-db-${{ runner.os }}-
 
+      # Blocking: Elastic signs its images with cosign (a published key, not keyless); every docker.elastic.co image
+      # pinned in the Compose file must verify (W-10 follow-up, ADR-0014). Only registry metadata is fetched.
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: v2.5.0
+
+      - name: Verify Elastic image signatures
+        run: bash .github/scripts/verify-elastic-signatures.sh
+
       # Blocking: fixable HIGH and CRITICAL vulnerabilities in NuGet packages, committed secrets (N-10), and
       # misconfigurations. Settings are in .github/trivy.yaml, so the same scan runs locally.
       - name: Repository scan (dependencies, secrets, config)
