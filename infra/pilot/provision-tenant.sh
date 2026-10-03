@@ -31,7 +31,7 @@ while [ $# -gt 0 ]; do
     *) sed -n '2,17p' "$0"; exit 2 ;;
   esac
 done
-[ -n "$SLUG" ] && [ -n "$NAME" ] && [ -n "$EMAIL" ] && [ -n "$FIRST" ] && [ -n "$LAST" ] || { sed -n '2,17p' "$0"; exit 2; }
+if [ -z "$SLUG" ] || [ -z "$NAME" ] || [ -z "$EMAIL" ] || [ -z "$FIRST" ] || [ -z "$LAST" ]; then sed -n '2,17p' "$0"; exit 2; fi
 [[ "$SLUG" =~ ^[a-z0-9-]{2,40}$ ]] || die "slug must match ^[a-z0-9-]{2,40}$"
 [[ "$COLOR" =~ ^#[0-9A-Fa-f]{6}$ ]] || die "color must be #RRGGBB"
 [ "$CULTURE" = "ar-SA" ] || [ "$CULTURE" = "en-US" ] || die "culture must be ar-SA or en-US"
@@ -46,11 +46,11 @@ export IMAGE_TAG
 TENANT_URL_TEMPLATE="$(env_value KEYCLOAK_TENANT_URL)"
 TENANT_URL="${TENANT_URL_TEMPLATE//\{slug\}/$SLUG}"
 HOST="$(printf '%s' "$TENANT_URL" | sed -E 's#^https://([^/:]+)/?.*$#\1#')"
-[ -n "$HOST" ] && [ "$HOST" != "$TENANT_URL" ] || die "KEYCLOAK_TENANT_URL must look like https://{slug}.example.sa/"
+if [ -z "$HOST" ] || [ "$HOST" = "$TENANT_URL" ]; then die "KEYCLOAK_TENANT_URL must look like https://{slug}.example.sa/"; fi
 LOCALE="${CULTURE%%-*}"
 
 log "1. tenant host $HOST"
-if ! env_value TENANT_HOSTS | tr -s ', ' '\n' | grep -qx "$HOST"; then
+if ! grep -qx "$HOST" <<<"$(env_value TENANT_HOSTS | tr -s ', ' '\n')"; then
   die "$HOST is not in TENANT_HOSTS: add it in $ENV_FILE, point its DNS record at the VM, run deploy.sh, then run this again"
 fi
 
@@ -69,7 +69,7 @@ token() {
   fi | curl -fsS --max-time 20 -d @- "$KC/realms/master/protocol/openid-connect/token" | jq -r .access_token
 }
 TOKEN="$(token)" || die "Keycloak refused the credentials (KEYCLOAK_OPS_CLIENT_SECRET, or KEYCLOAK_ADMIN before day one)"
-[ -n "$TOKEN" ] && [ "$TOKEN" != null ] || die "no admin token from Keycloak"
+if [ -z "$TOKEN" ] || [ "$TOKEN" = null ]; then die "no admin token from Keycloak"; fi
 # kc <method> <path> [json body]: the token goes to curl through stdin (-K -), never on the command line.
 kc() {
   local method="$1" path="$2" body="${3:-}"
@@ -99,7 +99,7 @@ fi
 log "2b. redirect URIs on waslabid-web for $HOST"
 out="$(kc GET "/clients?clientId=waslabid-web")"; CLIENT="$(body_of "$out" | jq -c '.[0]')"
 CLIENT_ID="$(jq -r .id <<<"$CLIENT")"
-[ -n "$CLIENT_ID" ] && [ "$CLIENT_ID" != null ] || die "client waslabid-web not found in realm $REALM"
+if [ -z "$CLIENT_ID" ] || [ "$CLIENT_ID" = null ]; then die "client waslabid-web not found in realm $REALM"; fi
 UPDATED="$(jq -c --arg h "$HOST" '
   .redirectUris = ((.redirectUris // []) + ["https://\($h)/signin-oidc", "https://\($h)/"] | unique)
   | .attributes["post.logout.redirect.uris"] = (

@@ -71,8 +71,8 @@ if [ "$FAMILY" = debian ]; then
   while iptables -C INPUT -p tcp -m state --state NEW -m tcp --dport 22 -j ACCEPT 2>/dev/null; do
     iptables -D INPUT -p tcp -m state --state NEW -m tcp --dport 22 -j ACCEPT
   done
-  iptables -L INPUT -n | grep -q REJECT || iptables -A INPUT -j REJECT --reject-with icmp-host-prohibited
-  if command -v docker >/dev/null && iptables -S | grep -q DOCKER; then
+  grep -q REJECT <<<"$(iptables -L INPUT -n)" || iptables -A INPUT -j REJECT --reject-with icmp-host-prohibited
+  if command -v docker >/dev/null && grep -q DOCKER <<<"$(iptables -S)"; then
     echo "Docker is already installed: not saving the rules (they would include Docker's). Save by hand after review."
   else
     netfilter-persistent save
@@ -122,7 +122,7 @@ vm.max_map_count = 262144
 vm.swappiness = 10
 EOF
 sysctl -q --system
-if ! swapon --show=NAME --noheadings | grep -q .; then
+if ! grep -q . <<<"$(swapon --show=NAME --noheadings)"; then
   fallocate -l 2G /swapfile
   chmod 600 /swapfile
   mkswap -q /swapfile
