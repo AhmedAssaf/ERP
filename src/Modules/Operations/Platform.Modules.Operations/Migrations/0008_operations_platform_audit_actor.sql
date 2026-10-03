@@ -2,12 +2,12 @@
 -- acting user only for a session with a tenant or vendor context, so a platform console session (erp_app, no context) could
 -- write an entry under any actor id, or none. Since this migration:
 -- - an erp_app session, whatever its context, writes only as platform.current_user_id() and must have one;
--- - a free actor (the system, null, or any other id) is for the worker only: a member of erp_worker (session_user, because
+-- - a free actor (the system, null, or any other id) is for the worker only: a role that holds erp_worker's privileges (usage of the role; session_user, because
 --   current_user is the owner inside a security-definer function) whose session has no acting user. The worker never has a
 --   user; its jobs run with no context (health, usage) or with a vendor context (document rescan, null actor), both kept.
 -- Callers checked: the console and vendor pages write as the signed-in user; VendorDocuments (parked and infected from the
 -- rescan job) and the vendor and tenant sessions' own entries are covered above. The migration owner (the superuser or
--- BYPASSRLS role) counts as a member of erp_worker. Grants are unchanged.
+-- BYPASSRLS role) passes the check only when it is a superuser or holds erp_worker's privileges. Grants are unchanged.
 
 do $$
 begin
@@ -30,7 +30,7 @@ create or replace function ops.write_platform_audit(
     set search_path = ops, pg_temp
 as $$
 begin
-    if not (pg_has_role(session_user, 'erp_worker', 'member') and platform.current_user_id() is null)
+    if not (pg_has_role(session_user, 'erp_worker', 'usage') and platform.current_user_id() is null)
        and (platform.current_user_id() is null or p_actor_id is distinct from platform.current_user_id()) then
         raise exception 'Platform audit entries are written only as the session''s own acting user; a free actor is the worker''s.'
             using errcode = 'insufficient_privilege';

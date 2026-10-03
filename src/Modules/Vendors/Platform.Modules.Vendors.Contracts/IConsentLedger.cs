@@ -93,7 +93,7 @@ public interface IConsentLedger
     /// runs (ADR-0010 point 2): inside its period, first and last day included, and never revoked; and which one (the newest
     /// when several are). The date is the database's, never the caller's, so an export cannot rely on a grant that starts
     /// later or has ended. Audited as <c>vendor.consent_check</c> with the result, the grant relied on and the host tenant,
-    /// under the acting user when there is one. Asked by an export without a context, by tenant staff only about a company
+    /// under the acting user; an application-role session (web, console) must have one (W-41), and only the worker, which has none, audits without it (otherwise <see cref="InvalidOperationException"/>). Asked by an export without a context, by tenant staff only about a company
     /// their tenant works with, or by the company itself; another company's vendor context, or a tenant with no relationship
     /// with the company, is refused (<see cref="InvalidOperationException"/>).
     /// </summary>

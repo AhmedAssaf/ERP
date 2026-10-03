@@ -6,8 +6,8 @@ namespace Platform.Modules.Operations;
 
 /// <summary>
 /// Writes <c>ops.platform_audit</c> through <c>ops.write_platform_audit</c> (operations migration 0004): the application
-/// role holds no INSERT on the table, the function sets the time, and a session with a tenant or vendor context may write
-/// only as its own acting user.
+/// role holds no INSERT on the table, the function sets the time, and an application-role session (W-41, migration 0008) may write
+/// only as its own acting user; a free actor is the worker's.
 /// </summary>
 internal sealed class PlatformAuditWriter(IDbContextFactory<OperationsDbContext> contexts) : IPlatformAudit
 {

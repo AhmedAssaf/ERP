@@ -5,6 +5,7 @@ using Hangfire.Storage;
 using Platform.Modules.Operations.Alerts;
 using Platform.Modules.Operations.Contracts;
 using Platform.Shared.Jobs;
+using Platform.Shared.Tenancy;
 
 namespace Platform.Modules.Operations.PlatformConsole;
 
@@ -13,7 +14,7 @@ namespace Platform.Modules.Operations.PlatformConsole;
 /// (<see cref="TenantJobFilter"/>), and the audited re-run (spec 3.4, D-8). Hangfire's storage API is synchronous, so
 /// its calls run on the thread pool and never block a Blazor circuit.
 /// </summary>
-internal sealed class PlatformJobs(JobStorage storage, IPlatformAudit audit) : IPlatformJobs
+internal sealed class PlatformJobs(JobStorage storage, IPlatformAudit audit, IActingUserAccessor actingUser) : IPlatformJobs
 {
     public const string RequeuedAction = "job.requeued";
 
@@ -27,6 +28,12 @@ internal sealed class PlatformJobs(JobStorage storage, IPlatformAudit audit) : I
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(jobId);
         ArgumentException.ThrowIfNullOrWhiteSpace(actorId);
+
+        // W-41: the audit row can only name the acting user, so a mismatch fails before the job moves, not after.
+        if (!string.Equals(actingUser.UserId, actorId, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("A job is re-run by the acting user of the console request or circuit.");
+        }
 
         // The tenant and the job's name come from storage, never from the page, so the audit row states the facts.
         var failed = await Task.Run(() => ReadIfFailed(jobId), cancellationToken);
