@@ -1,0 +1,3 @@
+# W-19: the pilot's secrets never enter the repository (N-10).
+.env
+secrets/

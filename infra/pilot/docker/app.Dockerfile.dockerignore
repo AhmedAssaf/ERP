@@ -1,0 +1,13 @@
+# BuildKit reads <Dockerfile>.dockerignore beside the Dockerfile. The context is the repository root; only what the
+# build stage copies is sent, never .env files, tests, docs, spikes or local build output.
+*
+!global.json
+!Directory.Build.props
+!Directory.Packages.props
+!.editorconfig
+!src/
+src/**/bin/
+src/**/obj/
+src/UI/Platform.UI/wwwroot/css/app.css
+**/.env
+**/*.user

@@ -1,0 +1,9 @@
+# Scripts and configuration run on Linux (the VM and containers); CRLF from a Windows checkout would break them.
+*.sh text eol=lf
+*.sql text eol=lf
+*.yml text eol=lf
+Caddyfile text eol=lf
+.env.example text eol=lf
+systemd/* text eol=lf
+docker/* text eol=lf
+keycloak/import/*.json text eol=lf

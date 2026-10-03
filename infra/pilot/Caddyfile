@@ -1,0 +1,67 @@
+# W-19: the pilot's edge (Caddy 2.10). Values in {$...} come from infra/pilot/.env through docker-compose.yml.
+#
+# Certificates: automatic HTTPS (Let's Encrypt, ZeroSSL as fallback) for a STATIC list of hosts. The F-03 shape, on-demand
+# TLS for any tenant host the app vouches for, needs an `ask` endpoint the web host does not have yet (a required
+# follow-up, docs/19 section 9). Until then a new tenant host means: add it to TENANT_HOSTS and re-run deploy.sh.
+# The target shape, once the endpoint exists:
+#
+#   { on_demand_tls { ask http://web:8080/internal/tls/allowed } }   # 200 only for a host in tenancy.tenant_hosts
+#   https:// { tls { on_demand } import app_headers reverse_proxy web:8080 }
+#
+# Forwarded headers (W-24): Caddy trusts no incoming X-Forwarded-* (no trusted_proxies), so it sends the client address it
+# sees as X-Forwarded-For, the scheme as X-Forwarded-Proto, and the Host header unchanged. The web host takes the first
+# two only from Caddy's pinned address (ForwardedHeaders:KnownProxies, CADDY_EDGE_IP) and never X-Forwarded-Host: the
+# tenant always comes from Host.
+
+{
+	email {$ACME_EMAIL}
+	servers {
+		# HTTP/3 off: the firewall opens TCP 80 and 443 only.
+		protocols h1 h2
+	}
+}
+
+(security_headers) {
+	header {
+		# defer: applied after the upstream's headers, so these values win.
+		defer
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+		-X-Powered-By
+	}
+}
+
+(app_headers) {
+	import security_headers
+	header {
+		defer
+		X-Frame-Options "DENY"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+		# Enforced: no framing, no plugins, no base tag, forms post only to the app or Keycloak (sign-in and sign-out).
+		Content-Security-Policy "frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self' https://{$AUTH_HOST}"
+		# Report-only until a browser pass of every page on the pilot shows no violation (follow-up, docs/19 section 9).
+		Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' wss://{host}; frame-ancestors 'none'; base-uri 'self'; object-src 'none'"
+	}
+}
+
+# The platform console and the tenant hosts: one web host decides by Host (PlatformHostMiddleware, TenantMiddleware).
+{$PLATFORM_HOST}, {$TENANT_HOSTS} {
+	import app_headers
+	encode zstd gzip
+	# Blazor Server's WebSocket and the chunked uploads (4 MB per request, ADR-0001) pass through with Caddy's defaults.
+	reverse_proxy web:8080
+}
+
+# Keycloak's public issuer. The Admin console and the master realm answer only from the operator's address; the web host
+# reaches the Admin API on the internal network (KeycloakAdmin:BaseUrl), not through here.
+{$AUTH_HOST} {
+	import security_headers
+	@operator_only {
+		path /admin /admin/* /realms/master /realms/master/*
+		not remote_ip {$ADMIN_ALLOW_CIDR}
+	}
+	respond @operator_only 404
+	reverse_proxy keycloak:8080
+}

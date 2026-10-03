@@ -1,0 +1,634 @@
+# W-19: the pilot stack on one Arm (aarch64) VM in Oracle Cloud Jeddah (docs/19-pilot-runbook.md).
+# The same services as infra/compose (development) plus the containerised web host, worker and migrator, with these
+# differences: production settings, memory limits from the W-10 spec section 9 (about 9.6 GB steady on the 12 GB VM),
+# no Mailpit (a relay to real SMTP instead), Kibana only on demand, and no published port except Caddy's 80 and 443.
+#
+# Never run by hand with `up -d` on a fresh volume: infra/pilot/deploy.sh brings the services up in order (databases,
+# roles, one-shots, Keycloak, the migrator FIRST, then the hosts, then Caddy) and verifies health.
+#   docker compose -f infra/pilot/docker-compose.yml --env-file infra/pilot/.env config   # validate
+#
+# Networks:
+#   edge     Caddy (pinned address, the only one the hosts trust for forwarded headers, W-24), web, Keycloak.
+#   backend  internal (no route out of the VM): databases, storage, telemetry, hosts, one-shots.
+#   egress   for the two services that must reach the internet: ClamAV signature updates and the SMTP relay.
+#   tunnel   only so Kibana's port can bind to 127.0.0.1 for the SSH tunnel (O-18).
+# Secrets come from infra/pilot/.env (git-ignored, mode 600, generation hints in .env.example) and the key-ring
+# certificate file infra/pilot/secrets/key-ring.pfx; neither is ever committed (N-10).
+
+name: waslabid-pilot
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-hardening: &hardening
+  security_opt:
+    - no-new-privileges:true
+
+# Settings both hosts read (docs/07 section 4). Each value comes from .env; nothing secret is written here.
+x-host-env: &host-env
+  ConnectionStrings__Redis: redis:6379,password=${REDIS_PASSWORD:?Set REDIS_PASSWORD in infra/pilot/.env}
+  Jobs__SigningKey: ${WASLABID_JOB_SIGNING_KEY:?Set WASLABID_JOB_SIGNING_KEY in infra/pilot/.env}
+  ObjectStorage__ServiceUrl: http://minio:9000
+  ObjectStorage__BucketName: ${STORAGE_BUCKET:?Set STORAGE_BUCKET in infra/pilot/.env}
+  ObjectStorage__AccessKey: ${MINIO_APP_ACCESS_KEY:?Set MINIO_APP_ACCESS_KEY in infra/pilot/.env}
+  ObjectStorage__SecretKey: ${MINIO_APP_SECRET_KEY:?Set MINIO_APP_SECRET_KEY in infra/pilot/.env}
+  ClamAv__Host: clamav
+  ClamAv__Port: "3310"
+  Smtp__Host: smtp-relay
+  Smtp__Port: "587"
+  Smtp__From: ${SMTP_FROM:?Set SMTP_FROM in infra/pilot/.env}
+  Telemetry__OtlpEndpoint: http://otel-collector:4317
+  Telemetry__Environment: pilot
+
+services:
+  # ---------------------------------------------------------------- edge
+  caddy:
+    image: caddy:2.10@sha256:c3d7ee5d2b11f9dc54f947f68a734c84e9c9666c92c88a7f30b9cba5da182adb
+    <<: *hardening
+    restart: unless-stopped
+    logging: *logging
+    mem_limit: 160m
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    read_only: true
+    tmpfs: [/tmp]
+    ports:
+      # The only published ports on 0.0.0.0. HTTP only redirects to HTTPS and answers ACME challenges.
+      - "80:80"
+      - "443:443"
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL in infra/pilot/.env}
+      PLATFORM_HOST: ${PLATFORM_HOST:?Set PLATFORM_HOST in infra/pilot/.env}
+      AUTH_HOST: ${AUTH_HOST:?Set AUTH_HOST in infra/pilot/.env}
+      TENANT_HOSTS: ${TENANT_HOSTS:?Set TENANT_HOSTS in infra/pilot/.env}
+      ADMIN_ALLOW_CIDR: ${ADMIN_ALLOW_CIDR:?Set ADMIN_ALLOW_CIDR in infra/pilot/.env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      edge:
+        ipv4_address: ${CADDY_EDGE_IP:-172.30.10.2}
+        # The web host reaches Keycloak's public issuer through Caddy without leaving the VM (OIDC discovery and tokens).
+        aliases:
+          - ${AUTH_HOST:?Set AUTH_HOST in infra/pilot/.env}
+    depends_on:
+      web:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2019/config/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ---------------------------------------------------------------- application (built from infra/pilot/docker/app.Dockerfile)
+  web:
+    image: ${IMAGE_PREFIX:-waslabid}/web:${IMAGE_TAG:?Set IMAGE_TAG (deploy.sh sets it)}
+    build:
+      context: ../..
+      dockerfile: infra/pilot/docker/app.Dockerfile
+      target: web
+    pull_policy: never
+    <<: *hardening
+    restart: unless-stopped
+    logging: *logging
+    mem_limit: 1024m
+    cap_drop: [ALL]
+    read_only: true
+    tmpfs: [/tmp]
+    environment:
+      <<: *host-env
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Platform: Host=postgres;Port=5432;Database=platform;Username=erp_app;Password=${ERP_APP_DB_PASSWORD:?Set ERP_APP_DB_PASSWORD in infra/pilot/.env};GSS Encryption Mode=Disable
+      ConnectionStrings__KeyRing: Host=postgres;Port=5432;Database=platform;Username=erp_key_ring;Password=${ERP_KEY_RING_DB_PASSWORD:?Set ERP_KEY_RING_DB_PASSWORD in infra/pilot/.env};GSS Encryption Mode=Disable
+      # W-24: forwarded headers only from Caddy's pinned address; the Data Protection key ring encrypted with the certificate.
+      ForwardedHeaders__KnownProxies__0: ${CADDY_EDGE_IP:-172.30.10.2}
+      DataProtection__CertificatePath: /run/secrets/key_ring_pfx
+      DataProtection__CertificatePassword: ${KEY_RING_CERT_PASSWORD:?Set KEY_RING_CERT_PASSWORD in infra/pilot/.env}
+      Oidc__Authority: https://${AUTH_HOST}/realms/waslabid
+      Oidc__ClientSecret: ${WASLABID_WEB_CLIENT_SECRET:?Set WASLABID_WEB_CLIENT_SECRET in infra/pilot/.env}
+      PlatformOidc__Authority: https://${AUTH_HOST}/realms/waslabid-platform
+      PlatformOidc__ClientSecret: ${WASLABID_PLATFORM_CLIENT_SECRET:?Set WASLABID_PLATFORM_CLIENT_SECRET in infra/pilot/.env}
+      Platform__Host: ${PLATFORM_HOST}
+      # The Admin API over the internal network (Caddy refuses /admin from the internet, Caddyfile).
+      KeycloakAdmin__BaseUrl: http://keycloak:8080
+      KeycloakAdmin__ClientSecret: ${WASLABID_ADMIN_API_SECRET:?Set WASLABID_ADMIN_API_SECRET in infra/pilot/.env}
+      KeycloakAdmin__TenantUrl: ${KEYCLOAK_TENANT_URL:?Set KEYCLOAK_TENANT_URL in infra/pilot/.env}
+      Vendors__CrAuditKey: ${VENDORS_CR_AUDIT_KEY:?Set VENDORS_CR_AUDIT_KEY in infra/pilot/.env}
+      # Kibana opens through the SSH tunnel (O-18).
+      Observability__KibanaUrl: http://127.0.0.1:5601
+      # Optional (W-33): only with a Wathq subscription; empty means officers check CR certificates by hand.
+      Wathq__BaseUrl: ${WATHQ_BASE_URL:-}
+      Wathq__ApiKey: ${WATHQ_API_KEY:-}
+    secrets:
+      - key_ring_pfx
+    networks:
+      edge:
+        ipv4_address: ${WEB_EDGE_IP:-172.30.10.3}
+      backend: {}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      otel-collector:
+        condition: service_healthy
+
+  worker:
+    image: ${IMAGE_PREFIX:-waslabid}/worker:${IMAGE_TAG:?Set IMAGE_TAG (deploy.sh sets it)}
+    build:
+      context: ../..
+      dockerfile: infra/pilot/docker/app.Dockerfile
+      target: worker
+    pull_policy: never
+    <<: *hardening
+    restart: unless-stopped
+    logging: *logging
+    mem_limit: 512m
+    cap_drop: [ALL]
+    read_only: true
+    tmpfs: [/tmp]
+    environment:
+      <<: *host-env
+      DOTNET_ENVIRONMENT: Production
+      # W-36: the worker's own role, never erp_app.
+      ConnectionStrings__Worker: Host=postgres;Port=5432;Database=platform;Username=erp_worker;Password=${ERP_WORKER_DB_PASSWORD:?Set ERP_WORKER_DB_PASSWORD in infra/pilot/.env};GSS Encryption Mode=Disable
+      Health__MinIo__ServiceUrl: http://minio:9000
+      Health__MinIo__BucketName: ${STORAGE_BUCKET}
+      Health__MinIo__AccessKey: health-probe
+      Health__MinIo__SecretKey: ${MINIO_HEALTH_PROBE_PASSWORD:?Set MINIO_HEALTH_PROBE_PASSWORD in infra/pilot/.env}
+      Keycloak__ManagementUrl: http://keycloak:9000
+      Platform__WebHealthUrl: http://web:8080/health
+      Platform__BoardUrl: https://${PLATFORM_HOST}/platform
+      Platform__AlertRecipients__0: ${ALERT_RECIPIENT:?Set ALERT_RECIPIENT in infra/pilot/.env}
+      Platform__DiskAlertPercent: "80"
+      # The disk check reads the file system that holds the database volume (mounted read-only below; the worker
+      # cannot read PostgreSQL's files, which are mode 700 for another user).
+      Platform__DiskPath: /monitor/postgres
+      Telemetry__CollectorHealthUrl: http://otel-collector:13133/
+      Telemetry__ElasticsearchHealthUrl: http://elasticsearch:9200/_cluster/health
+      Telemetry__ElasticsearchUser: waslabid_monitor
+      Telemetry__ElasticsearchPassword: ${ELASTIC_MONITOR_PASSWORD:?Set ELASTIC_MONITOR_PASSWORD in infra/pilot/.env}
+    volumes:
+      - postgres-data:/monitor/postgres:ro
+    networks:
+      backend: {}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+
+  migrator:
+    # One-shot, run by deploy.sh before the hosts start: applies every module's migrations as the owner, installs
+    # Hangfire's tables, secures them (jobs/ migrations), and gives erp_key_ring and erp_worker their logins.
+    image: ${IMAGE_PREFIX:-waslabid}/migrator:${IMAGE_TAG:?Set IMAGE_TAG (deploy.sh sets it)}
+    build:
+      context: ../..
+      dockerfile: infra/pilot/docker/app.Dockerfile
+      target: migrator
+    pull_policy: never
+    profiles: [tools]
+    <<: *hardening
+    restart: "no"
+    logging: *logging
+    mem_limit: 384m
+    cap_drop: [ALL]
+    read_only: true
+    tmpfs: [/tmp]
+    environment:
+      DOTNET_ENVIRONMENT: Production
+      ConnectionStrings__Owner: Host=postgres;Port=5432;Database=platform;Username=${POSTGRES_USER:?Set POSTGRES_USER in infra/pilot/.env};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in infra/pilot/.env};GSS Encryption Mode=Disable
+      ConnectionStrings__KeyRing: Host=postgres;Port=5432;Database=platform;Username=erp_key_ring;Password=${ERP_KEY_RING_DB_PASSWORD};GSS Encryption Mode=Disable
+      ConnectionStrings__Worker: Host=postgres;Port=5432;Database=platform;Username=erp_worker;Password=${ERP_WORKER_DB_PASSWORD};GSS Encryption Mode=Disable
+    networks:
+      backend: {}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------- identity
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.3.5@sha256:357829ec7c4693397533035092ad13b0644bcc95ded311f33a3738c4d9e9bdba
+    <<: *hardening
+    restart: unless-stopped
+    logging: *logging
+    mem_limit: 1536m
+    # Production mode (not start-dev). The realms are imported only when missing (keycloak/import, placeholders from .env).
+    command: ["start", "--import-realm"]
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?Set KEYCLOAK_DB_PASSWORD in infra/pilot/.env}
+      KC_DB_POOL_MAX_SIZE: "20"
+      # The public issuer; TLS ends at Caddy, whose pinned address is the only one trusted for X-Forwarded-*.
+      KC_HOSTNAME: https://${AUTH_HOST}
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+      KC_PROXY_TRUSTED_ADDRESSES: ${CADDY_EDGE_IP:-172.30.10.2}/32
+      KC_FEATURES: organization
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "false"
+      JAVA_OPTS_KC_HEAP: "-XX:MaxRAMPercentage=60 -XX:InitialRAMPercentage=30"
+      # Temporary bootstrap admin of the master realm: replace it with a named admin on the first day (docs/19 step 7).
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:?Set KEYCLOAK_ADMIN in infra/pilot/.env}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?Set KEYCLOAK_ADMIN_PASSWORD in infra/pilot/.env}
+      # Substituted into keycloak/import/*.json at import.
+      WASLABID_WEB_CLIENT_SECRET: ${WASLABID_WEB_CLIENT_SECRET}
+      WASLABID_PLATFORM_CLIENT_SECRET: ${WASLABID_PLATFORM_CLIENT_SECRET}
+      WASLABID_ADMIN_API_SECRET: ${WASLABID_ADMIN_API_SECRET}
+      PLATFORM_HOST: ${PLATFORM_HOST}
+      PLATFORM_ADMIN_USERNAME: ${PLATFORM_ADMIN_USERNAME:?Set PLATFORM_ADMIN_USERNAME in infra/pilot/.env}
+      PLATFORM_ADMIN_EMAIL: ${PLATFORM_ADMIN_EMAIL:?Set PLATFORM_ADMIN_EMAIL in infra/pilot/.env}
+      PLATFORM_ADMIN_INITIAL_PASSWORD: ${PLATFORM_ADMIN_INITIAL_PASSWORD:?Set PLATFORM_ADMIN_INITIAL_PASSWORD in infra/pilot/.env}
+      SMTP_FROM: ${SMTP_FROM}
+    ports:
+      # Loopback only: provision-tenant.sh calls the Admin API here; nothing outside the VM reaches it.
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ./keycloak/import:/opt/keycloak/data/import:ro
+    networks:
+      edge: {}
+      backend: {}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      smtp-relay:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '\"UP\"' <&3"]
+      interval: 15s
+      timeout: 5s
+      retries: 30
+      # Production mode builds its configuration on the first start (about a minute on two Arm cores).
+      start_period: 180s
+
+  # ---------------------------------------------------------------- data
+  postgres:
+    image: pgvector/pgvector:pg16@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a
+    <<: *hardening
+    restart: unless-stopped
+    logging: *logging
+    mem_limit: 1536m
+    shm_size: 128m
+    # Sized for the 1.5 GB limit (W-10 spec section 9). Keycloak's pool is capped at 20 above.
+    command:
+      - postgres
+      - -c
+      - shared_buffers=384MB
+      - -c
+      - effective_cache_size=1GB
+      - -c
+      - work_mem=8MB
+      - -c
+      - maintenance_work_mem=64MB
+      - -c
+      - max_connections=150
+      - -c
+      - password_encryption=scram-sha-256
+      - -c
+      - log_min_error_statement=panic
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: platform
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      backend: {}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d platform"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    image: redis:7.4-alpine@sha256:858f009f9709ce576febc734aa78b8f6d624b82571f9ddb6bda4377c833b3499
+    <<: *hardening
+    restart: unless-stopped
+    logging: *logging
+    mem_limit: 128m
+    # The password goes into a config file in memory, never onto the command line. No persistence: the duplicate-CR
+    # counters (W-34) may be lost on restart, as in development. CONFIG, DEBUG and the FLUSH commands are disabled.
+    entrypoint:
+      - sh
+      - -c
+      - |
+        umask 077
+        printf 'requirepass %s\nsave ""\nappendonly no\nmaxmemory 96mb\nmaxmemory-policy volatile-lru\nrename-command CONFIG ""\nrename-command DEBUG ""\nrename-command FLUSHALL ""\nrename-command FLUSHDB ""\n' "$$REDIS_PASSWORD" > /tmp/redis.conf
+        exec redis-server /tmp/redis.conf
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    read_only: true
+    tmpfs: [/tmp, /data]
+    networks:
+      backend: {}
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$REDIS_PASSWORD\" redis-cli ping | grep -q PONG"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    # Same Chainguard rebuild and digest as development (infra/compose/docker-compose.yml); arm64 included.
+    image: cgr.dev/chainguard/minio@sha256:6a1d0b45c8669726bba580ced0bfa4cb9fdeed1ed636dfabd81d1577beb6937b
+    user: "0:0"
+    <<: *hardening
+    restart: unless-stopped
+    logging: *logging
+    mem_limit: 640m
+    command: ["server", "/data"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in infra/pilot/.env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in infra/pilot/.env}
+      MINIO_BROWSER: "off"
+    volumes:
+      - minio-data:/data
+    networks:
+      backend: {}
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 3s
+      retries: 20
+
+  minio-init:
+    # One-shot, idempotent (deploy.sh runs it on every deploy): the bucket, the application user limited to that bucket
+    # (the hosts never use the root user on the pilot), the list-only health-probe user, the read-only backup-reader user
+    # (backup.sh), and the 2-day staging expiry (V-9).
+    image: cgr.dev/chainguard/minio-client@sha256:fdb40d819ca51969c86fa76f45a67bb841759daf85d4c6ce9aa86d27f6e47ae9
+    profiles: [tools]
+    <<: *hardening
+    restart: "no"
+    logging: *logging
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      STORAGE_BUCKET: ${STORAGE_BUCKET}
+      MINIO_APP_ACCESS_KEY: ${MINIO_APP_ACCESS_KEY}
+      MINIO_APP_SECRET_KEY: ${MINIO_APP_SECRET_KEY}
+      MINIO_HEALTH_PROBE_PASSWORD: ${MINIO_HEALTH_PROBE_PASSWORD}
+      MINIO_BACKUP_PASSWORD: ${MINIO_BACKUP_PASSWORD:?Set MINIO_BACKUP_PASSWORD in infra/pilot/.env}
+    entrypoint: ["/bin/sh", "/setup/minio-init.sh"]
+    volumes:
+      - ./minio-init.sh:/setup/minio-init.sh:ro
+    networks:
+      backend: {}
+    depends_on:
+      minio:
+        condition: service_healthy
+
+  clamav:
+    # clamav/clamav (development) has no arm64 image; the Debian build of the same release line has (checked 2026-10-03).
+    image: clamav/clamav-debian:1.5@sha256:9bb8712a50f0e75166e936c452cd82dd5e5be0b85586598930b5bbb84a99a578
+    <<: *hardening
+    restart: unless-stopped
+    logging: *logging
+    mem_limit: 2048m
+    environment:
+      # W-10 spec section 9: a signature reload no longer loads a second copy of the database (2 GB instead of 3 GB);
+      # scans wait for the reload instead.
+      CLAMD_CONF_ConcurrentDatabaseReload: "no"
+    volumes:
+      - clamav-db:/var/lib/clamav
+    networks:
+      backend: {}
+      egress: {}
+    healthcheck:
+      test: ["CMD", "clamdcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 300s   # the first start downloads the signature database (slower on the VM than on a laptop)
+
+  smtp-relay:
+    # Internal relay to the real SMTP service (OCI Email Delivery in Jeddah, docs/19 step 4): the hosts and Keycloak send
+    # without credentials on the internal network; only the relay holds the SMTP credentials and talks TLS outward.
+    # The application's SMTP client has no authentication setting today (Smtp:Host/Port/From only).
+    image: boky/postfix:v5.1.0@sha256:aafc772384232497bed875e1eb66b4d3e54ba1ebc86e2e185a6dc1dbc48182ef
+    <<: *hardening
+    restart: unless-stopped
+    logging: *logging
+    mem_limit: 96m
+    environment:
+      RELAYHOST: "[${SMTP_RELAY_HOST:?Set SMTP_RELAY_HOST in infra/pilot/.env}]:${SMTP_RELAY_PORT:-587}"
+      RELAYHOST_USERNAME: ${SMTP_RELAY_USERNAME:?Set SMTP_RELAY_USERNAME in infra/pilot/.env}
+      RELAYHOST_PASSWORD: ${SMTP_RELAY_PASSWORD:?Set SMTP_RELAY_PASSWORD in infra/pilot/.env}
+      ALLOWED_SENDER_DOMAINS: ${SMTP_ALLOWED_SENDER_DOMAINS:?Set SMTP_ALLOWED_SENDER_DOMAINS in infra/pilot/.env}
+      POSTFIX_myhostname: ${SMTP_HELO_NAME:-mail.invalid}
+      # Refuse to hand mail to the provider without TLS.
+      POSTFIX_smtp_tls_security_level: encrypt
+      # Only the backend network may relay (the port is not published anyway).
+      MYNETWORKS: ${BACKEND_SUBNET:-172.30.20.0/24}
+    networks:
+      backend: {}
+      egress: {}
+
+  rclone:
+    # One-shot for backup.sh and restore.sh: PostgreSQL dumps and the MinIO bucket to OCI Object Storage in Jeddah through
+    # its S3-compatible endpoint, encrypted client-side by an rclone crypt remote (N-07, N-01). rclone.sh builds the
+    # remotes from .env; nothing is written to a config file.
+    image: rclone/rclone:1.73.2@sha256:8a17d9b5cd5ce71bbb42e49e92ee83575d7fb03f6233d949d328e9d029b9376d
+    profiles: [tools]
+    <<: *hardening
+    restart: "no"
+    logging: *logging
+    mem_limit: 256m
+    entrypoint: ["/bin/sh", "/setup/rclone.sh"]
+    environment:
+      OCI_S3_ENDPOINT: ${OCI_S3_ENDPOINT:?Set OCI_S3_ENDPOINT in infra/pilot/.env}
+      OCI_REGION: ${OCI_REGION:-me-jeddah-1}
+      OCI_BACKUP_BUCKET: ${OCI_BACKUP_BUCKET:?Set OCI_BACKUP_BUCKET in infra/pilot/.env}
+      OCI_ACCESS_KEY_ID: ${OCI_ACCESS_KEY_ID:?Set OCI_ACCESS_KEY_ID in infra/pilot/.env}
+      OCI_SECRET_ACCESS_KEY: ${OCI_SECRET_ACCESS_KEY:?Set OCI_SECRET_ACCESS_KEY in infra/pilot/.env}
+      BACKUP_CRYPT_PASSWORD: ${BACKUP_CRYPT_PASSWORD:?Set BACKUP_CRYPT_PASSWORD in infra/pilot/.env}
+      BACKUP_CRYPT_SALT: ${BACKUP_CRYPT_SALT:?Set BACKUP_CRYPT_SALT in infra/pilot/.env}
+      MINIO_BACKUP_PASSWORD: ${MINIO_BACKUP_PASSWORD:?Set MINIO_BACKUP_PASSWORD in infra/pilot/.env}
+      # Only restore.sh sets RCLONE_MINIO_WRITE=1, which switches the MinIO remote to the root user.
+      RCLONE_MINIO_WRITE: ${RCLONE_MINIO_WRITE:-0}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - ./rclone.sh:/setup/rclone.sh:ro
+      - ${BACKUP_DIR:-/var/backups/waslabid}:/backup
+    networks:
+      backend: {}
+      egress: {}
+
+  # ---------------------------------------------------------------- telemetry (W-10, ADR-0014)
+  # Same images, digests (cosign-verified in CI) and configuration files as development; nothing is published (O-13).
+  otel-collector:
+    image: docker.elastic.co/elastic-agent/elastic-otel-collector:9.5.4@sha256:0597fe7cad118fcaee15a8691088eff7b60fdd1501bd84fc91b90066d79c9afd
+    <<: *hardening
+    restart: unless-stopped
+    logging: *logging
+    command: ["--config=/etc/edot/collector.yaml"]
+    mem_limit: 320m
+    environment:
+      ELASTIC_COLLECTOR_PASSWORD: ${ELASTIC_COLLECTOR_PASSWORD:?Set ELASTIC_COLLECTOR_PASSWORD in infra/pilot/.env}
+      GOMEMLIMIT: 250MiB
+    volumes:
+      - ../compose/observability/collector.yaml:/etc/edot/collector.yaml:ro
+    networks:
+      backend: {}
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf -o /dev/null http://localhost:13133/"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.5.4@sha256:82ac14f43fe701992e601f4cc81e1c0d7dbc5a2576d8cd736006452925df4026
+    <<: *hardening
+    restart: unless-stopped
+    logging: *logging
+    mem_limit: 1792m
+    memswap_limit: 1792m
+    environment:
+      discovery.type: single-node
+      ES_JAVA_OPTS: "-Xms768m -Xmx768m -XX:MaxDirectMemorySize=128m"
+      xpack.security.enabled: "true"
+      xpack.security.http.ssl.enabled: "false"
+      xpack.security.transport.ssl.enabled: "false"
+      xpack.license.self_generated.type: basic
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:?Set ELASTIC_PASSWORD in infra/pilot/.env}
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      backend: {}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -o /dev/null -w '%{http_code}' http://localhost:9200/ | grep -qE '^(200|401)$'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 90s
+
+  elastic-setup:
+    # One-shot, idempotent (development's script): users, roles, retention policies (30, 7 and 30 days on the pilot).
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.5.4@sha256:82ac14f43fe701992e601f4cc81e1c0d7dbc5a2576d8cd736006452925df4026
+    profiles: [tools]
+    <<: *hardening
+    restart: "no"
+    logging: *logging
+    mem_limit: 256m
+    entrypoint: ["bash", "/setup/elastic-setup.sh"]
+    environment:
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
+      KIBANA_SYSTEM_PASSWORD: ${KIBANA_SYSTEM_PASSWORD:?Set KIBANA_SYSTEM_PASSWORD in infra/pilot/.env}
+      KIBANA_STAFF_USER: ${KIBANA_STAFF_USER:?Set KIBANA_STAFF_USER in infra/pilot/.env}
+      KIBANA_STAFF_PASSWORD: ${KIBANA_STAFF_PASSWORD:?Set KIBANA_STAFF_PASSWORD in infra/pilot/.env}
+      ELASTIC_MONITOR_PASSWORD: ${ELASTIC_MONITOR_PASSWORD}
+      ELASTIC_COLLECTOR_PASSWORD: ${ELASTIC_COLLECTOR_PASSWORD}
+      TELEMETRY_LOGS_RETENTION: ${TELEMETRY_LOGS_RETENTION:-30d}
+      TELEMETRY_TRACES_RETENTION: ${TELEMETRY_TRACES_RETENTION:-7d}
+      TELEMETRY_METRICS_RETENTION: ${TELEMETRY_METRICS_RETENTION:-30d}
+    volumes:
+      - ../compose/observability/elastic-setup.sh:/setup/elastic-setup.sh:ro
+    networks:
+      backend: {}
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  kibana:
+    # Only while someone looks (O-17): `docker compose ... --profile kibana up -d kibana kibana-setup`, then the SSH tunnel
+    # in docs/19 section 6 (O-18). Stop it afterwards; it needs 1.25 GB.
+    image: docker.elastic.co/kibana/kibana:9.5.4@sha256:b1b4cea273350ffcb67292d7b90dd034598c1627bfa3cd0783315e9237dbe737
+    profiles: [kibana]
+    <<: *hardening
+    restart: "no"
+    logging: *logging
+    mem_limit: 1280m
+    environment:
+      NODE_OPTIONS: "--max-old-space-size=768"
+      SERVER_PUBLICBASEURL: http://127.0.0.1:5601
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      ELASTICSEARCH_USERNAME: kibana_system
+      ELASTICSEARCH_PASSWORD: ${KIBANA_SYSTEM_PASSWORD}
+      XPACK_SECURITY_ENCRYPTIONKEY: ${KIBANA_ENCRYPTION_KEY:?Set KIBANA_ENCRYPTION_KEY in infra/pilot/.env}
+      XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY: ${KIBANA_ENCRYPTION_KEY}
+      XPACK_REPORTING_ENCRYPTIONKEY: ${KIBANA_ENCRYPTION_KEY}
+      TELEMETRY_OPTIN: "false"
+      TELEMETRY_ALLOWCHANGINGOPTINSTATUS: "false"
+      NEWSFEED_ENABLED: "false"
+    ports:
+      - "127.0.0.1:5601:5601"
+    networks:
+      backend: {}
+      tunnel: {}
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -o /dev/null -w '%{http_code}' http://localhost:5601/api/status | grep -qE '^(200|401)$'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 120s
+
+  kibana-setup:
+    image: curlimages/curl:8.22.0@sha256:58adaa4e8dca9c988bae2aba4ab3434a0bb2da16bbe3f92dec39ec7785166777
+    profiles: [kibana]
+    <<: *hardening
+    restart: "no"
+    logging: *logging
+    entrypoint: ["sh", "/setup/kibana-setup.sh"]
+    environment:
+      KIBANA_IMPORT_USER: elastic
+      KIBANA_IMPORT_PASSWORD: ${ELASTIC_PASSWORD}
+    volumes:
+      - ../compose/observability/kibana-setup.sh:/setup/kibana-setup.sh:ro
+      - ../compose/observability/kibana/waslabid-usage.ndjson:/setup/waslabid-usage.ndjson:ro
+    networks:
+      backend: {}
+    depends_on:
+      kibana:
+        condition: service_healthy
+
+secrets:
+  key_ring_pfx:
+    # W-24: the certificate that encrypts every Data Protection key. Kept out of the database backup on purpose.
+    file: ./secrets/key-ring.pfx
+
+# Fixed subnets: Caddy's address is pinned (the hosts trust forwarded headers from it alone, W-24) and the relay accepts
+# mail only from the backend subnet. Change them in .env only if they collide with the VCN's addresses.
+networks:
+  edge:
+    ipam:
+      config:
+        - subnet: ${EDGE_SUBNET:-172.30.10.0/24}
+  backend:
+    internal: true
+    ipam:
+      config:
+        - subnet: ${BACKEND_SUBNET:-172.30.20.0/24}
+  egress:
+    ipam:
+      config:
+        - subnet: ${EGRESS_SUBNET:-172.30.30.0/24}
+  tunnel:
+    ipam:
+      config:
+        - subnet: ${TUNNEL_SUBNET:-172.30.40.0/24}
+
+volumes:
+  postgres-data:
+  minio-data:
+  clamav-db:
+  caddy-data:
+  caddy-config:
+  elasticsearch-data:
