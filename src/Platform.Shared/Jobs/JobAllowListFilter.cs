@@ -32,20 +32,17 @@ internal sealed partial class JobAllowListFilter(JobGate gate, ILogger<JobAllowL
 
     /// <summary>
     /// W-42: a job that ran without an exception is marked completed in the replay ledger, so moving it back to the queue
-    /// (from Succeeded) never runs it again; a failed job stays open for its retries and the console's re-run. A ledger
-    /// that cannot be written is logged and does not fail a job that already ran.
+    /// (from Succeeded) never runs it again; a failed job stays open for its retries and the console's re-run. Then the run
+    /// lock taken at admission is released (fix round 2). A ledger that cannot be written is logged and does not fail a job
+    /// that already ran; the lock is released either way.
     /// </summary>
     public void OnPerformed(PerformedContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        if (context.Exception is not null && !context.ExceptionHandled)
-        {
-            return;
-        }
-
+        var succeeded = context.Exception is null || context.ExceptionHandled;
         try
         {
-            gate.Complete(context.BackgroundJob.Id);
+            gate.Finish(context.BackgroundJob.Id, succeeded);
         }
         catch (Exception exception) when (exception is Npgsql.NpgsqlException or InvalidOperationException or TimeoutException)
         {

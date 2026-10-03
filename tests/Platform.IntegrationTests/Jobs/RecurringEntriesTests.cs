@@ -112,34 +112,50 @@ public sealed class RecurringEntriesTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task The_guard_removes_a_recurring_id_the_worker_does_not_define()
+    public async Task The_guard_removes_an_unknown_recurring_id_only_when_no_worker_may_run_its_job()
     {
         var since = DateTimeOffset.UtcNow.AddSeconds(-1);
         await using var worker = await GuardedWorkerAsync(TimeSpan.FromHours(1));
         var guard = worker.Services.GetServices<IHostedService>().OfType<RecurringJobGuard>().Single();
         var known = $"w42-guard-known-{Guid.NewGuid():N}";
-        var unknown = $"w42-guard-unknown-{Guid.NewGuid():N}";
+        var unmarked = $"w42-guard-unmarked-{Guid.NewGuid():N}";
+        var otherPlatformJob = $"w42-guard-other-{Guid.NewGuid():N}";
+        var newerBuild = $"w42-guard-newer-{Guid.NewGuid():N}";
         worker.Services.GetRequiredService<RecurringJobCatalog>().AddOrUpdate<GuardProbeJob>(known, j => j.RunAsync(), Cron.Yearly());
-        // Written past the catalog (by the worker's role, as an older version or a removed module would have left it).
-        new RecurringJobManager(WorkerStorage()).AddOrUpdate<GuardProbeJob>(unknown, j => j.RunAsync(), Cron.Yearly());
+        // Written past the catalog by the worker's role: a class that is not a platform job, a platform job this worker does
+        // not schedule (another version's, or a module this host leaves out), and a type this build does not know (a newer
+        // worker's, during a deploy overlap).
+        var manager = new RecurringJobManager(WorkerStorage());
+        manager.AddOrUpdate(unmarked, () => UnmarkedProbe.Run("w42"), Cron.Yearly());
+        manager.AddOrUpdate<GuardProbeJob>(otherPlatformJob, j => j.RunAsync(), Cron.Yearly());
+        manager.AddOrUpdate<GuardProbeJob>(newerBuild, j => j.RunAsync(), Cron.Yearly());
+        await ExecuteAsOwnerAsync($"""
+            update hangfire.hash set value = regexp_replace(value, '"Type":"[^"]*"', '"Type":"Platform.Future.NewJob, Platform.Modules.Future"')
+            where key = 'recurring-job:{newerBuild}' and field = 'Job';
+            """);
         try
         {
-            (await guard.RunOnceAsync(Ct)).ShouldContain(unknown);
+            (await guard.RunOnceAsync(Ct)).ShouldBe([unmarked]);
 
             using (var connection = worker.Storage.GetConnection())
             {
-                connection.GetAllItemsFromSet(RecurringJobCatalog.RecurringJobsSet).ShouldNotContain(unknown);
-                connection.GetAllItemsFromSet(RecurringJobCatalog.RecurringJobsSet).ShouldContain(known);
+                var scheduled = connection.GetAllItemsFromSet(RecurringJobCatalog.RecurringJobsSet);
+                scheduled.ShouldNotContain(unmarked);
+                scheduled.ShouldContain(known);
+                scheduled.ShouldContain(otherPlatformJob, "another version's platform job is left in place");
+                scheduled.ShouldContain(newerBuild, "a newer build's job is left in place");
             }
 
             var incident = (await IncidentsAsync(worker, since)).Single(i => i.Component == HealthComponents.Jobs && i.ClosedAt is null);
-            incident.LastMessage.ShouldNotBeNull().ShouldContain(unknown);
+            incident.LastMessage.ShouldNotBeNull().ShouldContain(unmarked);
             (await guard.RunOnceAsync(Ct)).ShouldBeEmpty();
         }
         finally
         {
             worker.RecurringJobs.RemoveIfExists(known);
-            worker.RecurringJobs.RemoveIfExists(unknown);
+            manager.RemoveIfExists(unmarked);
+            manager.RemoveIfExists(otherPlatformJob);
+            manager.RemoveIfExists(newerBuild);
         }
     }
 

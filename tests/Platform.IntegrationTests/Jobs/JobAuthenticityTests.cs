@@ -172,6 +172,32 @@ public sealed class JobAuthenticityTests(DatabaseFixture db) : IAsyncDisposable
     }
 
     [Fact]
+    public async Task A_second_run_of_the_same_job_while_the_first_runs_is_refused_and_the_job_is_invoked_once()
+    {
+        await using var worker = await JobServerHost.StartAsync(db.WorkerConnectionString, cancellationToken: Ct);
+        var marker = Marker();
+        SlowProbe.Release[marker] = new ManualResetEventSlim(false);
+        try
+        {
+            var jobId = Client(_web).Enqueue(() => SlowProbe.Run(marker));
+            await WaitUntilAsync(() => SlowProbe.Started.ContainsKey(marker));
+
+            // The application role queues the running job again; a free worker thread fetches it and processes it again.
+            await ExecuteAsync(db.AppConnectionString, "insert into hangfire.jobqueue (jobid, queue) values (@id, 'default')",
+                ("id", long.Parse(jobId, System.Globalization.CultureInfo.InvariantCulture)));
+            var refused = await WaitForStateAsync(worker, jobId, FailedState.StateName, returnMessage: true);
+            refused.ShouldContain("already running");
+        }
+        finally
+        {
+            SlowProbe.Release[marker].Set();
+        }
+
+        await Task.Delay(TimeSpan.FromSeconds(1), Ct);
+        SlowProbe.Started[marker].ShouldBe(1, "invoked once");
+    }
+
+    [Fact]
     public async Task A_culture_changed_after_signing_never_runs()
     {
         var marker = Marker();
@@ -282,16 +308,16 @@ public sealed class JobAuthenticityTests(DatabaseFixture db) : IAsyncDisposable
         throw new TimeoutException($"Recurring job {recurringId} did not fire within 60 seconds.");
     }
 
-    private static async Task WaitForStateAsync(JobServerHost worker, string jobId, string state)
+    private static async Task<string> WaitForStateAsync(JobServerHost worker, string jobId, string state, bool returnMessage = false)
     {
         var deadline = DateTime.UtcNow.AddSeconds(60);
         while (DateTime.UtcNow < deadline)
         {
             using (var connection = worker.Storage.GetConnection())
             {
-                if (connection.GetStateData(jobId)?.Name == state)
+                if (connection.GetStateData(jobId) is { } data && data.Name == state)
                 {
-                    return;
+                    return returnMessage && data.Data.TryGetValue("ExceptionMessage", out var message) ? message : string.Empty;
                 }
             }
 
@@ -299,6 +325,16 @@ public sealed class JobAuthenticityTests(DatabaseFixture db) : IAsyncDisposable
         }
 
         throw new TimeoutException($"Job {jobId} did not reach {state} within 60 seconds.");
+    }
+
+    private static async Task WaitUntilAsync(Func<bool> condition)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(60);
+        while (!condition())
+        {
+            DateTime.UtcNow.ShouldBeLessThan(deadline);
+            await Task.Delay(50, Ct);
+        }
     }
 
     /// <summary>Waits for the job to fail, checks it is not retried, and returns its exception type and message.</summary>
@@ -324,6 +360,22 @@ public static class AuthenticityProbe
     public static ConcurrentDictionary<string, int> Seen { get; } = new();
 
     public static void Run(string marker) => Seen.AddOrUpdate(marker, 1, (_, runs) => runs + 1);
+}
+
+/// <summary>A platform job that counts its invocations and then waits until the test releases it.</summary>
+[PlatformJob]
+[AutomaticRetry(Attempts = 0)]
+public static class SlowProbe
+{
+    public static ConcurrentDictionary<string, int> Started { get; } = new();
+
+    public static ConcurrentDictionary<string, ManualResetEventSlim> Release { get; } = new();
+
+    public static void Run(string marker)
+    {
+        Started.AddOrUpdate(marker, 1, (_, runs) => runs + 1);
+        Release[marker].Wait(TimeSpan.FromSeconds(60));
+    }
 }
 
 /// <summary>A tenant-scoped platform job that records the tenant it ran as.</summary>

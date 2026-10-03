@@ -17,8 +17,9 @@ public interface IRecurringJobDriftReporter
 /// W-42: the worker checks its recurring jobs on a timer (<see cref="JobServerSettings.RecurringJobGuardInterval"/>, five
 /// minutes by default) and writes back any entry that went missing or was altered (<see cref="RecurringJobCatalog.Drifted"/>),
 /// so a deleted or re-timed health check, scan, cleanup or alert no longer stalls until the worker restarts; it removes an id in
-/// the recurring set that it does not define (<see cref="RecurringJobCatalog.Unknown"/>), so nothing else is scheduled to
-/// run on the worker. Each restore and removal is logged (job ids only) and reported (<see cref="IRecurringJobDriftReporter"/>). The same pass prunes the replay ledger. A
+/// the recurring set that it does not define when its job is one no worker may run (<see cref="RecurringJobCatalog.Unknown"/>);
+/// an unknown entry naming a platform job, or a type this build does not know (a newer worker's, during a deploy), is left in
+/// place and logged. Each restore and removal is logged (job ids only) and reported (<see cref="IRecurringJobDriftReporter"/>). The same pass prunes the replay ledger. A
 /// failed pass is logged with its exception type and tried again on the next tick; it never stops the worker.
 /// </summary>
 internal sealed partial class RecurringJobGuard(
@@ -43,14 +44,22 @@ internal sealed partial class RecurringJobGuard(
                     LogRestored(logger, definition.Id);
                 }
 
-                var unknown = catalog.Unknown();
-                foreach (var id in unknown)
+                var removed = new List<string>();
+                foreach (var (id, disallowed) in catalog.Unknown())
                 {
-                    catalog.Remove(id);
-                    LogRemoved(logger, id);
+                    if (disallowed)
+                    {
+                        catalog.Remove(id);
+                        removed.Add(id);
+                        LogRemoved(logger, id);
+                    }
+                    else
+                    {
+                        LogLeft(logger, id);
+                    }
                 }
 
-                return (drifted.Select(d => d.Id).ToList(), unknown);
+                return (drifted.Select(d => d.Id).ToList(), removed);
             },
             cancellationToken);
 
@@ -98,7 +107,10 @@ internal sealed partial class RecurringJobGuard(
     [LoggerMessage(Level = LogLevel.Warning, Message = "Recurring job {RecurringJobId} was missing or altered and has been restored.")]
     private static partial void LogRestored(ILogger logger, string recurringJobId);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Recurring job {RecurringJobId} is not one the worker defines and has been removed.")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Recurring job {RecurringJobId} is not one this worker defines; its job may be another version's, so it is left in place.")]
+    private static partial void LogLeft(ILogger logger, string recurringJobId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Recurring job {RecurringJobId} names a job no worker may run and has been removed.")]
     private static partial void LogRemoved(ILogger logger, string recurringJobId);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The recurring job check failed ({ErrorType}); it runs again on the next tick.")]

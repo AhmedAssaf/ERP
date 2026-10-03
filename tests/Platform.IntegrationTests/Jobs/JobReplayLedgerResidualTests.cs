@@ -5,13 +5,11 @@ using Platform.Shared.Jobs;
 namespace Platform.IntegrationTests.Jobs;
 
 /// <summary>
-/// W-42 pentest (PT-W42): characterises the boundary of <see cref="JobReplayLedger"/> on the live worker role. The ledger
-/// binds a signature's nonce to one job id and refuses that nonce under a different id or again after the job succeeded; it
-/// does not, however, serialise two runs of the <em>same</em> job id. Hangfire normally prevents that (a jobqueue row is
-/// fetched once, under an invisibility timeout), but erp_app can write hangfire.jobqueue (no row-level security) and reset a
-/// fetchedat, so for a future non-idempotent tenant-scoped job the worker could perform the same signed job id twice.
-/// Today's six platform jobs are idempotent and bounded, so this is a defence-in-depth note, not a live vulnerability;
-/// the fix for a non-idempotent job is DisableConcurrentExecution. This test pins the behaviour so a future change is seen.
+/// W-42 pentest (PT-W42), closed in fix round 2: the boundary of <see cref="JobReplayLedger"/> on the live worker role. The
+/// ledger binds a signature's nonce to one job id and refuses that nonce under a different id or again after the job
+/// succeeded. A second run of the <em>same</em> job id while the first still runs (erp_app can write hangfire.jobqueue, and
+/// Hangfire lets a Processing job be processed again) is refused by the run lock, a session advisory lock on the nonce held
+/// for the whole run; once the run ends without success, the same id may run again (retries, the console's re-run).
 /// </summary>
 [Collection(DatabaseCollection.Name)]
 public sealed class JobReplayLedgerResidualTests(DatabaseFixture db) : IAsyncLifetime
@@ -22,7 +20,7 @@ public sealed class JobReplayLedgerResidualTests(DatabaseFixture db) : IAsyncLif
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
-    public void The_ledger_refuses_a_copied_id_and_a_completed_id_but_not_a_second_run_of_the_same_id()
+    public void The_ledger_refuses_a_copied_id_a_completed_id_and_a_second_run_of_the_same_id_while_the_first_runs()
     {
         var ledger = new JobReplayLedger(_workerData);
         var token = new JobToken(Guid.NewGuid(), DateTimeOffset.UtcNow);
@@ -35,7 +33,16 @@ public sealed class JobReplayLedgerResidualTests(DatabaseFixture db) : IAsyncLif
         // Control: the same nonce under a different job id (a copied row) is refused.
         ledger.Claim(token, copy).ShouldNotBeNull().ShouldContain("already ran as another job");
 
-        // Residual: the same job id is admitted again before it succeeds (two concurrent fetches would both run).
+        // Fix round 2: while a run holds the nonce's run lock, a second run of the same id cannot take it.
+        using (var running = ledger.TryLockRun(token))
+        {
+            running.ShouldNotBeNull();
+            ledger.TryLockRun(token).ShouldBeNull("a second run of the same job id is refused as already running");
+            ledger.IsRunning(token).ShouldBeTrue();
+        }
+
+        // The run ended without success: the same job id may run again (a retry, the console's re-run).
+        ledger.IsRunning(token).ShouldBeFalse();
         ledger.Claim(token, original).ShouldBeNull();
         ledger.Check(token, original).ShouldBeNull();
 

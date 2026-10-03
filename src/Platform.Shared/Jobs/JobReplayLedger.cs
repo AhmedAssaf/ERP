@@ -11,6 +11,9 @@ namespace Platform.Shared.Jobs;
 /// before is accepted only while its signature is younger than <see cref="JobAuthenticity.MaxAgeAtFirstRun"/>; rows are
 /// kept that long and as long as their job exists, so an old copy cannot slip in after its row is pruned. Hangfire's
 /// storage API is synchronous, and so is this: it runs on the worker's job thread.
+/// Fix round 2: a run also holds a session-level advisory lock on its nonce (<see cref="TryLockRun"/>) from admission until
+/// it ends, so a second run of the same job id while the first is still running (erp_app can queue the job again; Hangfire
+/// lets a Processing job be processed again) is refused as already running.
 /// </summary>
 internal sealed class JobReplayLedger(NpgsqlDataSource dataSource)
 {
@@ -69,6 +72,40 @@ internal sealed class JobReplayLedger(NpgsqlDataSource dataSource)
         command.ExecuteNonQuery();
     }
 
+    /// <summary>
+    /// The run lock of <paramref name="token"/>'s nonce, held on a connection of its own until the returned lock is disposed
+    /// (a crashed worker's connection drops and releases it); null when another run holds it. The key is namespaced
+    /// (<c>waslabid.job.run:</c>), apart from the migrator's and the modules' advisory locks.
+    /// </summary>
+    public RunLock? TryLockRun(JobToken token)
+    {
+        var connection = dataSource.OpenConnection();
+        try
+        {
+            using var command = new NpgsqlCommand("select pg_try_advisory_lock(hashtextextended('waslabid.job.run:' || @nonce::text, 0))", connection);
+            command.Parameters.AddWithValue("nonce", token.Nonce);
+            if (command.ExecuteScalar() is true)
+            {
+                return new RunLock(connection, token.Nonce);
+            }
+        }
+        catch
+        {
+            connection.Dispose();
+            throw;
+        }
+
+        connection.Dispose();
+        return null;
+    }
+
+    /// <summary>True when a run holds <paramref name="token"/>'s run lock (nothing is held afterwards).</summary>
+    public bool IsRunning(JobToken token)
+    {
+        using var held = TryLockRun(token);
+        return held is null;
+    }
+
     /// <summary>Removes nonces older than the first-run limit (and a day) whose job no longer exists; returns how many.</summary>
     public int Prune()
     {
@@ -95,6 +132,43 @@ internal sealed class JobReplayLedger(NpgsqlDataSource dataSource)
         command.Parameters.AddWithValue("max_age", JobAuthenticity.MaxAgeAtFirstRun);
         using var reader = command.ExecuteReader();
         return reader.Read() ? (reader.GetString(0), reader.GetBoolean(1)) : null;
+    }
+
+    /// <summary>A held run lock; disposing it unlocks, and a connection that could not unlock is closed, never pooled with the lock.</summary>
+    internal sealed class RunLock(NpgsqlConnection connection, Guid nonce) : IDisposable
+    {
+        private bool _disposed;
+
+        public void Dispose()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
+            var unlocked = false;
+            try
+            {
+                using var command = new NpgsqlCommand("select pg_advisory_unlock(hashtextextended('waslabid.job.run:' || @nonce::text, 0))", connection);
+                command.Parameters.AddWithValue("nonce", nonce);
+                unlocked = command.ExecuteScalar() is true;
+            }
+            catch (NpgsqlException)
+            {
+                // Not swallowed: the connection is closed below instead of pooled, and closing the session releases the lock.
+                unlocked = false;
+            }
+            finally
+            {
+                if (!unlocked)
+                {
+                    NpgsqlConnection.ClearPool(connection);
+                }
+
+                connection.Dispose();
+            }
+        }
     }
 
     private static string? Outcome((string JobId, bool Completed)? bound, string jobId) => bound switch

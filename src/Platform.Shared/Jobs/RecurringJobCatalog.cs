@@ -55,10 +55,13 @@ public sealed class RecurringJobCatalog(JobStorage storage, RecurringJobManager 
     }
 
     /// <summary>
-    /// Ids in the recurring set that no definition names (an entry a removed module or an older version left, or one written
-    /// by something other than the worker). Empty while the catalog is empty, so a host that schedules nothing removes nothing.
+    /// Ids in the recurring set that no definition names, each with whether its stored job is one no worker may run: a class
+    /// this build loads that is not a platform job, or a type the allow-list refuses (<see cref="JobAllowList"/>). Only those
+    /// are removed (fix round 2). An entry naming a platform job this worker does not schedule, or a type this build does not
+    /// know (a newer worker's job during a deploy overlap), is left alone, so two versions never undo each other. Empty while
+    /// the catalog is empty, so a host that schedules nothing looks at nothing.
     /// </summary>
-    public IReadOnlyList<string> Unknown()
+    public IReadOnlyList<(string Id, bool Disallowed)> Unknown()
     {
         var known = Definitions.Select(d => d.Id).ToHashSet(StringComparer.Ordinal);
         if (known.Count == 0)
@@ -67,7 +70,14 @@ public sealed class RecurringJobCatalog(JobStorage storage, RecurringJobManager 
         }
 
         using var connection = storage.GetConnection();
-        return [.. connection.GetAllItemsFromSet(RecurringJobsSet).Where(id => !known.Contains(id)).Order(StringComparer.Ordinal)];
+        var ids = connection.GetAllItemsFromSet(RecurringJobsSet).Where(id => !known.Contains(id)).Order(StringComparer.Ordinal).ToList();
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        var stored = connection.GetRecurringJobs(ids).ToDictionary(j => j.Id, StringComparer.Ordinal);
+        return [.. ids.Select(id => (id, stored.TryGetValue(id, out var entry) && IsDisallowed(entry)))];
     }
 
     /// <summary>Removes a recurring entry the worker does not define (hash and set entry).</summary>
@@ -87,6 +97,25 @@ public sealed class RecurringJobCatalog(JobStorage storage, RecurringJobManager 
 
     private void Write(RecurringJobDefinition definition) =>
         manager.AddOrUpdate(definition.Id, definition.Job, definition.Cron, new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
+
+    /// <summary>A refused type (the resolver threw <see cref="JobRefusedException"/>), or a loaded class the allow-list refuses.</summary>
+    private static bool IsDisallowed(RecurringJobDto entry)
+    {
+        if (entry.Job is { } job)
+        {
+            return JobAllowList.Refusal(job, tenantParameter: null) is not null;
+        }
+
+        for (var exception = (Exception?)entry.LoadException; exception is not null; exception = exception.InnerException)
+        {
+            if (exception is JobRefusedException)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     private static bool Matches(RecurringJobDefinition definition, RecurringJobDto entry) =>
         !entry.Removed

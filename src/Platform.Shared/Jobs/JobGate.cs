@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Hangfire;
 using Hangfire.Storage;
 
@@ -19,6 +20,7 @@ public sealed class JobGate
 {
     private readonly JobAuthenticity _authenticity;
     private readonly JobReplayLedger _ledger;
+    private readonly ConcurrentDictionary<string, JobReplayLedger.RunLock> _running = new(StringComparer.Ordinal);
 
     internal JobGate(JobAuthenticity authenticity, JobReplayLedger ledger)
     {
@@ -43,35 +45,74 @@ public sealed class JobGate
         }
 
         var token = _authenticity.Verify(stored.Token, backgroundJob.Job, stored.Binding, out var unsigned);
-        return token is { } valid ? _ledger.Check(valid, backgroundJob.Id) : unsigned;
+        if (token is not { } valid)
+        {
+            return unsigned;
+        }
+
+        return _ledger.IsRunning(valid) ? AlreadyRunning : _ledger.Check(valid, backgroundJob.Id);
     }
 
-    /// <summary>The binding the job runs with; throws <see cref="JobRefusedException"/> when the row is refused.</summary>
+    /// <summary>
+    /// The binding the job runs with; throws <see cref="JobRefusedException"/> when the row is refused. An admitted job holds
+    /// its run lock until <see cref="Finish"/> (fix round 2), so a second run of the same job id meanwhile is refused.
+    /// </summary>
     public JobBinding Admit(IStorageConnection connection, BackgroundJob backgroundJob)
     {
         ArgumentNullException.ThrowIfNull(connection);
         ArgumentNullException.ThrowIfNull(backgroundJob);
         var stored = JobBinding.Read(connection, backgroundJob.Id);
         var refusal = JobAllowList.Refusal(backgroundJob.Job, stored.RawTenantId ?? TenantOf(stored)) ?? stored.Refusal;
+        JobReplayLedger.RunLock? runLock = null;
         if (refusal is null)
         {
             var token = _authenticity.Verify(stored.Token, backgroundJob.Job, stored.Binding, out refusal);
             if (token is { } valid)
             {
-                refusal = _ledger.Claim(valid, backgroundJob.Id);
+                runLock = _ledger.TryLockRun(valid);
+                refusal = runLock is null ? AlreadyRunning : _ledger.Claim(valid, backgroundJob.Id);
             }
+        }
+
+        if (refusal is null && runLock is not null && !_running.TryAdd(backgroundJob.Id, runLock))
+        {
+            refusal = AlreadyRunning;
         }
 
         if (refusal is not null)
         {
+            runLock?.Dispose();
             throw new JobRefusedException($"Job {backgroundJob.Id} is refused: {refusal}.");
         }
 
         return stored.Binding;
     }
 
-    /// <summary>Records that job <paramref name="jobId"/> succeeded: its signature never admits a run again.</summary>
-    public void Complete(string jobId) => _ledger.Complete(jobId);
+    /// <summary>
+    /// Ends an admitted run: when it <paramref name="succeeded"/>, its signature is marked completed and never admits a run
+    /// again; then its run lock is released, after the completion, so no second run slips in between. Nothing happens for a
+    /// job this gate did not admit.
+    /// </summary>
+    public void Finish(string jobId, bool succeeded)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(jobId);
+        try
+        {
+            if (succeeded)
+            {
+                _ledger.Complete(jobId);
+            }
+        }
+        finally
+        {
+            if (_running.TryRemove(jobId, out var runLock))
+            {
+                runLock.Dispose();
+            }
+        }
+    }
+
+    private const string AlreadyRunning = "the job is already running (another run of the same job holds its signature)";
 
     /// <summary>The <c>Tenant</c> snapshot's id when only the snapshot is present, so the allow-list's tenant rule sees it too.</summary>
     private static string? TenantOf(StoredBinding stored) => stored.Binding.Tenant?.TenantId.ToString("D");
