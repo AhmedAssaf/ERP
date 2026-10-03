@@ -13,7 +13,8 @@
 #   4. Docker daemon: log rotation, live-restore (containers keep running while the daemon upgrades), no userland proxy
 #   5. kernel: vm.max_map_count=262144 (Elasticsearch), vm.swappiness=10, and a 2 GB swap file as a cushion
 #   6. time: chrony against Oracle's NTP at 169.254.169.254 (the job locks and token lifetimes need a sane clock)
-#   7. automatic security updates (no automatic reboot; the watchdog reminds after 7 days)
+#   7. automatic security updates and Docker Engine updates on Ubuntu (no automatic reboot; the watchdog reminds after
+#      7 days)
 #   8. SSH: keys only, no root login, local port forwards only (the Kibana tunnel, O-18)
 #   9. state and backup folders, and the systemd units for the backup (nightly) and the watchdog (every 5 minutes)
 set -euo pipefail
@@ -140,14 +141,22 @@ chronyc -n tracking | grep -E 'Reference ID|System time|Leap status' || true
 log "7. automatic security updates"
 if [ "$FAMILY" = debian ]; then
   cat > /etc/apt/apt.conf.d/52waslabid-unattended <<'EOF'
-// W-19: security updates every day; Docker and the kernel included. No automatic reboot: a restart stops the pilot
-// for a minute or two, so it is done by hand in a quiet hour (docs/19 section 8); the watchdog reminds after 7 days.
-Unattended-Upgrade::Allowed-Origins { "${distro_id}:${distro_codename}-security"; "${distro_id}ESMApps:${distro_codename}-apps-security"; };
+// W-19: Ubuntu security updates (the kernel included) and Docker's own repository (origin "Docker", suite = codename;
+// live-restore keeps the containers running while the daemon restarts), every day. No automatic reboot: a restart
+// stops the pilot for a minute or two, so it is done by hand in a quiet hour (docs/19 section 8); the watchdog reminds
+// after 7 days.
+Unattended-Upgrade::Origins-Pattern {
+  "origin=${distro_id},archive=${distro_codename}-security";
+  "origin=${distro_id}ESMApps,archive=${distro_codename}-apps-security";
+  "origin=Docker,archive=${distro_codename}";
+};
 Unattended-Upgrade::Automatic-Reboot "false";
 EOF
   printf 'APT::Periodic::Update-Package-Lists "1";\nAPT::Periodic::Unattended-Upgrade "1";\n' > /etc/apt/apt.conf.d/20auto-upgrades
   systemctl enable --now unattended-upgrades
 else
+  # Security errata only. Docker's repository publishes no errata, so Docker Engine is upgraded by hand on Oracle Linux
+  # (`dnf upgrade docker-ce docker-ce-cli containerd.io docker-compose-plugin`, docs/19 section 8).
   sed -i -e 's/^upgrade_type.*/upgrade_type = security/' -e 's/^apply_updates.*/apply_updates = yes/' /etc/dnf/automatic.conf
   systemctl enable --now dnf-automatic.timer
 fi

@@ -44,6 +44,11 @@ PFX="$PILOT_DIR/secrets/key-ring.pfx"
 log "validating the Compose file"
 dc --profile tools config --quiet
 
+# Before anything changes: a Caddyfile or host list Caddy refuses would take every site down once Caddy is recreated,
+# so the deploy stops here and the running Caddy keeps serving.
+log "validating the Caddyfile with TENANT_HOSTS = $(normalise_hosts "$(env_value TENANT_HOSTS)")"
+caddy_validate || die "Caddy refuses the Caddyfile with these values; nothing was changed"
+
 PREFIX="$(env_value IMAGE_PREFIX)"; PREFIX="${PREFIX:-waslabid}"
 if [ "$BUILD" -eq 1 ]; then
   log "building the application images $TAG on this machine"

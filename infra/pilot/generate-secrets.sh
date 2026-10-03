@@ -33,16 +33,23 @@ declare -A GEN=(
   [BACKUP_CRYPT_PASSWORD]=hex32 [BACKUP_CRYPT_SALT]=hex32
 )
 
+# The file is rewritten line by line with the shell's own read and printf (builtins): a value comes from openssl's
+# output and goes only into the new file, never into another process's arguments, where `ps` could see it.
 filled=0
-for key in "${!GEN[@]}"; do
-  if grep -qE "^$key=$" "$ENV_FILE"; then
+tmp="$(mktemp "$PILOT_DIR/.env.XXXXXX")"
+while IFS= read -r line || [ -n "$line" ]; do
+  key="${line%%=*}"
+  if [ "$line" = "$key=" ] && [ -n "${GEN[$key]:-}" ]; then
     value="$(${GEN[$key]})"
-    # '|' never occurs in hex or base64, so it is a safe sed delimiter.
-    sed -i "s|^$key=$|$key=$value|" "$ENV_FILE"
+    printf '%s=%s\n' "$key" "$value" >> "$tmp"
     filled=$((filled + 1))
+  else
+    printf '%s\n' "$line" >> "$tmp"
   fi
-done
+done < "$ENV_FILE"
 unset value
+chown root:root "$tmp"; chmod 600 "$tmp"
+mv "$tmp" "$ENV_FILE"
 echo "filled $filled empty secret(s) in $ENV_FILE"
 
 PFX="$PILOT_DIR/secrets/key-ring.pfx"
@@ -61,7 +68,7 @@ fi
 # The hosts run as uid 1654 (the .NET images' app user) and read the certificate through a Compose secret.
 chown 1654:1654 "$PFX"; chmod 400 "$PFX"
 
-missing="$(grep -E '^[A-Z_]+=$' "$ENV_FILE" | cut -d= -f1 | grep -vE '^(WATHQ_BASE_URL|WATHQ_API_KEY|KEYCLOAK_OPS_CLIENT_SECRET)$' || true)"
+missing="$(grep -E '^[A-Z_]+=$' "$ENV_FILE" | cut -d= -f1 | grep -vE '^(WATHQ_BASE_URL|WATHQ_API_KEY|KEYCLOAK_OPS_CLIENT_SECRET|WASLABID_JOB_PREVIOUS_SIGNING_KEY)$' || true)"
 if [ -n "$missing" ]; then
   echo "still empty, fill by hand:"; printf '%s\n' "$missing" | sed 's/^/  /'
 fi

@@ -31,6 +31,8 @@ x-hardening: &hardening
 x-host-env: &host-env
   ConnectionStrings__Redis: redis:6379,password=${REDIS_PASSWORD:?Set REDIS_PASSWORD in infra/pilot/.env}
   Jobs__SigningKey: ${WASLABID_JOB_SIGNING_KEY:?Set WASLABID_JOB_SIGNING_KEY in infra/pilot/.env}
+  # Only while rotating the job signing key: the old key, so jobs signed with it still run (docs/07 section 4).
+  Jobs__PreviousSigningKey: ${WASLABID_JOB_PREVIOUS_SIGNING_KEY:-}
   ObjectStorage__ServiceUrl: http://minio:9000
   ObjectStorage__BucketName: ${STORAGE_BUCKET:?Set STORAGE_BUCKET in infra/pilot/.env}
   ObjectStorage__AccessKey: ${MINIO_APP_ACCESS_KEY:?Set MINIO_APP_ACCESS_KEY in infra/pilot/.env}
@@ -222,6 +224,7 @@ services:
     restart: unless-stopped
     logging: *logging
     mem_limit: 1536m
+    cap_drop: [ALL]
     # Production mode (not start-dev). The realms are imported only when missing (keycloak/import, placeholders from .env).
     command: ["start", "--import-realm"]
     environment:
@@ -474,6 +477,7 @@ services:
     logging: *logging
     command: ["--config=/etc/edot/collector.yaml"]
     mem_limit: 320m
+    cap_drop: [ALL]
     environment:
       ELASTIC_COLLECTOR_PASSWORD: ${ELASTIC_COLLECTOR_PASSWORD:?Set ELASTIC_COLLECTOR_PASSWORD in infra/pilot/.env}
       GOMEMLIMIT: 250MiB
@@ -498,6 +502,7 @@ services:
     logging: *logging
     mem_limit: 1792m
     memswap_limit: 1792m
+    cap_drop: [ALL]
     environment:
       discovery.type: single-node
       ES_JAVA_OPTS: "-Xms768m -Xmx768m -XX:MaxDirectMemorySize=128m"

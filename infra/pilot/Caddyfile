@@ -12,7 +12,6 @@
 # sees as X-Forwarded-For, the scheme as X-Forwarded-Proto, and the Host header unchanged. The web host takes the first
 # two only from Caddy's pinned address (ForwardedHeaders:KnownProxies, CADDY_EDGE_IP) and never X-Forwarded-Host: the
 # tenant always comes from Host.
-
 {
 	email {$ACME_EMAIL}
 	servers {
@@ -47,6 +46,7 @@
 }
 
 # The platform console and the tenant hosts: one web host decides by Host (PlatformHostMiddleware, TenantMiddleware).
+# TENANT_HOSTS arrives as "a.example.sa, b.example.sa" (lib.sh normalise_hosts); a bare comma between two hosts is refused.
 {$PLATFORM_HOST}, {$TENANT_HOSTS} {
 	import app_headers
 	encode zstd gzip

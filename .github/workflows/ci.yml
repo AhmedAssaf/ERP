@@ -3,7 +3,7 @@
 #               integration against real PostgreSQL, Keycloak, Mailpit and MinIO through Testcontainers)
 #   docs        every Mermaid block in the Markdown documents renders
 #   security    Elastic image signatures and the pilot deployment files (W-19: Compose config, Caddyfile, shellcheck),
-#               then Trivy: repository scan and the pilot web image (both blocking), the Compose images (report only)
+#               then Trivy: repository scan and the three pilot images for arm64 (both blocking), the Compose images (report only)
 # spikes/ is not in WaslaBid.slnx, so no step builds or tests it.
 name: CI
 
@@ -115,7 +115,7 @@ jobs:
   security:
     name: Trivy scan
     runs-on: ubuntu-latest
-    # 30: the repository scan, the pilot web image build (about 3 minutes), plus up to 15 for the Compose images
+    # 30: the repository scan, the pilot image builds (about 5 minutes), plus up to 15 for the Compose images
     # (Elasticsearch and Kibana are about 1.5 GB each).
     timeout-minutes: 30
     steps:
@@ -143,18 +143,16 @@ jobs:
         run: bash .github/scripts/verify-elastic-signatures.sh
 
       # Blocking (W-19): the pilot's Compose file resolves with every required setting present (throwaway values from
-      # .env.example, never real secrets), the production Caddyfile is valid, and the deployment scripts pass shellcheck.
+      # .env.example, never real secrets), the production Caddyfile is valid with two tenant hosts written "a,b" (the
+      # scripts' normalise_hosts and caddy_validate, as deploy.sh runs them), and the deployment scripts pass shellcheck.
       - name: Validate the pilot deployment files
         run: |
-          env_file="$RUNNER_TEMP/pilot.env"
-          sed -E 's/^([A-Z_]+)=$/\1=ci-placeholder/' infra/pilot/.env.example > "$env_file"
-          IMAGE_TAG=ci docker compose -f infra/pilot/docker-compose.yml --env-file "$env_file" \
-            --profile tools --profile kibana config --quiet
-          caddy_image=$(grep -E '^\s+image:\s+caddy:' infra/pilot/docker-compose.yml | awk '{print $2}')
-          docker run --rm -v "$PWD/infra/pilot/Caddyfile:/etc/caddy/Caddyfile:ro" \
-            -e ACME_EMAIL=ci@example.sa -e PLATFORM_HOST=platform.example.sa -e AUTH_HOST=auth.example.sa \
-            -e TENANT_HOSTS=acme.example.sa -e ADMIN_ALLOW_CIDR=203.0.113.7/32 \
-            "$caddy_image" caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+          export ENV_FILE="$RUNNER_TEMP/pilot.env" IMAGE_TAG=ci
+          sed -E -e 's/^([A-Z_]+)=$/\1=ci-placeholder/' -e 's/^TENANT_HOSTS=.*/TENANT_HOSTS=acme.example.sa,beta.example.sa/' \
+            infra/pilot/.env.example > "$ENV_FILE"
+          . infra/pilot/lib.sh
+          dc --profile tools --profile kibana config --quiet
+          caddy_validate
           shellcheck -x -P infra/pilot infra/pilot/*.sh
 
       # Blocking: fixable HIGH and CRITICAL vulnerabilities in NuGet packages, committed secrets (N-10), and
@@ -162,12 +160,17 @@ jobs:
       - name: Repository scan (dependencies, secrets, config)
         run: trivy fs --config .github/trivy.yaml .
 
-      # Blocking (W-19): the image we build and ship to the pilot. The web host's image is scanned; the worker and the
-      # migrator use the same base image and a subset of its packages.
-      - name: Pilot web image scan
+      # Blocking (W-19): the three images we build, for linux/arm64 as they ship to the pilot. A docker-container builder
+      # builds for arm64 without QEMU: the build stage runs on the runner's platform and the arm64 stages only copy files.
+      - name: Pilot image scan (web, worker, migrator, arm64)
         run: |
-          docker build -f infra/pilot/docker/app.Dockerfile --target web -t waslabid/web:ci .
-          trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --no-progress waslabid/web:ci
+          docker buildx create --name pilot --driver docker-container --use > /dev/null
+          for target in web worker migrator; do
+            docker buildx build --platform linux/arm64 -f infra/pilot/docker/app.Dockerfile --target "$target" \
+              -t "waslabid/$target:ci" --load .
+            trivy image --platform linux/arm64 --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 \
+              --no-progress "waslabid/$target:ci"
+          done
 
       # Report only: third-party images from infra/compose (development) and infra/pilot (the pilot), not images we build.
       - name: Compose images scan (report only)

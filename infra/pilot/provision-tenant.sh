@@ -85,8 +85,9 @@ log "2a. organization $SLUG"
 out="$(kc GET "/organizations?first=0&max=1000")"; [ "$(code_of "$out")" = 200 ] || die "listing organizations failed ($(code_of "$out"))"
 ORG_ID="$(body_of "$out" | jq -r --arg a "$SLUG" '.[] | select(.alias == $a) | .id')"
 if [ -z "$ORG_ID" ]; then
-  domain="${EMAIL#*@}"
-  out="$(kc POST /organizations "$(jq -nc --arg n "$NAME" --arg a "$SLUG" --arg d "$domain" '{name:$n, alias:$a, enabled:true, domains:[{name:$d, verified:false}]}')")"
+  # The tenant host, not the admin's email domain: a domain belongs to one organization only, and admins of different
+  # tenants may share a provider (gmail.com). Unverified, so it routes no sign-in.
+  out="$(kc POST /organizations "$(jq -nc --arg n "$NAME" --arg a "$SLUG" --arg d "$HOST" '{name:$n, alias:$a, enabled:true, domains:[{name:$d, verified:false}]}')")"
   [ "$(code_of "$out")" = 201 ] || die "creating the organization failed ($(code_of "$out")): $(body_of "$out")"
   out="$(kc GET "/organizations?first=0&max=1000")"
   ORG_ID="$(body_of "$out" | jq -r --arg a "$SLUG" '.[] | select(.alias == $a) | .id')"

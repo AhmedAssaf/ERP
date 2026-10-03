@@ -27,12 +27,17 @@ alter role keycloak with login nosuperuser nocreatedb nocreaterole noreplication
 select 'create database keycloak owner keycloak template template0 encoding ''UTF8''' where not exists (select from pg_database where datname = 'keycloak') \gexec
 alter database keycloak owner to keycloak;
 
--- Nobody connects to a database by default; each role is granted the one it needs (the migrations grant CONNECT on
--- platform to erp_key_ring and erp_worker themselves).
+-- Nobody connects to a database by default; each role is granted the one it needs. Platform migrations 0007 and 0008
+-- grant CONNECT to erp_key_ring and erp_worker once, but a restore (restore.sh: create database, pg_restore without
+-- --create) loses every database-level grant and does not re-run those migrations, so they are granted here too, on
+-- every run, once the roles exist (erp_key_ring has NOINHERIT and would otherwise be locked out, taking the web host
+-- down with it).
 revoke connect, temporary on database platform from public;
 revoke connect, temporary on database keycloak from public;
 grant connect on database platform to erp_app;
 grant connect on database keycloak to keycloak;
+select format('grant connect on database platform to %I', rolname) from pg_roles
+ where rolname in ('erp_key_ring', 'erp_worker') \gexec
 
 \connect platform
 create extension if not exists vector;      -- pgvector, for AI retrieval over offer chunks (F-46, F-47)
