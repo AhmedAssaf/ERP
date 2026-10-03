@@ -159,7 +159,7 @@ public sealed class VendorUploadCleanupTests(DatabaseFixture db, MinioFixture mi
         // Storage only, no job server: nothing here runs the jobs, and the schedule is removed again afterwards so no
         // other test's job server picks it up from the shared database.
         var services = new ServiceCollection();
-        services.AddJobClient(db.WorkerConnectionString);
+        services.AddJobClient(db.WorkerConnectionString, TestSecrets.JobKeys);
         using var provider = services.BuildServiceProvider();
         var storage = provider.GetRequiredService<JobStorage>();
         try

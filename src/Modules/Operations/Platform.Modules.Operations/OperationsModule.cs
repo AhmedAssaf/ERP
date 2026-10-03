@@ -10,6 +10,7 @@ using Platform.Modules.Operations.Contracts;
 using Platform.Modules.Operations.PlatformConsole;
 using Platform.Modules.Operations.Health;
 using Platform.Modules.Operations.Usage;
+using Platform.Shared.Jobs;
 using Platform.Shared;
 using Platform.Shared.Caching;
 using Platform.Shared.Data;
@@ -61,7 +62,8 @@ public static class OperationsModule
     public static void ScheduleUsageMetricsJobs(IServiceProvider services)
     {
         ArgumentNullException.ThrowIfNull(services);
-        var jobs = new RecurringJobManager(services.GetRequiredService<JobStorage>());
+        // W-42: through the worker's catalog, which signs what it triggers and lets the recurring job guard restore the entry.
+        var jobs = services.GetRequiredService<RecurringJobCatalog>();
         jobs.AddOrUpdate<UsageMetricsJob>(UsageMetricsJobId, job => job.RunAsync(CancellationToken.None), "*/5 * * * *");
         jobs.AddOrUpdate<UsageMetricsJob>(UsageActivityPruneJobId, job => job.PruneAsync(CancellationToken.None), Cron.Daily());
     }
@@ -98,6 +100,8 @@ public static class OperationsModule
         ArgumentNullException.ThrowIfNull(configuration);
 
         services.AddOperationsAlerts(configuration);
+        // W-42: each pass of the worker's recurring job guard is a "Jobs" result, so a restored entry opens an F-60 incident.
+        services.AddSingleton<IRecurringJobDriftReporter, RecurringJobDriftReporter>();
         services.AddHttpClient();
         services.AddSingleton(_ => HealthCheckSettings.FromConfiguration(configuration, postgreSqlConnectionString));
 
@@ -230,8 +234,7 @@ public static class OperationsModule
     public static void ScheduleHealthCheckJob(IServiceProvider services)
     {
         ArgumentNullException.ThrowIfNull(services);
-        var storage = services.GetRequiredService<JobStorage>();
-        new RecurringJobManager(storage).AddOrUpdate<HealthCheckJob>(
+        services.GetRequiredService<RecurringJobCatalog>().AddOrUpdate<HealthCheckJob>(
             HealthCheckJobId, job => job.RunAsync(CancellationToken.None), Cron.Minutely());
     }
 

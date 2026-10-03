@@ -47,7 +47,10 @@ internal static class EntryPoint
         // page (ops.active_user_counts) and the gauges on meter WaslaBid.Usage.
         builder.Services.AddIdentityActivityCounts(platformDb);
         builder.Services.AddOperationsUsageMetrics();
-        builder.Services.AddJobServer(platformDb, settings => settings.ServerName = "waslabid-worker");
+        // W-42: the worker signs the jobs it creates (its recurring scheduler's included) and runs only jobs signed with the
+        // same Jobs:SigningKey the web host holds; refused at start when the key is missing.
+        builder.Services.AddJobServer(
+            platformDb, JobSigningKeys.FromConfiguration(builder.Configuration), settings => settings.ServerName = "waslabid-worker");
 
         using var host = builder.Build();
         // Hangfire logs through a process-wide provider; the worker is the only Hangfire server in its process.

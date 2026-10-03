@@ -185,7 +185,7 @@ public sealed class JobTelemetryTests(DatabaseFixture db)
         Activity.Current.ShouldBeNull("the test itself runs outside the ambient activity from here on");
         var recurringId = $"telemetry-recurring-{Guid.NewGuid():N}";
         var marker = Guid.NewGuid().ToString("N");
-        var manager = new RecurringJobManager(worker.Storage);
+        var manager = worker.RecurringJobs;
         manager.AddOrUpdate<TelemetryProbeJob>(recurringId, job => job.Run(marker), Cron.Never());
 
         var jobId = manager.TriggerJob(recurringId);

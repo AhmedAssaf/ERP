@@ -19,7 +19,7 @@ namespace Platform.IntegrationTests.Data;
 
 /// <summary>
 /// W-36 on an existing database (every developer database, the pilot later): before it, a host prepared Hangfire's tables
-/// at its first start as <c>erp_app</c>, which therefore owned them. MigrationRunner then applies the five W-36 scripts,
+/// at its first start as <c>erp_app</c>, which therefore owned them. MigrationRunner then applies the five W-36 scripts (and the W-42 jobs script),
 /// moves the tables to the migration owner, leaves the application role what enqueueing needs, and the worker-only
 /// functions leave the application role. A fresh database in the same container, so the shared one is not touched.
 /// </summary>
@@ -65,6 +65,9 @@ public sealed class WorkerRoleUpgradeTests(DatabaseFixture db)
             applied.ShouldBe(
             [
                 "platform/0008_platform_worker_role.sql",
+                "jobs/0001_jobs_recurring_entries_and_replay.sql",
+                "jobs/0002_jobs_locks_server_and_completion.sql",
+                "jobs/0003_jobs_unused_sequence.sql",
                 "tenancy/0010_tenancy_worker_role.sql",
                 "identity/0004_identity_worker_role.sql",
                 "operations/0007_operations_worker_role.sql",

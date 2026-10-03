@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Npgsql;
 using Platform.Modules.Tenancy.Branding;
 using Platform.Modules.Tenancy.Contracts;
+using Platform.Shared.Jobs;
 using Platform.Shared.Data;
 
 namespace Platform.Modules.Tenancy;
@@ -64,7 +65,7 @@ public static class TenancyModule
     public static void ScheduleBrandingJobs(IServiceProvider services)
     {
         ArgumentNullException.ThrowIfNull(services);
-        new RecurringJobManager(services.GetRequiredService<JobStorage>())
+        services.GetRequiredService<RecurringJobCatalog>()
             .AddOrUpdate<BrandingLogoCleanupJob>(LogoCleanupJobId, job => job.RunAsync(CancellationToken.None), Cron.Hourly());
     }
 

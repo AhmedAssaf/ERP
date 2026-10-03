@@ -44,7 +44,7 @@ public sealed class UsageJobScheduleTests(DatabaseFixture db)
                 recurring[OperationsModule.UsageActivityPruneJobId].ShouldBe(Cron.Daily());
             }
 
-            var manager = new RecurringJobManager(worker.Storage);
+            var manager = worker.RecurringJobs;
             var metricsRun = manager.TriggerJob(OperationsModule.UsageMetricsJobId);
             var pruneRun = manager.TriggerJob(OperationsModule.UsageActivityPruneJobId);
             await worker.WaitForSuccessAsync(metricsRun.ShouldNotBeNull(), Ct);
@@ -57,7 +57,7 @@ public sealed class UsageJobScheduleTests(DatabaseFixture db)
         }
         finally
         {
-            var manager = new RecurringJobManager(worker.Storage);
+            var manager = worker.RecurringJobs;
             manager.RemoveIfExists(OperationsModule.UsageMetricsJobId);
             manager.RemoveIfExists(OperationsModule.UsageActivityPruneJobId);
         }

@@ -89,12 +89,12 @@ Reset everything: `docker compose down -v` then `up -d` again. ClamAV takes up t
 
 ### Run the app locally
 
-With the Compose stack up and these eight values (plus the ten telemetry values listed below the commands) filled in `infra/compose/.env` (see `.env.example` for how to generate
+With the Compose stack up and these nine values (plus the ten telemetry values listed below the commands) filled in `infra/compose/.env` (see `.env.example` for how to generate
 them): `WASLABID_WEB_CLIENT_SECRET`, `WASLABID_PLATFORM_CLIENT_SECRET`, `WASLABID_ADMIN_API_SECRET`,
 `WASLABID_DEV_USER_PASSWORD` (at least 12 characters, not a user name, or the platform realm import fails),
 `MINIO_HEALTH_PROBE_PASSWORD`, `VENDORS_CR_AUDIT_KEY` (base64 of at least 32 bytes; the web host does not start
 without it), `ERP_KEY_RING_DB_PASSWORD` (the key ring's own database role, W-24; the web host does not start without
-it) and `ERP_WORKER_DB_PASSWORD` (the worker's own database role, W-36; the worker does not start without it), run these once from the repository root (Git Bash). The commands read the values from `.env` into shell variables and never print them (N-10); user secrets live outside the repository.
+it), `ERP_WORKER_DB_PASSWORD` (the worker's own database role, W-36; the worker does not start without it) and `WASLABID_JOB_SIGNING_KEY` (base64 of at least 32 bytes; the key both hosts sign and verify background jobs with, W-42; neither host starts without it), run these once from the repository root (Git Bash). The commands read the values from `.env` into shell variables and never print them (N-10); user secrets live outside the repository.
 In a git worktree `infra/compose/.env` does not exist (it is git-ignored), so point `env_value` at the main checkout's file, for example `grep "^$1=" ../ERP/infra/compose/.env` (the e2e scripts take `E2E_ENV_FILE` for the same reason).
 
 ```bash
@@ -127,6 +127,10 @@ dotnet user-secrets set "ObjectStorage:AccessKey" "$(env_value MINIO_ROOT_USER)"
 dotnet user-secrets set "ObjectStorage:SecretKey" "$(env_value MINIO_ROOT_PASSWORD)" --project src/Platform.Web > /dev/null
 # Key of the duplicate-CR audit (V-6, keyed HMAC-SHA256 of the CR number); checked when the web host starts.
 dotnet user-secrets set "Vendors:CrAuditKey" "$(env_value VENDORS_CR_AUDIT_KEY)" --project src/Platform.Web > /dev/null
+# W-42: the same job signing key in both hosts. The web host signs the jobs it enqueues, the worker signs its recurring
+# jobs and runs only jobs signed with this key (ADR-0012 addendum). Checked when each host starts.
+dotnet user-secrets set "Jobs:SigningKey" "$(env_value WASLABID_JOB_SIGNING_KEY)" --project src/Platform.Web > /dev/null
+dotnet user-secrets set "Jobs:SigningKey" "$(env_value WASLABID_JOB_SIGNING_KEY)" --project src/Platform.Worker > /dev/null
 # Optional (W-33): Wathq for the CR ownership check, only with a Wathq subscription. Without both settings the console
 # shows Wathq as not set up and officers check the CR certificate by hand. Sandbox base from Wathq's published
 # specification; the key is never kept in the repository or printed.
@@ -146,7 +150,7 @@ dotnet run --project src/Platform.Migrator -- --seed-dev
 dotnet run --project src/Platform.Web
 ```
 
-Background jobs run in a second process, the worker (W-08, Hangfire on PostgreSQL). Start it in another terminal; it opens no port and connects as its own role `erp_worker` through its own user secret `ConnectionStrings:Worker` (set above; W-36, ADR-0012 addendum): it refuses to start without it or with any other role, and the web host refuses `erp_worker` as `ConnectionStrings:Platform`. `erp_worker` holds what `erp_app` holds plus the worker-only functions and the ops writes, which `erp_app` (the web host and the platform console) no longer has. The migrator installs and upgrades Hangfire's tables in schema `hangfire` as the owner; neither host creates them, and `erp_app` keeps only what enqueueing, the console's re-run and the dashboard need. The web host only enqueues; jobs wait in the database until a worker runs.
+Background jobs run in a second process, the worker (W-08, Hangfire on PostgreSQL). Start it in another terminal; it opens no port and connects as its own role `erp_worker` through its own user secret `ConnectionStrings:Worker` (set above; W-36, ADR-0012 addendum): it refuses to start without it or with any other role, and the web host refuses `erp_worker` as `ConnectionStrings:Platform`. `erp_worker` holds what `erp_app` holds plus the worker-only functions and the ops writes, which `erp_app` (the web host and the platform console) no longer has. The migrator installs and upgrades Hangfire's tables in schema `hangfire` as the owner; neither host creates them, and `erp_app` keeps only what enqueueing, the console's re-run and the dashboard need: since W-42 it cannot write the recurring-job entries, the worker's locks, job ids ahead of the sequence or server heartbeats (jobs migrations 0001 to 0003, checked by the migrator on every run), and the worker runs only jobs signed with `Jobs:SigningKey` (both hosts hold it), so a job row written any other way fails without running. The worker checks its recurring jobs every five minutes and writes back one that went missing or was altered (and removes one whose job no worker may run), which opens an F-60 incident for component "Jobs" (closed by the next intact check). To change the key, set the old value as `Jobs:PreviousSigningKey` on the worker until the jobs signed with it have run. The web host only enqueues; jobs wait in the database until a worker runs.
 
 ```bash
 dotnet run --project src/Platform.Worker

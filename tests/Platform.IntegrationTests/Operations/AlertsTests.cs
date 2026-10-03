@@ -137,7 +137,7 @@ public sealed class AlertsTests(DatabaseFixture db, MailpitFixture mailpit) : IC
     {
         await using var worker = await StartWorkerAsync();
         var recurringId = $"failing-recurring-{Guid.NewGuid():N}";
-        var manager = new RecurringJobManager(worker.Storage);
+        var manager = worker.RecurringJobs;
         manager.AddOrUpdate<ToggleTestJob>(recurringId, job => job.Run(recurringId), Cron.Never());
 
         // Every trigger is a new job id with no retries (like "health-check"): the streak is per recurring job id.
@@ -155,7 +155,7 @@ public sealed class AlertsTests(DatabaseFixture db, MailpitFixture mailpit) : IC
     {
         await using var worker = await StartWorkerAsync();
         var recurringId = $"flaky-recurring-{Guid.NewGuid():N}";
-        var manager = new RecurringJobManager(worker.Storage);
+        var manager = worker.RecurringJobs;
         manager.AddOrUpdate<ToggleTestJob>(recurringId, job => job.Run(recurringId), Cron.Never());
 
         foreach (var fail in new[] { true, true, false, true, true })

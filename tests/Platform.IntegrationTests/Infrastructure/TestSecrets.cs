@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using Npgsql;
+using Platform.Shared.Jobs;
 
 namespace Platform.IntegrationTests.Infrastructure;
 
@@ -19,6 +20,15 @@ internal static class TestSecrets
     /// <summary>The HMAC-SHA256 of the CR number under the test key, in lower-case hex, as the audit stores it.</summary>
     public static string CrAuditHmac(string crNumber) =>
         Convert.ToHexStringLower(HMACSHA256.HashData(CrAuditKey, Encoding.UTF8.GetBytes(crNumber)));
+
+    /// <summary>The key that signs and verifies Hangfire jobs (W-42), <c>Jobs:SigningKey</c>: 32 random bytes.</summary>
+    public static byte[] JobSigningKey { get; } = RandomNumberGenerator.GetBytes(32);
+
+    /// <summary>The setting's name and value as both hosts read them.</summary>
+    public static KeyValuePair<string, string?> JobSigningKeySetting { get; } = new(JobSigningKeys.SigningKeySetting, Convert.ToBase64String(JobSigningKey));
+
+    /// <summary>The keys every test client and job server of the run signs and verifies with.</summary>
+    public static JobSigningKeys JobKeys { get; } = JobSigningKeys.FromBytes(JobSigningKey);
 
     /// <summary>The password of <c>erp_key_ring</c> (W-24) for this run; the database fixture gives the role its login with it.</summary>
     public static string KeyRingPassword { get; } = Convert.ToHexString(RandomNumberGenerator.GetBytes(24));

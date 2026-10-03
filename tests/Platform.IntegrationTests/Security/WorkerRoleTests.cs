@@ -250,7 +250,7 @@ public sealed class WorkerRoleTests(DatabaseFixture db)
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddPlatformShared();
-        services.AddJobClient(db.AppConnectionString);
+        services.AddJobClient(db.AppConnectionString, TestSecrets.JobKeys);
         await using var web = services.BuildServiceProvider();
         await using var worker = await JobServerHost.StartAsync(db.WorkerConnectionString, cancellationToken: Ct);
 

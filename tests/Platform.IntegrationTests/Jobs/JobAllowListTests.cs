@@ -110,12 +110,14 @@ public sealed class JobAllowListTests(DatabaseFixture db) : IAsyncDisposable
     public async Task The_activator_refuses_a_tenant_written_after_the_filter_for_a_job_that_runs_without_one()
     {
         // The row passes the allow-list without a tenant; the application role then writes a consistent tenant pair, as it
-        // could between the filter's read and the activation. The activator checks the values it uses.
+        // could between the filter's read and the activation. The activator checks the values it uses (W-42: through the
+        // job gate, which also finds the signature no longer matching).
         var jobId = WebClient().Create(Job.FromExpression<InstanceProbe>(p => p.Run()), new ScheduledState(TimeSpan.FromHours(1)));
         await using var worker = await JobServerHost.StartAsync(db.WorkerConnectionString, cancellationToken: Ct);
         using var connection = worker.Storage.GetConnection();
         var job = connection.GetJobData(jobId).Job;
-        JobAllowList.Refusal(connection, new BackgroundJob(jobId, job, DateTime.UtcNow)).ShouldBeNull("the filter would let it through");
+        var gate = worker.Services.GetRequiredService<JobGate>();
+        gate.Refusal(connection, new BackgroundJob(jobId, job, DateTime.UtcNow)).ShouldBeNull("the filter would let it through");
 
         using (var app = _web.GetRequiredService<JobStorage>().GetConnection())
         {
@@ -123,10 +125,10 @@ public sealed class JobAllowListTests(DatabaseFixture db) : IAsyncDisposable
             app.SetJobParameter(jobId, TenantJobFilter.TenantParameter, SerializationHelper.Serialize(TestTenants.Acme));
         }
 
-        var activator = new TenantJobActivator(worker.Services.GetRequiredService<IServiceScopeFactory>());
+        var activator = new TenantJobActivator(worker.Services.GetRequiredService<IServiceScopeFactory>(), gate);
         var context = new JobActivatorContext(connection, new BackgroundJob(jobId, job, DateTime.UtcNow), new JobCancellationToken(false));
 
-        Should.Throw<JobRefusedException>(() => activator.BeginScope(context)).Message.ShouldContain("runs without one");
+        Should.Throw<JobRefusedException>(() => activator.BeginScope(context)).Message.ShouldContain("runs without a tenant");
     }
 
     [Fact]
@@ -158,6 +160,8 @@ public sealed class JobAllowListTests(DatabaseFixture db) : IAsyncDisposable
     [Fact]
     public async Task A_type_name_inside_an_argument_is_never_instantiated()
     {
+        // W-42: the forged row is signed again with the run's key, standing for a holder of the key (a compromised web
+        // process): the argument rule holds behind the signature, not only because of it.
         await using var worker = await JobServerHost.StartAsync(db.WorkerConnectionString, cancellationToken: Ct);
         var client = WebClient();
         var marker = Guid.NewGuid().ToString("N");
@@ -171,6 +175,13 @@ public sealed class JobAllowListTests(DatabaseFixture db) : IAsyncDisposable
         });
         var parameterTypes = JsonConvert.SerializeObject(new[] { typeof(ProbePayload).AssemblyQualifiedName });
         await ForgeAsync(jobId, parameterTypes, JsonConvert.SerializeObject(new[] { payload }));
+        using (var app = _web.GetRequiredService<JobStorage>().GetConnection())
+        {
+            var forged = app.GetJobData(jobId).Job;
+            var token = new JobAuthenticity(TestSecrets.JobKeys, TimeProvider.System).Sign(forged, JobBinding.Read(app, jobId).Binding);
+            app.SetJobParameter(jobId, JobAuthenticity.ParameterName, SerializationHelper.Serialize(token));
+        }
+
         client.ChangeState(jobId, new EnqueuedState(), ScheduledState.StateName).ShouldBeTrue();
 
         await worker.WaitForSuccessAsync(jobId, Ct);
@@ -197,7 +208,7 @@ public sealed class JobAllowListTests(DatabaseFixture db) : IAsyncDisposable
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddPlatformShared();
-        services.AddJobClient(appConnectionString);
+        services.AddJobClient(appConnectionString, TestSecrets.JobKeys);
         return services.BuildServiceProvider();
     }
 
