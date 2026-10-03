@@ -21,3 +21,5 @@ severity:
 vulnerability:
   ignore-unfixed: true
 exit-code: 1
+# Path-scoped exemptions, each with its reason.
+ignorefile: .github/trivyignore.yaml

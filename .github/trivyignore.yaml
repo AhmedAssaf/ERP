@@ -1,0 +1,8 @@
+# Exemptions for the repository scan (.github/trivy.yaml). Scope each one to a path and give the reason.
+misconfigurations:
+  - id: DS-0002
+    paths:
+      - "infra/pilot/dry-run/runner.Dockerfile"
+    statement: >-
+      Local rehearsal only (docs/19 section 10): the runner stands in for the pilot VM, where the scripts run
+      as root, and it is never built or deployed on the VM.
