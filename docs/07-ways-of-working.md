@@ -428,7 +428,10 @@ it resolves only platform, Hangfire and a few framework argument types, and runs
 `[PlatformJob]` (`Platform.Shared.Jobs`). A new job class needs that attribute, with `TenantScoped = true` when it runs as
 the enqueuing tenant; anything else fails on the worker without being invoked and is not retried. On the pilot an
 administrator may create `erp_worker` beforehand (no superuser, BYPASSRLS, CREATEROLE, CREATEDB or REPLICATION, a member
-of `erp_app` with inherit and without set, nothing else); migration 0008 then only checks it.
+of `erp_app` with inherit and without set, no member but the migration owner's own ADMIN OPTION); migration 0008 then
+only checks those attributes and memberships. Object grants the administrator gave such a role directly (on tables,
+functions or schemas) are not checked by the migration and stay the administrator's responsibility: give it none beyond
+what the migrations grant.
 
 When this change reaches your machine: add `ERP_WORKER_DB_PASSWORD` to `.env` (`openssl rand -hex 32`), set the two
 `ConnectionStrings:Worker` user secrets above, remove the worker's old secret with
