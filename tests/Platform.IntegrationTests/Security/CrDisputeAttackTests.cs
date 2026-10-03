@@ -122,8 +122,12 @@ public sealed partial class CrDisputeAttackTests(DatabaseFixture db)
             return await scope.ServiceProvider.GetRequiredService<ICrDisputes>().RaiseAsync(Request(crNumber), "c@claimant.test", "Claimant", Ct);
         }, Ct)));
 
+        // Six submissions from one account: since W-34 each reserves a place in the account's duplicate-CR limit (five an
+        // hour) before the lookup, and a refund lands only after its answer, so when all six overlap the sixth can be refused
+        // as limited instead of answering "already open". Either refusal is correct; one dispute is opened either way.
         results.Count(r => r.IsSuccess).ShouldBe(1);
-        results.Where(r => !r.IsSuccess).ShouldAllBe(r => r.Error!.Code == CrDisputeErrors.AlreadyOpen);
+        results.Where(r => !r.IsSuccess).ShouldAllBe(r => r.Error!.Code == CrDisputeErrors.AlreadyOpen || r.Error!.Code == CrDisputeErrors.Limited);
+        results.Count(r => !r.IsSuccess && r.Error!.Code == CrDisputeErrors.AlreadyOpen).ShouldBeGreaterThanOrEqualTo(4);
         (await DisputeCountAsync(db, companyId)).ShouldBe(1);
     }
 
