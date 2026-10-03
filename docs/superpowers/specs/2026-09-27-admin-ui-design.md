@@ -121,6 +121,8 @@ Built in `Platform.UI` with logical utilities only, each shown on `/dev/gallery`
 | `hangfire.*` | no | owned by Hangfire, created by its storage on first run as `erp_app` in schema `hangfire` (granted create on that schema only) |
 | `tenancy.update_branding()`, `tenancy.list_tenants()` | functions | security definer, execute granted to `erp_app` |
 
+Since W-36 (2026-10-03, ADR-0012 addendum) the worker connects as its own role `erp_worker`: `ops.incidents` and `ops.job_failure_streaks` have forced row-level security, the worker's writes in `ops` are `erp_worker`'s, and Hangfire's tables are installed by the migrator as the owner (no runtime role creates or owns them). The rows above give the state before that.
+
 The catalog test from the foundation keeps guarding every table with `tenant_id`.
 
 ## 7. Testing and done

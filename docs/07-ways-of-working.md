@@ -87,12 +87,12 @@ Reset everything: `docker compose down -v` then `up -d` again. ClamAV takes up t
 
 ### Run the app locally
 
-With the Compose stack up and these seven values (plus the ten telemetry values listed below the commands) filled in `infra/compose/.env` (see `.env.example` for how to generate
+With the Compose stack up and these eight values (plus the ten telemetry values listed below the commands) filled in `infra/compose/.env` (see `.env.example` for how to generate
 them): `WASLABID_WEB_CLIENT_SECRET`, `WASLABID_PLATFORM_CLIENT_SECRET`, `WASLABID_ADMIN_API_SECRET`,
 `WASLABID_DEV_USER_PASSWORD` (at least 12 characters, not a user name, or the platform realm import fails),
 `MINIO_HEALTH_PROBE_PASSWORD`, `VENDORS_CR_AUDIT_KEY` (base64 of at least 32 bytes; the web host does not start
-without it) and `ERP_KEY_RING_DB_PASSWORD` (the key ring's own database role, W-24; the web host does not start without
-it), run these once from the repository root (Git Bash). The commands read the values from `.env` into shell variables and never print them (N-10); user secrets live outside the repository.
+without it), `ERP_KEY_RING_DB_PASSWORD` (the key ring's own database role, W-24; the web host does not start without
+it) and `ERP_WORKER_DB_PASSWORD` (the worker's own database role, W-36; the worker does not start without it), run these once from the repository root (Git Bash). The commands read the values from `.env` into shell variables and never print them (N-10); user secrets live outside the repository.
 In a git worktree `infra/compose/.env` does not exist (it is git-ignored), so point `env_value` at the main checkout's file, for example `grep "^$1=" ../ERP/infra/compose/.env` (the e2e scripts take `E2E_ENV_FILE` for the same reason).
 
 ```bash
@@ -106,13 +106,16 @@ APP_DB="Host=localhost;Port=5432;Database=platform;Username=erp_app;Password=erp
 # W-24: the Data Protection key ring's own role. The migrator gives erp_key_ring its login with this password; the web
 # host's key-ring pool is the only thing that connects with it.
 KEY_RING_DB="Host=localhost;Port=5432;Database=platform;Username=erp_key_ring;Password=$(env_value ERP_KEY_RING_DB_PASSWORD)"
+# W-36: the worker's own role. The migrator gives erp_worker its login with this password; only the worker connects with it.
+WORKER_DB="Host=localhost;Port=5432;Database=platform;Username=erp_worker;Password=$(env_value ERP_WORKER_DB_PASSWORD)"
 
 dotnet user-secrets set "ConnectionStrings:Owner" "Host=localhost;Port=5432;Database=platform;Username=erp;Password=$PGPW" --project src/Platform.Migrator > /dev/null
 dotnet user-secrets set "ConnectionStrings:Platform" "$APP_DB" --project src/Platform.Migrator > /dev/null
 dotnet user-secrets set "ConnectionStrings:Platform" "$APP_DB" --project src/Platform.Web > /dev/null
 dotnet user-secrets set "ConnectionStrings:KeyRing" "$KEY_RING_DB" --project src/Platform.Migrator > /dev/null
 dotnet user-secrets set "ConnectionStrings:KeyRing" "$KEY_RING_DB" --project src/Platform.Web > /dev/null
-dotnet user-secrets set "ConnectionStrings:Platform" "$APP_DB" --project src/Platform.Worker > /dev/null
+dotnet user-secrets set "ConnectionStrings:Worker" "$WORKER_DB" --project src/Platform.Migrator > /dev/null
+dotnet user-secrets set "ConnectionStrings:Worker" "$WORKER_DB" --project src/Platform.Worker > /dev/null
 dotnet user-secrets set "Oidc:ClientSecret" "$WEB_SECRET" --project src/Platform.Web > /dev/null
 dotnet user-secrets set "PlatformOidc:ClientSecret" "$PLATFORM_SECRET" --project src/Platform.Web > /dev/null
 dotnet user-secrets set "KeycloakAdmin:ClientSecret" "$ADMIN_API_SECRET" --project src/Platform.Web > /dev/null
@@ -127,7 +130,7 @@ dotnet user-secrets set "Vendors:CrAuditKey" "$(env_value VENDORS_CR_AUDIT_KEY)"
 # specification; the key is never kept in the repository or printed.
 # dotnet user-secrets set "Wathq:BaseUrl" "https://api.wathq.sa/sandbox/commercial-registration" --project src/Platform.Web > /dev/null
 # dotnet user-secrets set "Wathq:ApiKey" "$(env_value WATHQ_API_KEY)" --project src/Platform.Web > /dev/null
-unset PGPW WEB_SECRET PLATFORM_SECRET ADMIN_API_SECRET KEY_RING_DB
+unset PGPW WEB_SECRET PLATFORM_SECRET ADMIN_API_SECRET KEY_RING_DB WORKER_DB
 ```
 
 Redis needs no secret locally: `ConnectionStrings:Redis` is `localhost:6379` in `appsettings.Development.json` of `Platform.Web` (the duplicate-CR throttle, W-34) and of `Platform.Worker` (the Redis health check, alerted like Disk and Telemetry). The pilot's value carries a password and lives in the secret store, never in the repository (N-10). Outside Development and Testing the web host refuses to start without it; in Development and Testing it then keeps the limits in process memory. The worker starts without it but then never checks Redis, so F-60 never alerts on a Redis outage: set it on the pilot's worker as well (W-19). Integration test hosts never use the developer's Redis: `PlatformWebFactory` sets the setting empty unless a test passes a Testcontainer's; with it, a Redis that is down never stops the host (`abortConnect=false`), and the throttle falls back to process memory, logging one Warning per outage.
@@ -141,7 +144,7 @@ dotnet run --project src/Platform.Migrator -- --seed-dev
 dotnet run --project src/Platform.Web
 ```
 
-Background jobs run in a second process, the worker (W-08, Hangfire on PostgreSQL). Start it in another terminal; it opens no port and connects as `erp_app` through its own user secret `ConnectionStrings:Platform` (set above). On first start it creates its tables in schema `hangfire`, which migration `platform/0003_hangfire_schema.sql` prepares for it. The web host only enqueues; jobs wait in the database until a worker runs.
+Background jobs run in a second process, the worker (W-08, Hangfire on PostgreSQL). Start it in another terminal; it opens no port and connects as its own role `erp_worker` through its own user secret `ConnectionStrings:Worker` (set above; W-36, ADR-0012 addendum): it refuses to start without it or with any other role, and the web host refuses `erp_worker` as `ConnectionStrings:Platform`. `erp_worker` holds what `erp_app` holds plus the worker-only functions and the ops writes, which `erp_app` (the web host and the platform console) no longer has. The migrator installs and upgrades Hangfire's tables in schema `hangfire` as the owner; neither host creates them, and `erp_app` keeps only what enqueueing, the console's re-run and the dashboard need. The web host only enqueues; jobs wait in the database until a worker runs.
 
 ```bash
 dotnet run --project src/Platform.Worker
@@ -354,7 +357,7 @@ The login cookie, antiforgery tokens and Blazor's prerendered state are protecte
 which lives in `platform.data_protection_keys` under the application name `waslabid-web`, so any number of web instances
 and any restart accept the same cookie. Whoever can add a key can forge any session, so the table has its own role,
 `erp_key_ring`, with SELECT and INSERT only, used only by the web host's key-ring pool (`ConnectionStrings:KeyRing`).
-`erp_app`, which every module, the worker and Hangfire use, has no right on it at all, and the host refuses a key-ring
+`erp_app`, which every module and Hangfire use, has no right on it at all, nor has the worker's `erp_worker` (a member of `erp_app`, W-36), and the host refuses a key-ring
 connection string for any role but `erp_key_ring`. Migration `platform/0007` creates the role without a login; the
 migrator gives it one from its own `ConnectionStrings:KeyRing`, so the password is never in a script (N-10); it sends
 PostgreSQL only a SCRAM-SHA-256 verifier it computed, never the password, so a server log never holds the password
@@ -411,6 +414,41 @@ enabled there (N-10). Raising another category to Trace to debug a rotation is f
 The worker does not load the key ring; it issues and reads no cookie. Make a certificate once with
 `openssl req -x509 -newkey rsa:3072 -nodes -days 1095 -subj "/CN=waslabid-key-ring" -keyout k.pem -out c.pem` and
 `openssl pkcs12 -export -inkey k.pem -in c.pem -out key-ring.pfx`, then delete the PEM files.
+
+#### The worker's database role (W-36)
+
+The worker connects as its own role, `erp_worker` (ADR-0012 addendum 2026-10-03), never as `erp_app`. `erp_worker` is a
+member of `erp_app` (it inherits its rights and cannot switch to it) and alone may execute the worker-only functions
+(`identity.activity_counts`, `identity.prune_activity`, `tenancy.referenced_logos`, `vendor.stale_uploads`,
+`vendor.claim_stale_upload`, `vendor.remove_stale_upload`, `vendor.pending_scan_documents`, `vendor.unalerted_cr_disputes`,
+`vendor.mark_cr_disputes_alerted`) and write `ops.health_results`, `ops.incidents`, `ops.job_failure_streaks` and
+`ops.active_user_counts`; `erp_app` reads the first, second and fourth, which is all the console shows. Migration
+`platform/0008` creates the role without a login and the migrator gives it one from its own `ConnectionStrings:Worker`,
+as for the key ring (a verifier, never the password). The same migration hands Hangfire's tables, which a host created as
+`erp_app` before, to the migration owner; from then on the migrator installs and upgrades them.
+
+Because `erp_app` can still write Hangfire's tables, the worker treats a job row as untrusted (ADR-0012 addendum point 5):
+it resolves only platform, Hangfire and a few framework argument types, and runs only methods declared by a class marked
+`[PlatformJob]` (`Platform.Shared.Jobs`). A new job class needs that attribute, with `TenantScoped = true` when it runs as
+the enqueuing tenant; anything else fails on the worker without being invoked and is not retried. On the pilot an
+administrator may create `erp_worker` beforehand (no superuser, BYPASSRLS, CREATEROLE, CREATEDB or REPLICATION, a member
+of `erp_app` with inherit and without set, no member but the migration owner's own ADMIN OPTION); migration 0008 then
+only checks those attributes and memberships. Object grants the administrator gave such a role directly (on tables,
+functions or schemas) are not checked by the migration and stay the administrator's responsibility: give it none beyond
+what the migrations grant. PostgreSQL 16 gives a CREATEROLE role that creates `erp_worker` an automatic ADMIN membership of it: an administrator
+who pre-creates the role as a CREATEROLE role other than the migration owner must revoke that membership first
+(`revoke erp_worker from <administrator>`), or migration 0008 refuses the role.
+
+When this change reaches your machine: add `ERP_WORKER_DB_PASSWORD` to `.env` (`openssl rand -hex 32`), set the two
+`ConnectionStrings:Worker` user secrets above, remove the worker's old secret with
+`dotnet user-secrets remove "ConnectionStrings:Platform" --project src/Platform.Worker`, and re-run the migrator before
+starting the worker. A worker started with the old secret stops at once with "Connection string 'Worker' is not
+configured"; a role without a login yet fails with PostgreSQL 28000 (re-run the migrator with `ConnectionStrings:Worker`
+set). Outside Development the worker's setting is a secret like the key ring's:
+
+| Setting | What it is | Example |
+|---|---|---|
+| `ConnectionStrings:Worker` | The worker's own role (worker and migrator), a secret | `...;Username=erp_worker;Password=...` |
 
 #### Operations
 

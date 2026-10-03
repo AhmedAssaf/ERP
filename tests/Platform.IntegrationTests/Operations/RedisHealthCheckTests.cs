@@ -135,7 +135,7 @@ public sealed class RedisHealthCheckTests(DatabaseFixture db, RedisFixture redis
         builder.Configuration.AddInMemoryCollection(settings);
         builder.Services.AddLogging();
         builder.Services.AddPlatformShared();
-        builder.Services.AddOperationsModule(db.AppConnectionString);
+        builder.Services.AddOperationsModule(db.WorkerConnectionString);
         builder.Services.AddOperationsAlerts(builder.Configuration);
         builder.Services.AddRedisHealthCheck(builder.Configuration);
         builder.Services.AddHealthCheckJob();

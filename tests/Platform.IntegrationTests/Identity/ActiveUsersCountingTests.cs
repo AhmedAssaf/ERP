@@ -41,7 +41,7 @@ public sealed class ActiveUsersCountingTests(DatabaseFixture db)
             await InsertBucketAsOwnerAsync(tenant.TenantId, user, hour.AddHours(-hoursBefore));
         }
 
-        await using var worker = new UsageWorker(db.AppConnectionString);
+        await using var worker = new UsageWorker(db.WorkerConnectionString);
         await using var scope = worker.Services.CreateAsyncScope();
         var counts = (await scope.ServiceProvider.GetRequiredService<IUserActivityCounts>().CountAsync(now, Ct))
             .Where(c => c.TenantId == tenant.TenantId && c.Kind == ActivityKind.Staff)
@@ -70,7 +70,7 @@ public sealed class ActiveUsersCountingTests(DatabaseFixture db)
             await vendorScope.ServiceProvider.GetRequiredService<IUserActivityRecorder>().RecordAsync(ActivityKind.Vendor, Ct);
         }
 
-        await using var worker = new UsageWorker(db.AppConnectionString);
+        await using var worker = new UsageWorker(db.WorkerConnectionString);
         using var metrics = new UsageMetrics(worker.Meters);
         await worker.RunAsync(Ct);
 

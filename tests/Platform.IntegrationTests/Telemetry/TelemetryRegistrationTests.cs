@@ -150,7 +150,7 @@ public sealed partial class TelemetryRegistrationTests(DatabaseFixture db)
     {
         await using var factory = new PlatformWebFactory(db.AppConnectionString);
         await using var worker = await JobServerHost.StartAsync(
-            db.AppConnectionString, configureHost: builder => builder.AddPlatformTelemetry(TelemetryNames.Services.Worker), cancellationToken: Ct);
+            db.WorkerConnectionString, configureHost: builder => builder.AddPlatformTelemetry(TelemetryNames.Services.Worker), cancellationToken: Ct);
 
         foreach (var (host, serviceName) in new[] { (factory.Services, "waslabid-web"), (worker.Services, "waslabid-worker") })
         {
@@ -303,7 +303,7 @@ public sealed partial class TelemetryRegistrationTests(DatabaseFixture db)
     {
         await using var factory = new PlatformWebFactory(db.AppConnectionString);
         await using var worker = await JobServerHost.StartAsync(
-            db.AppConnectionString, configureHost: builder => builder.AddPlatformTelemetry(TelemetryNames.Services.Worker), cancellationToken: Ct);
+            db.WorkerConnectionString, configureHost: builder => builder.AddPlatformTelemetry(TelemetryNames.Services.Worker), cancellationToken: Ct);
 
         foreach (var host in new[] { factory.Services, worker.Services })
         {

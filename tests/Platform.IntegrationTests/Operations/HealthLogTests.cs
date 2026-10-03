@@ -14,7 +14,7 @@ public sealed class HealthLogTests(DatabaseFixture db) : IAsyncLifetime
 
     public ValueTask InitializeAsync()
     {
-        _host = new ModuleHost(db.AppConnectionString);
+        _host = new ModuleHost(db.WorkerConnectionString);
         return ValueTask.CompletedTask;
     }
 
@@ -177,7 +177,8 @@ public sealed class HealthLogTests(DatabaseFixture db) : IAsyncLifetime
     [Theory]
     [InlineData("update ops.health_results set message = 'x' where component = 'health-results-privilege-test'")]
     [InlineData("delete from ops.health_results where component = 'health-results-privilege-test'")]
-    public async Task Health_results_are_insert_and_select_only_for_the_app_role(string sql)
+    [InlineData("insert into ops.health_results (id, component, status, latency_ms, checked_at) values (gen_random_uuid(), 'health-results-privilege-test', 'Healthy', 1, now())")]
+    public async Task Health_results_are_select_only_for_the_app_role(string sql)
     {
         await using var connection = new NpgsqlConnection(db.AppConnectionString);
         await connection.OpenAsync(Ct);

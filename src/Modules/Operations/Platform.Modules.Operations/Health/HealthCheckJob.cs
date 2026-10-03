@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Platform.Modules.Operations.Alerts;
 using Platform.Modules.Operations.Contracts;
 using ResultStatus = Platform.Modules.Operations.Contracts.HealthStatus;
+using Platform.Shared.Jobs;
 
 namespace Platform.Modules.Operations.Health;
 
@@ -21,6 +22,7 @@ namespace Platform.Modules.Operations.Health;
 /// W-10 (plan task 4): the run is one span with a child per check, and every result is published as a metric
 /// (<see cref="HealthTelemetry"/>) before it is recorded, so the metrics do not depend on the store.
 /// </summary>
+[PlatformJob]
 internal sealed partial class HealthCheckJob(
     IEnumerable<NamedHealthCheck> checks,
     IHealthLog healthLog,

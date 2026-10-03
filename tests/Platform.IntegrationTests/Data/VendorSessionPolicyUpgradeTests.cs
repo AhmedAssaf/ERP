@@ -56,16 +56,20 @@ public sealed class VendorSessionPolicyUpgradeTests(DatabaseFixture db)
             [
                 "platform/0006_platform_vendor_sessions.sql",
                 "platform/0007_platform_data_protection_keys.sql",
+                "platform/0008_platform_worker_role.sql",
                 "audit/0002_audit_vendor_insert.sql",
                 "audit/0003_audit_actor_and_time.sql",
                 "tenancy/0007_tenancy_function_callers.sql",
                 "tenancy/0008_tenancy_branding_vendor_users_and_owner.sql",
                 "tenancy/0009_tenancy_referenced_logos.sql",
+                "tenancy/0010_tenancy_worker_role.sql",
                 "identity/0002_identity_staff_tenants.sql",
                 "identity/0003_identity_user_activity.sql",
+                "identity/0004_identity_worker_role.sql",
                 "operations/0004_operations_platform_audit_access.sql",
                 "operations/0005_operations_owner_guard.sql",
                 "operations/0006_operations_active_user_counts.sql",
+                "operations/0007_operations_worker_role.sql",
                 "vendors/0013_vendors_relationships_vendor_policy.sql",
                 "vendors/0014_vendors_function_callers.sql",
                 "vendors/0015_vendors_consent_actor_and_start.sql",
@@ -81,6 +85,7 @@ public sealed class VendorSessionPolicyUpgradeTests(DatabaseFixture db)
                 "vendors/0025_vendors_superseded_dispute_removals.sql",
                 "vendors/0026_vendors_latest_dispute_and_removal_standing.sql",
                 "vendors/0027_vendors_superseded_outcome_kept.sql",
+                "vendors/0028_vendors_worker_role.sql",
             ]);
             await using (var connection = new NpgsqlConnection(connectionString))
             {

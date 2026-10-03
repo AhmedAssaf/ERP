@@ -36,7 +36,7 @@ public sealed class ActiveUsersTests(DatabaseFixture db)
             response.StatusCode.ShouldBe(HttpStatusCode.OK);
         }
 
-        await using var worker = new UsageWorker(db.AppConnectionString);
+        await using var worker = new UsageWorker(db.WorkerConnectionString);
         using var metrics = new UsageMetrics(worker.Meters);
         await worker.RunAsync(Ct);
 
@@ -61,7 +61,7 @@ public sealed class ActiveUsersTests(DatabaseFixture db)
         var tenant = await TenantRows.InsertAsync(db.OwnerConnectionString, Ct);
         await ActivityRows.InsertAsOwnerAsync(db.OwnerConnectionString, tenant.TenantId, $"old-{Guid.NewGuid():N}", "staff", hoursAgo: 8 * 24, Ct);
 
-        await using var worker = new UsageWorker(db.AppConnectionString);
+        await using var worker = new UsageWorker(db.WorkerConnectionString);
         using var metrics = new UsageMetrics(worker.Meters);
         await worker.RunAsync(Ct);
 
@@ -186,8 +186,8 @@ public sealed class ActiveUsersTests(DatabaseFixture db)
             (await ActivityRows.TryAsync(session, "delete from identity.user_activity", Ct)).ShouldBe("refused", label);
         }
 
-        // The worker's session (neither a tenant nor a vendor context) gets counts, never rows.
-        await using var worker = await ActivityRows.AppSessionAsync(db.AppConnectionString, null, null, null, Ct);
+        // The worker's session (its own role, W-36, and neither a tenant nor a vendor context) gets counts, never rows.
+        await using var worker = await ActivityRows.AppSessionAsync(db.WorkerConnectionString, null, null, null, Ct);
         (await ActivityRows.TryAsync(worker, "select * from identity.activity_counts(now())", Ct)).ShouldBe("ok");
         (await ActivityRows.TryAsync(worker, "select count(*) from identity.user_activity", Ct)).ShouldBe("refused");
     }
@@ -279,7 +279,7 @@ public sealed class ActiveUsersTests(DatabaseFixture db)
         var second = await TenantRows.InsertAsync(db.OwnerConnectionString, Ct);
         var vendor = $"vendor-{Guid.NewGuid():N}";
         var company = Guid.NewGuid();
-        await using var worker = new UsageWorker(db.AppConnectionString);
+        await using var worker = new UsageWorker(db.WorkerConnectionString);
         var now = DateTimeOffset.UtcNow;
         var before = await AllTenantsVendorsTodayAsync(worker, now);
 
@@ -304,7 +304,7 @@ public sealed class ActiveUsersTests(DatabaseFixture db)
         await ActivityRows.InsertAsOwnerAsync(db.OwnerConnectionString, tenant.TenantId, "gone", "staff", hoursAgo: 36 * 24, Ct);
         await ActivityRows.InsertAsOwnerAsync(db.OwnerConnectionString, tenant.TenantId, "kept", "staff", hoursAgo: 34 * 24, Ct);
 
-        await using var worker = new UsageWorker(db.AppConnectionString);
+        await using var worker = new UsageWorker(db.WorkerConnectionString);
         await worker.PruneAsync(Ct);
 
         (await ActivityRows.ForTenantAsync(db.OwnerConnectionString, tenant.TenantId, Ct)).Select(r => r.UserId).ShouldBe(["kept"]);
@@ -405,14 +405,14 @@ public sealed class ActiveUsersTests(DatabaseFixture db)
         (await ActivityRows.TryAsync(console, "select * from identity.activity_counts(now())", Ct)).ShouldBe("refused");
         (await ActivityRows.TryAsync(console, "select identity.prune_activity(now())", Ct)).ShouldBe("refused");
 
-        await using var worker = await ActivityRows.AppSessionAsync(db.AppConnectionString, null, null, null, Ct);
+        await using var worker = await ActivityRows.AppSessionAsync(db.WorkerConnectionString, null, null, null, Ct);
         (await ActivityRows.TryAsync(worker, "select identity.prune_activity(now() - interval '400 days')", Ct)).ShouldBe("ok");
     }
 
     [Fact]
     public async Task The_stored_counts_are_read_only_without_a_tenant_or_vendor_context()
     {
-        await using (var worker = new UsageWorker(db.AppConnectionString))
+        await using (var worker = new UsageWorker(db.WorkerConnectionString))
         {
             await worker.RunAsync(Ct);
         }
@@ -430,17 +430,15 @@ public sealed class ActiveUsersTests(DatabaseFixture db)
                 .ShouldBe("refused", label);
         }
 
-        // The platform console reads the counts but, having an acting user, neither writes nor deletes them.
+        // The platform console reads the counts but neither writes nor deletes them: since W-36 the application role holds
+        // no INSERT or DELETE on them at all.
         await using var console = await ActivityRows.AppSessionAsync(db.AppConnectionString, null, null, "platform.admin", Ct);
         await using var all = new NpgsqlCommand("select count(*)::int from ops.active_user_counts", console);
         var stored = (int)(await all.ExecuteScalarAsync(Ct))!;
         stored.ShouldBeGreaterThan(0);
         (await ActivityRows.TryAsync(console, "insert into ops.active_user_counts (tenant_slug, kind, time_window, users, computed_at) values ('acme', 'staff', '1d', 99, now())", Ct))
             .ShouldBe("refused");
-        await using (var delete = new NpgsqlCommand("delete from ops.active_user_counts", console))
-        {
-            (await delete.ExecuteNonQueryAsync(Ct)).ShouldBe(0, "no delete policy admits the console");
-        }
+        (await ActivityRows.TryAsync(console, "delete from ops.active_user_counts", Ct)).ShouldBe("refused");
 
         ((int)(await all.ExecuteScalarAsync(Ct))!).ShouldBe(stored);
     }

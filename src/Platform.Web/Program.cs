@@ -15,6 +15,7 @@ using Platform.Modules.Vendors.Contracts;
 using Platform.Modules.Workflow;
 using Platform.Shared;
 using Platform.Shared.Caching;
+using Platform.Shared.Data;
 using Platform.Shared.Jobs;
 using Platform.Shared.Telemetry;
 using Platform.UI;
@@ -35,6 +36,9 @@ if (string.IsNullOrWhiteSpace(platformDb))
 {
     throw new InvalidOperationException("Connection string 'Platform' is not configured. Set it with dotnet user-secrets (see README).");
 }
+
+// W-36: the web host never holds the worker's rights (the worker-only functions and ops writes).
+WorkerDatabase.RefuseWorkerRole(platformDb, "Platform");
 
 if (!builder.Environment.IsDevelopment() && !builder.Environment.IsEnvironment("Testing"))
 {

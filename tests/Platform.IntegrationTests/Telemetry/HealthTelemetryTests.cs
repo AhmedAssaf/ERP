@@ -99,7 +99,7 @@ public sealed class HealthTelemetryTests(DatabaseFixture db)
         // No alert recipients: the unhealthy component's incident sends nothing.
         var configuration = new ConfigurationBuilder().Build();
         return await JobServerHost.StartAsync(
-            db.AppConnectionString,
+            db.WorkerConnectionString,
             services =>
             {
                 telemetry.AddTo(services);

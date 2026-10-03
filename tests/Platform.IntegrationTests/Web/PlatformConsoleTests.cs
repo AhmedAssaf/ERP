@@ -41,8 +41,8 @@ public sealed partial class PlatformConsoleTests(DatabaseFixture db, MinioFixtur
         await using var factory = Factory();
         var now = DateTimeOffset.UtcNow;
         var failedAt = now.AddMinutes(-1);
-        await RecordAsync(factory, [new HealthResult(HealthComponents.ClamAv, HealthStatus.Unhealthy, 2000, failedAt, "PING timed out")]);
-        await RecordAsync(factory, [.. HealthComponents.Board.Select((c, i) => new HealthResult(c, HealthStatus.Healthy, 10 + i, now))]);
+        await RecordAsync([new HealthResult(HealthComponents.ClamAv, HealthStatus.Unhealthy, 2000, failedAt, "PING timed out")]);
+        await RecordAsync([.. HealthComponents.Board.Select((c, i) => new HealthResult(c, HealthStatus.Healthy, 10 + i, now))]);
 
         var html = await GetPageAsync(factory, "/platform", PlatformAdmin());
 
@@ -66,8 +66,8 @@ public sealed partial class PlatformConsoleTests(DatabaseFixture db, MinioFixtur
         await using var factory = Factory();
         var now = DateTimeOffset.UtcNow;
         var stale = now - HealthComponents.StaleAfter - TimeSpan.FromSeconds(5);
-        await RecordAsync(factory, [new HealthResult(HealthComponents.Keycloak, HealthStatus.Healthy, 5, stale)]);
-        await RecordAsync(factory, [new HealthResult(HealthComponents.Web, HealthStatus.Healthy, 5, now)]);
+        await RecordAsync([new HealthResult(HealthComponents.Keycloak, HealthStatus.Healthy, 5, stale)]);
+        await RecordAsync([new HealthResult(HealthComponents.Web, HealthStatus.Healthy, 5, now)]);
 
         var html = await GetPageAsync(factory, "/platform", PlatformAdmin());
 
@@ -102,8 +102,8 @@ public sealed partial class PlatformConsoleTests(DatabaseFixture db, MinioFixtur
         var recent = now.AddDays(-3);
         foreach (var openedAt in new[] { old, recent })
         {
-            await RecordAsync(factory, [new HealthResult(HealthComponents.Email, HealthStatus.Unhealthy, 1, openedAt, "NOOP refused")]);
-            await RecordAsync(factory, [new HealthResult(HealthComponents.Email, HealthStatus.Healthy, 1, openedAt.AddMinutes(7))]);
+            await RecordAsync([new HealthResult(HealthComponents.Email, HealthStatus.Unhealthy, 1, openedAt, "NOOP refused")]);
+            await RecordAsync([new HealthResult(HealthComponents.Email, HealthStatus.Healthy, 1, openedAt.AddMinutes(7))]);
         }
 
         var incidents = await IncidentsSinceAsync(factory, now.AddDays(-60));
@@ -441,9 +441,14 @@ public sealed partial class PlatformConsoleTests(DatabaseFixture db, MinioFixtur
         await command.ExecuteNonQueryAsync(Ct);
     }
 
-    private static async Task RecordAsync(WebApplicationFactory<Program> factory, IReadOnlyList<HealthResult> results)
+    /// <summary>
+    /// Records as the worker's health-check job does, as the worker's own role (W-36): the web host, as erp_app, only reads
+    /// the board.
+    /// </summary>
+    private async Task RecordAsync(IReadOnlyList<HealthResult> results)
     {
-        await using var scope = factory.Services.CreateAsyncScope();
+        await using var worker = new ModuleHost(db.WorkerConnectionString);
+        await using var scope = worker.ScopeFor(null);
         await scope.ServiceProvider.GetRequiredService<IHealthLog>().RecordAsync(results, Ct);
     }
 

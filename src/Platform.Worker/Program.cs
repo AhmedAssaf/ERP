@@ -7,6 +7,7 @@ using Platform.Modules.Tenancy;
 using Platform.Modules.Vendors;
 using Platform.Modules.Workflow;
 using Platform.Shared;
+using Platform.Shared.Data;
 using Platform.Shared.Jobs;
 using Platform.Shared.Telemetry;
 
@@ -19,12 +20,10 @@ internal static class EntryPoint
     private static async Task Main(string[] args)
     {
         var builder = Host.CreateApplicationBuilder(args);
-        var platformDb = builder.Configuration.GetConnectionString("Platform");
-        if (string.IsNullOrWhiteSpace(platformDb))
-        {
-            throw new InvalidOperationException(
-                "Connection string 'Platform' is not configured. Set it with dotnet user-secrets as the erp_app role (docs/07 section 4).");
-        }
+        // W-36 (ADR-0012 addendum 2026-10-03): the worker connects only as its own role, erp_worker, from
+        // ConnectionStrings:Worker, in every environment: the worker-only functions and the ops writes are that role's rights,
+        // so as erp_app its jobs would be refused. Refused at start when missing or for any other role.
+        var platformDb = WorkerDatabase.ConnectionString(builder.Configuration);
 
         // W-10 (spec O-3 to O-6, O-16): job and health spans, metrics and logs over OTLP only when Telemetry:OtlpEndpoint is
         // set; outside Development and Testing no console output.

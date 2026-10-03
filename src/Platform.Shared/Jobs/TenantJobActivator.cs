@@ -1,3 +1,4 @@
+using System.Reflection;
 using Hangfire;
 using Microsoft.Extensions.DependencyInjection;
 using Platform.Shared.Tenancy;
@@ -20,6 +21,14 @@ public sealed class TenantJobActivator(IServiceScopeFactory scopes) : JobActivat
         {
             throw new InvalidOperationException(
                 $"Job {context.BackgroundJob.Id} carries inconsistent tenant parameters; it is not run.");
+        }
+
+        // W-36 fix round 2: the job allow-list's tenant rule again, on the values read here and used below, so a row whose
+        // parameters change after JobAllowListFilter checked them cannot put a job that runs without a tenant in one.
+        if (tenant is not null && context.BackgroundJob.Job?.Type.GetCustomAttribute<PlatformJobAttribute>(inherit: false) is not { TenantScoped: true })
+        {
+            throw new JobRefusedException(
+                $"Job {context.BackgroundJob.Id} carries a tenant, but {context.BackgroundJob.Job?.Type.FullName} runs without one; it is not run.");
         }
 
         var scope = scopes.CreateAsyncScope();

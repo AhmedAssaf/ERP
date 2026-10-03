@@ -2,6 +2,7 @@ using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Platform.Modules.Operations.Contracts;
 using Platform.Modules.Vendors.Persistence;
+using Platform.Shared.Jobs;
 
 namespace Platform.Modules.Vendors.Ownership;
 
@@ -14,6 +15,7 @@ namespace Platform.Modules.Vendors.Ownership;
 /// Reads through <c>vendor.unalerted_cr_disputes</c>, which answers only a session with neither a tenant nor a vendor
 /// context nor an acting user (the worker).
 /// </summary>
+[PlatformJob]
 internal sealed class CrDisputeAlertJob(IDbContextFactory<VendorsDbContext> contexts, IPlatformAlerts alerts)
 {
     private const int BatchSize = 200;

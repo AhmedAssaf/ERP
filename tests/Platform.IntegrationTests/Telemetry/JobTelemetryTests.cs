@@ -258,7 +258,7 @@ public sealed class JobTelemetryTests(DatabaseFixture db)
     private async Task<JobServerHost> StartWorkerAsync(CapturedTelemetry telemetry)
     {
         var worker = await JobServerHost.StartAsync(
-            db.AppConnectionString,
+            db.WorkerConnectionString,
             telemetry.AddTo,
             configureHost: builder => builder.AddPlatformTelemetry(TelemetryNames.Services.Worker),
             cancellationToken: Ct);
@@ -348,6 +348,7 @@ public sealed class JobTelemetryTests(DatabaseFixture db)
 }
 
 /// <summary>Writes one log record with a marker (W-10 job telemetry tests).</summary>
+[PlatformJob(TenantScoped = true)]
 public sealed partial class TelemetryProbeJob(ILogger<TelemetryProbeJob> logger)
 {
     public const string Template = "Telemetry job probe {Marker}";
@@ -360,6 +361,7 @@ public sealed partial class TelemetryProbeJob(ILogger<TelemetryProbeJob> logger)
 
 /// <summary>Fails at once, without retries, with an argument that must never reach the telemetry.</summary>
 [AutomaticRetry(Attempts = 0)]
+[PlatformJob(TenantScoped = true)]
 public sealed class FailingTelemetryJob
 {
 #pragma warning disable CA1822 // Instance method by convention: Hangfire jobs are activated per execution.
@@ -369,6 +371,7 @@ public sealed class FailingTelemetryJob
 
 /// <summary>Fails at once, without retries, with an address in its message and an argument that must never reach the telemetry.</summary>
 [AutomaticRetry(Attempts = 0)]
+[PlatformJob(TenantScoped = true)]
 public sealed class FailingAddressTelemetryJob
 {
 #pragma warning disable CA1822 // Instance method by convention: Hangfire jobs are activated per execution.

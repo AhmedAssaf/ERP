@@ -32,3 +32,42 @@ A vendor signed in on a tenant host runs with both `app.tenant_id` (the host ten
 | Leave `app.tenant_id` empty for vendor sessions | The vendor's pages are tenant-branded and its relationship, audit and future offer rows are tenant rows; every vendor query would need a security-definer function |
 | Separate database roles for staff and vendor connections | Two connection strings and pools per host for the same result; can follow later if the policies grow complex |
 | Rely on the web policies and `VendorDirectory` checks | Isolation must not depend on every future query remembering a filter; that is the reason row-level security is forced |
+
+## Addendum 2026-10-03: the worker's own database role (W-36)
+
+Approved by the user on 2026-10-03 as hardening before gate 1. It takes up the option left in Consequences ("a separate database role for the worker") and closes the known gap of point 4; points 1 to 5 stand unchanged.
+
+**Problem.** The worker connected as `erp_app`, so "no tenant, no vendor and no acting user" was the only mark of a worker-only function, and a platform console session without a user matched it too (pentest I-2, PT-W10-01). The Hangfire tables were owned by `erp_app`, which could alter or drop them, and `ops.incidents` and `ops.job_failure_streaks` had no row-level security.
+
+```mermaid
+flowchart LR
+    Web["Platform.Web<br/>ConnectionStrings:Platform"] -->|erp_app| DB[(PostgreSQL)]
+    Worker["Platform.Worker<br/>ConnectionStrings:Worker"] -->|erp_worker| DB
+    Migrator["Platform.Migrator<br/>owner role"] -->|"migrations, Hangfire install,<br/>logins of erp_worker and erp_key_ring"| DB
+    subgraph Roles
+        App["erp_app<br/>request path"]
+        Wk["erp_worker<br/>member of erp_app, inherit, no SET<br/>+ worker-only rights"]
+    end
+    Wk -. inherits .-> App
+```
+
+**Decision.**
+
+1. **Role.** Platform migration 0008 creates `erp_worker` without a login and makes it a member of `erp_app` (`with inherit true, set false`): the worker runs every module's jobs, tenant-scoped ones included, so it needs what `erp_app` has, plus the worker-only rights below; `erp_app` is not a member of `erp_worker`. The migrator gives it a login from its own `ConnectionStrings:Worker`, exactly as W-24 does for `erp_key_ring` (a SCRAM verifier, never the password); the password is `ERP_WORKER_DB_PASSWORD` in `infra/compose/.env`. The worker reads only `ConnectionStrings:Worker` and refuses to start without it or with any role but `erp_worker`; the web host refuses `erp_worker` as `ConnectionStrings:Platform`.
+2. **Worker-only rights move.** EXECUTE on `identity.activity_counts`, `identity.prune_activity`, `tenancy.referenced_logos`, `vendor.unalerted_cr_disputes`, `vendor.mark_cr_disputes_alerted`, `vendor.pending_scan_documents`, `vendor.stale_uploads`, `vendor.claim_stale_upload` and `vendor.remove_stale_upload` is revoked from `erp_app` and granted to `erp_worker` only. Their context checks stay, as defence in depth.
+3. **ops tables.**
+
+| Table | `erp_app` (web, console) | `erp_worker` (adds) | Row-level security |
+|---|---|---|---|
+| `ops.health_results` | SELECT | INSERT | none (unchanged) |
+| `ops.incidents` | SELECT | INSERT, UPDATE | forced: read without tenant or vendor context; insert and update only to `erp_worker` without any context |
+| `ops.job_failure_streaks` | nothing | SELECT, INSERT, UPDATE, DELETE | forced: only `erp_worker` without any context |
+| `ops.active_user_counts` | SELECT | INSERT, DELETE | as before; the write policies now name `erp_worker` |
+
+4. **Hangfire.** The migrator installs and upgrades Hangfire's tables as the owner role (`PostgreSqlObjectsInstaller`, after the platform migrations) and the hosts no longer prepare the schema. `erp_app` loses CREATE on schema `hangfire` and ownership of its tables (moved to the owner by migration 0008); it keeps USAGE and SELECT, INSERT, UPDATE, DELETE on the tables and USAGE, SELECT on the sequences (default privileges cover tables a later Hangfire version adds), which the web host needs to enqueue, re-run from the console and show the dashboard. The worker has the same through `erp_app`.
+
+5. **Job allow-list (review of W-36, 2026-10-03).** `erp_app` still writes Hangfire's tables, so a job row is untrusted: whoever holds that role could name any loadable type and public method (`System.Diagnostics.Process.Start`) and the worker would run it as `erp_worker`. Every process that runs a job server therefore resolves Hangfire types only through `JobAllowList.ResolveType` (types of `Platform.*` and Hangfire's assemblies, and a short list of framework argument types such as `string`, `Guid`, `CancellationToken`), and `JobAllowListFilter` refuses, before activation, any job whose class lacks `[PlatformJob]`, whose method is not the class's own public method, or that carries a tenant while its class is not `TenantScoped`; the job activator applies the tenant rule again to the parameters it uses. The resolver is set when a job server is registered, before any stored row is read. A refused row fails without being invoked and is not retried, whether the retry would be scheduled or, with a zero delay, enqueued. Job arguments are deserialized without type names (Hangfire's default for user data, pinned by a test), so a `$type` inside an argument is never instantiated.
+
+**What the web host loses.** The nine functions above, writes to `ops.health_results`, `ops.incidents` and `ops.active_user_counts`, every right on `ops.job_failure_streaks`, and DDL on Hangfire's tables. The console still reads the health board, incidents, the usage page and failed jobs as before.
+
+**Consequences.** A console session, with or without a user, can no longer call a worker function: the gap test becomes a regression test that it cannot. Deploys need a fourth secret (`ConnectionStrings:Worker` for the migrator and the worker). The migration owner needs CREATEROLE (or superuser) to create `erp_worker` and give it its login, admin rights on `erp_app` to grant the membership, and, on a database whose Hangfire tables were created by `erp_app`, membership of `erp_app` to take them over; the Compose owner `erp` is a superuser. On the pilot (W-19) an administrator may create `erp_worker` beforehand, with its membership of `erp_app` (inherit, no set) and its password, and leave `ConnectionStrings:Worker` unset for the migrator: migration 0008 then grants nothing and only checks the role (no superuser, BYPASSRLS, CREATEROLE, CREATEDB or REPLICATION attribute, no other membership, no member that can use its rights), but taking over Hangfire tables that `erp_app` created still needs the owner to be a member of `erp_app`. Residual (W-42): `erp_app` can still enqueue the allow-listed platform jobs (today six platform jobs without a tenant, idempotent and bounded, so running them early or often is a nuisance only) and, once tenant-scoped jobs exist, such a job for any tenant, because a row the web host writes and a row injected as `erp_app` are indistinguishable; it can also delete or re-time the recurring-job entries, stalling the worker's recurring jobs until a restart adds them again (availability only); this is to be closed before the first tenant-scoped job. Related (W-41): `ops.write_platform_audit` still accepts any actor from a console session.

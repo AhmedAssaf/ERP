@@ -141,8 +141,9 @@ public sealed class PlatformFunctionRulesTests(DatabaseFixture db)
         var (companyId, vendorUser) = await VendorAsync();
         const string sql = "select * from tenancy.referenced_logos()";
 
-        // The worker: none of the three. Every other session (the connection role is the same) is refused.
-        await using var worker = await AppConnectionAsync(null, null, null);
+        // The worker: its own role (W-36) and none of the three. Every application-role session is refused, by the grant
+        // since W-36, the console's included.
+        await using var worker = await ActivityRows.AppSessionAsync(db.WorkerConnectionString, null, null, null, Ct);
         (await StateAsync(worker, sql)).ShouldNotBe("refused");
         await using var staff = await AppConnectionAsync(TestTenants.Acme.TenantId, null, "acme.admin");
         (await StateAsync(staff, sql)).ShouldBe("refused");

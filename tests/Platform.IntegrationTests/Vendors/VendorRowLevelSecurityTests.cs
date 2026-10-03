@@ -345,38 +345,42 @@ public sealed partial class VendorRowLevelSecurityTests(DatabaseFixture db) : IA
     }
 
     [Theory]
-    [InlineData("join_tenant", "")]
-    [InlineData("approve_relationship", "uuid")]
-    [InlineData("register_company", "text, text, text, text, text, text, text, text, text, text")]
-    [InlineData("stale_uploads", "")]
-    [InlineData("remove_stale_upload", "uuid")]
-    [InlineData("claim_stale_upload", "uuid")]
-    [InlineData("pending_scan_documents", "integer")]
-    [InlineData("related_companies", "")]
-    [InlineData("related_current_documents", "")]
-    [InlineData("related_company", "uuid")]
-    [InlineData("related_documents", "uuid")]
-    [InlineData("consent_grant_in_force", "uuid, uuid, text")]
-    public async Task Relationship_functions_run_as_their_owner_with_a_pinned_search_path_and_only_the_app_role_may_call_them(
-        string name, string arguments)
+    [InlineData("join_tenant", "", "erp_app")]
+    [InlineData("approve_relationship", "uuid", "erp_app")]
+    [InlineData("register_company", "text, text, text, text, text, text, text, text, text, text", "erp_app")]
+    [InlineData("stale_uploads", "", "erp_worker")]
+    [InlineData("remove_stale_upload", "uuid", "erp_worker")]
+    [InlineData("claim_stale_upload", "uuid", "erp_worker")]
+    [InlineData("pending_scan_documents", "integer", "erp_worker")]
+    [InlineData("related_companies", "", "erp_app")]
+    [InlineData("related_current_documents", "", "erp_app")]
+    [InlineData("related_company", "uuid", "erp_app")]
+    [InlineData("related_documents", "uuid", "erp_app")]
+    [InlineData("consent_grant_in_force", "uuid, uuid, text", "erp_app")]
+    public async Task Relationship_functions_run_as_their_owner_with_a_pinned_search_path_and_only_their_caller_role_may_call_them(
+        string name, string arguments, string caller)
     {
         await using var owner = new NpgsqlConnection(db.OwnerConnectionString);
         await owner.OpenAsync(Ct);
         await using var command = new NpgsqlCommand("""
             select p.prosecdef, p.proconfig::text, pg_get_function_identity_arguments(p.oid),
-                   has_function_privilege('erp_app', p.oid, 'execute'),
-                   has_function_privilege('public', p.oid, 'execute')
+                   has_function_privilege(@caller, p.oid, 'execute'),
+                   has_function_privilege('public', p.oid, 'execute'),
+                   has_function_privilege('erp_app', p.oid, 'execute')
             from pg_proc p join pg_namespace n on n.oid = p.pronamespace
             where n.nspname = 'vendor' and p.proname = @name
             """, owner);
         command.Parameters.AddWithValue("name", name);
+        command.Parameters.AddWithValue("caller", caller);
         await using var reader = await command.ExecuteReaderAsync(Ct);
         (await reader.ReadAsync(Ct)).ShouldBeTrue($"vendor.{name} exists");
         reader.GetBoolean(0).ShouldBeTrue("security definer");
         reader.GetString(1).ShouldContain("search_path=vendor, pg_temp");
         ArgumentNames().Replace(reader.GetString(2), string.Empty).ShouldBe(arguments);
-        reader.GetBoolean(3).ShouldBeTrue("erp_app may execute it");
+        reader.GetBoolean(3).ShouldBeTrue($"{caller} may execute it");
         reader.GetBoolean(4).ShouldBeFalse("public may not execute it");
+        // W-36: the worker's functions are the worker role's alone; erp_app (the web host and the console) may not call them.
+        reader.GetBoolean(5).ShouldBe(caller == "erp_app", "erp_app may execute only the request path's functions");
         (await reader.ReadAsync(Ct)).ShouldBeFalse($"vendor.{name} has one signature");
     }
 

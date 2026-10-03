@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using Npgsql;
 using Platform.Modules.Tenancy.Contracts;
 using Platform.Shared.Storage;
+using Platform.Shared.Jobs;
 
 namespace Platform.Modules.Tenancy.Branding;
 
@@ -34,6 +35,7 @@ internal sealed class BrandingLogoCleanupOptions
 /// counts, tenant ids and error types only (N-10).
 /// </para>
 /// </summary>
+[PlatformJob]
 internal sealed partial class BrandingLogoCleanupJob(
     [FromKeyedServices(TenancyModule.DataSourceKey)] NpgsqlDataSource dataSource,
     ITenantSlugs tenants,

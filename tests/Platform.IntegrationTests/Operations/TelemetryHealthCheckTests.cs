@@ -394,7 +394,7 @@ public sealed class TelemetryHealthCheckTests(DatabaseFixture db, MailpitFixture
         builder.AddPlatformTelemetry(TelemetryNames.Services.Worker);
         telemetry.AddTo(builder.Services);
         builder.Services.AddPlatformShared();
-        builder.Services.AddOperationsModule(db.AppConnectionString);
+        builder.Services.AddOperationsModule(db.WorkerConnectionString);
         builder.Services.AddOperationsAlerts(builder.Configuration);
         builder.Services.AddTelemetryHealthCheck(builder.Configuration);
         builder.Services.AddHealthCheckJob();

@@ -42,7 +42,7 @@ public sealed class AlertFallbackTests(DatabaseFixture db, MailpitFixture mailpi
     [Fact]
     public async Task With_the_store_down_each_unhealthy_component_is_alerted_once_and_recovers_once()
     {
-        using var host = await StartHostAsync(db.AppConnectionString);
+        using var host = await StartHostAsync(db.WorkerConnectionString);
         var postgres = new SwitchableCheck(CheckStatus.Unhealthy, "NpgsqlException: Could not reach PostgreSQL.");
         var healthLog = new SwitchableHealthLog { Down = true };
         var fallback = new FallbackAlertState();
@@ -79,7 +79,7 @@ public sealed class AlertFallbackTests(DatabaseFixture db, MailpitFixture mailpi
     public async Task When_the_store_returns_an_incident_already_announced_by_the_fallback_is_not_announced_again()
     {
         var component = $"fallback-component-{Guid.NewGuid():N}";
-        using var host = await StartHostAsync(db.AppConnectionString);
+        using var host = await StartHostAsync(db.WorkerConnectionString);
         var check = new SwitchableCheck(CheckStatus.Unhealthy, "Could not reach it.");
         var healthLog = new SwitchableHealthLog { Down = true };
         var fallback = new FallbackAlertState();
@@ -140,7 +140,7 @@ public sealed class AlertFallbackTests(DatabaseFixture db, MailpitFixture mailpi
     {
         var first = $"resend-first-{Guid.NewGuid():N}";
         var second = $"resend-second-{Guid.NewGuid():N}";
-        using var host = await StartHostAsync(db.AppConnectionString, services =>
+        using var host = await StartHostAsync(db.WorkerConnectionString, services =>
             services.AddSingleton<IAlertSender>(sp =>
                 new FailOnceSender(new MailKitAlertSender(sp.GetRequiredService<AlertSettings>()), $"{second} is down")));
 

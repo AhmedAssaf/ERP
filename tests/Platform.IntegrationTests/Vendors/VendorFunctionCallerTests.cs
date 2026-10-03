@@ -7,9 +7,9 @@ namespace Platform.IntegrationTests.Vendors;
 
 /// <summary>
 /// ADR-0012 point 4 (pentest P-2, P-3, P-6): security-definer functions state who may call them. The worker's functions
-/// (the upload cleanup's list, claim and removal, and the retry scan's queue) answer only a session with neither a tenant
-/// nor a vendor context, as the worker's jobs run; approving a relationship is for staff only, so it refuses a vendor
-/// context and an acting user who is a vendor user.
+/// (the upload cleanup's list, claim and removal, and the retry scan's queue) are executable only by the worker's own role
+/// (W-36) and, as defence in depth, answer it only with neither a tenant nor a vendor context, as the worker's jobs run;
+/// approving a relationship is for staff only, so it refuses a vendor context and an acting user who is a vendor user.
 /// </summary>
 [Collection(DatabaseCollection.Name)]
 public sealed class VendorFunctionCallerTests(DatabaseFixture db)
@@ -27,7 +27,9 @@ public sealed class VendorFunctionCallerTests(DatabaseFixture db)
         var documentId = await InsertPendingDocumentAsOwnerAsync(companyId);
         try
         {
-            await using var connection = await AppConnectionAsync(
+            // The worker's own role with a context: the functions' own rule still holds.
+            await using var connection = await ConnectionAsync(
+                db.WorkerConnectionString,
                 context.Contains("tenant", StringComparison.Ordinal) ? TestTenants.Acme.TenantId : null,
                 context.Contains("vendor", StringComparison.Ordinal) ? companyId : null,
                 userId);
@@ -51,7 +53,7 @@ public sealed class VendorFunctionCallerTests(DatabaseFixture db)
         var documentId = await InsertPendingDocumentAsOwnerAsync(companyId);
         try
         {
-            await using var connection = await AppConnectionAsync(null, null, null);
+            await using var connection = await ConnectionAsync(db.WorkerConnectionString, null, null, null);
             (await CountAsync(connection, "select count(*)::int from vendor.stale_uploads() where id = @value", uploadId)).ShouldBe(1);
             (await CountAsync(connection, "select count(*)::int from vendor.pending_scan_documents(1000) where id = @value", documentId)).ShouldBe(1);
             await using var transaction = await connection.BeginTransactionAsync(Ct);
@@ -101,22 +103,25 @@ public sealed class VendorFunctionCallerTests(DatabaseFixture db)
     }
 
     /// <summary>
-    /// A known gap, pinned so it is not forgotten (ADR-0012 point 4): until a separate worker role exists, "no tenant and
-    /// no vendor context" is also what a platform-host session looks like, so such a session may call the worker's
-    /// functions. The platform host serves only platform admins behind the PlatformAdmin policy with OTP.
+    /// The known gap of ADR-0012 point 4, closed by W-36: "no tenant and no vendor context" is also what a platform-host
+    /// session looks like, so until the worker had its own role such a session could call the worker's functions. Now the
+    /// application role may not execute them at all, with or without an acting user.
     /// </summary>
-    [Fact]
-    public async Task Known_gap_a_platform_host_session_counts_as_the_worker_until_the_worker_role_exists()
+    [Theory]
+    [InlineData("platform-admin-sub")]
+    [InlineData(null)]
+    public async Task A_platform_host_session_cannot_call_the_worker_functions(string? actingUser)
     {
         var (companyId, _) = await VendorAsync("Worker Role Gap");
         var uploadId = await InsertStaleUploadAsOwnerAsync(companyId);
         var documentId = await InsertPendingDocumentAsOwnerAsync(companyId);
         try
         {
-            // A platform admin's session: an acting user, but neither a tenant nor a vendor context.
-            await using var platformSession = await AppConnectionAsync(null, null, "platform-admin-sub");
-            (await CountAsync(platformSession, "select count(*)::int from vendor.stale_uploads() where id = @value", uploadId)).ShouldBe(1);
-            (await CountAsync(platformSession, "select count(*)::int from vendor.pending_scan_documents(1000) where id = @value", documentId)).ShouldBe(1);
+            await using var platformSession = await AppConnectionAsync(null, null, actingUser);
+            (await RefusedAsync(platformSession, "select count(*)::int from vendor.stale_uploads() where id = @value", uploadId)).ShouldBeTrue();
+            (await RefusedAsync(platformSession, "select count(*)::int from vendor.pending_scan_documents(1000) where id = @value", documentId)).ShouldBeTrue();
+            (await RefusedAsync(platformSession, "select count(*)::int from vendor.claim_stale_upload(@value)", uploadId)).ShouldBeTrue();
+            (await RefusedAsync(platformSession, "select vendor.remove_stale_upload(@value)", uploadId)).ShouldBeTrue();
         }
         finally
         {
@@ -146,9 +151,12 @@ public sealed class VendorFunctionCallerTests(DatabaseFixture db)
         return (companyId, userId);
     }
 
-    private async Task<NpgsqlConnection> AppConnectionAsync(Guid? tenantId, Guid? vendorCompanyId, string? userId)
+    private Task<NpgsqlConnection> AppConnectionAsync(Guid? tenantId, Guid? vendorCompanyId, string? userId) =>
+        ConnectionAsync(db.AppConnectionString, tenantId, vendorCompanyId, userId);
+
+    private static async Task<NpgsqlConnection> ConnectionAsync(string connectionString, Guid? tenantId, Guid? vendorCompanyId, string? userId)
     {
-        var connection = new NpgsqlConnection(db.AppConnectionString);
+        var connection = new NpgsqlConnection(connectionString);
         await connection.OpenAsync(Ct);
         await using var command = new NpgsqlCommand("""
             select set_config('app.tenant_id', @tenant, false),

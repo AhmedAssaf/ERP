@@ -145,7 +145,7 @@ public sealed class VendorUploadCleanupTests(DatabaseFixture db, MinioFixture mi
         }
 
         // The worker's own session (no context) still cannot remove an upload younger than the margin.
-        await using var worker = new NpgsqlConnection(db.AppConnectionString);
+        await using var worker = new NpgsqlConnection(db.WorkerConnectionString);
         await worker.OpenAsync(Ct);
         await using var young = new NpgsqlCommand("select vendor.remove_stale_upload(@id)", worker);
         young.Parameters.AddWithValue("id", uploadId);
@@ -159,7 +159,7 @@ public sealed class VendorUploadCleanupTests(DatabaseFixture db, MinioFixture mi
         // Storage only, no job server: nothing here runs the jobs, and the schedule is removed again afterwards so no
         // other test's job server picks it up from the shared database.
         var services = new ServiceCollection();
-        services.AddJobClient(db.AppConnectionString);
+        services.AddJobClient(db.WorkerConnectionString);
         using var provider = services.BuildServiceProvider();
         var storage = provider.GetRequiredService<JobStorage>();
         try
@@ -185,10 +185,12 @@ public sealed class VendorUploadCleanupTests(DatabaseFixture db, MinioFixture mi
         await scope.ServiceProvider.GetRequiredService<VendorUploadCleanupJob>().RunAsync(Ct);
     }
 
+    // The worker's role (W-36): the cleanup is the worker's; the role also holds every application right, so the same host
+    // starts the vendor's uploads.
     private ModuleHost Host()
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(minio.Settings).Build();
-        return new ModuleHost(db.AppConnectionString, objectStorage: configuration, configure: services =>
+        return new ModuleHost(db.WorkerConnectionString, objectStorage: configuration, configure: services =>
         {
             services.AddVirusScanner(configuration);
             services.AddVendorJobs();
