@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Configuration;
+using Platform.Shared.Email;
 
 namespace Platform.Modules.Operations.Health;
 
@@ -15,8 +16,7 @@ internal sealed record HealthCheckSettings(
     string KeycloakManagementUrl,
     string ClamAvHost,
     int ClamAvPort,
-    string SmtpHost,
-    int SmtpPort,
+    SmtpConnectionSettings Smtp,
     string WebHealthUrl,
     int DiskAlertPercent,
     string? DiskPath)
@@ -35,8 +35,7 @@ internal sealed record HealthCheckSettings(
             configuration["Keycloak:ManagementUrl"] ?? "http://localhost:9000",
             configuration["ClamAv:Host"] ?? "localhost",
             ParseInt(configuration["ClamAv:Port"], 3310),
-            configuration["Smtp:Host"] ?? "localhost",
-            ParseInt(configuration["Smtp:Port"], 1025),
+            SmtpConnectionSettings.FromConfiguration(configuration),
             configuration["Platform:WebHealthUrl"] ?? "http://localhost:5273/health",
             ParseInt(configuration["Platform:DiskAlertPercent"], 80),
             configuration["Platform:DiskPath"] is { Length: > 0 } diskPath ? diskPath : null);

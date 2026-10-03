@@ -62,8 +62,8 @@ done
 log "pulling the pinned third-party images"
 dc --profile tools pull --ignore-buildable --quiet
 
-log "starting PostgreSQL, Redis, MinIO, the SMTP relay, Elasticsearch and ClamAV (ClamAV's first start downloads signatures)"
-dc up -d --wait --wait-timeout 900 postgres redis minio smtp-relay elasticsearch clamav
+log "starting PostgreSQL, Redis, MinIO, Elasticsearch and ClamAV (ClamAV's first start downloads signatures)"
+dc up -d --wait --wait-timeout 900 postgres redis minio elasticsearch clamav
 
 log "database roles and extensions (postgres/bootstrap.sql)"
 ERP_APP_DB_VERIFIER="$(env_value ERP_APP_DB_PASSWORD | scram_verifier)"

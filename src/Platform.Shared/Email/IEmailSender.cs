@@ -19,17 +19,21 @@ public interface IEmailSender
 public sealed class EmailDeliveryException(string message, Exception innerException) : Exception(message, innerException);
 
 /// <summary>
-/// <c>Smtp:Host</c>, <c>Smtp:Port</c> and <c>Smtp:From</c>; Development defaults to Mailpit on localhost:1025 (the
-/// Compose stack).
+/// <c>Smtp:*</c> (see <see cref="SmtpConnectionSettings"/>) and <c>Smtp:From</c>; Development defaults to Mailpit on
+/// localhost:1025 (the Compose stack), without login or TLS.
 /// </summary>
-public sealed record EmailSettings(string SmtpHost, int SmtpPort, string From)
+public sealed record EmailSettings(SmtpConnectionSettings Smtp, string From)
 {
+    public EmailSettings(string smtpHost, int smtpPort, string from)
+        : this(new SmtpConnectionSettings(smtpHost, smtpPort), from)
+    {
+    }
+
     public static EmailSettings FromConfiguration(IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         return new EmailSettings(
-            configuration["Smtp:Host"] ?? "localhost",
-            int.TryParse(configuration["Smtp:Port"], out var port) ? port : 1025,
+            SmtpConnectionSettings.FromConfiguration(configuration),
             configuration["Smtp:From"] ?? "no-reply@waslabid.test");
     }
 }

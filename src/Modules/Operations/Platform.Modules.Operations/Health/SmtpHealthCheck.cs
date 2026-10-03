@@ -1,13 +1,18 @@
 using MailKit.Net.Smtp;
-using MailKit.Security;
+using Platform.Shared.Email;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Platform.Modules.Operations.Health;
 
-/// <summary>Spec 3.2: connect and <c>NOOP</c>.</summary>
-internal sealed class SmtpHealthCheck(string host, int port) : IHealthCheck
+/// <summary>Spec 3.2: connect (log in when <c>Smtp:Username</c> is set) and <c>NOOP</c>.</summary>
+internal sealed class SmtpHealthCheck(SmtpConnectionSettings settings) : IHealthCheck
 {
     private const string Component = "SMTP";
+
+    public SmtpHealthCheck(string host, int port)
+        : this(new SmtpConnectionSettings(host, port))
+    {
+    }
 
     public async Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context, CancellationToken cancellationToken = default)
@@ -15,7 +20,7 @@ internal sealed class SmtpHealthCheck(string host, int port) : IHealthCheck
         try
         {
             using var client = new SmtpClient();
-            await client.ConnectAsync(host, port, SecureSocketOptions.Auto, cancellationToken);
+            await settings.ConnectAsync(client, cancellationToken);
             await client.NoOpAsync(cancellationToken);
             await client.DisconnectAsync(true, cancellationToken);
             return HealthCheckResult.Healthy();

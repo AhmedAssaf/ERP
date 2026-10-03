@@ -186,7 +186,7 @@ row sends one more alert, counted per recurring job id when it has one (every ru
 and per job id otherwise, in `ops.job_failure_streaks`; a success resets the count. The alert names the job as
 `Type.Method` only, never its arguments (N-10). It runs through a job-server-scoped filter, not Hangfire's
 process-wide `GlobalJobFilters`. Settings, all in `Platform.Worker`'s configuration:
-`Smtp:Host`/`Smtp:Port` (shared with the SMTP health check), `Smtp:From`, `Platform:AlertRecipients` (a list; empty
+`Smtp:Host`/`Smtp:Port` (shared with the SMTP health check and the staff-notice sender), `Smtp:Security` (optional: `Auto` default, `None`, `StartTls`, `Ssl`; Development stays plain for Mailpit), `Smtp:Username` and `Smtp:Password` (optional login; with no username none is attempted; the password only from user secrets or the secret store, never in an appsettings file, never logged: N-10; the health check logs in too), `Smtp:From`, `Platform:AlertRecipients` (a list; empty
 sends nothing rather than guessing a destination), `Platform:DiskAlertPercent` (default 80), `Platform:DiskPath` (the
 volume that holds PostgreSQL or object storage data in the deployment; default the worker's content root), and `Platform:BoardUrl`
 (the link an alert email includes: `https://platform.localhost:8443/platform` in Development). Development defaults

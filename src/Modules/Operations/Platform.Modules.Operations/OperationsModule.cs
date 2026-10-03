@@ -130,7 +130,7 @@ public static class OperationsModule
         services.AddSingleton(sp =>
         {
             var settings = sp.GetRequiredService<HealthCheckSettings>();
-            return new NamedHealthCheck(HealthComponents.Email, new SmtpHealthCheck(settings.SmtpHost, settings.SmtpPort));
+            return new NamedHealthCheck(HealthComponents.Email, new SmtpHealthCheck(settings.Smtp));
         });
         services.AddSingleton(sp =>
             new NamedHealthCheck(HealthComponents.Worker, new WorkerHeartbeatHealthCheck(sp.GetRequiredService<JobStorage>(), sp.GetRequiredService<TimeProvider>())));
