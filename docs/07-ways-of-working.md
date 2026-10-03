@@ -424,6 +424,15 @@ The worker does not load the key ring; it issues and reads no cookie. Make a cer
 `openssl req -x509 -newkey rsa:3072 -nodes -days 1095 -subj "/CN=waslabid-key-ring" -keyout k.pem -out c.pem` and
 `openssl pkcs12 -export -inkey k.pem -in c.pem -out key-ring.pfx`, then delete the PEM files.
 
+On-demand TLS (the pilot's Caddy, docs/19 section 9): optional settings of the web host, off when `TlsAsk:Port` is empty
+(as in Development, where Caddy uses local certificates for `*.localhost`).
+
+| Setting | What it is | Pilot |
+|---|---|---|
+| `TlsAsk:Port` | A second listener that serves only `GET /internal/tls-ask?domain=<host>` (200 allowed, 404 refused, 400 without a domain, 429 over the rate). Kestrel must bind it too (`ASPNETCORE_HTTP_PORTS=8080;8081`); no Caddy site block proxies to it. On every other port any `/internal` path is a 404 | `8081` |
+| `TlsAsk:TenantBaseDomain` | Required with the port. Allowed: a host one label under it that `tenancy.tenant_hosts` holds, never the platform host or an IP literal; upper case and one trailing dot are normalised | `TENANT_BASE_DOMAIN` |
+| `TlsAsk:RequestsPerSecond` | Lookups per second for the instance (burst the same), default 20 | default |
+
 #### The worker's database role (W-36)
 
 The worker connects as its own role, `erp_worker` (ADR-0012 addendum 2026-10-03), never as `erp_app`. `erp_worker` is a
