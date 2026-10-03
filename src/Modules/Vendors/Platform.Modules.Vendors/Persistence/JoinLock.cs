@@ -15,7 +15,9 @@ namespace Platform.Modules.Vendors.Persistence;
 /// The guarantee assumes PostgreSQL's <c>idle_in_transaction_session_timeout</c> stays 0 (its default, and not set by
 /// infra/compose) or above the Keycloak worst case of a join or an undo (token fetch, call and a 401 retry, 15 seconds
 /// each): a shorter one ends the session while it waits on Keycloak, which drops the lock mid-add or mid-revoke and lets
-/// the race back in.
+/// the race back in. W-37: a join takes a slot of <c>ConcurrentJoinGate</c> before it opens the transaction this lock lives
+/// in and keeps it through its undo, so at most <c>Vendors:MaxConcurrentJoins</c> transactions per instance hold this lock
+/// (and a pooled connection) while they wait on Keycloak.
 /// </summary>
 internal static class JoinLock
 {

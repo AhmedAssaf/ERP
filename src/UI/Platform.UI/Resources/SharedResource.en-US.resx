@@ -429,6 +429,7 @@
   <data name="Vendor.Consent.Error.AlreadyRevoked" xml:space="preserve"><value>This consent is already revoked.</value></data>
   <data name="Vendor.Consent.Error.NotFound" xml:space="preserve"><value>This consent was not found.</value></data>
   <data name="Vendor.Consent.Error.Generic" xml:space="preserve"><value>The change could not be completed. Try again in a moment.</value></data>
+  <data name="Vendor.Consent.Error.RateLimited" xml:space="preserve"><value>Your company has given too many consents in the last hour. Try again later.</value></data>
   <data name="Vendor.Consent.RevokeTitle" xml:space="preserve"><value>Revoke consent to {0}?</value></data>
   <data name="Vendor.Consent.RevokeBody" xml:space="preserve"><value>From now on the recipient may not receive these records. The consent and its revocation stay on record.</value></data>
   <data name="Vendor.Consent.RevokeConfirm" xml:space="preserve"><value>Revoke consent</value></data>
@@ -553,4 +554,6 @@
   <data name="Console.Ownership.OverCap" xml:space="preserve"><value>Five older requests for this company are still pending ({0} in all)</value></data>
   <data name="Console.Ownership.UpheldNotRecorded" xml:space="preserve"><value>{0} now belongs to {1}. The sign-in service outcome could not be recorded; the request is listed below for a retry.</value></data>
   <data name="Vendor.Join.Error.PendingRetry" xml:space="preserve"><value>WaslaBid moved your company to your account and is still giving you access to {0}. Try again later; there is nothing for you to do.</value></data>
+  <data name="Vendor.Join.Error.RateLimited" xml:space="preserve"><value>There have been too many requests to join {0} in the last minute. Wait a minute and try again.</value></data>
+  <data name="Vendor.Join.Error.Busy" xml:space="preserve"><value>The service is busy. Try again in a moment.</value></data>
 </root>

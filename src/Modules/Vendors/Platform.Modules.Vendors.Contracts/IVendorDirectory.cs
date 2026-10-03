@@ -106,8 +106,10 @@ public sealed record VendorJoined(bool RelationshipCreated, bool OrganizationAdd
 public interface IVendorJoin
 {
     /// <summary>
-    /// Joins the host tenant. Keycloak failing: <see cref="VendorErrors.JoinFailed"/>, with nothing left behind. Throws
-    /// <see cref="InvalidOperationException"/> without a tenant, a vendor context or an acting user of that company.
+    /// Joins the host tenant. Keycloak failing: <see cref="VendorErrors.JoinFailed"/>, with nothing left behind. Over the
+    /// per-user or (first-time joins only) per-tenant join limit (W-37): <see cref="VendorErrors.JoinRateLimited"/>; no slot
+    /// of the instance's cap on joins in flight: <see cref="VendorErrors.JoinBusy"/>; both before any Keycloak call or write.
+    /// Throws <see cref="InvalidOperationException"/> without a tenant, a vendor context or an acting user of that company.
     /// </summary>
     Task<Result<VendorJoined>> JoinAsync(CancellationToken cancellationToken = default);
 }
