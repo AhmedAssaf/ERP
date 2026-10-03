@@ -198,6 +198,47 @@ public sealed class JobAuthenticityTests(DatabaseFixture db) : IAsyncDisposable
     }
 
     [Fact]
+    public async Task A_run_lock_is_released_only_by_the_run_that_took_it()
+    {
+        // Fix round 3: the race the review found, driven step by step on one thread as Hangfire drives a run (filter,
+        // activator, filter). A second run of the same job id is refused in Admit; its Finish must not release the first
+        // run's lock.
+        await using var worker = await JobServerHost.StartAsync(db.WorkerConnectionString, cancellationToken: Ct);
+        var marker = Marker();
+        var jobId = Client(_web).Create(Job.FromExpression(() => AuthenticityProbe.Run(marker)), new ScheduledState(TimeSpan.FromHours(1)));
+        var gate = worker.Services.GetRequiredService<JobGate>();
+        using var connection = worker.Storage.GetConnection();
+        var job = new BackgroundJob(jobId, connection.GetJobData(jobId).Job, DateTime.UtcNow);
+
+        var winner = JobGate.BeginRun(jobId);
+        gate.Admit(connection, job);
+        winner.HoldsLock.ShouldBeTrue();
+
+        var loser = JobGate.BeginRun(jobId);
+        Should.Throw<JobRefusedException>(() => gate.Admit(connection, job)).Message.ShouldContain("already running");
+        loser.HoldsLock.ShouldBeFalse();
+        gate.Finish(loser, succeeded: false);
+
+        winner.HoldsLock.ShouldBeTrue("the refused run released nothing");
+        gate.Refusal(connection, job).ShouldNotBeNull().ShouldContain("already running");
+        var third = JobGate.BeginRun(jobId);
+        Should.Throw<JobRefusedException>(() => gate.Admit(connection, job)).Message.ShouldContain("already running");
+        gate.Finish(third, succeeded: false);
+
+        gate.Finish(winner, succeeded: false);
+        winner.HoldsLock.ShouldBeFalse();
+        gate.Refusal(connection, job).ShouldBeNull("released by the run that took it; a failed run may run again");
+        var fourth = JobGate.BeginRun(jobId);
+        gate.Admit(connection, job);
+        fourth.HoldsLock.ShouldBeTrue();
+        gate.Finish(fourth, succeeded: false);
+
+        // Outside a run the job server's filter opened, the activator takes no lock and admits nothing.
+        Should.Throw<JobRefusedException>(() => gate.Admit(connection, job)).Message.ShouldContain("not opened by the worker's job filter");
+        AuthenticityProbe.Seen.ShouldNotContainKey(marker);
+    }
+
+    [Fact]
     public async Task A_culture_changed_after_signing_never_runs()
     {
         var marker = Marker();

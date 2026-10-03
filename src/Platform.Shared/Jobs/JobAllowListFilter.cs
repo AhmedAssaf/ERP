@@ -17,6 +17,8 @@ internal sealed partial class JobAllowListFilter(JobGate gate, ILogger<JobAllowL
 {
     public bool AllowMultiple => false;
 
+    private static readonly string RunSlotItem = typeof(JobAllowListFilter).FullName + ".RunSlot";
+
     // After AutomaticRetryAttribute (20), so the election sees its retry and can replace it.
     public int Order => 30;
 
@@ -28,6 +30,9 @@ internal sealed partial class JobAllowListFilter(JobGate gate, ILogger<JobAllowL
             LogRefused(logger, context.BackgroundJob.Id, reason);
             throw new JobRefusedException($"Job {context.BackgroundJob.Id} is refused: {reason}.");
         }
+
+        // Fix round 3: this run's own slot; the activator puts the run lock it takes there, and OnPerformed releases only it.
+        context.Items[RunSlotItem] = JobGate.BeginRun(context.BackgroundJob.Id);
     }
 
     /// <summary>
@@ -39,10 +44,16 @@ internal sealed partial class JobAllowListFilter(JobGate gate, ILogger<JobAllowL
     public void OnPerformed(PerformedContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
+        if (!context.Items.TryGetValue(RunSlotItem, out var item) || item is not JobGate.RunSlot slot)
+        {
+            return;
+        }
+
+        context.Items.Remove(RunSlotItem);
         var succeeded = context.Exception is null || context.ExceptionHandled;
         try
         {
-            gate.Finish(context.BackgroundJob.Id, succeeded);
+            gate.Finish(slot, succeeded);
         }
         catch (Exception exception) when (exception is Npgsql.NpgsqlException or InvalidOperationException or TimeoutException)
         {

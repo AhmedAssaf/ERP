@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using Hangfire;
 using Hangfire.Storage;
 
@@ -15,12 +14,21 @@ namespace Platform.Shared.Jobs;
 /// job as loaded, binds the nonce to the job id, and returns the binding the job then runs with. A row whose parameters
 /// change after the filter's read is therefore judged on the values actually used.</item>
 /// </list>
+/// Fix round 3: the run lock <see cref="Admit"/> takes belongs to the run that took it. <see cref="JobAllowListFilter"/> opens a
+/// <see cref="RunSlot"/> per run (<see cref="BeginRun"/>) and keeps it in that run's perform context; Hangfire calls the
+/// filter's OnPerforming, the activator and OnPerformed one after the other on the run's worker thread, so the activator
+/// finds the run's slot through a thread-static reference and puts its lock there, and <see cref="Finish"/> releases only the
+/// lock in the slot it is given. A run refused in <see cref="Admit"/> holds no lock and releases none.
 /// </summary>
 public sealed class JobGate
 {
+    private const string AlreadyRunning = "the job is already running (another run of the same job holds its signature)";
+
+    [ThreadStatic]
+    private static RunSlot? _current;
+
     private readonly JobAuthenticity _authenticity;
     private readonly JobReplayLedger _ledger;
-    private readonly ConcurrentDictionary<string, JobReplayLedger.RunLock> _running = new(StringComparer.Ordinal);
 
     internal JobGate(JobAuthenticity authenticity, JobReplayLedger ledger)
     {
@@ -55,7 +63,8 @@ public sealed class JobGate
 
     /// <summary>
     /// The binding the job runs with; throws <see cref="JobRefusedException"/> when the row is refused. An admitted job holds
-    /// its run lock until <see cref="Finish"/> (fix round 2), so a second run of the same job id meanwhile is refused.
+    /// its run lock in its own <see cref="RunSlot"/> until <see cref="Finish"/> (fix rounds 2 and 3), so a second run of the
+    /// same job id meanwhile is refused.
     /// </summary>
     public JobBinding Admit(IStorageConnection connection, BackgroundJob backgroundJob)
     {
@@ -74,9 +83,12 @@ public sealed class JobGate
             }
         }
 
-        if (refusal is null && runLock is not null && !_running.TryAdd(backgroundJob.Id, runLock))
+        // The run's own slot, opened by the filter on this thread for this job; without one (an activator used without the
+        // job server's filter) the run is refused rather than left holding a lock nobody releases.
+        var slot = _current;
+        if (refusal is null && (slot is null || slot.Lock is not null || !string.Equals(slot.JobId, backgroundJob.Id, StringComparison.Ordinal)))
         {
-            refusal = AlreadyRunning;
+            refusal = "the job was not opened by the worker's job filter";
         }
 
         if (refusal is not null)
@@ -85,34 +97,64 @@ public sealed class JobGate
             throw new JobRefusedException($"Job {backgroundJob.Id} is refused: {refusal}.");
         }
 
+        slot!.Lock = runLock;
         return stored.Binding;
     }
 
-    /// <summary>
-    /// Ends an admitted run: when it <paramref name="succeeded"/>, its signature is marked completed and never admits a run
-    /// again; then its run lock is released, after the completion, so no second run slips in between. Nothing happens for a
-    /// job this gate did not admit.
-    /// </summary>
-    public void Finish(string jobId, bool succeeded)
+    /// <summary>Opens the slot of the run of <paramref name="jobId"/> starting on this thread; the filter keeps it in the run's context.</summary>
+    public static RunSlot BeginRun(string jobId)
     {
         ArgumentException.ThrowIfNullOrEmpty(jobId);
+        var slot = new RunSlot(jobId);
+        _current = slot;
+        return slot;
+    }
+
+    /// <summary>
+    /// Ends the run of <paramref name="slot"/>: when it was admitted and <paramref name="succeeded"/>, its signature is marked
+    /// completed and never admits a run again; then the run's own lock is released, after the completion, so no second run
+    /// slips in between. A run that was refused (no lock in its slot) completes and releases nothing.
+    /// </summary>
+    public void Finish(RunSlot slot, bool succeeded)
+    {
+        ArgumentNullException.ThrowIfNull(slot);
+        if (ReferenceEquals(_current, slot))
+        {
+            _current = null;
+        }
+
+        var runLock = slot.Lock;
+        if (runLock is null)
+        {
+            return;
+        }
+
+        slot.Lock = null;
         try
         {
             if (succeeded)
             {
-                _ledger.Complete(jobId);
+                _ledger.Complete(slot.JobId);
             }
         }
         finally
         {
-            if (_running.TryRemove(jobId, out var runLock))
-            {
-                runLock.Dispose();
-            }
+            runLock.Dispose();
         }
     }
 
-    private const string AlreadyRunning = "the job is already running (another run of the same job holds its signature)";
+    /// <summary>One run of a job: the run lock its admission took, if any. Only the run's own filter call releases it.</summary>
+    public sealed class RunSlot
+    {
+        internal RunSlot(string jobId) => JobId = jobId;
+
+        internal string JobId { get; }
+
+        internal JobReplayLedger.RunLock? Lock { get; set; }
+
+        /// <summary>True while the run holds its run lock.</summary>
+        public bool HoldsLock => Lock is not null;
+    }
 
     /// <summary>The <c>Tenant</c> snapshot's id when only the snapshot is present, so the allow-list's tenant rule sees it too.</summary>
     private static string? TenantOf(StoredBinding stored) => stored.Binding.Tenant?.TenantId.ToString("D");
