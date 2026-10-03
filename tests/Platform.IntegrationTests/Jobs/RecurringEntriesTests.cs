@@ -98,13 +98,15 @@ public sealed class RecurringEntriesTests(DatabaseFixture db)
                 connection.GetAllItemsFromSet(RecurringJobCatalog.RecurringJobsSet).ShouldContain(deleted);
             }
 
-            var open = (await IncidentsAsync(worker, since)).Where(i => i.Component == HealthComponents.Jobs).ToList();
-            open.ShouldHaveSingleItem().ClosedAt.ShouldBeNull();
-            open[0].LastMessage.ShouldNotBeNull().ShouldContain(deleted);
+            // This test's incident only: an earlier test's closed "Jobs" incident may fall inside the window.
+            var open = (await IncidentsAsync(worker, since)).Where(i => i.Component == HealthComponents.Jobs && i.ClosedAt is null).ToList();
+            open.ShouldHaveSingleItem().LastMessage.ShouldNotBeNull().ShouldContain(deleted);
+            open[0].LastMessage.ShouldContain(retimed);
 
             (await guard.RunOnceAsync(Ct)).ShouldBeEmpty("restored");
-            var closed = (await IncidentsAsync(worker, since)).Where(i => i.Component == HealthComponents.Jobs).ToList();
-            closed.ShouldHaveSingleItem().ClosedAt.ShouldNotBeNull("closed by the intact pass");
+            var after = await IncidentsAsync(worker, since);
+            after.Where(i => i.Component == HealthComponents.Jobs && i.ClosedAt is null).ShouldBeEmpty();
+            after.Single(i => i.Id == open[0].Id).ClosedAt.ShouldNotBeNull("closed by the intact pass");
         }
         finally
         {
