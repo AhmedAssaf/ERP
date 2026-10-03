@@ -250,13 +250,23 @@ does not start, `sudo infra/pilot/compose.sh logs web` (an unhandled startup exc
 
 The layout is write-once, so the bucket's 35-day retention rule (step 4) never blocks a backup: a snapshot is a new
 folder, objects are copied with `--immutable` (the platform writes each object once: logos by hash, documents by id),
-and pruning waits 36 days.
+and pruning waits 36 days. A key already stored is skipped (`--ignore-existing`), since a key always names the same bytes:
+saving the same logo again rewrites its key with a new date but identical content. Each snapshot gets its `COMPLETE`
+marker last, in a second upload; a run that dies mid-upload leaves a folder without it, which `restore.sh --list` shows
+as INCOMPLETE and no restore ever picks.
+
+**Erasure window (PDPL deletion, N-02):** a vendor document or row deleted on the platform leaves the backups 36 to 37
+days later: the snapshots that hold it age out after 36 days and the nightly run removes them (and any object no kept
+snapshot lists) within the next day. That holds only while backups succeed: a failing backup also stops pruning, which
+the watchdog's backup-age alert (26 hours) reports. The retention rule makes anything younger than 35 days impossible to
+delete, so an erasure request cannot be honoured sooner in the backups; say so in the privacy notice.
 
 Everything is encrypted on the VM (rclone crypt: contents and names) before it reaches the bucket in Jeddah;
 `BACKUP_CRYPT_PASSWORD` and `BACKUP_CRYPT_SALT` from the password manager are the only way to read it. The timer runs at
 02:30 Riyadh time. Not backed up: Elasticsearch (telemetry), Redis (counters), Caddy certificates (re-issued), and the
 secrets. Optional extra: an OCI boot volume backup policy (Always Free includes five volume backups) as a coarse second
-copy. Mind the Always Free Object Storage allowance (20 GB in all).
+copy. Mind the Always Free Object Storage allowance (20 GB in all): each backup logs the bucket's stored size at the end
+(`journalctl -u waslabid-backup`).
 
 **Monthly restore test:** `sudo infra/pilot/restore.sh --verify` restores the newest snapshot into a throwaway
 PostgreSQL with no network, applies `bootstrap.sql` as a real restore does, prints row counts (tenants, members, key-ring

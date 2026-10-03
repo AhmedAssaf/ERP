@@ -37,6 +37,8 @@ declare -A GEN=(
 # output and goes only into the new file, never into another process's arguments, where `ps` could see it.
 filled=0
 tmp="$(mktemp "$PILOT_DIR/.env.XXXXXX")"
+# A run that stops half-way must not leave a file of secrets behind (.gitignore also ignores .env.*).
+trap 'rm -f "$tmp"' EXIT
 while IFS= read -r line || [ -n "$line" ]; do
   key="${line%%=*}"
   if [ "$line" = "$key=" ] && [ -n "${GEN[$key]:-}" ]; then

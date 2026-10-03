@@ -2,7 +2,8 @@
 # W-19, N-07: restore from the encrypted backups in OCI Object Storage (Jeddah). Three modes:
 #
 #   sudo infra/pilot/restore.sh --list
-#       the snapshot stamps available, newest last
+#       every snapshot stamp, oldest first, marked complete or INCOMPLETE (a backup run that died mid-upload); only a
+#       complete snapshot is ever restored, and without a STAMP the newest complete one
 #   sudo infra/pilot/restore.sh --verify [STAMP]
 #       the monthly restore test (N-07), safe on the live VM: downloads a snapshot (latest by default), restores both
 #       databases into a throwaway PostgreSQL container with no network and no volume, applies bootstrap.sql exactly as
@@ -43,13 +44,22 @@ umask 077
 rc() { dc --profile tools run --rm -T --no-deps "${RC_ENV[@]}" rclone "$@" < /dev/null; }
 RC_ENV=()
 
-stamps() {
+# complete_stamps: snapshots whose COMPLETE marker was uploaded (backup.sh writes it last), oldest first.
+complete_stamps() {
+  rc lsf -R --files-only --include "*/COMPLETE" vault:nightly | tr -d '\r' | sed -n 's#^\(20[^/]*Z\)/COMPLETE$#\1#p' | sort
+}
+
+all_stamps() {
   rc lsf --dirs-only vault:nightly | tr -d '/\r' | grep -E '^20.*Z$' | sort
 }
 
 download() {
-  [ -n "$STAMP" ] || STAMP="$(stamps | tail -n 1)"
-  [ -n "$STAMP" ] || die "no snapshot found in vault:nightly"
+  local complete
+  complete="$(complete_stamps)"
+  [ -n "$STAMP" ] || STAMP="$(tail -n 1 <<<"$complete")"
+  [ -n "$STAMP" ] || die "no complete snapshot in vault:nightly (restore.sh --list)"
+  grep -qx "$STAMP" <<<"$complete" \
+    || die "snapshot $STAMP is incomplete (no COMPLETE marker: its backup run died mid-upload); pick another (--list)"
   RESTORE_DIR="$BACKUP_DIR/restore-$STAMP"
   mkdir -p "$RESTORE_DIR"
   log "downloading snapshot $STAMP"
@@ -132,7 +142,10 @@ SQL
 
 case "$MODE" in
   --list)
-    stamps
+    complete="$(complete_stamps)"
+    all_stamps | while read -r stamp; do
+      if grep -qx "$stamp" <<<"$complete"; then echo "$stamp complete"; else echo "$stamp INCOMPLETE (never restored)"; fi
+    done
     ;;
 
   --verify)

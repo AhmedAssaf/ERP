@@ -4,7 +4,8 @@
 #
 #   nightly/<stamp>/   globals.sql (roles, no passwords), platform.dump and keycloak.dump (pg_dump custom format),
 #                      minio-manifest.txt (every object key of the bucket at that time, staging/ excluded), MANIFEST,
-#                      SHA256SUMS; a new folder every night, kept BACKUP_RETENTION_DAYS (35, N-07)
+#                      SHA256SUMS, and COMPLETE, uploaded last, once everything else is there; a new folder every
+#                      night, kept BACKUP_RETENTION_DAYS (35, N-07)
 #   minio/objects/     every object once, never overwritten (the platform writes objects once: logos by hash, documents
 #                      by id); a snapshot is restored by copying the keys its minio-manifest.txt lists
 #
@@ -56,9 +57,13 @@ done
 log "listing the MinIO bucket $BUCKET"
 rc lsf -R --files-only --exclude "staging/**" "minio:$BUCKET" | tr -d '\r' | sort > "$WORK/minio-manifest.txt"
 
-log "copying new objects (encrypted) to vault:minio/objects; existing ones are never overwritten"
+# --ignore-existing, not --immutable: keys are content-addressed or unique (logos by hash, documents by id), so a key
+# already stored holds the same bytes even when the platform rewrote it (saving the same logo again writes the same key
+# with a new modification time). --immutable would call that a modified file and fail every night from then on, and
+# the retention rule would refuse the overwrite anyway.
+log "copying new objects (encrypted) to vault:minio/objects; a key already stored is skipped"
 rc copy "minio:$BUCKET" "vault:minio/objects" --files-from-raw "/backup/$STAMP/minio-manifest.txt" \
-  --immutable --no-traverse --stats-one-line --stats 0
+  --ignore-existing --no-traverse --stats-one-line --stats 0
 # An object deleted between the listing and the copy is not in the store: drop it from the snapshot, loudly.
 rc lsf -R --files-only "vault:minio/objects" | tr -d '\r' | sort > "$BACKUP_DIR/stored-objects.txt"
 missing="$(comm -23 "$WORK/minio-manifest.txt" "$BACKUP_DIR/stored-objects.txt" | wc -l)"
@@ -77,8 +82,12 @@ EOF
 (cd "$WORK" && sha256sum globals.sql platform.dump keycloak.dump minio-manifest.txt MANIFEST > SHA256SUMS)
 log "snapshot size: $(du -sh "$WORK" | cut -f1), $(wc -l < "$WORK/minio-manifest.txt") objects"
 
+# Two copies: every file first, then COMPLETE, only once the first copy succeeded. A run that dies mid-upload leaves a
+# folder without COMPLETE (kept by the retention rule), which restore.sh lists as incomplete and never picks.
 log "uploading the snapshot (encrypted) to vault:nightly/$STAMP"
-rc copy "/backup/$STAMP" "vault:nightly/$STAMP" --immutable --stats-one-line --stats 0
+rc copy "/backup/$STAMP" "vault:nightly/$STAMP" --exclude COMPLETE --immutable --stats-one-line --stats 0
+printf 'stamp=%s\nsha256sums=%s\n' "$STAMP" "$(sha256sum "$WORK/SHA256SUMS" | cut -d' ' -f1)" > "$WORK/COMPLETE"
+rc copy "/backup/$STAMP" "vault:nightly/$STAMP" --include COMPLETE --immutable --stats-one-line --stats 0
 
 # Pruning: snapshot folders by their stamp, then objects no kept snapshot lists. A deletion the retention rule still
 # refuses (an object uploaded less than RETENTION days ago) is only a warning; the next night tries again.
@@ -114,4 +123,8 @@ find "$BACKUP_DIR" -mindepth 1 -maxdepth 1 -type d -name '20*Z' | sort | head -n
 
 date -u +%s > "$STATE_DIR/last-backup"
 echo "$STAMP" > "$STATE_DIR/last-backup-stamp"
+# The stored (encrypted) bytes in the bucket, against the Always Free allowance of 20 GB for all Object Storage.
+OCI_BUCKET="$(env_value OCI_BACKUP_BUCKET)"
+size="$(rc size "oci:$OCI_BUCKET" 2>/dev/null | tr '\n' ' ' || true)"
+log "backup bucket $OCI_BUCKET holds: ${size:-size unavailable}"
 log "backup $STAMP done"
