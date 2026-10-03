@@ -304,7 +304,7 @@ Design: `docs/superpowers/specs/2026-09-26-ai-offer-review-design.md` and ADR-00
 
 | ID | Story | Pri | Size | Status | Depends on |
 |---|---|---|---|---|---|
-| W-13 | Three interviews with procurement or contracts managers, written up (kit: docs/15 and `docs/15-interview-tracker.xlsx`) | P0 | M | Backlog | |
+| W-13 | Three interviews with procurement or contracts managers, written up (kit: docs/15 and `docs/15-interview-tracker.xlsx`) | P0 | M | Backlog. Kit refreshed 2026-10-03; demo script docs/18; interviews not yet held | |
 | W-14 | Reference App demo or former-customer call answering the seven questions in document 04 section 10 | P0 | S | Backlog | |
 | W-15 | First customer signed for the pilot with a named tender and date | P0 | L | Backlog | W-13 |
 | W-16 | Pricing page draft: monthly per-tenant price, first tender free (the flat per-company model in document 11 section 8 is a hypothesis; the model is decided at W-31) | P0 | S | Backlog | W-13 |
@@ -317,7 +317,7 @@ Design: `docs/superpowers/specs/2026-09-26-ai-offer-review-design.md` and ADR-00
 - **W-14.** Given the Reference App demo or ex-customer call, when it is written up, then each of the seven questions in document 04 section 10 has an answer marked confirmed, denied, or still unknown with its source, and document 04 sections 3 and 6 are updated where an answer changed a verdict.
 - **W-15.** Given a signed pilot agreement, when the tender is named, then the plan in document 05 section 6 gets calendar dates.
 - **W-16.** Given the pricing draft, when reviewed, then it states a monthly per-tenant price with what is included, the first-tender-free offer with its conditions, the white-label domain add-on, and how the price was tested against at least two interview answers; no plan requires an implementation project.
-- **W-31.** Given the written-up interviews and the pricing test, when the gate is reviewed, then the result (pass or fail), the firms that would pay and at what price, and the named tender are recorded in document 11 section 10, and the pricing model is decided there.
+- **W-31.** Given the written-up interviews and the pricing test, when the gate is reviewed, then the result (pass or fail), the firms that would pay and at what price, and the named tender are recorded in document 11 section 10, and the pricing model is decided there. Working rule (docs/15 section 7, 2026-10-03): a firm counts as "would pay" only when it also names the budget owner who would approve the spend; stricter than the criterion as first written.
 - **W-32.** Given the partners, when the agreement is signed, then it states each partner's equity, cash, vesting, and role, and was drafted or reviewed by a Saudi lawyer; no cash moves before it is signed.
 - **W-17.** Given the dry run, when it completes, then every row of the document 05 section 7 table has a measured value and a pass or fail.
 - **W-18.** Given the pilot review, when it is held, then every document 05 section 7 measure has its live-tender value beside the dry-run value, the contracts officer's and finance approver's willingness to pay is recorded verbatim, and the version 1.1 scope is a ranked list of backlog IDs with any new stories added with acceptance criteria.
