@@ -143,11 +143,14 @@ policy() {
     }
   }"
 }
+# ignore_malformed (logs and traces) is pinned here although the built-in otel templates set it: a masked number-typed value
+# (NumericRedaction, spec 7.1) is kept in _source and the field listed in _ignored instead of the record being refused,
+# and a future change of the built-in template cannot remove it (these components are composed last).
 custom() {
-  local component=$1 name=$2 mappings=${3:-}
+  local component=$1 name=$2 mappings=${3:-} malformed=${4:-}
   es PUT "/_component_template/$component" "{
     \"template\": {
-      \"settings\": { \"index\": { \"lifecycle\": { \"name\": \"$name\" }, \"number_of_replicas\": 0 } }${mappings:+,
+      \"settings\": { \"index\": { \"lifecycle\": { \"name\": \"$name\" }, \"number_of_replicas\": 0${malformed:+, \"mapping\": { \"ignore_malformed\": true \}} } }${mappings:+,
       \"mappings\": $mappings}
     },
     \"_meta\": { \"owner\": \"waslabid\", \"managed_by\": \"infra/compose/observability/elastic-setup.sh\" }
@@ -197,10 +200,10 @@ ensure_usage_stream() {
 }
 step "lifecycle waslabid-logs ($TELEMETRY_LOGS_RETENTION) via logs-otel@custom"
 policy waslabid-logs "$TELEMETRY_LOGS_RETENTION"
-custom logs-otel@custom waslabid-logs
+custom logs-otel@custom waslabid-logs "" ignore_malformed
 step "lifecycle waslabid-traces ($TELEMETRY_TRACES_RETENTION) via traces-otel@custom"
 policy waslabid-traces "$TELEMETRY_TRACES_RETENTION"
-custom traces-otel@custom waslabid-traces
+custom traces-otel@custom waslabid-traces "" ignore_malformed
 step "lifecycle waslabid-metrics ($TELEMETRY_METRICS_RETENTION) via metrics-otel@custom"
 policy waslabid-metrics "$TELEMETRY_METRICS_RETENTION"
 custom metrics-otel@custom waslabid-metrics "$USAGE_MAPPINGS"

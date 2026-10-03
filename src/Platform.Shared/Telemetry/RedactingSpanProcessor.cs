@@ -125,7 +125,36 @@ internal sealed class RedactingSpanProcessor : BaseProcessor<Activity>
             return (!ReferenceEquals(masked, url), masked);
         }
 
-        return Mask(value);
+        if (value is Array numbers and (long[] or int[] or uint[] or ulong[] or double[] or float[] or decimal[]) && !NumericRedaction.IsSpanMeasurement(key))
+        {
+            return MaskNumbers(numbers);
+        }
+
+        return NumericRedaction.IsLongNumber(value) && !NumericRedaction.IsSpanMeasurement(key)
+            ? (true, TelemetryRedactor.DigitsMarker)
+            : Mask(value);
+    }
+
+    /// <summary>A numeric array tag with an element of ten or more digits leaves as strings, each such element <c>[digits]</c>.</summary>
+    private static (bool Changed, object? Value) MaskNumbers(Array numbers)
+    {
+        var any = false;
+        var elements = new string[numbers.Length];
+        for (var i = 0; i < elements.Length; i++)
+        {
+            var element = numbers.GetValue(i);
+            if (NumericRedaction.IsLongNumber(element))
+            {
+                any = true;
+                elements[i] = TelemetryRedactor.DigitsMarker;
+            }
+            else
+            {
+                elements[i] = Convert.ToString(element, System.Globalization.CultureInfo.InvariantCulture)!;
+            }
+        }
+
+        return any ? (true, elements) : (false, numbers);
     }
 
     private static (bool Changed, object? Value) Mask(object? value)
