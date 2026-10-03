@@ -1,0 +1,9 @@
+# W-19: the dead-man's switch for the worker, the web host, the backup and the disk (infra/pilot/watchdog.sh).
+[Unit]
+Description=WaslaBid pilot watchdog
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=@PILOT_DIR@/watchdog.sh
+TimeoutStartSec=2min
