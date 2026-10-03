@@ -88,6 +88,54 @@ public sealed class PlatformFunctionRulesTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task A_console_session_writes_a_platform_audit_entry_only_as_its_own_user()
+    {
+        var u = $"platform-admin-{Guid.NewGuid():N}";
+        const string forged = "select ops.write_platform_audit(gen_random_uuid(), 'someone-else', 'test.forged', 'test', null, '{}'::jsonb)";
+        const string system = "select ops.write_platform_audit(gen_random_uuid(), null, 'test.system', 'test', null, '{}'::jsonb)";
+        var own = $"select ops.write_platform_audit(gen_random_uuid(), '{u}', 'test.own', 'test', null, '{{}}'::jsonb)";
+
+        await using var console = await AppConnectionAsync(null, null, u);
+        (await StateAsync(console, forged)).ShouldBe("refused", "another admin's id");
+        (await StateAsync(console, system)).ShouldBe("refused", "the system actor is the worker's");
+        (await StateAsync(console, own)).ShouldNotBe("refused", "its own id");
+
+        await using var noUser = await AppConnectionAsync(null, null, null);
+        (await StateAsync(noUser, system)).ShouldBe("refused", "an application session without a user");
+        (await StateAsync(noUser, forged)).ShouldBe("refused", "an application session without a user");
+
+        var (companyId, vendorUser) = await VendorAsync();
+        await using var tenantSession = await AppConnectionAsync(TestTenants.Acme.TenantId, null, u);
+        (await StateAsync(tenantSession, forged)).ShouldBe("refused");
+        (await StateAsync(tenantSession, own)).ShouldNotBe("refused");
+        await using var vendorSession = await AppConnectionAsync(TestTenants.Acme.TenantId, companyId, vendorUser);
+        (await StateAsync(vendorSession, forged)).ShouldBe("refused");
+        (await StateAsync(vendorSession, system)).ShouldBe("refused");
+    }
+
+    [Fact]
+    public async Task The_worker_without_a_user_writes_a_platform_audit_entry_as_the_system_or_any_actor()
+    {
+        var (companyId, _) = await VendorAsync();
+        const string system = "select ops.write_platform_audit(gen_random_uuid(), null, 'test.system', 'test', null, '{}'::jsonb)";
+        const string named = "select ops.write_platform_audit(gen_random_uuid(), 'system', 'test.named', 'test', null, '{}'::jsonb)";
+
+        // No context (the health and usage jobs) and a vendor context without a user (the document rescan job).
+        foreach (var vendor in new Guid?[] { null, companyId })
+        {
+            await using var worker = await ActivityRows.AppSessionAsync(db.WorkerConnectionString, null, vendor, null, Ct);
+            (await StateAsync(worker, system)).ShouldNotBe("refused", $"vendor {vendor}");
+            (await StateAsync(worker, named)).ShouldNotBe("refused", $"vendor {vendor}");
+        }
+
+        // With a user the worker is bound like everyone else.
+        await using var withUser = await ActivityRows.AppSessionAsync(db.WorkerConnectionString, null, null, "u-1", Ct);
+        (await StateAsync(withUser, named)).ShouldBe("refused");
+        (await StateAsync(withUser, "select ops.write_platform_audit(gen_random_uuid(), 'u-1', 'test.own', 'test', null, '{}'::jsonb)"))
+            .ShouldNotBe("refused");
+    }
+
+    [Fact]
     public async Task Branding_changes_only_for_an_active_tenant_admin_of_the_host_and_never_in_a_vendor_session()
     {
         var tenant = await TenantRows.InsertAsync(db.OwnerConnectionString, Ct);

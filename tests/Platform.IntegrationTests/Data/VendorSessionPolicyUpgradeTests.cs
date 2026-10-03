@@ -70,6 +70,7 @@ public sealed class VendorSessionPolicyUpgradeTests(DatabaseFixture db)
                 "operations/0005_operations_owner_guard.sql",
                 "operations/0006_operations_active_user_counts.sql",
                 "operations/0007_operations_worker_role.sql",
+                "operations/0008_operations_platform_audit_actor.sql",
                 "vendors/0013_vendors_relationships_vendor_policy.sql",
                 "vendors/0014_vendors_function_callers.sql",
                 "vendors/0015_vendors_consent_actor_and_start.sql",
