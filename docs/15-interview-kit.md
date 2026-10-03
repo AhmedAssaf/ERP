@@ -6,7 +6,7 @@ Related: docs/10 (weeks 1 to 3), docs/11 sections 2, 8, 10 and 11 (segments, pri
 
 **Changed 2026-10-03.**
 - Section 3: outreach messages are ready to send, Arabic first, with a forwardable introduction (A2), LinkedIn and email variants of the first ask (C1, C2), and one follow-up (F).
-- Section 5: every question names the gate 1 criterion or F-xx hypothesis it tests; leading wording removed (D2, D3); new questions B6 (after the award), B7 (the next real tender), D4 (data and hosting) and F3 (which tier fits); the price card follows the tiers in docs/11 section 8; E2 is optional, since idea 5 was dropped on 2026-09-27.
+- Section 5: every question names the gate 1 criterion or F-xx hypothesis it tests; leading wording removed (D2, D3); new questions B6 (after the award), B7 (the next real tender), D4 (data and hosting) and F3 (which tier fits); the price card copies the tiers, add-ons and terms of docs/11 section 8 unchanged; E2 is optional, since idea 5 was dropped on 2026-09-27.
 - Section 6: the write-up template follows the tracker columns, with the rules that keep the Gate 1 formulas right.
 - Section 7: a stricter rule for when "would pay" counts as Yes.
 - New sections 8 (objection handling), 9 (interview-day checklist) and 10 (same-day write-up into the tracker).
@@ -62,7 +62,7 @@ Ready to send: replace only the angle brackets. Arabic first, English second; se
 
 ### Message A2. The note your friend forwards
 
-> أعرّفك على <اسمك>، يدرس كيف تدير الشركات الخاصة في المملكة مناقصاتها: الطرح، واستلام العروض، والتقييم، واعتماد الترسية. يطلب ٢٠ دقيقة يسمع فيها تجربتك، حضورياً أو باتصال، وليس عرض بيع. جواله: <جوالك>.
+> أعرّفك بـ<اسمك>، وهو يدرس كيف تدير الشركات الخاصة في المملكة مناقصاتها: الطرح، واستلام العروض، والتقييم، واعتماد الترسية. يطلب ٢٠ دقيقة يسمع فيها تجربتك، حضورياً أو باتصال، وليس عرض بيع. جواله: <جوالك>.
 
 > Meet <your name>, who is studying how private companies in the Kingdom run tenders: publishing, receiving offers, evaluation and award approval. He would like 20 minutes to hear your experience, in person or by call; it is not a sales pitch. Mobile: <your mobile>.
 
@@ -76,7 +76,7 @@ Kept under 200 characters, which fits the shorter note limit some LinkedIn accou
 
 ### Message C1. The ask, on LinkedIn after they accept
 
-> شكراً على قبول الدعوة أستاذ <الاسم>. أعمل على منصة لمناقصات الشركات الخاصة، وقبل أن أكمل بناءها أتعلم من مدراء المشتريات والعقود: كيف طرحتم آخر مناقصة، ومن اطّلع على الأسعار ومتى، وكيف اعتُمدت الترسية. هل يناسبك اتصال أو لقاء لمدة ٢٠ دقيقة هذا الأسبوع أو القادم؟ لن أعرض عليك شيئاً للبيع، وسأشاركك ملخص ما أتعلمه من المقابلات إن رغبت.
+> شكراً على قبول الدعوة أستاذ <الاسم>. أعمل على منصة لمناقصات الشركات الخاصة، وقبل أن أكمل بناءها أتعلم من مديري المشتريات والعقود: كيف طرحتم آخر مناقصة، ومن اطّلع على الأسعار ومتى، وكيف اعتُمدت الترسية. هل يناسبك اتصال أو لقاء لمدة ٢٠ دقيقة هذا الأسبوع أو القادم؟ لن أعرض عليك شيئاً للبيع، وسأشاركك ملخص ما أتعلمه من المقابلات إن رغبت.
 
 > Thank you for connecting, <name>. I am working on a platform for private-company tenders, and before I build further I am learning from procurement and contracts managers: how your last tender was published, who saw the prices and when, and how the award was approved. Could you spare 20 minutes, by call or in person, this week or next? I will not try to sell you anything, and I am happy to share a summary of what I learn across the interviews.
 
@@ -182,14 +182,14 @@ What each question tests. G-pay and G-tender are the two gate 1 criteria (W-31);
 | C1 | What was the hardest or slowest part of that tender? | ما أصعب أو أبطأ جزء في تلك المناقصة؟ | H1, in their words |
 | C2 | Has a vendor or a manager ever questioned an award? What happened? | هل اعترض مورد أو مدير على ترسية من قبل؟ ماذا حدث؟ | H4; disputed-award segment |
 | C3 | What does internal audit or the board ask for about purchasing? | ماذا تطلب المراجعة الداخلية أو مجلس الإدارة بخصوص المشتريات؟ | H4 |
-| C4 | Have you spent money or time trying to fix this? On what? | هل صرفتم وقتاً أو مالاً لحل هذه المشكلة؟ على ماذا؟ | H1, G-pay: pain with a budget beats pain without |
+| C4 | Have you ever spent time or money changing how you run tenders? On what? | هل سبق أن صرفتم وقتاً أو مالاً لتغيير طريقة إدارة مناقصاتكم؟ على ماذا؟ | H1, G-pay: pain with a budget beats pain without |
 | **D** | **Tools and others** | **الأدوات والبدائل** | |
 | D1 | What tools do you use today: ERP, Excel, email, a portal? | ما الأدوات التي تستخدمونها اليوم: نظام ERP، إكسل، بريد، منصة؟ | M: current tools |
 | D2 | Have you looked at any other way to run tenders: a platform, an ERP module, a consultant? What happened, and what were you quoted? | هل بحثتم عن طريقة أخرى لإدارة المناقصات: منصة، أو وحدة في نظام ERP، أو مستشار؟ ماذا حدث، وكم كان عرض السعر؟ | M: what others quoted (Reference App, Monafasat, Odoo; let them name it) |
 | D3 | When a vendor receives your tender today, whose name, logo and email address do they see? Has that ever come up? | عندما يستلم المورد مناقصتكم اليوم، اسم من وشعار من وبريد من يراه؟ هل أثير هذا الموضوع من قبل؟ | M, H5: record Yes only if they say it matters without prompting |
 | D4 | Before you use an online tool that holds vendor data, what do IT, legal or the board ask? | قبل أن تستخدموا أداة إلكترونية تحفظ بيانات الموردين، ماذا تسأل تقنية المعلومات أو الشؤون القانونية أو مجلس الإدارة؟ | H8 |
 | **E** | **Side pains (docs/14)** | **مشكلات جانبية** | |
-| E1 | How do you check vendor papers such as CR, ZATCA, and GOSI, and how often do they expire on you? | كيف تتحققون من أوراق الموردين مثل السجل التجاري والزكاة والتأمينات، وكم مرة تنتهي صلاحيتها دون أن تنتبهوا؟ | Idea 2, compliance vault; F-12 |
+| E1 | How do you check vendor papers such as CR, ZATCA, and GOSI, and how often do they expire on you? | كيف تتحققون من أوراق الموردين مثل السجل التجاري وشهادات هيئة الزكاة والضريبة والجمارك والتأمينات الاجتماعية، وكم مرة تنتهي صلاحيتها دون أن تنتبهوا؟ | Idea 2, compliance vault; F-12 |
 | E2 | Optional, only if they use subcontractors and time allows: how do you handle their monthly claims and retention? | اختياري: إذا كان لديكم مقاولو باطن، كيف تديرون مستخلصاتهم الشهرية والمحتجزات؟ | Idea 5, dropped 2026-09-27 (docs/14 section 4); skip first |
 | E3 | When internal audit reviews purchasing, what do they find, and how long does it take? | عندما تراجع المراجعة الداخلية المشتريات، ماذا تجد، وكم يستغرق ذلك؟ | Idea 7, audit checks; H4 |
 | **F** | **Price card (last)** | **بطاقة السعر** | |
@@ -201,16 +201,23 @@ What each question tests. G-pay and G-tender are the two gate 1 criteria (W-31);
 | G2 | Who else should I talk to, inside or outside your company? | من غيرك يستحق أن أتحدث معه، داخل شركتكم أو خارجها؟ | Referrals refill the list |
 | G3 | Would it help to see the parts already built, ten minutes, now or with <the approver from F2>? | هل يفيدك أن ترى الأجزاء المبنية فعلاً، عشر دقائق، الآن أو مع <المعتمد من F2>؟ | Buying process; demo per docs/18 |
 
-The price card, printed on one side, face down until F1 (tiers and add-ons from docs/11 section 8; the AI review is left off because it is not in the MVP, docs/05 section 4):
+The price card, printed on one side, face down until F1. Tiers, add-ons and terms are copied unchanged from docs/11 section 8 (`docs/diagrams/11-bmc/09-payment.puml`). The AI review there is part of the hypothesis, but no AI is in the MVP (docs/05 section 4): if asked, say it comes later, off by default, and only with the company's consent (ADR-0005).
 
-| وصلة بد WaslaBid | شهرياً / a month | مناقصات مفتوحة / open tenders | مستخدمون / staff users | يشمل / includes |
+| وصلة بد WaslaBid | شهرياً / a month | مناقصات نشطة في وقت واحد / tenders running at once | مستخدمون / users | يشمل / adds |
 |---|---|---|---|---|
-| Starter | SAR 1,500 | 2 | 10 | بوابة باسم شركتكم، مظاريف مغلقة، سلسلة الاعتماد الافتراضية، سجل تدقيق، أمر شراء PDF / your branded portal, sealed envelopes, the default approval chain, audit log, PO PDF |
-| Growth | SAR 3,500 | 6 | 30 | ما سبق + نطاقكم الخاص، سلسلة اعتماد خاصة، دخول موحد، بدون "مشغّل بواسطة" / the above + your own domain, your own approval chain, SSO, no "powered by" |
-| Pro | SAR 7,500 | بلا حد / unlimited | بلا حد / unlimited | ما سبق + تصدير أوامر الشراء، دعم أولوية / the above + PO export, priority support |
+| Starter | SAR 1,500 | 2 | 10 | بوابة باسم شركتكم، مظاريف مغلقة، سجل تدقيق / branded portal, sealed envelopes, audit log |
+| Growth | SAR 3,500 | 6 | 30 | نطاقكم الخاص، سلسلة اعتماد، دخول موحد، بدون "مشغّل بواسطة" / custom domain, approval chain, SSO, no "powered by" |
+| Pro | SAR 7,500 | بلا حد / unlimited | بلا حد / unlimited | تصدير أوامر الشراء، دعم أولوية، مراجعة العروض بالذكاء الاصطناعي / PO export, priority support, AI review |
 
-المناقصة الأولى مجاناً في كل الباقات. الموردون لا يدفعون. السعر للشركة لا للمستخدم. الأسعار لا تشمل ضريبة القيمة المضافة ١٥٪. الفاتورة السنوية: شهران مجاناً.
-First tender free on every plan. Vendors never pay. Per company, not per user. Prices exclude 15 % VAT. Annual invoice: two months free.
+| إضافات / add-ons | يُحتسب / charged | السعر / price |
+|---|---|---|
+| التحقق من السجل التجاري للمورد (واثق) / vendor CR check (Wathq) | لكل تحقق / per check | SAR 15 |
+| توقيع إلكتروني لأمر الشراء / PO e-signature | لكل أمر شراء موقّع / per signed PO | SAR 10 |
+| مراجعة العروض بالذكاء الاصطناعي (Starter، Growth) / AI offer review (Starter, Growth) | لكل مناقصة / per tender | SAR 150 |
+| ربط تصدير مع نظام ERP / ERP export connection | مرة واحدة / one-time | SAR 15,000 to 40,000 |
+
+المناقصة الأولى مجاناً في كل الباقات. الأسعار لا تشمل ضريبة القيمة المضافة ١٥٪. سعر ثابت للشركة لا للمستخدم. الفاتورة السنوية بتحويل بنكي: شهران مجاناً. الموردون لا يدفعون.
+First tender free on every tier. Prices exclude 15 % VAT. Flat price per company, not per user. Annual invoice by bank transfer: two months free. Vendors never pay.
 
 Do not ask: "Would you use this?", "Is this a good idea?", or "How much would you pay?" People say yes to be polite. The price card tests a real number instead, and G1 tests a real tender.
 
@@ -256,7 +263,7 @@ flowchart LR
     T -->|yes| Y["Pass: record firms, prices, and the tender<br/>in docs/11 section 10; start W-15"]
 ```
 
-When "would pay" counts as **Yes**: they picked a line at SAR 1,500 or more in F3, or reacted to that number without pushing it below 1,500, **and** named the budget owner in F2. Positive words without a budget owner, or "I need to check", are **Unsure**. Anything below SAR 1,500, or no line fits, is **No**. A tender counts as **named** only with what it is for and a month (B7, G1).
+When "would pay" counts as **Yes**: they picked a line at SAR 1,500 or more in F3, or reacted to that number without pushing it below 1,500, **and** named the budget owner in F2. Requiring the budget owner is the working rule for this kit, stricter than W-31 as first written; the W-31 acceptance in docs/09 records it. Positive words without a budget owner, or "I need to check", are **Unsure**. Anything below SAR 1,500, or no line fits, is **No**. A tender counts as **named** only with what it is for and a month (B7, G1).
 
 The tracker's Gate 1 sheet counts the answers from the Interviews sheet and shows PASS, NOT YET, or FAIL (NOT YET also covers enough Yes plus Unsure answers: follow up the unsure ones before more interviews). Record the result and the pricing model in docs/11 section 10 (W-31), write the W-16 pricing draft citing at least two interview answers, update the docs/01 section 3.3 "things to verify" list (W-13), and set W-13 to Done in docs/09.
 
@@ -266,9 +273,9 @@ Answer briefly and truthfully, then turn it back into a question about their las
 
 | They say | What is true | Then ask |
 |---|---|---|
-| "Our data must stay in the Kingdom." / "بياناتنا لازم تبقى داخل المملكة." | Everything is hosted in a Saudi region; that is a fixed decision (docs/02). The pilot is planned for Oracle Cloud's Jeddah region; Azure and AWS Saudi regions are reviewed in December 2026 (docs/05 section 8). There is no AI in the pilot; if AI offer review comes later, it is off by default and on only with your recorded consent, because the model runs outside the Kingdom (ADR-0005). | "Who in your company would sign off on that, and what would they ask for?" (D4) |
+| "Our data must stay in the Kingdom." / "بياناتنا لازم تبقى داخل المملكة." | The decision is that everything will be hosted in a Saudi region (docs/02); the pilot is planned for Jeddah, in Oracle Cloud's region there; Azure and AWS Saudi regions are reviewed in December 2026 (docs/05 section 8). There is no AI in the pilot; if AI offer review comes later, it is off by default and on only with your recorded consent, because the model runs outside the Kingdom (ADR-0005). | "Who in your company would sign off on that, and what would they ask for?" (D4) |
 | "Excel and email work fine for us." / "نمشي أمورنا بالإكسل والإيميل." | Agree: most mid-size firms do, and Excel is the real competitor (docs/11 section 6). Do not argue. | "What happened the last time an award was questioned, or audit asked for the file? How long did it take to put together?" (C2, C3). If there is no pain, record a clear No; it is a valid answer. |
-| "How are you different from Reference App?" / "وش الفرق بينكم وبين Reference App؟" | Do not claim they lack sealed bids; they have them as a setting since December 2025 (docs/04 section 7, play 4). True: Reference App is full source-to-pay, priced from USD 50,000 a year with an implementation project (docs/04 section 1). WaslaBid does only tender to PO, monthly from SAR 1,500, with no implementation project, and its financial envelope is encrypted until a logged opening after scores are locked. | "Did you get a quote from them or anyone else? What stopped you?" (D2) |
+| "How are you different from Reference App?" / "وش الفرق بينكم وبين Reference App؟" | Do not claim they lack sealed bids; they have them as a setting since December 2025 (docs/04 section 7, play 4). True: Reference App is full source-to-pay, priced from USD 50,000 a year with an implementation project (docs/04 section 1). WaslaBid is designed to do only tender to PO, with no implementation project, and the financial envelope is designed to stay encrypted until a logged opening after scores are locked (not built yet; docs/18 section 2). The price we plan to test is from SAR 1,500 a month. | "Did you get a quote from them or anyone else? What stopped you?" (D2) |
 | "How do we know nobody sees the prices early?" / "وش يضمن إن ما أحد يشوف الأسعار قبل الوقت؟" | Built today: each company's data is separated in the database by row-level security, staff sign in with a password and a one-time code, vendor files are virus-scanned, and a vendor's CR ownership is checked before first approval. Designed, not yet built: the financial envelope is stored with a separate key and opened only after technical scores are locked, the opening is written to the audit log with names, and even the platform operator cannot open it early (docs/03 diagram 4). | "Who opens the price envelopes today, and who witnesses it?" (B3) |
 | "We already use Etimad." / "نستخدم اعتماد." | Etimad is the government portal for government entities' tenders; a private company cannot publish its own tenders there (docs/01 section 3.2). For a government contractor, WaslaBid is for the tenders it runs itself, to subcontractors and suppliers. Vendors who know Etimad already recognise envelopes and deadlines. | "When you buy from subcontractors for a government project, how do you run that tender?" |
 
