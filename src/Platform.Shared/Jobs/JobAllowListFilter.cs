@@ -30,8 +30,27 @@ internal sealed partial class JobAllowListFilter(JobGate gate, ILogger<JobAllowL
         }
     }
 
+    /// <summary>
+    /// W-42: a job that ran without an exception is marked completed in the replay ledger, so moving it back to the queue
+    /// (from Succeeded) never runs it again; a failed job stays open for its retries and the console's re-run. A ledger
+    /// that cannot be written is logged and does not fail a job that already ran.
+    /// </summary>
     public void OnPerformed(PerformedContext context)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        if (context.Exception is not null && !context.ExceptionHandled)
+        {
+            return;
+        }
+
+        try
+        {
+            gate.Complete(context.BackgroundJob.Id);
+        }
+        catch (Exception exception) when (exception is Npgsql.NpgsqlException or InvalidOperationException or TimeoutException)
+        {
+            LogCompletionNotRecorded(logger, context.BackgroundJob.Id, exception.GetType().Name);
+        }
     }
 
     public void OnStateElection(ElectStateContext context)
@@ -61,6 +80,9 @@ internal sealed partial class JobAllowListFilter(JobGate gate, ILogger<JobAllowL
         || (context.CandidateState is EnqueuedState enqueued
             && (string.Equals(context.CurrentState, ProcessingState.StateName, StringComparison.Ordinal)
                 || (enqueued.Reason?.StartsWith("Retry attempt", StringComparison.Ordinal) ?? false)));
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Job {JobId} succeeded, but its completion could not be recorded in the replay ledger ({ErrorType}).")]
+    private static partial void LogCompletionNotRecorded(ILogger logger, string jobId, string errorType);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Job {JobId} is refused and not run: {Reason}.")]
     private static partial void LogRefused(ILogger logger, string jobId, string reason);

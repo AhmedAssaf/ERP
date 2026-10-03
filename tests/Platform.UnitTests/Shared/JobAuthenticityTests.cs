@@ -67,6 +67,8 @@ public sealed class JobAuthenticityTests
             new(null, null, null),
             new(Acme.TenantId, Acme, "recurring-a"),
             new(Acme.TenantId, Acme with { DefaultCulture = "en-US" }, null),
+            new(Acme.TenantId, Acme, null, "en-US", null),
+            new(Acme.TenantId, Acme, null, null, "ar-SA"),
         ];
         foreach (var other in otherBindings)
         {

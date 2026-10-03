@@ -66,6 +66,7 @@ public sealed class WorkerRoleUpgradeTests(DatabaseFixture db)
             [
                 "platform/0008_platform_worker_role.sql",
                 "jobs/0001_jobs_recurring_entries_and_replay.sql",
+                "jobs/0002_jobs_locks_server_and_completion.sql",
                 "tenancy/0010_tenancy_worker_role.sql",
                 "identity/0004_identity_worker_role.sql",
                 "operations/0007_operations_worker_role.sql",

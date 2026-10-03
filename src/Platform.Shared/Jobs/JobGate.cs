@@ -70,6 +70,9 @@ public sealed class JobGate
         return stored.Binding;
     }
 
+    /// <summary>Records that job <paramref name="jobId"/> succeeded: its signature never admits a run again.</summary>
+    public void Complete(string jobId) => _ledger.Complete(jobId);
+
     /// <summary>The <c>Tenant</c> snapshot's id when only the snapshot is present, so the allow-list's tenant rule sees it too.</summary>
     private static string? TenantOf(StoredBinding stored) => stored.Binding.Tenant?.TenantId.ToString("D");
 }

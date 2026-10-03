@@ -156,6 +156,39 @@ public sealed class JobAuthenticityTests(DatabaseFixture db) : IAsyncDisposable
     }
 
     [Fact]
+    public async Task A_succeeded_job_moved_back_to_the_queue_is_refused_without_running_again()
+    {
+        await using var worker = await JobServerHost.StartAsync(db.WorkerConnectionString, cancellationToken: Ct);
+        var marker = Marker();
+        var jobId = Client(_web).Enqueue(() => AuthenticityProbe.Run(marker));
+        await worker.WaitForSuccessAsync(jobId, Ct);
+
+        // The application role re-queues the succeeded job: same id, same signature.
+        new BackgroundJobClient(AppStorage()).ChangeState(jobId, new EnqueuedState(), SucceededState.StateName).ShouldBeTrue();
+
+        // Processed twice: the run that succeeded, then the refusal.
+        (await WaitForRefusalAsync(worker, jobId, maxProcessing: 2)).ShouldContain("already succeeded");
+        AuthenticityProbe.Seen[marker].ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task A_culture_changed_after_signing_never_runs()
+    {
+        var marker = Marker();
+        var jobId = Client(_web).Create(Job.FromExpression(() => AuthenticityProbe.Run(marker)), new ScheduledState(TimeSpan.FromHours(1)));
+        using (var app = AppStorage().GetConnection())
+        {
+            app.SetJobParameter(jobId, JobBinding.CultureParameter, SerializationHelper.Serialize("ar-SA"));
+        }
+
+        await using var worker = await JobServerHost.StartAsync(db.WorkerConnectionString, cancellationToken: Ct);
+        Client(_web).ChangeState(jobId, new EnqueuedState(), ScheduledState.StateName).ShouldBeTrue();
+
+        (await WaitForRefusalAsync(worker, jobId)).ShouldContain("does not match");
+        AuthenticityProbe.Seen.ShouldNotContainKey(marker);
+    }
+
+    [Fact]
     public async Task A_recurring_job_fired_by_the_worker_scheduler_is_signed_and_runs()
     {
         await using var worker = await JobServerHost.StartAsync(
@@ -269,13 +302,13 @@ public sealed class JobAuthenticityTests(DatabaseFixture db) : IAsyncDisposable
     }
 
     /// <summary>Waits for the job to fail, checks it is not retried, and returns its exception type and message.</summary>
-    private static async Task<string> WaitForRefusalAsync(JobServerHost worker, string jobId)
+    private static async Task<string> WaitForRefusalAsync(JobServerHost worker, string jobId, int maxProcessing = 1)
     {
         await WaitForStateAsync(worker, jobId, FailedState.StateName);
         await Task.Delay(TimeSpan.FromSeconds(1), Ct);
         var details = worker.Storage.GetMonitoringApi().JobDetails(jobId);
         details.History[0].StateName.ShouldBe(FailedState.StateName, "still failed: not retried");
-        details.History.Count(h => h.StateName == ProcessingState.StateName).ShouldBeLessThanOrEqualTo(1, "processed once at most");
+        details.History.Count(h => h.StateName == ProcessingState.StateName).ShouldBeLessThanOrEqualTo(maxProcessing, "not retried after the refusal");
         var failure = details.History[0].Data;
         failure.TryGetValue("ExceptionType", out var type);
         failure.TryGetValue("ExceptionMessage", out var message);

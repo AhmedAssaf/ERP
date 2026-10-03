@@ -32,6 +32,7 @@ public sealed class MigrationOwnerGuardTests(DatabaseFixture db)
         { "identity", "0003_identity_user_activity.sql" },
         // W-42: forced row-level security on Hangfire's tables, which the owner installs and upgrades.
         { "jobs", "0001_jobs_recurring_entries_and_replay.sql" },
+        { "jobs", "0002_jobs_locks_server_and_completion.sql" },
     };
 
     [Theory]

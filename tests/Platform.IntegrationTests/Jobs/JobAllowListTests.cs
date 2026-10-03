@@ -178,7 +178,7 @@ public sealed class JobAllowListTests(DatabaseFixture db) : IAsyncDisposable
         using (var app = _web.GetRequiredService<JobStorage>().GetConnection())
         {
             var forged = app.GetJobData(jobId).Job;
-            var token = new JobAuthenticity(TestSecrets.JobKeys, TimeProvider.System).Sign(forged, JobBinding.None);
+            var token = new JobAuthenticity(TestSecrets.JobKeys, TimeProvider.System).Sign(forged, JobBinding.Read(app, jobId).Binding);
             app.SetJobParameter(jobId, JobAuthenticity.ParameterName, SerializationHelper.Serialize(token));
         }
 

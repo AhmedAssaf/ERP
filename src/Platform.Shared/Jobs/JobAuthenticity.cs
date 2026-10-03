@@ -13,7 +13,10 @@ namespace Platform.Shared.Jobs;
 /// row SQL injected as that role wrote look the same in the table. Every job the platform creates therefore carries a
 /// signature in its <see cref="ParameterName"/> parameter: HMAC-SHA256 under <see cref="JobSigningKeys"/> over what decides
 /// what runs and as whom: the job's class, method, parameter types and arguments, its queue, its tenant (<c>TenantId</c> and
-/// the <c>Tenant</c> snapshot), its recurring job id, and a random nonce with the time it was signed. The worker runs a job
+/// the <c>Tenant</c> snapshot), its recurring job id, its culture pair (Hangfire's <c>CurrentCulture</c> and
+/// <c>CurrentUICulture</c>, the language its emails and documents are written in), and a random nonce with the time it was
+/// signed. Hangfire's <c>TraceParent</c> and <c>RetryCount</c> parameters are not signed: they serve observability and retry
+/// counting only. The worker runs a job
 /// only with a valid signature over exactly the values it uses (<see cref="JobGate"/>), and the nonce runs under one job id
 /// only (<see cref="JobReplayLedger"/>), so a copied row is not a second run.
 /// </summary>
@@ -98,6 +101,8 @@ public sealed class JobAuthenticity(JobSigningKeys keys, TimeProvider time)
         Append(message, binding.TenantId?.ToString("D"));
         Append(message, binding.Tenant is null ? null : SerializationHelper.Serialize(binding.Tenant, SerializationOption.User));
         Append(message, binding.RecurringJobId);
+        Append(message, binding.Culture);
+        Append(message, binding.UICulture);
         Append(message, nonce.ToString("N"));
         Append(message, milliseconds.ToString(CultureInfo.InvariantCulture));
         return HMACSHA256.HashData(key, Encoding.UTF8.GetBytes(message.ToString()));
@@ -134,12 +139,18 @@ public readonly record struct JobToken(Guid Nonce, DateTimeOffset SignedAt);
 
 /// <summary>
 /// What a job's signature binds besides the job itself: the tenant it runs as (<see cref="TenantJobFilter"/>'s two
-/// parameters) and its recurring job id (set by Hangfire's recurring scheduler, used by the F-60 job failure streaks).
+/// parameters), its recurring job id (set by Hangfire's recurring scheduler, used by the F-60 job failure streaks), and the
+/// culture pair Hangfire's <c>CaptureCultureAttribute</c> stamps and restores while the job runs.
 /// </summary>
-public sealed record JobBinding(Guid? TenantId, TenantContext? Tenant, string? RecurringJobId)
+public sealed record JobBinding(Guid? TenantId, TenantContext? Tenant, string? RecurringJobId, string? Culture = null, string? UICulture = null)
 {
     /// <summary>Hangfire's recurring scheduler's parameter.</summary>
     public const string RecurringJobIdParameter = "RecurringJobId";
+
+    /// <summary>Hangfire's culture parameters (<c>CaptureCultureAttribute</c>).</summary>
+    public const string CultureParameter = "CurrentCulture";
+
+    public const string UICultureParameter = "CurrentUICulture";
 
     public static JobBinding None { get; } = new(null, null, null);
 
@@ -150,7 +161,9 @@ public sealed record JobBinding(Guid? TenantId, TenantContext? Tenant, string? R
         return new JobBinding(
             Value<Guid?>(parameters, TenantJobFilter.TenantIdParameter),
             Value<TenantContext>(parameters, TenantJobFilter.TenantParameter),
-            Value<string>(parameters, RecurringJobIdParameter));
+            Value<string>(parameters, RecurringJobIdParameter),
+            Value<string>(parameters, CultureParameter),
+            Value<string>(parameters, UICultureParameter));
     }
 
     /// <summary>
@@ -164,11 +177,18 @@ public sealed record JobBinding(Guid? TenantId, TenantContext? Tenant, string? R
         var tenantId = connection.GetJobParameter(jobId, TenantJobFilter.TenantIdParameter);
         var tenant = connection.GetJobParameter(jobId, TenantJobFilter.TenantParameter);
         var recurring = connection.GetJobParameter(jobId, RecurringJobIdParameter);
+        var culture = connection.GetJobParameter(jobId, CultureParameter);
+        var uiCulture = connection.GetJobParameter(jobId, UICultureParameter);
         var token = connection.GetJobParameter(jobId, JobAuthenticity.ParameterName);
         try
         {
             return new StoredBinding(
-                new JobBinding(Deserialize<Guid?>(tenantId), Deserialize<TenantContext>(tenant), Deserialize<string>(recurring)),
+                new JobBinding(
+                    Deserialize<Guid?>(tenantId),
+                    Deserialize<TenantContext>(tenant),
+                    Deserialize<string>(recurring),
+                    Deserialize<string>(culture),
+                    Deserialize<string>(uiCulture)),
                 Deserialize<string>(token),
                 Refusal: null,
                 RawTenantId: tenantId);
@@ -176,7 +196,7 @@ public sealed record JobBinding(Guid? TenantId, TenantContext? Tenant, string? R
         catch (JsonException)
         {
             // Not swallowed: the row is refused for it, and the refusal is logged by the caller with the job id.
-            return new StoredBinding(None, null, "a tenant, recurring job or signature parameter is malformed", tenantId);
+            return new StoredBinding(None, null, "a tenant, recurring job, culture or signature parameter is malformed", tenantId);
         }
     }
 

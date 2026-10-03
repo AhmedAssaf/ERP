@@ -67,6 +67,73 @@ public static class JobsModule
     public static Task<IReadOnlyList<string>> MigrateAsync(NpgsqlConnection ownerConnection, CancellationToken cancellationToken = default) =>
         SqlMigrator.ApplyAsync(ownerConnection, "jobs", typeof(JobsModule).Assembly, "JobsMigrations.", cancellationToken);
 
+    /// <summary>The forced row-level security policies of Hangfire's tables that the jobs migrations create (W-42).</summary>
+    public static IReadOnlyDictionary<string, string[]> ExpectedPolicies { get; } = new Dictionary<string, string[]>
+    {
+        ["hash"] = ["hash_read", "hash_app_insert", "hash_app_update", "hash_app_delete", "hash_worker"],
+        ["set"] = ["set_read", "set_app_insert", "set_app_update", "set_app_delete", "set_worker"],
+        ["lock"] = ["lock_read", "lock_app_insert", "lock_app_update", "lock_app_delete", "lock_worker"],
+        ["job"] = ["job_read", "job_app_insert", "job_app_update", "job_app_delete", "job_worker"],
+    };
+
+    /// <summary>
+    /// W-42 fix round 1: after Hangfire's install or upgrade and the jobs migrations, refuses to go on when a Hangfire table
+    /// lost its forced row-level security or one of its policies (a Hangfire.PostgreSql upgrade that recreates a table would
+    /// drop them silently), or when the application role can write <c>hangfire.server</c> again. The migrator calls it on
+    /// every run; the message names the tables and policies only.
+    /// </summary>
+    public static async Task VerifyRowSecurityAsync(NpgsqlConnection ownerConnection, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(ownerConnection);
+        await using var command = new NpgsqlCommand("""
+            select c.relname,
+                   c.relrowsecurity and c.relforcerowsecurity,
+                   coalesce(array_agg(p.polname::text) filter (where p.polname is not null), '{}')
+            from pg_class c
+            join pg_namespace n on n.oid = c.relnamespace and n.nspname = 'hangfire'
+            left join pg_policy p on p.polrelid = c.oid
+            where c.relname = any(@tables)
+            group by c.relname, c.relrowsecurity, c.relforcerowsecurity
+            """, ownerConnection);
+        command.Parameters.AddWithValue("tables", ExpectedPolicies.Keys.ToArray());
+        var problems = new List<string>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        await using (var reader = await command.ExecuteReaderAsync(cancellationToken))
+        {
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                var table = reader.GetString(0);
+                seen.Add(table);
+                if (!reader.GetBoolean(1))
+                {
+                    problems.Add($"hangfire.{table} has no forced row-level security");
+                }
+
+                var policies = reader.GetFieldValue<string[]>(2);
+                problems.AddRange(ExpectedPolicies[table].Except(policies, StringComparer.Ordinal).Select(p => $"hangfire.{table} lacks policy {p}"));
+            }
+        }
+
+        problems.AddRange(ExpectedPolicies.Keys.Where(t => !seen.Contains(t)).Select(t => $"hangfire.{t} is missing"));
+
+        await using (var server = new NpgsqlCommand(
+            "select has_table_privilege('erp_app', 'hangfire.server', 'INSERT') or has_table_privilege('erp_app', 'hangfire.server', 'UPDATE') or has_table_privilege('erp_app', 'hangfire.server', 'DELETE')",
+            ownerConnection))
+        {
+            if (await server.ExecuteScalarAsync(cancellationToken) is true)
+            {
+                problems.Add("erp_app can write hangfire.server");
+            }
+        }
+
+        if (problems.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "Hangfire's tables are not secured as the jobs migrations left them (W-42): " + string.Join("; ", problems)
+                + ". A Hangfire.PostgreSql upgrade may have recreated them; add a jobs migration that restores the row-level security before running the hosts.");
+        }
+    }
+
     /// <summary>
     /// Registers the storage and a scoped <see cref="IBackgroundJobClient"/> that stamps the current tenant and signs every job
     /// with <paramref name="signingKeys"/> (W-42), plus the signed recurring job manager and the <see cref="RecurringJobCatalog"/>.

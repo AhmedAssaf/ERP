@@ -54,6 +54,29 @@ public sealed class RecurringJobCatalog(JobStorage storage, RecurringJobManager 
         return [.. definitions.Where(d => !scheduled.Contains(d.Id) || !stored.TryGetValue(d.Id, out var entry) || !Matches(d, entry))];
     }
 
+    /// <summary>
+    /// Ids in the recurring set that no definition names (an entry a removed module or an older version left, or one written
+    /// by something other than the worker). Empty while the catalog is empty, so a host that schedules nothing removes nothing.
+    /// </summary>
+    public IReadOnlyList<string> Unknown()
+    {
+        var known = Definitions.Select(d => d.Id).ToHashSet(StringComparer.Ordinal);
+        if (known.Count == 0)
+        {
+            return [];
+        }
+
+        using var connection = storage.GetConnection();
+        return [.. connection.GetAllItemsFromSet(RecurringJobsSet).Where(id => !known.Contains(id)).Order(StringComparer.Ordinal)];
+    }
+
+    /// <summary>Removes a recurring entry the worker does not define (hash and set entry).</summary>
+    public void Remove(string id)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        manager.RemoveIfExists(id);
+    }
+
     /// <summary>Writes the definition back from scratch: removed first, so a missing set entry or a changed field is restored too.</summary>
     public void Restore(RecurringJobDefinition definition)
     {

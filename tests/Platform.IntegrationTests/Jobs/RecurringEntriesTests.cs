@@ -48,6 +48,9 @@ public sealed class RecurringEntriesTests(DatabaseFixture db)
             // The recurring scheduler's lock, or a job's state lock held into the future, would stall the worker.
             (await RefusedAsync(app, "insert into hangfire.lock (resource, acquired) values ('hangfire:recurring-jobs:lock', now())", key)).ShouldBeTrue();
             (await RefusedAsync(app, "insert into hangfire.lock (resource, acquired) values ('hangfire:job:' || @key || ':state-lock', now() + interval '1 day')", key)).ShouldBeTrue();
+            // Fix round 1: a state lock without an acquisition time would never expire (Hangfire.PostgreSql expires by time).
+            (await RefusedAsync(app, "insert into hangfire.lock (resource, acquired) values ('hangfire:job:' || @key || ':state-lock', null)", key)).ShouldBeTrue();
+            (await RefusedAsync(app, "insert into hangfire.lock (resource) values ('hangfire:job:' || @key || ':state-lock')", key)).ShouldBeTrue();
             // What enqueueing and the console's re-run take: a job's state lock, now; and other hash and set keys.
             (await RefusedAsync(app, "insert into hangfire.lock (resource, acquired) values ('hangfire:job:' || @key || ':state-lock', now())", key)).ShouldBeFalse();
             (await RefusedAsync(app, "insert into hangfire.set (key, value, score) values ('schedule', @key, 0)", key)).ShouldBeFalse();
@@ -67,6 +70,80 @@ public sealed class RecurringEntriesTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task The_application_role_cannot_take_job_ids_ahead_of_the_sequence_or_write_a_server_heartbeat()
+    {
+        await using var app = new NpgsqlConnection(db.AppConnectionString);
+        await app.OpenAsync(Ct);
+
+        // An explicit id ahead of the sequence would collide with a later job; one the sequence handed out is the client's path.
+        (await RefusedAsync(app, "insert into hangfire.job (id, invocationdata, arguments, createdat) select last_value + 1000, '{}'::jsonb, '[]'::jsonb, now() from hangfire.job_id_seq where @key = @key", "x")).ShouldBeTrue();
+        (await RefusedAsync(app, "insert into hangfire.job (invocationdata, arguments, createdat) values ('{}'::jsonb, '[]'::jsonb, now()) returning case when @key = @key then id end", "x")).ShouldBeFalse();
+        (await RefusedAsync(app, "insert into hangfire.job (invocationdata, arguments, createdat) values ('{}'::jsonb, '[]'::jsonb, now()); update hangfire.job set id = currval('hangfire.job_id_seq') + 1000 where id = currval('hangfire.job_id_seq') and @key = @key", "x")).ShouldBeTrue();
+
+        // The web host runs no job server: it reads the servers (dashboard) but cannot fake the worker's heartbeat.
+        (await CountAsync(app, "select count(*) from hangfire.server where @key = @key", "x")).ShouldBeGreaterThanOrEqualTo(0L);
+        (await DeniedAsync(app, "insert into hangfire.server (id, data, lastheartbeat) values (@key, '{}'::jsonb, now())", $"fake-{Guid.NewGuid():N}")).ShouldBeTrue();
+        (await DeniedAsync(app, "update hangfire.server set lastheartbeat = now() where id = @key", "x")).ShouldBeTrue();
+        (await DeniedAsync(app, "delete from hangfire.server where id = @key", "x")).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task The_migrator_refuses_to_go_on_when_a_hangfire_table_lost_its_row_level_security()
+    {
+        await using var owner = new NpgsqlConnection(db.OwnerConnectionString);
+        await owner.OpenAsync(Ct);
+        await JobsModule.VerifyRowSecurityAsync(owner, Ct);
+
+        // What a Hangfire.PostgreSql upgrade that recreated tables could leave behind; rolled back.
+        await using var transaction = await owner.BeginTransactionAsync(Ct);
+        await using (var damage = new NpgsqlCommand(
+            "alter table hangfire.hash no force row level security; drop policy lock_app_insert on hangfire.lock; grant insert on hangfire.server to erp_app;",
+            owner,
+            transaction))
+        {
+            await damage.ExecuteNonQueryAsync(Ct);
+        }
+
+        var refused = await Should.ThrowAsync<InvalidOperationException>(() => JobsModule.VerifyRowSecurityAsync(owner, Ct));
+        refused.Message.ShouldContain("hangfire.hash has no forced row-level security");
+        refused.Message.ShouldContain("hangfire.lock lacks policy lock_app_insert");
+        refused.Message.ShouldContain("erp_app can write hangfire.server");
+        await transaction.RollbackAsync(Ct);
+    }
+
+    [Fact]
+    public async Task The_guard_removes_a_recurring_id_the_worker_does_not_define()
+    {
+        var since = DateTimeOffset.UtcNow.AddSeconds(-1);
+        await using var worker = await GuardedWorkerAsync(TimeSpan.FromHours(1));
+        var guard = worker.Services.GetServices<IHostedService>().OfType<RecurringJobGuard>().Single();
+        var known = $"w42-guard-known-{Guid.NewGuid():N}";
+        var unknown = $"w42-guard-unknown-{Guid.NewGuid():N}";
+        worker.Services.GetRequiredService<RecurringJobCatalog>().AddOrUpdate<GuardProbeJob>(known, j => j.RunAsync(), Cron.Yearly());
+        // Written past the catalog (by the worker's role, as an older version or a removed module would have left it).
+        new RecurringJobManager(WorkerStorage()).AddOrUpdate<GuardProbeJob>(unknown, j => j.RunAsync(), Cron.Yearly());
+        try
+        {
+            (await guard.RunOnceAsync(Ct)).ShouldContain(unknown);
+
+            using (var connection = worker.Storage.GetConnection())
+            {
+                connection.GetAllItemsFromSet(RecurringJobCatalog.RecurringJobsSet).ShouldNotContain(unknown);
+                connection.GetAllItemsFromSet(RecurringJobCatalog.RecurringJobsSet).ShouldContain(known);
+            }
+
+            var incident = (await IncidentsAsync(worker, since)).Single(i => i.Component == HealthComponents.Jobs && i.ClosedAt is null);
+            incident.LastMessage.ShouldNotBeNull().ShouldContain(unknown);
+            (await guard.RunOnceAsync(Ct)).ShouldBeEmpty();
+        }
+        finally
+        {
+            worker.RecurringJobs.RemoveIfExists(known);
+            worker.RecurringJobs.RemoveIfExists(unknown);
+        }
+    }
+
+    [Fact]
     public async Task The_worker_restores_a_deleted_or_altered_recurring_job_and_raises_one_incident_until_an_intact_pass()
     {
         var since = DateTimeOffset.UtcNow.AddSeconds(-1);
@@ -79,6 +156,8 @@ public sealed class RecurringEntriesTests(DatabaseFixture db)
         catalog.AddOrUpdate<GuardProbeJob>(retimed, j => j.RunAsync(), "*/5 * * * *");
         try
         {
+            // The first pass may remove entries an earlier test left in the shared database; the second finds them intact.
+            await guard.RunOnceAsync(Ct);
             (await guard.RunOnceAsync(Ct)).ShouldBeEmpty("intact");
 
             // Whatever deleted or changed them (the owner here: the application role no longer can).
@@ -205,6 +284,30 @@ public sealed class RecurringEntriesTests(DatabaseFixture db)
         var rows = await command.ExecuteNonQueryAsync(Ct);
         await transaction.RollbackAsync(Ct);
         return rows;
+    }
+
+    /// <summary>True when the role lacks the table privilege for the statement; it is rolled back either way.</summary>
+    private static async Task<bool> DeniedAsync(NpgsqlConnection connection, string sql, string key)
+    {
+        await using var transaction = await connection.BeginTransactionAsync(Ct);
+        try
+        {
+#pragma warning disable CA2100 // The tests' own statements.
+            await using var command = new NpgsqlCommand(sql, connection, transaction);
+#pragma warning restore CA2100
+            command.Parameters.AddWithValue("key", key);
+            await command.ExecuteNonQueryAsync(Ct);
+            return false;
+        }
+        catch (PostgresException exception) when (exception.SqlState == PostgresErrorCodes.InsufficientPrivilege)
+        {
+            exception.MessageText.ShouldContain("permission denied");
+            return true;
+        }
+        finally
+        {
+            await transaction.RollbackAsync(CancellationToken.None);
+        }
     }
 
     /// <summary>True when row-level security refuses the statement; it is rolled back either way.</summary>
