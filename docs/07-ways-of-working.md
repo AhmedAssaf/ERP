@@ -49,7 +49,8 @@ Three gates that are never skipped: spec approval before planning, reviewer befo
 | `docs/superpowers/plans/` | Implementation plans broken into tasks with acceptance per task. | Whoever runs the planning session |
 | `spikes/` | Throwaway experiments with a results write-up in `docs/`. Never imported by product code. | Anyone |
 | `infra/compose/` | Local development stack. | devops |
-| `infra/k8s/`, `infra/keycloak/`, `infra/caddy/` | Production and staging configuration. | devops |
+| `infra/pilot/` | The pilot on one Oracle Cloud VM in Jeddah (W-19): production Compose file, app images, Caddyfile, realm files, deploy, backup and restore scripts. Runbook: `docs/19-pilot-runbook.md`. | devops |
+| `infra/k8s/`, `infra/keycloak/`, `infra/caddy/` | Production and staging configuration after the pilot (not created yet). | devops |
 | `src/` | The product, laid out as in `02-core-features-and-tech-stack.md` section 4.5. | developer |
 | `tests/` | Unit, integration, UI tests. | qa-engineer and developer |
 | `.claude/agents/` | The agent roster (section 6). | Everyone |
@@ -84,6 +85,8 @@ Elastic image signatures (checked 2026-10-03): Elastic signs `elasticsearch`, `k
 Memory on a 16 GB laptop: the Elastic part (collector 320 MB, Elasticsearch 1.75 GB) is about 2.1 GB always on; Kibana adds up to 1.25 GB while it runs (limit 1280 MB, 768 MB heap), which is why it sits behind the `kibana` profile. Elasticsearch needs `vm.max_map_count` of at least 262144 on the Docker host: recent Docker Desktop versions ship with it; if Elasticsearch exits at start, run `wsl -d docker-desktop sysctl -w vm.max_map_count=262144` (check with `wsl -d docker-desktop sysctl vm.max_map_count`; older versions lose it on restart). `ELASTIC_PASSWORD` is read only when the `elasticsearch-data` volume is first created: after changing it in `.env`, `elastic-setup` fails with "elastic user cannot authenticate", so reset with `docker compose rm -sf elasticsearch` and `docker volume rm erp-dev_elasticsearch-data` (this deletes the telemetry, which is not backed up).
 
 The .NET app runs on the host with `dotnet watch` on port 5273 so hot reload works. Caddy forwards `*.localhost` to it, which lets you test several tenants on their own hostnames without editing the hosts file.
+
+The pilot runs the same services in production mode on one VM, with the app containerised and every setting below taken from `infra/pilot/.env`; `docs/19-pilot-runbook.md` section 2 maps each host setting to its source.
 
 Reset everything: `docker compose down -v` then `up -d` again. ClamAV takes up to three minutes on first start while it downloads signatures; its health check allows for that.
 

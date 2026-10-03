@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Verifies the cosign signature of every docker.elastic.co image pinned in infra/compose/docker-compose.yml
+# Verifies the cosign signature of every docker.elastic.co image pinned in infra/compose/docker-compose.yml and
+# infra/pilot/docker-compose.yml (W-19)
 # against Elastic's published public key (https://artifacts.elastic.co/cosign.pub, committed as
 # infra/security/elastic-cosign.pub). Fails on a missing or invalid signature, or on an Elastic image that is
 # not pinned by digest.
@@ -9,7 +10,7 @@
 # repository root.
 set -euo pipefail
 key=infra/security/elastic-cosign.pub
-images=$(grep -E '^\s+image:\s+docker\.elastic\.co/' infra/compose/docker-compose.yml | awk '{print $2}' | sort -u)
+images=$(grep -hE '^\s+image:\s+docker\.elastic\.co/' infra/compose/docker-compose.yml infra/pilot/docker-compose.yml | awk '{print $2}' | sort -u)
 test -n "$images" || { echo "no docker.elastic.co images found"; exit 1; }
 for image in $images; do
   case "$image" in

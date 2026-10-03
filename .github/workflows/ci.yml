@@ -2,7 +2,8 @@
 #   build-test  restore, build with warnings as errors, format check, utility lint, tests (unit, bUnit, and
 #               integration against real PostgreSQL, Keycloak, Mailpit and MinIO through Testcontainers)
 #   docs        every Mermaid block in the Markdown documents renders
-#   security    Trivy: repository scan (blocking) and the Compose images (report only)
+#   security    Elastic image signatures and the pilot deployment files (W-19: Compose config, Caddyfile, shellcheck),
+#               then Trivy: repository scan and the three pilot images for arm64 (both blocking), the Compose images (report only)
 # spikes/ is not in WaslaBid.slnx, so no step builds or tests it.
 name: CI
 
@@ -114,8 +115,9 @@ jobs:
   security:
     name: Trivy scan
     runs-on: ubuntu-latest
-    # 25: the repository scan, plus up to 15 for the Compose images (Elasticsearch and Kibana are about 1.5 GB each).
-    timeout-minutes: 25
+    # 30: the repository scan, the pilot image builds (about 5 minutes), plus up to 15 for the Compose images
+    # (Elasticsearch and Kibana are about 1.5 GB each).
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
 
@@ -140,19 +142,43 @@ jobs:
       - name: Verify Elastic image signatures
         run: bash .github/scripts/verify-elastic-signatures.sh
 
+      # Blocking (W-19): the pilot's Compose file resolves with every required setting present (throwaway values from
+      # .env.example, never real secrets), the production Caddyfile is valid with two tenant hosts written "a,b" (the
+      # scripts' normalise_hosts and caddy_validate, as deploy.sh runs them), and the deployment scripts pass shellcheck.
+      - name: Validate the pilot deployment files
+        run: |
+          export ENV_FILE="$RUNNER_TEMP/pilot.env" IMAGE_TAG=ci
+          sed -E -e 's/^([A-Z_]+)=$/\1=ci-placeholder/' -e 's/^TENANT_HOSTS=.*/TENANT_HOSTS=acme.example.sa,beta.example.sa/' \
+            infra/pilot/.env.example > "$ENV_FILE"
+          . infra/pilot/lib.sh
+          dc --profile tools --profile kibana config --quiet
+          caddy_validate
+          shellcheck -x -P infra/pilot infra/pilot/*.sh
+
       # Blocking: fixable HIGH and CRITICAL vulnerabilities in NuGet packages, committed secrets (N-10), and
       # misconfigurations. Settings are in .github/trivy.yaml, so the same scan runs locally.
       - name: Repository scan (dependencies, secrets, config)
         run: trivy fs --config .github/trivy.yaml .
 
-      # Report only: these are third-party development images from infra/compose, not images we build. When the
-      # app image exists (W-19), scan it here with --exit-code 1.
+      # Blocking (W-19): the three images we build, for linux/arm64 as they ship to the pilot. A docker-container builder
+      # builds for arm64 without QEMU: the build stage runs on the runner's platform and the arm64 stages only copy files.
+      - name: Pilot image scan (web, worker, migrator, arm64)
+        run: |
+          docker buildx create --name pilot --driver docker-container --use > /dev/null
+          for target in web worker migrator; do
+            docker buildx build --platform linux/arm64 -f infra/pilot/docker/app.Dockerfile --target "$target" \
+              -t "waslabid/$target:ci" --load .
+            trivy image --platform linux/arm64 --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 \
+              --no-progress "waslabid/$target:ci"
+          done
+
+      # Report only: third-party images from infra/compose (development) and infra/pilot (the pilot), not images we build.
       - name: Compose images scan (report only)
         continue-on-error: true
         # A slow pull of the large Elastic images ends this report-only step, not the job.
         timeout-minutes: 15
         run: |
-          images=$(grep -E '^\s+image:' infra/compose/docker-compose.yml | awk '{print $2}' | sort -u)
+          images=$(grep -hE '^\s+image:\s+[a-z]' infra/compose/docker-compose.yml infra/pilot/docker-compose.yml | awk '{print $2}' | sort -u)
           for image in $images; do
             echo "::group::$image"
             trivy image --scanners vuln --severity CRITICAL --ignore-unfixed --exit-code 0 --no-progress "$image"

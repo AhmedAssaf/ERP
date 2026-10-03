@@ -1,0 +1,14 @@
+# W-19, N-07: nightly encrypted backup to OCI Object Storage in Jeddah (infra/pilot/backup.sh).
+# bootstrap.sh installs this file and replaces @PILOT_DIR@ with the checkout's infra/pilot path.
+[Unit]
+Description=WaslaBid pilot backup (PostgreSQL dumps and MinIO mirror to OCI Object Storage)
+Wants=network-online.target docker.service
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+ExecStart=@PILOT_DIR@/backup.sh
+# Backups yield to the pilot's own work.
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=3h
