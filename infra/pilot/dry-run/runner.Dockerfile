@@ -3,7 +3,7 @@
 # with the Compose plugin, talking to the laptop's Docker engine through its socket. Never used on the VM.
 FROM docker:29-cli AS cli
 
-# Root on purpose: it stands in for the VM, where the pilot scripts run as root (exempted in .github/trivyignore.yaml).
+# Root on purpose: it stands in for the VM, where the pilot scripts run as root (exempted in .trivyignore.yaml).
 FROM ubuntu:24.04
 RUN apt-get update \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
