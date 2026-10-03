@@ -78,6 +78,7 @@ Memory limits (W-10 spec section 9, applied in `docker-compose.yml`):
 | `backup.sh`, `restore.sh`, `rclone.sh` | Nightly encrypted backup, restore test, disaster recovery |
 | `watchdog.sh`, `systemd/` | Alerts when the worker, web host, backup or disk fail (the worker cannot report its own death) |
 | `compose.sh`, `lib.sh`, `minio-init.sh` | Operations wrapper, shared helpers, MinIO users and lifecycle |
+| `dry-run/` | The local rehearsal only (section 10): a runner container as the VM, a Compose override with stand-ins; never used on the VM |
 
 Where each host setting outside Development comes from (docs/07 section 4):
 
@@ -229,7 +230,7 @@ it. The port is told apart by the connection's local port, never by the `Host` h
 web host and no Caddy site block proxies to 8081, so nothing on the internet reaches it. Through Caddy (port 8080) any
 `/internal` path is a 404 on every host. Inside the VM it is not limited to Caddy: the web host listens on all its
 interfaces, so every container on the edge network (Caddy, Keycloak) and on the backend network (databases, storage,
-telemetry, ClamAV, the relay, the worker, the one-shots) can call it. What such a caller gains is a tenant-existence
+telemetry, ClamAV, the worker, the one-shots) can call it. What such a caller gains is a tenant-existence
 oracle and nothing more: whether a host is a tenant host, which DNS and HTTPS show anyway. The platform host, Keycloak's
 hosts (from the two OIDC authorities) and any `TlsAsk:ExcludedHosts` are never allowed. Only a well-formed name under the
 base domain that the tenant directory has not cached costs a database lookup, and those are limited to 20 a second per
@@ -359,7 +360,7 @@ the backup taken before the upgrade (`restore.sh --full --force`), then deploy t
 |---|---|---|
 | ~~No `ask` endpoint for on-demand TLS~~ | Closed 2026-10-03, PR #24: `GET /internal/tls-ask` on the web host's port 8081 and on-demand TLS for tenant hosts in the Caddyfile (step 8); a new tenant needs no deploy | Custom domains (F-03, W-11) stay open |
 | The SMTP credential lives in the web host (internet-facing), the worker and Keycloak | A compromise of any of them can send mail as the approved sender | A dedicated IAM user whose only power is sending (step 4); rotate on suspicion; the sender domain's SPF/DKIM/DMARC limit abuse |
-| Keycloak's realm setting `starttls: true` may only request STARTTLS, not require it (Keycloak 26 behaviour not checked offline; the application and the watchdog do require it) | A stripped STARTTLS could send Keycloak's SMTP login in clear text on the path to the provider | Check on the VM at step 7 (Keycloak mail with a tampered path, or the Jakarta Mail `mail.smtp.starttls.required` setting) and record the answer here |
+| Keycloak's realm setting `starttls: true` only requests STARTTLS, it does not require it: confirmed in the rehearsal (section 10), where Keycloak 26.3.5 sent a setup email with its SMTP login to a server that offered no STARTTLS (the application and the watchdog do require it) | A stripped STARTTLS on the path between the VM and Email Delivery (both in OCI Jeddah) would send Keycloak's SMTP login in clear text | Before go-live: ask whether Email Delivery offers implicit TLS (port 465) and, if so, set the realm to `ssl: true` on 465; otherwise accept for the pilot (an in-region path) or require it through a Jakarta Mail property if Keycloak exposes one; rotate the credential on suspicion |
 | The SMTP health check logs in on every run (about 1,440 times a day) | Counts against Email Delivery's rate and login limits and shows in its logs; a provider lockout after failures would also stop real mail | Watch the first week; lengthen the check interval or stop logging in if the provider objects |
 | The worker has internet egress (the `egress` network) and web and Keycloak have it through `edge`; every container can reach the instance metadata service at 169.254.169.254 | A compromised container can reach the internet and, with IMDSv1 off, only needs a token request for metadata | Egress restriction (W-43, docs/09); until it lands, IMDS is v2-only (step 4) and the VM firewall is the only boundary |
 | One VM, no replica | N-04 (99.5%) is not guaranteed; a VM loss means up to an hour down and up to a day of data (nightly backup) | Accepted for the pilot; WAL archiving or managed PostgreSQL when hosting is re-decided in December 2026 |
@@ -397,3 +398,58 @@ allows obtained its certificate and was served, a refused host and a host outsid
 and the platform and auth certificates were still obtained at start. A `*.<base domain>` site was tried first and
 rejected: with `on_demand` it also covers the platform and auth hosts, whose certificates were then no longer obtained at
 start. The endpoint itself is covered by `TlsAskEndpointTests` (integration). Not checked: Let's Encrypt on a real host.
+
+## 10. Rehearsal 2026-10-03 (local)
+
+Chosen by the user on 2026-10-03: the real scripts of `infra/pilot/` run end to end on the laptop (Docker Desktop, amd64
+images `ec0d67942327` built natively), with the stand-ins of `infra/pilot/dry-run/` (its README says how to repeat it):
+a runner container as the VM (Ubuntu 24.04, root), hosts under `pilot.localhost`, Caddy's internal CA instead of
+Let's Encrypt with the on-demand ask unchanged, Mailpit requiring login and STARTTLS instead of Email Delivery, and a
+MinIO answering as `dryrun.compat.objectstorage.me-jeddah-1.oraclecloud.com` over HTTPS instead of Object Storage.
+Nothing went to any cloud.
+
+| Step | Result |
+|---|---|
+| 1. `generate-secrets.sh` | 26 secrets filled, `key-ring.pfx` owned by 1654 with mode 400; a second run filled none. `dry-run/prepare.sh` typed the values step 5 leaves to a human |
+| 2. `deploy.sh` | First run stopped at the web host: "Address already in use" (bug 1). Fixed, then from empty volumes with the images present: 1 min 40 s, every check passed (`/health`, `/alive`, ask listener 400, worker heartbeat, platform over HTTPS, Keycloak issuer); a second run 18 s, no container recreated |
+| 3. Keycloak day one | Both realms imported. `dry-run/keycloak-day-one.sh` did step 7.1 to 7.3 through the Admin API: `waslabid-ops` with its five roles and its secret in `.env`, a named admin, the bootstrap admin deleted (it no longer signs in). Still human: the named admin's OTP and the platform admin's first sign-in |
+| 4. `provision-tenant.sh` | `acme` (ar-SA) and `beta` (en-US) in about 1.3 s each, as `waslabid-ops`; a re-run found everything present and sent the setup email again (account setup pending), as designed |
+| 5. On-demand TLS | `acme`, `beta`, the platform and auth hosts: a certificate that verifies against the CA. `zzz.pilot.localhost` (no tenant), `a.b.pilot.localhost` and `evil.example.com`: handshake refused. Ask endpoint 200 for the two tenants, 404 for the others, the platform and auth hosts and an IP; `/internal/tls-ask` through Caddy and on port 8080: 404 |
+| 6. Smoke | Tenant host 302 to Keycloak with a pushed authorization request (the web host's back channel through Caddy works); HSTS, `X-Frame-Options: DENY`, `nosniff`, CSP, Referrer and Permissions policies; Keycloak's login page `lang="ar" dir="rtl"`; `/alive` and `/health` 200 through Caddy; `/platform` 302 to `waslabid-platform` (login page in English); `/admin/` and `/realms/master` 404 from an address outside `ADMIN_ALLOW_CIDR`; HTTP 308 to HTTPS; every health-board component Healthy, SMTP included; Kibana on demand healthy and its dashboard imported. `tests/e2e` not run: no base-URL setting (section 9) |
+| 7. Email | In Mailpit, over STARTTLS with login: Keycloak's setup emails (Arabic subject for `acme`) and the worker's F-60 alert "SMTP has recovered"; Mailpit refused mail without login (530). Not exercised: the web host's own sending (a staff invitation needs a tenant admin signed in with TOTP; it uses the worker's SMTP code, `Platform.Shared`) |
+| 8. Backup and restore | `backup.sh` 16 s (two objects; `staging/` left out; names and contents encrypted in the bucket), again 16 s with both objects skipped; `restore.sh --list` two complete; `--verify` passed in 13 s (2 tenants, 2 members, 1 key-ring key, 26 forced-RLS tables, every role connects, 3 realms, 6 Keycloak users, 2 of 2 objects stored). Disaster recovery: every volume deleted but the bucket's, state and local copies removed, `restore.sh --full` 22 s and `deploy.sh` 1 min 42 s, 124 s in all with images present; tenants, Keycloak users, `waslabid-ops` and objects back, tenant certificates obtained again on demand |
+| 9. `watchdog.sh` | Silent while healthy; with the web host stopped one "web is down" email (a second run sent none), after the start one "web has recovered" |
+| 10. Memory | 3.9 GB idle for the pilot services against 9.56 GB of limits (below); Kibana 1.0 GB while open |
+
+Idle memory (`docker stats`, amd64, no traffic; the stand-ins are left out):
+
+| Service | Used / limit | Service | Used / limit |
+|---|---|---|---|
+| Elasticsearch | 1.42 GB / 1.75 GB (81%) | Worker | 152 MB / 512 MB |
+| ClamAV | 990 MB / 2 GB | OTel Collector | 150 MB / 320 MB |
+| Keycloak | 620 MB / 1.5 GB | Web host | 88 MB / 1 GB |
+| MinIO | 249 MB / 640 MB | Caddy, Redis | 24 MB, 13 MB |
+| PostgreSQL | 180 MB / 1.5 GB | **Total** | **3.9 GB** |
+
+Found and fixed:
+
+1. `docker-compose.yml`: a container without a pinned address on `edge` took the first free one. Keycloak starts before
+   the web host and Caddy, so on the VM it would hold 172.30.10.2 and Caddy would never start; reproduced here as
+   "failed to set up container networking: Address already in use". Unpinned containers now get addresses from
+   `EDGE_IP_RANGE` (172.30.10.128/25), outside both pinned ones.
+2. Keycloak and STARTTLS (section 9): Keycloak sends its login without STARTTLS when the server does not offer it.
+   Recorded with its options; not changed.
+3. For the rehearsal, inert on the VM: `lib.sh` layers `PILOT_COMPOSE_OVERRIDE` when set, and `deploy.sh` reaches Caddy
+   on `PILOT_HTTPS_PORT` (443 by default; `--connect-to` instead of `--resolve`, the same request on the VM). CI now also
+   shellchecks `dry-run/*.sh` and validates the override. The stale mention of the mail relay in step 8 is gone.
+
+Seen, not a defect of the pilot files: MailKit checks certificate revocation, so the hosts must reach the CRL or OCSP
+service of Email Delivery's certificate authority (W-43's revocation allowance); the beta tenant's login page is Arabic
+for a client without `Accept-Language`, because the realm's default locale is Arabic and the web host sends no
+`ui_locales` (as in development).
+
+Different from the VM, so still to prove there: arm64 images on the Arm VM; `bootstrap.sh`, systemd timers, the firewall
+and the security list; DNS and Let's Encrypt (HTTP-01, rate limits); Email Delivery (login, SPF, DKIM, sending limits);
+Object Storage with its Customer Secret Key, the 35-day retention rule and its lock; a browser sign-in with TOTP
+(ports 80 and 443 belong to Windows here); first-start times (images were already pulled, and ClamAV was healthy in
+27 s); memory under real traffic; the one-hour rebuild including the VM and image shipping.

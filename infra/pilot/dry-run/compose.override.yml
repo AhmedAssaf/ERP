@@ -1,0 +1,122 @@
+# Local rehearsal ONLY (dry-run/README.md, docs/19 section 10). NEVER used on the VM: lib.sh layers this file over
+# docker-compose.yml only when PILOT_COMPOSE_OVERRIDE names it, which only the rehearsal runner sets.
+#
+# Stand-ins for what the laptop does not have, everything else is the pilot file unchanged:
+#   - Caddy: its internal CA (root from dry-run/state/ca) instead of Let's Encrypt, the same site blocks and the same
+#     on-demand ask (dry-run/state/Caddyfile is generated from ../Caddyfile by prepare.sh); host ports 8880 and 8443,
+#     because Windows holds 80 and 443.
+#   - OCI Email Delivery: Mailpit on edge and egress (where the real endpoint is reached), SMTP login required, STARTTLS
+#     required, certificate from the dry-run CA.
+#   - OCI Object Storage: a MinIO answering HTTPS as dryrun.compat.objectstorage.me-jeddah-1.oraclecloud.com on egress,
+#     so rclone.sh's Jeddah-only check runs unchanged.
+#   - Trust: the hosts, Keycloak and rclone trust the dry-run CA (on the VM every certificate is public).
+name: waslabid-pilot-dry
+
+x-dry-trust: &dry-trust
+  SSL_CERT_FILE: /etc/dry-ca/bundle.crt
+
+services:
+  caddy:
+    ports: !override
+      - "${DRY_HTTP_PORT:-8880}:80"
+      - "${DRY_HTTPS_PORT:-8443}:443"
+    volumes:
+      - ./dry-run/state/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./dry-run/state/ca:/etc/caddy/dry-ca:ro
+
+  web:
+    environment:
+      <<: *dry-trust
+    volumes:
+      - ./dry-run/state/ca/bundle.crt:/etc/dry-ca/bundle.crt:ro
+
+  worker:
+    environment:
+      <<: *dry-trust
+    volumes:
+      - ./dry-run/state/ca/bundle.crt:/etc/dry-ca/bundle.crt:ro
+
+  keycloak:
+    environment:
+      KC_TRUSTSTORE_PATHS: /opt/keycloak/conf/truststores/dry-ca.pem
+    volumes:
+      - ./dry-run/state/ca/ca.crt:/opt/keycloak/conf/truststores/dry-ca.pem:ro
+
+  rclone:
+    environment:
+      <<: *dry-trust
+    volumes:
+      - ./dry-run/state/ca/bundle.crt:/etc/dry-ca/bundle.crt:ro
+
+  mailpit:
+    # The development stack's pinned image (infra/compose/docker-compose.yml).
+    image: axllent/mailpit:v1.31.3@sha256:ed9b00c609e77e99c79b93f1178255ebc271868920f2c69a8d166bd5634ed10d
+    restart: unless-stopped
+    mem_limit: 96m
+    environment:
+      MP_SMTP_BIND_ADDR: 0.0.0.0:587
+      MP_SMTP_AUTH: "${SMTP_USERNAME}:${SMTP_PASSWORD}"
+      MP_SMTP_TLS_CERT: /certs/mailpit.crt
+      MP_SMTP_TLS_KEY: /certs/mailpit.key
+      MP_SMTP_REQUIRE_STARTTLS: "true"
+    volumes:
+      - ./dry-run/state/ca/mailpit.crt:/certs/mailpit.crt:ro
+      - ./dry-run/state/ca/mailpit.key:/certs/mailpit.key:ro
+    ports:
+      - "127.0.0.1:${DRY_MAILPIT_UI_PORT:-8025}:8025"
+      # watchdog.sh runs on the runner (host network) and reaches SMTP_HOST=mailpit here.
+      - "127.0.0.1:587:587"
+    networks:
+      edge: {}
+      egress: {}
+
+  crl:
+    # The dry-run CA's (empty) revocation list at http://crl/ca.crl, named in its certificates: MailKit checks revocation.
+    image: caddy:2.10@sha256:c3d7ee5d2b11f9dc54f947f68a734c84e9c9666c92c88a7f30b9cba5da182adb
+    restart: unless-stopped
+    mem_limit: 48m
+    command: ["caddy", "file-server", "--root", "/srv", "--listen", ":80"]
+    volumes:
+      - ./dry-run/state/ca/crl:/srv:ro
+    networks:
+      edge: {}
+      egress: {}
+
+  oci-standin:
+    # The pilot's MinIO image as an S3 endpoint on HTTPS 443 with the OCI host name.
+    image: cgr.dev/chainguard/minio@sha256:6a1d0b45c8669726bba580ced0bfa4cb9fdeed1ed636dfabd81d1577beb6937b
+    user: "0:0"
+    restart: unless-stopped
+    mem_limit: 384m
+    command: ["server", "/data", "--address", ":443", "--certs-dir", "/certs"]
+    environment:
+      MINIO_ROOT_USER: ${OCI_ACCESS_KEY_ID}
+      MINIO_ROOT_PASSWORD: ${OCI_SECRET_ACCESS_KEY}
+      MINIO_BROWSER: "off"
+    volumes:
+      - oci-standin-data:/data
+      - ./dry-run/state/ca/oci:/certs:ro
+    networks:
+      egress:
+        aliases:
+          - dryrun.compat.objectstorage.me-jeddah-1.oraclecloud.com
+
+  oci-standin-init:
+    # Creates the backup bucket on the stand-in (OCI: docs/19 step 4.1, in the console).
+    image: cgr.dev/chainguard/minio-client@sha256:fdb40d819ca51969c86fa76f45a67bb841759daf85d4c6ce9aa86d27f6e47ae9
+    profiles: [tools]
+    restart: "no"
+    entrypoint: ["/bin/sh", "-c", "mc mb --ignore-existing oci/$$OCI_BACKUP_BUCKET"]
+    environment:
+      <<: *dry-trust
+      OCI_BACKUP_BUCKET: ${OCI_BACKUP_BUCKET}
+      MC_HOST_oci: https://${OCI_ACCESS_KEY_ID}:${OCI_SECRET_ACCESS_KEY}@dryrun.compat.objectstorage.me-jeddah-1.oraclecloud.com
+    volumes:
+      - ./dry-run/state/ca/bundle.crt:/etc/dry-ca/bundle.crt:ro
+    networks:
+      egress: {}
+    depends_on:
+      - oci-standin
+
+volumes:
+  oci-standin-data:
