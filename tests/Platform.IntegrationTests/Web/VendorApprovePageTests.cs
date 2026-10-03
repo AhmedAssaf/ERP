@@ -53,7 +53,7 @@ public sealed class VendorApprovePageTests(DatabaseFixture db) : IDisposable
     {
         var (companyId, officer) = await PendingVendorAsync("Dialog Ownership Company");
         var registrant = (await OwnershipRows.VendorUsersAsync(db.OwnerConnectionString, companyId, Ct)).Single().UserId;
-        await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, companyId, VendorDocumentTypes.CrCertificate, new DateOnly(2031, 1, 1), "clean", isCurrent: true, Ct);
+        await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, companyId, VendorDocumentTypes.CrCertificate, await DatabaseClock.ValidUntilAsync(db.OwnerConnectionString, Ct), "clean", isCurrent: true, Ct);
         var accounts = new FakeVendorAccounts();
         accounts.Profiles[registrant] = new VendorAccountProfile("Huda", "Alharbi", "huda@ownership.test", EmailVerified: true);
         await using var host = new ModuleHost(db.AppConnectionString, configure: s => s.Replace(ServiceDescriptor.Scoped<IVendorAccounts>(_ => accounts)));
@@ -135,7 +135,7 @@ public sealed class VendorApprovePageTests(DatabaseFixture db) : IDisposable
     {
         var (companyId, officer) = await PendingVendorAsync("Arabic Dialog Company");
         var registrant = (await OwnershipRows.VendorUsersAsync(db.OwnerConnectionString, companyId, Ct)).Single().UserId;
-        await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, companyId, VendorDocumentTypes.CrCertificate, new DateOnly(2031, 1, 1), "clean", isCurrent: true, Ct);
+        await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, companyId, VendorDocumentTypes.CrCertificate, await DatabaseClock.ValidUntilAsync(db.OwnerConnectionString, Ct), "clean", isCurrent: true, Ct);
         var accounts = new FakeVendorAccounts();
         accounts.Profiles[registrant] = new VendorAccountProfile("هدى", "الحربي", "huda@unverified.test", EmailVerified: false);
         await using var host = new ModuleHost(db.AppConnectionString, configure: s => s.Replace(ServiceDescriptor.Scoped<IVendorAccounts>(_ => accounts)));

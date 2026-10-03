@@ -111,7 +111,8 @@ internal sealed partial class BrandingService(
         await storage.PutAsync(LogoKey(tenant.TenantId, hash), logo.Png, "image/png", cancellationToken);
         if (await UpdateAsync(tenant, null, null, LogoPathPrefix + hash + ".png", cancellationToken) is not { } saved)
         {
-            // The stored file stays unreferenced; it is named by its content, so it is harmless and reused on a retry.
+            // The stored file stays unreferenced until BrandingLogoCleanupJob removes it (W-38). It is never deleted here:
+            // it is named by its content, so another save of the same logo may be writing or have just committed it.
             return Result.Failure<TenantBranding>(NotAllowed());
         }
 

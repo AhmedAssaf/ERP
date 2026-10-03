@@ -80,7 +80,7 @@ public sealed class CrDisputeTests(DatabaseFixture db)
     {
         var (companyId, squatter) = await VendorAsync("Squatted Company");
         var crNumber = await CrNumberAsync(companyId);
-        await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, companyId, VendorDocumentTypes.CrCertificate, new DateOnly(2031, 1, 1), "clean", isCurrent: true, Ct);
+        await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, companyId, VendorDocumentTypes.CrCertificate, await DatabaseClock.ValidUntilAsync(db.OwnerConnectionString, Ct), "clean", isCurrent: true, Ct);
         await VendorRows.RelateAsync(db.OwnerConnectionString, TestTenants.Beta.TenantId, companyId, Ct);
         var recipient = await ConsentRows.AddRecipientAsync(db.OwnerConnectionString, "Dispute Test Recipient", Ct);
         var grant = await ConsentRows.InsertGrantAsOwnerAsync(db.OwnerConnectionString, companyId, recipient, "award_records", 0, 30, squatter, Ct);

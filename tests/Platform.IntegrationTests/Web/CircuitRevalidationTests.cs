@@ -79,7 +79,7 @@ public sealed class CircuitRevalidationTests(DatabaseFixture db)
         var squatter = Guid.NewGuid().ToString();
         var crNumber = VendorRows.NewCrNumber();
         var companyId = await VendorRows.RegisterAsync(db.AppConnectionString, TestTenants.Acme, squatter, crNumber, "Circuit Squatter Co", Ct);
-        await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, companyId, VendorDocumentTypes.CrCertificate, new DateOnly(2031, 1, 1), "clean", isCurrent: true, Ct);
+        await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, companyId, VendorDocumentTypes.CrCertificate, await DatabaseClock.ValidUntilAsync(db.OwnerConnectionString, Ct), "clean", isCurrent: true, Ct);
         await using var host = new ModuleHost(db.AppConnectionString, configure: services =>
             services.Replace(ServiceDescriptor.Scoped<IVendorAccounts>(_ => new FakeVendorAccounts { FailRevoke = true })));
         await using var circuit = host.ScopeFor(TestTenants.Acme, vendorCompanyId: companyId, actingUserId: squatter);

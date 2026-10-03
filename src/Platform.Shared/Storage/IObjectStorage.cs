@@ -14,6 +14,9 @@ public sealed class StoredObject(Stream content, long length, string contentType
     public void Dispose() => Content.Dispose();
 }
 
+/// <summary>The key and last write time of a stored object, as a listing reports them.</summary>
+public sealed record StoredObjectInfo(string Key, DateTimeOffset LastModified);
+
 /// <summary>
 /// The platform's object storage bucket (S3 API; MinIO locally), keyed by path. Tenant data lives under
 /// <c>tenants/{tenantId}/</c>; the caller builds the key and is responsible for putting the tenant id in it.
@@ -34,4 +37,13 @@ public interface IObjectStorage
 
     /// <summary>Deletes the object under the key; a key with no object is not an error.</summary>
     Task DeleteAsync(string key, CancellationToken cancellationToken = default);
+
+    /// <summary>The key and last write time of the object under the key, or null when there is none (a metadata request, no content).</summary>
+    Task<StoredObjectInfo?> GetInfoAsync(string key, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Every object whose key starts with the prefix, with its last write time (a replacing put counts as a write). The
+    /// listing is not a snapshot: objects written while it runs may or may not appear.
+    /// </summary>
+    Task<IReadOnlyList<StoredObjectInfo>> ListAsync(string prefix, CancellationToken cancellationToken = default);
 }

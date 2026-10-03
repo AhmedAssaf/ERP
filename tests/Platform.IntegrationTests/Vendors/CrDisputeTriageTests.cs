@@ -636,7 +636,7 @@ public sealed class CrDisputeTriageTests(DatabaseFixture db)
         var companyId = await VendorRows.RegisterAsync(db.AppConnectionString, TestTenants.Acme, userId, crNumber, nameEn, Ct);
         if (certificate)
         {
-            await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, companyId, VendorDocumentTypes.CrCertificate, new DateOnly(2031, 1, 1), "clean", isCurrent: true, Ct);
+            await VendorDocumentRows.InsertAsync(db.OwnerConnectionString, companyId, VendorDocumentTypes.CrCertificate, await DatabaseClock.ValidUntilAsync(db.OwnerConnectionString, Ct), "clean", isCurrent: true, Ct);
         }
 
         return (companyId, userId, crNumber);

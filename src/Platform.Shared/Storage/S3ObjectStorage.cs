@@ -63,6 +63,42 @@ internal sealed class S3ObjectStorage(ObjectStorageSettings settings) : IObjectS
         await Client.DeleteObjectAsync(new DeleteObjectRequest { BucketName = settings.BucketName, Key = key }, cancellationToken);
     }
 
+    public async Task<StoredObjectInfo?> GetInfoAsync(string key, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        try
+        {
+            var meta = await Client.GetObjectMetadataAsync(new GetObjectMetadataRequest { BucketName = settings.BucketName, Key = key }, cancellationToken);
+            return new StoredObjectInfo(key, new DateTimeOffset(DateTime.SpecifyKind(meta.LastModified ?? DateTime.UtcNow, DateTimeKind.Utc)));
+        }
+        catch (AmazonS3Exception ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+    }
+
+    public async Task<IReadOnlyList<StoredObjectInfo>> ListAsync(string prefix, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(prefix);
+        var found = new List<StoredObjectInfo>();
+        string? continuation = null;
+        do
+        {
+            var page = await Client.ListObjectsV2Async(
+                new ListObjectsV2Request { BucketName = settings.BucketName, Prefix = prefix, ContinuationToken = continuation },
+                cancellationToken);
+            foreach (var item in page.S3Objects ?? [])
+            {
+                found.Add(new StoredObjectInfo(item.Key, new DateTimeOffset(DateTime.SpecifyKind(item.LastModified ?? DateTime.UtcNow, DateTimeKind.Utc))));
+            }
+
+            continuation = page.IsTruncated == true ? page.NextContinuationToken : null;
+        }
+        while (continuation is not null);
+
+        return found;
+    }
+
     public void Dispose()
     {
         if (_client.IsValueCreated)
