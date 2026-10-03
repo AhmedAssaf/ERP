@@ -423,6 +423,13 @@ member of `erp_app` (it inherits its rights and cannot switch to it) and alone m
 as for the key ring (a verifier, never the password). The same migration hands Hangfire's tables, which a host created as
 `erp_app` before, to the migration owner; from then on the migrator installs and upgrades them.
 
+Because `erp_app` can still write Hangfire's tables, the worker treats a job row as untrusted (ADR-0012 addendum point 5):
+it resolves only platform, Hangfire and a few framework argument types, and runs only methods declared by a class marked
+`[PlatformJob]` (`Platform.Shared.Jobs`). A new job class needs that attribute, with `TenantScoped = true` when it runs as
+the enqueuing tenant; anything else fails on the worker without being invoked and is not retried. On the pilot an
+administrator may create `erp_worker` beforehand (no superuser, BYPASSRLS, CREATEROLE, CREATEDB or REPLICATION, a member
+of `erp_app` with inherit and without set, nothing else); migration 0008 then only checks it.
+
 When this change reaches your machine: add `ERP_WORKER_DB_PASSWORD` to `.env` (`openssl rand -hex 32`), set the two
 `ConnectionStrings:Worker` user secrets above, remove the worker's old secret with
 `dotnet user-secrets remove "ConnectionStrings:Platform" --project src/Platform.Worker`, and re-run the migrator before
