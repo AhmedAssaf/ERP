@@ -65,6 +65,11 @@ public static class JobsModule
     public static IServiceCollection AddJobServer(
         this IServiceCollection services, string connectionString, Action<JobServerSettings>? configure = null)
     {
+        // W-36 fix rounds 1 and 2: Hangfire's type resolver is process-wide; a process that runs a job server (the worker,
+        // and the integration tests' in-process workers) resolves only the allow-listed types, for job rows and for the
+        // $type bindings of Hangfire's internal serializer. Set here, at registration, so it is in place before anything
+        // reads a stored row, the worker's recurring-job scheduling after the host is built included.
+        GlobalConfiguration.Configuration.UseTypeResolver(JobAllowList.ResolveType);
         AddJobClient(services, connectionString, failFast: true);
         var settings = new JobServerSettings();
         configure?.Invoke(settings);
@@ -76,11 +81,6 @@ public static class JobsModule
 
         services.AddSingleton<IHostedService>(sp =>
         {
-            // W-36 fix round 1: Hangfire's type resolver is process-wide; a process that runs a job server (the worker, and
-            // the integration tests' in-process workers) resolves only the allow-listed types, for job rows and for the
-            // $type bindings of Hangfire's internal serializer.
-            GlobalConfiguration.Configuration.UseTypeResolver(JobAllowList.ResolveType);
-
             // This host's own DI-registered state and server filters (e.g. Operations' job-failure alert, the job telemetry),
             // on top of Hangfire's process-wide defaults. Never Hangfire's static GlobalJobFilters.Filters: several Hangfire
             // servers can share one process (tests build one per test host), and a filter registered for one must not run

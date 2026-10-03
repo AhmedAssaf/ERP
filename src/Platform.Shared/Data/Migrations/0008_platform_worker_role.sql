@@ -21,8 +21,9 @@
 
 -- A role an administrator created beforehand (docs/07, the pilot) is accepted only as this migration would create it: no
 -- superuser, BYPASSRLS, CREATEROLE, CREATEDB or REPLICATION attribute, no membership but erp_app (inherit, no set), and
--- no member that can use its rights. The membership is granted only when it is missing, so a pre-provisioned role that
--- has it needs no admin rights on erp_app here.
+-- no member but the migration owner's own ADMIN OPTION. The membership is granted only when it is missing, so a
+-- pre-provisioned role that has it needs no admin rights on erp_app here. Object grants an administrator gave such a
+-- role directly are not checked here (docs/07).
 do $$
 declare
     v_worker  pg_roles%rowtype;
@@ -42,10 +43,13 @@ begin
         raise exception 'Role erp_worker is a member of a role other than erp_app; revoke that membership before migrating.';
     end if;
 
-    -- A CREATEROLE owner holds ADMIN OPTION on a role it created (PostgreSQL 16), without INHERIT or SET; only a member that
-    -- can use erp_worker's rights is refused.
-    if exists (select 1 from pg_auth_members m where m.roleid = v_worker.oid and (m.inherit_option or m.set_option)) then
-        raise exception 'Another role can use erp_worker''s rights (a member with INHERIT or SET); revoke that membership before migrating.';
+    -- A CREATEROLE owner holds ADMIN OPTION on a role it created (PostgreSQL 16), without INHERIT or SET. That row is
+    -- accepted for the role running this migration only; any other member of erp_worker is refused.
+    if exists (select 1 from pg_auth_members m
+               where m.roleid = v_worker.oid
+                 and not (m.member = (select oid from pg_roles where rolname = current_user)
+                          and m.admin_option and not m.inherit_option and not m.set_option)) then
+        raise exception 'Another role is a member of erp_worker (only the migration owner''s ADMIN OPTION without INHERIT or SET is accepted); revoke that membership before migrating.';
     end if;
 
     if exists (select 1 from pg_auth_members m

@@ -309,7 +309,7 @@ public sealed class WorkerRoleTests(DatabaseFixture db)
             union all
             select 'member ' || pg_get_userbyid(m.member)
             from pg_auth_members m
-            where m.roleid = (select oid from pg_roles where rolname = 'erp_worker') and (m.inherit_option or m.set_option)
+            where m.roleid = (select oid from pg_roles where rolname = 'erp_worker')
             """, owner);
         var rows = new List<string>();
         await using (var reader = await memberships.ExecuteReaderAsync(Ct))
@@ -328,7 +328,8 @@ public sealed class WorkerRoleTests(DatabaseFixture db)
         "alter role erp_worker bypassrls",
         "grant pg_monitor to erp_worker",
         "create role w36_probe_member nologin; grant erp_worker to w36_probe_member",
-        "revoke erp_app from erp_worker; grant erp_app to erp_worker with inherit true, set true");
+        "revoke erp_app from erp_worker; grant erp_app to erp_worker with inherit true, set true",
+        "create role w36_probe_admin nologin; grant erp_worker to w36_probe_admin with admin true, inherit false, set false");
 
     [Theory]
     [MemberData(nameof(UnsafeWorkerRoles))]
@@ -358,15 +359,23 @@ public sealed class WorkerRoleTests(DatabaseFixture db)
         }
     }
 
-    [Fact]
-    public async Task Platform_migration_0008_accepts_the_role_it_created_again()
+    [Theory]
+    [InlineData("select 1")]
+    [InlineData("grant erp_worker to current_user with admin true, inherit false, set false")]
+    public async Task Platform_migration_0008_accepts_the_role_it_created_again_and_the_owners_admin_option(string change)
     {
+        // The second case is the row PostgreSQL 16 gives a CREATEROLE owner on a role it created.
         await using var owner = new NpgsqlConnection(db.OwnerConnectionString);
         await owner.OpenAsync(Ct);
         await using var transaction = await owner.BeginTransactionAsync(Ct);
         try
         {
-#pragma warning disable CA2100 // The migration's own text.
+#pragma warning disable CA2100 // The migration's own text and the test's statements.
+            await using (var alter = new NpgsqlCommand(change, owner, transaction))
+            {
+                await alter.ExecuteNonQueryAsync(Ct);
+            }
+
             await using var migration = new NpgsqlCommand(await PlatformMigrationAsync("0008_platform_worker_role.sql"), owner, transaction);
 #pragma warning restore CA2100
             await migration.ExecuteNonQueryAsync(Ct);

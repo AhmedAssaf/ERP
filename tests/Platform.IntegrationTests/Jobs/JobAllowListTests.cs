@@ -86,6 +86,50 @@ public sealed class JobAllowListTests(DatabaseFixture db) : IAsyncDisposable
     }
 
     [Fact]
+    public async Task A_refused_row_of_a_job_retried_without_delay_fails_once_and_is_not_retried()
+    {
+        // AutomaticRetry with a zero delay elects Enqueued, not Scheduled (review of fix round 1).
+        await using var worker = await JobServerHost.StartAsync(db.WorkerConnectionString, cancellationToken: Ct);
+        var marker = Guid.NewGuid().ToString("N");
+
+        string jobId;
+        await using (var scope = _web.CreateAsyncScope())
+        {
+            scope.ServiceProvider.GetRequiredService<TenantAccessor>().Set(TestTenants.Acme);
+            jobId = scope.ServiceProvider.GetRequiredService<IBackgroundJobClient>().Enqueue(() => ZeroDelayProbe.Run(marker));
+        }
+
+        (await WaitForRefusalAsync(worker, jobId)).ShouldContain("runs without a tenant");
+        // The retry AutomaticRetry elected shows in the history only as a traversed candidate; the job was processed once
+        // (checked above) and ended in the allow-list's own final failure.
+        worker.Storage.GetMonitoringApi().JobDetails(jobId).History[0].Reason.ShouldContain("not retried");
+        ZeroDelayProbe.Seen.ShouldNotContain(marker);
+    }
+
+    [Fact]
+    public async Task The_activator_refuses_a_tenant_written_after_the_filter_for_a_job_that_runs_without_one()
+    {
+        // The row passes the allow-list without a tenant; the application role then writes a consistent tenant pair, as it
+        // could between the filter's read and the activation. The activator checks the values it uses.
+        var jobId = WebClient().Create(Job.FromExpression<InstanceProbe>(p => p.Run()), new ScheduledState(TimeSpan.FromHours(1)));
+        await using var worker = await JobServerHost.StartAsync(db.WorkerConnectionString, cancellationToken: Ct);
+        using var connection = worker.Storage.GetConnection();
+        var job = connection.GetJobData(jobId).Job;
+        JobAllowList.Refusal(connection, new BackgroundJob(jobId, job, DateTime.UtcNow)).ShouldBeNull("the filter would let it through");
+
+        using (var app = _web.GetRequiredService<JobStorage>().GetConnection())
+        {
+            app.SetJobParameter(jobId, TenantJobFilter.TenantIdParameter, SerializationHelper.Serialize(TestTenants.Acme.TenantId));
+            app.SetJobParameter(jobId, TenantJobFilter.TenantParameter, SerializationHelper.Serialize(TestTenants.Acme));
+        }
+
+        var activator = new TenantJobActivator(worker.Services.GetRequiredService<IServiceScopeFactory>());
+        var context = new JobActivatorContext(connection, new BackgroundJob(jobId, job, DateTime.UtcNow), new JobCancellationToken(false));
+
+        Should.Throw<JobRefusedException>(() => activator.BeginScope(context)).Message.ShouldContain("runs without one");
+    }
+
+    [Fact]
     public async Task A_platform_job_enqueued_by_the_web_host_still_runs()
     {
         await using var worker = await JobServerHost.StartAsync(db.WorkerConnectionString, cancellationToken: Ct);
@@ -228,6 +272,25 @@ public static class AllowedProbe
     public static ConcurrentBag<string> Seen { get; } = [];
 
     public static void Run(string marker) => Seen.Add(marker);
+}
+
+/// <summary>A platform job without a tenant whose retries have no delay, so AutomaticRetry elects Enqueued.</summary>
+[PlatformJob]
+[AutomaticRetry(Attempts = 3, DelaysInSeconds = [0])]
+public static class ZeroDelayProbe
+{
+    public static ConcurrentBag<string> Seen { get; } = [];
+
+    public static void Run(string marker) => Seen.Add(marker);
+}
+
+/// <summary>A platform job without a tenant run through the activator (an instance method).</summary>
+[PlatformJob]
+public sealed class InstanceProbe
+{
+    public static ConcurrentBag<string> Seen { get; } = [];
+
+    public void Run() => Seen.Add(GetHashCode().ToString(System.Globalization.CultureInfo.InvariantCulture));
 }
 
 /// <summary>An argument type with an object-typed member, the shape a <c>$type</c> attack needs.</summary>
