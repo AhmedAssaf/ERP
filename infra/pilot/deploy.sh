@@ -28,6 +28,13 @@ done
 
 require_root
 require_env_file
+
+# The SMTP login is read by Compose, the Keycloak realm import (JSON) and curl: refuse characters that break them.
+for name in SMTP_USERNAME SMTP_PASSWORD; do
+  case "$(env_value "$name")" in
+    *'$'* | *'"'* | *'\'*) die "$name in .env contains \$, a double quote or a backslash; generate another SMTP credential (docs/19 step 4)" ;;
+  esac
+done
 command -v docker >/dev/null || die "docker is not installed (bootstrap.sh)"
 docker compose version >/dev/null || die "the docker compose plugin is missing (bootstrap.sh)"
 

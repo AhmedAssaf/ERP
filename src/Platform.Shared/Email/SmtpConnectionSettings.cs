@@ -42,19 +42,35 @@ public sealed record SmtpConnectionSettings(
         var security = Enum.TryParse<SmtpSecurity>(configuration["Smtp:Security"], ignoreCase: true, out var parsed)
             ? parsed
             : SmtpSecurity.Auto;
+        var username = configuration["Smtp:Username"] is { Length: > 0 } user ? user : null;
+        var password = configuration["Smtp:Password"] is { Length: > 0 } secret ? secret : null;
+        if (username is not null && password is null)
+        {
+            throw new InvalidOperationException(
+                "Smtp:Username is set but Smtp:Password is not; set the password in user secrets or the secret store.");
+        }
+
         return new SmtpConnectionSettings(
             configuration["Smtp:Host"] ?? "localhost",
             int.TryParse(configuration["Smtp:Port"], out var port) ? port : 1025,
             security,
-            configuration["Smtp:Username"] is { Length: > 0 } user ? user : null,
-            configuration["Smtp:Password"] is { Length: > 0 } password ? password : null);
+            username,
+            password);
     }
 
-    /// <summary>Connects and, when a username is configured, authenticates.</summary>
+    /// <summary>
+    /// Connects and, when a username is configured, authenticates. With a login, <see cref="SmtpSecurity.Auto"/> means
+    /// STARTTLS (implicit TLS on port 465) and is never downgraded to plain text; the login is refused on any connection
+    /// that is not encrypted unless the server is on this machine (local test servers). A 20-second timeout bounds every step.
+    /// </summary>
     public async Task ConnectAsync(SmtpClient client, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(client);
-        var options = Security switch
+        client.Timeout = TimeoutMilliseconds;
+        var security = Security == SmtpSecurity.Auto && UsesAuthentication
+            ? (Port == 465 ? SmtpSecurity.Ssl : SmtpSecurity.StartTls)
+            : Security;
+        var options = security switch
         {
             SmtpSecurity.None => SecureSocketOptions.None,
             SmtpSecurity.StartTls => SecureSocketOptions.StartTls,
@@ -69,9 +85,20 @@ public sealed record SmtpConnectionSettings(
                 throw new InvalidOperationException("Smtp:Username is set but Smtp:Password is not.");
             }
 
+            if (!client.IsSecure && !IsLocalHost(Host))
+            {
+                throw new AuthenticationException("Refusing to send the SMTP login over a connection that is not encrypted.");
+            }
+
             await client.AuthenticateAsync(Username!, Password, cancellationToken);
         }
     }
+
+    private const int TimeoutMilliseconds = 20_000;
+
+    private static bool IsLocalHost(string host) =>
+        host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+        || (System.Net.IPAddress.TryParse(host, out var address) && System.Net.IPAddress.IsLoopback(address));
 
     private bool PrintMembers(StringBuilder builder)
     {

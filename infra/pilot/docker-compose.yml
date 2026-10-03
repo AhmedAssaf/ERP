@@ -134,6 +134,10 @@ services:
       Wathq__ApiKey: ${WATHQ_API_KEY:-}
     secrets:
       - key_ring_pfx
+    # OIDC discovery and token calls to AUTH_HOST stay on the bridge (straight to Caddy) instead of leaving the VM
+    # through the internet and coming back (and keep working once egress is restricted, W-43).
+    extra_hosts:
+      - "${AUTH_HOST:?Set AUTH_HOST in infra/pilot/.env}:${CADDY_EDGE_IP:-172.30.10.2}"
     networks:
       edge:
         ipv4_address: ${WEB_EDGE_IP:-172.30.10.3}

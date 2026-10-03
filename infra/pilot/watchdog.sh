@@ -24,29 +24,23 @@ RECIPIENT="$(env_value ALERT_RECIPIENT)"
 FROM="$(env_value SMTP_FROM)"
 PLATFORM_HOST="$(env_value PLATFORM_HOST)"
 
-# Straight to OCI Email Delivery from the VM (STARTTLS on port 587). The login goes to curl on stdin, never on its
-# command line, so it is not visible in the process list or the journal (N-10).
+# Straight to OCI Email Delivery from the VM (STARTTLS on port 587, required). The login goes to curl on stdin, never on
+# its command line, so it is not visible in the process list or the journal (N-10).
 send_mail() {
-  local subject="$1" body="$2" host port user password
+  local subject="$1" body="$2" host port user password rc
   host="$(env_value SMTP_HOST)"; port="$(env_value SMTP_PORT)"
   user="$(env_value SMTP_USERNAME)"; password="$(env_value SMTP_PASSWORD)"
   if [ -z "$host" ] || [ -z "$user" ] || [ -z "$password" ]; then
     echo "watchdog: cannot send '$subject': SMTP_HOST, SMTP_USERNAME or SMTP_PASSWORD is empty in .env" >&2
     return 1
   fi
-  printf 'From: %s
-To: %s
-Subject: %s
-Content-Type: text/plain; charset=utf-8
-
-%s
-
-VM: %s
-Time (UTC): %s
-'     "$FROM" "$RECIPIENT" "$subject" "$body" "$(hostname)" "$(date -u '+%Y-%m-%d %H:%M')" > "$WATCH_DIR/mail.tmp"
-  printf 'user = "%s:%s"
-' "$user" "$password"     | curl -sS --fail --max-time 30 --ssl-reqd -K - "smtp://${host}:${port:-587}"         --mail-from "$FROM" --mail-rcpt "$RECIPIENT" -T "$WATCH_DIR/mail.tmp" >/dev/null
-  local rc=$?
+  printf 'Date: %s\nMessage-ID: <%s.%s@%s>\nFrom: %s\nTo: %s\nSubject: %s\nContent-Type: text/plain; charset=utf-8\n\n%s\n\nVM: %s\nTime (UTC): %s\n' \
+    "$(date -R)" "$(date -u +%s)" "$$" "$(hostname)" "$FROM" "$RECIPIENT" "$subject" "$body" "$(hostname)" \
+    "$(date -u '+%Y-%m-%d %H:%M')" > "$WATCH_DIR/mail.tmp"
+  printf 'user = "%s:%s"\n' "$user" "$password" \
+    | curl -sS --fail --max-time 30 --ssl-reqd --crlf -K - "smtp://${host}:${port:-587}" \
+        --mail-from "$FROM" --mail-rcpt "$RECIPIENT" -T "$WATCH_DIR/mail.tmp" >/dev/null
+  rc=$?
   rm -f "$WATCH_DIR/mail.tmp"
   return $rc
 }

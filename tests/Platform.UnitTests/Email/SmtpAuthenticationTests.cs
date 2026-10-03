@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
 using Microsoft.Extensions.Configuration;
@@ -74,6 +75,58 @@ public sealed class SmtpAuthenticationTests
     }
 
     [Fact]
+    public async Task Auto_with_a_login_means_starttls_and_is_refused_when_the_server_does_not_offer_it()
+    {
+        await using var server = FakeSmtp.Start(advertiseAuth: true);
+        var smtp = new SmtpConnectionSettings("127.0.0.1", server.Port, SmtpSecurity.Auto, "ocid1.user", Secret);
+        var sender = new MailKitEmailSender(new EmailSettings(smtp, "from@example.test"));
+
+        var ex = await Should.ThrowAsync<EmailDeliveryException>(() => sender.SendAsync(Message, Ct));
+
+        ex.ToString().ShouldNotContain(Secret);
+        server.AuthAttempts.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task No_encryption_with_a_login_is_refused_unless_the_server_is_on_this_machine()
+    {
+        var address = NetworkInterface.GetAllNetworkInterfaces()
+            .Where(n => n.OperationalStatus == OperationalStatus.Up)
+            .SelectMany(n => n.GetIPProperties().UnicastAddresses)
+            .Select(a => a.Address)
+            .FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(a));
+        if (address is null)
+        {
+            Assert.Skip("This machine has no non-loopback IPv4 address to stand in for a remote server.");
+        }
+
+        await using var server = FakeSmtp.Start(advertiseAuth: true, bindAny: true);
+        foreach (var security in new[] { SmtpSecurity.None, SmtpSecurity.Auto })
+        {
+            var smtp = new SmtpConnectionSettings(address.ToString(), server.Port, security, "ocid1.user", Secret);
+            var sender = new MailKitEmailSender(new EmailSettings(smtp, "from@example.test"));
+
+            var ex = await Should.ThrowAsync<EmailDeliveryException>(() => sender.SendAsync(Message, Ct));
+
+            ex.ToString().ShouldNotContain(Secret);
+        }
+
+        server.AuthAttempts.ShouldBeEmpty("the login must never go out in clear text to a remote server");
+    }
+
+    [Fact]
+    public void A_username_without_a_password_is_refused_when_the_settings_are_read()
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Smtp:Username"] = "ocid1.user",
+        }).Build();
+
+        Should.Throw<InvalidOperationException>(() => SmtpConnectionSettings.FromConfiguration(configuration))
+            .Message.ShouldContain("Smtp:Password");
+    }
+
+    [Fact]
     public async Task The_health_check_logs_in_when_configured_and_never_reports_the_password()
     {
         await using var server = FakeSmtp.Start(advertiseAuth: true);
@@ -122,15 +175,16 @@ public sealed class SmtpAuthenticationTests
 
     private sealed class FakeSmtp : IAsyncDisposable
     {
-        private readonly TcpListener _listener = new(IPAddress.Loopback, 0);
+        private readonly TcpListener _listener;
         private readonly CancellationTokenSource _stop = new();
         private readonly bool _advertiseAuth;
         private readonly string? _acceptedPassword;
         private Task _loop = Task.CompletedTask;
         private int _delivered;
 
-        private FakeSmtp(bool advertiseAuth, string? acceptedPassword)
+        private FakeSmtp(bool advertiseAuth, string? acceptedPassword, bool bindAny)
         {
+            _listener = new TcpListener(bindAny ? IPAddress.Any : IPAddress.Loopback, 0);
             _advertiseAuth = advertiseAuth;
             _acceptedPassword = acceptedPassword;
         }
@@ -141,9 +195,9 @@ public sealed class SmtpAuthenticationTests
 
         public int Delivered => Volatile.Read(ref _delivered);
 
-        public static FakeSmtp Start(bool advertiseAuth, string? acceptedPassword = null)
+        public static FakeSmtp Start(bool advertiseAuth, string? acceptedPassword = null, bool bindAny = false)
         {
-            var server = new FakeSmtp(advertiseAuth, acceptedPassword);
+            var server = new FakeSmtp(advertiseAuth, acceptedPassword, bindAny);
             server._listener.Start();
             server._loop = Task.Run(server.AcceptLoopAsync);
             return server;

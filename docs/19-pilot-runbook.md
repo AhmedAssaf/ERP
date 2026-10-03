@@ -133,15 +133,20 @@ the answer if it persists.
 4. On the user `waslabid-backup`: Customer secret keys, Generate. The access key and secret go to `OCI_ACCESS_KEY_ID` and
    `OCI_SECRET_ACCESS_KEY`; `OCI_S3_ENDPOINT` is `https://<namespace>.compat.objectstorage.me-jeddah-1.oraclecloud.com`.
 5. Email Delivery (Jeddah): an email domain with DKIM, an approved sender (the `SMTP_FROM` address), and SMTP credentials
-   for a user (Identity, Users, SMTP credentials; the password is shown once) into `SMTP_USERNAME` and `SMTP_PASSWORD`.
+   for a dedicated IAM user that holds only the Email Delivery SMTP credential and no other policy (the credential is
+   readable by the internet-facing web host, the worker and Keycloak; the user's only power is sending mail from the
+   approved sender). Identity, Users, SMTP credentials; the password is shown once; put it in `SMTP_USERNAME` and `SMTP_PASSWORD`.
    Confirm the SMTP endpoint shown in the console matches `SMTP_HOST` (port 587, STARTTLS), and the free sending
    allowance. The web host, the worker, Keycloak (realm import) and the watchdog log in to it directly; there is no relay
    container. The worker and the web host need outbound access to port 587 (the worker is on the `egress` network, the
-   web host and Keycloak reach it through `edge`); the OCI security list must allow egress to the endpoint. The password
-   must not contain `$`, `"` or a backslash. To rotate it: generate a new SMTP credential, change `.env`, run
+   web host and Keycloak reach it through `edge`); the OCI security list must allow egress to the endpoint. The
+   application refuses to send the login over an unencrypted connection (STARTTLS is mandatory with a login). The
+   password must not contain `$`, `"` or a backslash (`deploy.sh` refuses it). To rotate it: generate a new SMTP credential, change `.env`, run
    `deploy.sh` for the hosts, set the new password in the Keycloak admin console (realm settings, Email; the realm
    import only runs on the first start), then delete the old credential.
-6. Observability, Notifications: a topic with your email, and Monitoring, Alarm definitions: an alarm on the instance's
+6. On the instance (Instance details, Instance metadata service): set it to version 2 only (IMDSv1 disabled), so a
+   container cannot read instance metadata with a plain GET.
+7. Observability, Notifications: a topic with your email, and Monitoring, Alarm definitions: an alarm on the instance's
    `CpuUtilization` metric being absent for 10 minutes (the VM is down), sent to that topic. The watchdog cannot see this
    case from inside the VM.
 
@@ -167,8 +172,9 @@ infra/pilot/build-images.sh ubuntu@platform.example.sa   # arm64 images, loaded 
 
 The images can also be built on the VM itself (Platform.UI's Tailwind step now picks the linux-arm64 CLI there, checked
 by its SHA-256): `cd /opt/waslabid && sudo git checkout <tag> && sudo infra/pilot/build-images.sh` with no argument builds
-the three images natively, tagged with the commit, and nothing needs shipping (about 15 minutes on two cores; stop the
-stack's heavy services first if memory is tight).
+the three images natively, tagged with the commit, and nothing needs shipping. Before a build on the VM, stop the heavy
+services (`docker compose ... stop elasticsearch clamav kibana`; the SDK needs the memory), and start them again by
+running `deploy.sh`. The arm64 build was verified under QEMU emulation on the laptop; it has not run on the VM itself.
 
 On the VM: `cd /opt/waslabid && sudo git checkout <tag> && sudo infra/pilot/deploy.sh --tag <tag>`. The first run takes
 about 15 minutes: ClamAV downloads its signatures and Keycloak builds its configuration. It ends with the checks in
@@ -316,6 +322,10 @@ the backup taken before the upgrade (`restore.sh --full --force`), then deploy t
 | Item | Effect on the pilot | Next step |
 |---|---|---|
 | No `ask` endpoint for on-demand TLS (F-03) | Tenant hosts are a static list; each new host needs `.env`, DNS and a deploy | Build `GET /internal/tls/allowed` on the web host (developer), then switch the Caddyfile to the commented shape |
+| The SMTP credential lives in the web host (internet-facing), the worker and Keycloak | A compromise of any of them can send mail as the approved sender | A dedicated IAM user whose only power is sending (step 4); rotate on suspicion; the sender domain's SPF/DKIM/DMARC limit abuse |
+| Keycloak's realm setting `starttls: true` may only request STARTTLS, not require it (Keycloak 26 behaviour not checked offline; the application and the watchdog do require it) | A stripped STARTTLS could send Keycloak's SMTP login in clear text on the path to the provider | Check on the VM at step 7 (Keycloak mail with a tampered path, or the Jakarta Mail `mail.smtp.starttls.required` setting) and record the answer here |
+| The SMTP health check logs in on every run (about 1,440 times a day) | Counts against Email Delivery's rate and login limits and shows in its logs; a provider lockout after failures would also stop real mail | Watch the first week; lengthen the check interval or stop logging in if the provider objects |
+| The worker has internet egress (the `egress` network) and web and Keycloak have it through `edge`; every container can reach the instance metadata service at 169.254.169.254 | A compromised container can reach the internet and, with IMDSv1 off, only needs a token request for metadata | Egress restriction (W-43, docs/09); until it lands, IMDS is v2-only (step 4) and the VM firewall is the only boundary |
 | One VM, no replica | N-04 (99.5%) is not guaranteed; a VM loss means up to an hour down and up to a day of data (nightly backup) | Accepted for the pilot; WAL archiving or managed PostgreSQL when hosting is re-decided in December 2026 |
 | Secrets live in a root-only file and in container environments (`docker inspect`) | Root on the VM reads every secret; N-10 asks for a KMS or secret store | OCI Vault when hosting is decided; until then SSH is allow-listed and key-only |
 | MinIO and PostgreSQL are encrypted at rest only by the boot volume (Oracle-managed keys) | No per-tender keys (docs/03 section 9) | KMS-backed storage with the production hosting decision |
