@@ -8,9 +8,8 @@
 #
 # The build stage runs on the BUILD platform and publishes framework-dependent output for the TARGET's runtime identifier
 # (no app host, nothing compiled natively), so an amd64 laptop or CI runner builds arm64 images without emulating the
-# SDK. It must: Platform.UI's Tailwind step downloads only
-# the linux-x64 standalone CLI on Linux (src/UI/Platform.UI/Platform.UI.csproj), so a build ON an arm64 machine (the VM)
-# fails until a linux-arm64 entry is added there (follow-up recorded in docs/19 section 9).
+# SDK. A build ON an arm64 machine (the VM) works too: Platform.UI's Tailwind step picks the standalone CLI by
+# operating system and architecture, each pinned by SHA-256 (src/UI/Platform.UI/Platform.UI.csproj).
 #
 # Base images are pinned by version and multi-architecture index digest (amd64 and arm64), checked 2026-10-03.
 ARG SDK_IMAGE=mcr.microsoft.com/dotnet/sdk:10.0.401-noble@sha256:e70cdb7f80b0348f5cb85f19a8f670fca061f033d57eed12fa003d58b0e06317

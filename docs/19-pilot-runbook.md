@@ -29,12 +29,11 @@ flowchart LR
             end
             subgraph EGR["backend and egress networks"]
                 AV["ClamAV"]
-                RELAY["SMTP relay"]
             end
             CADDY --> WEB & KC
-            WEB --> PG & RD & S3 & AV & RELAY & COL
-            WRK --> PG & RD & S3 & AV & RELAY & COL
-            KC --> PG & RELAY
+            WEB --> PG & RD & S3 & AV & COL
+            WRK --> PG & RD & S3 & AV & COL
+            KC --> PG
             KIB --> ES
             BK["backup.sh, nightly"] --> PG & S3
         end
@@ -42,7 +41,7 @@ flowchart LR
         MAIL["Email Delivery"]
     end
     BK -.->|"encrypted"| OS
-    RELAY --> MAIL
+    WEB & WRK & KC -.->|"SMTP, STARTTLS 587, login"| MAIL
     AV -.->|"signature updates only"| CDN["ClamAV mirror"]
     CADDY -.->|"certificate issuance only"| LE["Let's Encrypt"]
 ```
@@ -58,7 +57,7 @@ Memory limits (W-10 spec section 9, applied in `docker-compose.yml`):
 | PostgreSQL | 1.5 GB | Web host | 1 GB |
 | Keycloak | 1.5 GB | Worker | 512 MB |
 | ClamAV (`ConcurrentDatabaseReload no`) | 2 GB | OTel Collector (`GOMEMLIMIT` 250 MiB) | 320 MB |
-| Elasticsearch (768 MB heap) | 1.75 GB | MinIO, Redis, Caddy, SMTP relay | 1 GB together |
+| Elasticsearch (768 MB heap) | 1.75 GB | MinIO, Redis, Caddy | 1 GB together |
 | **Steady total** | **9.56 GB** | Kibana, only while open | 1.25 GB |
 
 ## 2. The files
@@ -92,7 +91,7 @@ Where each host setting outside Development comes from (docs/07 section 4):
 | `ForwardedHeaders:KnownProxies` (W-24) | Caddy's pinned address `CADDY_EDGE_IP` (172.30.10.2) |
 | `DataProtection:CertificatePath`, `CertificatePassword` (W-24) | `secrets/key-ring.pfx` as a Compose secret, `KEY_RING_CERT_PASSWORD` |
 | `ObjectStorage:*`, `Health:MinIo:*` | MinIO user `waslabid-app` (bucket only), `health-probe` (list only) |
-| `ClamAv:*`, `Smtp:*`, `Platform:AlertRecipients`, `Platform:DiskPath` | `clamav:3310`, the relay `smtp-relay:587` and `SMTP_FROM`, `ALERT_RECIPIENT`, the database volume |
+| `ClamAv:*`, `Smtp:*`, `Platform:AlertRecipients`, `Platform:DiskPath` | `clamav:3310`, `SMTP_HOST`/`SMTP_PORT` (STARTTLS), `SMTP_USERNAME`/`SMTP_PASSWORD` and `SMTP_FROM`, `ALERT_RECIPIENT`, the database volume |
 | `Vendors:CrAuditKey`, `Wathq:*` | `VENDORS_CR_AUDIT_KEY`; Wathq optional |
 | `Telemetry:Elasticsearch*`, `Observability:KibanaUrl` | `waslabid_monitor` and `ELASTIC_MONITOR_PASSWORD`; `http://127.0.0.1:5601` through the tunnel |
 
@@ -134,8 +133,14 @@ the answer if it persists.
 4. On the user `waslabid-backup`: Customer secret keys, Generate. The access key and secret go to `OCI_ACCESS_KEY_ID` and
    `OCI_SECRET_ACCESS_KEY`; `OCI_S3_ENDPOINT` is `https://<namespace>.compat.objectstorage.me-jeddah-1.oraclecloud.com`.
 5. Email Delivery (Jeddah): an email domain with DKIM, an approved sender (the `SMTP_FROM` address), and SMTP credentials
-   for a user (Identity, Users, SMTP credentials) into `SMTP_RELAY_USERNAME` and `SMTP_RELAY_PASSWORD`. Confirm the SMTP
-   endpoint shown in the console matches `SMTP_RELAY_HOST`, and the free sending allowance.
+   for a user (Identity, Users, SMTP credentials; the password is shown once) into `SMTP_USERNAME` and `SMTP_PASSWORD`.
+   Confirm the SMTP endpoint shown in the console matches `SMTP_HOST` (port 587, STARTTLS), and the free sending
+   allowance. The web host, the worker, Keycloak (realm import) and the watchdog log in to it directly; there is no relay
+   container. The worker and the web host need outbound access to port 587 (the worker is on the `egress` network, the
+   web host and Keycloak reach it through `edge`); the OCI security list must allow egress to the endpoint. The password
+   must not contain `$`, `"` or a backslash. To rotate it: generate a new SMTP credential, change `.env`, run
+   `deploy.sh` for the hosts, set the new password in the Keycloak admin console (realm settings, Email; the realm
+   import only runs on the first start), then delete the old credential.
 6. Observability, Notifications: a topic with your email, and Monitoring, Alarm definitions: an alarm on the instance's
    `CpuUtilization` metric being absent for 10 minutes (the VM is down), sent to that topic. The watchdog cannot see this
    case from inside the VM.
@@ -159,6 +164,11 @@ be restored, and the key-ring certificate must never be in the database backup (
 ```bash
 infra/pilot/build-images.sh ubuntu@platform.example.sa   # arm64 images, loaded on the VM over SSH
 ```
+
+The images can also be built on the VM itself (Platform.UI's Tailwind step now picks the linux-arm64 CLI there, checked
+by its SHA-256): `cd /opt/waslabid && sudo git checkout <tag> && sudo infra/pilot/build-images.sh` with no argument builds
+the three images natively, tagged with the commit, and nothing needs shipping (about 15 minutes on two cores; stop the
+stack's heavy services first if memory is tight).
 
 On the VM: `cd /opt/waslabid && sudo git checkout <tag> && sudo infra/pilot/deploy.sh --tag <tag>`. The first run takes
 about 15 minutes: ClamAV downloads its signatures and Keycloak builds its configuration. It ends with the checks in
@@ -210,7 +220,7 @@ Record the result in section 7.
 
 ```mermaid
 flowchart LR
-    A["Checks<br/>.env mode 600, certificate,<br/>images present"] --> B["Start PostgreSQL, Redis,<br/>MinIO, relay, Elasticsearch,<br/>ClamAV; wait healthy"]
+    A["Checks<br/>.env mode 600, certificate,<br/>images present"] --> B["Start PostgreSQL, Redis,<br/>MinIO, Elasticsearch,<br/>ClamAV; wait healthy"]
     B --> C["bootstrap.sql<br/>roles, databases, extensions"]
     C --> D["minio-init<br/>elastic-setup"]
     D --> E["Keycloak, collector"]
@@ -306,8 +316,6 @@ the backup taken before the upgrade (`restore.sh --full --force`), then deploy t
 | Item | Effect on the pilot | Next step |
 |---|---|---|
 | No `ask` endpoint for on-demand TLS (F-03) | Tenant hosts are a static list; each new host needs `.env`, DNS and a deploy | Build `GET /internal/tls/allowed` on the web host (developer), then switch the Caddyfile to the commented shape |
-| Tailwind's standalone CLI is configured for linux-x64 only | Images cannot be built on the arm64 VM; they are built on an amd64 machine and shipped | Add a linux-arm64 entry to `Platform.UI.csproj` (developer) |
-| The application's SMTP client has no authentication setting | A local relay holds the SMTP credentials | `Smtp:Username`/`Password` in the app would remove the relay (developer, optional) |
 | One VM, no replica | N-04 (99.5%) is not guaranteed; a VM loss means up to an hour down and up to a day of data (nightly backup) | Accepted for the pilot; WAL archiving or managed PostgreSQL when hosting is re-decided in December 2026 |
 | Secrets live in a root-only file and in container environments (`docker inspect`) | Root on the VM reads every secret; N-10 asks for a KMS or secret store | OCI Vault when hosting is decided; until then SSH is allow-listed and key-only |
 | MinIO and PostgreSQL are encrypted at rest only by the boot volume (Oracle-managed keys) | No per-tender keys (docs/03 section 9) | KMS-backed storage with the production hosting decision |
@@ -323,7 +331,7 @@ the backup taken before the upgrade (`restore.sh --full --force`), then deploy t
 
 Checked locally on 2026-10-03, without any cloud account: `docker compose config` of the pilot file; the arm64 images
 built on an amd64 laptop and started under emulation; with amd64 images and no published port, PostgreSQL, Redis, MinIO,
-Keycloak (production mode, both realms imported), the SMTP relay, the migrator, the web host and the worker came up
+Keycloak (production mode, both realms imported), the migrator, the web host and the worker came up
 healthy, `bootstrap.sql`, `minio-init.sh`, the migrator and `provision-tenant.sh` ran twice without change on the second
 run, the worker's health checks reported PostgreSQL, Redis, MinIO, Disk, Web and Worker healthy, and the dumps of
 `backup.sh` restored into a throwaway container with the integrity checks of `restore.sh`; shellcheck, Caddy's validator

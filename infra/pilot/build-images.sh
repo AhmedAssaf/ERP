@@ -7,7 +7,7 @@
 #   infra/pilot/build-images.sh <ssh target>          # build and load on the VM, e.g. ubuntu@pilot.example.sa
 #
 # The tag is the commit's 12-character short hash; the working tree must be clean so the tag names exactly what was
-# built. Then on the VM: git checkout <tag> && sudo infra/pilot/deploy.sh --tag <tag>
+# built. Run with no argument on the VM itself to build natively there (docs/19 step 6). Then on the VM: git checkout <tag> && sudo infra/pilot/deploy.sh --tag <tag>
 set -euo pipefail
 
 cd "$(dirname "$0")/../.."
