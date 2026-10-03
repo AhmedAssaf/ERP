@@ -154,7 +154,9 @@ jobs:
           dc --profile tools --profile kibana config --quiet
           tenant_base_domain > /dev/null
           caddy_validate
-          shellcheck -x -P infra/pilot infra/pilot/*.sh
+          shellcheck -x -P infra/pilot infra/pilot/*.sh infra/pilot/dry-run/*.sh
+          # The local rehearsal's override (infra/pilot/dry-run, docs/19 section 10) still layers over the pilot file.
+          PILOT_COMPOSE_OVERRIDE=infra/pilot/dry-run/compose.override.yml dc --profile tools config --quiet
 
       # Blocking: fixable HIGH and CRITICAL vulnerabilities in NuGet packages, committed secrets (N-10), and
       # misconfigurations. Settings are in .github/trivy.yaml, so the same scan runs locally.

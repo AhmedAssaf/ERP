@@ -127,13 +127,15 @@ if [ -n "$age" ] && [ "$age" -lt 120 ]; then log "worker Hangfire heartbeat ${ag
 
 PLATFORM_HOST="$(env_value PLATFORM_HOST)"
 AUTH_HOST="$(env_value AUTH_HOST)"
-if curl -fsS -o /dev/null --max-time 20 --resolve "$PLATFORM_HOST:443:127.0.0.1" "https://$PLATFORM_HOST/health"; then
+# Caddy's HTTPS port on this machine: 443 on the VM; the local rehearsal publishes another (dry-run/README.md).
+HTTPS_PORT="${PILOT_HTTPS_PORT:-443}"
+if curl -fsS -o /dev/null --max-time 20 --connect-to "$PLATFORM_HOST:443:127.0.0.1:$HTTPS_PORT" "https://$PLATFORM_HOST/health"; then
   log "https://$PLATFORM_HOST/health answers through Caddy with a valid certificate"
 else
   warn "https://$PLATFORM_HOST/health failed through Caddy: DNS not pointing here yet, or the certificate not issued (docker compose logs caddy)"
   failures=$((failures + 1))
 fi
-issuer="$(curl -fsS --max-time 20 --resolve "$AUTH_HOST:443:127.0.0.1" "https://$AUTH_HOST/realms/waslabid/.well-known/openid-configuration" 2>/dev/null | jq -r .issuer 2>/dev/null || true)"
+issuer="$(curl -fsS --max-time 20 --connect-to "$AUTH_HOST:443:127.0.0.1:$HTTPS_PORT" "https://$AUTH_HOST/realms/waslabid/.well-known/openid-configuration" 2>/dev/null | jq -r .issuer 2>/dev/null || true)"
 if [ "$issuer" = "https://$AUTH_HOST/realms/waslabid" ]; then log "Keycloak issuer $issuer"; else warn "Keycloak issuer is '${issuer:-unreachable}', expected https://$AUTH_HOST/realms/waslabid"; failures=$((failures + 1)); fi
 
 dc ps --format 'table {{.Service}}\t{{.Status}}'

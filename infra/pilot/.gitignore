@@ -3,3 +3,5 @@
 .env.*
 !.env.example
 secrets/
+# The local rehearsal's generated CA, certificates and Caddyfile (dry-run/prepare.sh).
+dry-run/state/

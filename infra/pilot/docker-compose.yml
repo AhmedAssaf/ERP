@@ -608,6 +608,10 @@ networks:
     ipam:
       config:
         - subnet: ${EDGE_SUBNET:-172.30.10.0/24}
+          # Containers without a pinned address (Keycloak) take theirs from this upper half only. Without it Docker hands
+          # out the first free address, and Keycloak, started before them, took Caddy's or the web host's pinned one
+          # ("Address already in use", seen in the 2026-10-03 rehearsal). Keep both pinned addresses outside it.
+          ip_range: ${EDGE_IP_RANGE:-172.30.10.128/25}
   backend:
     internal: true
     ipam:

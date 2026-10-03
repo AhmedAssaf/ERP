@@ -50,9 +50,12 @@ tenant_base_domain() {
   printf '%s' "$base"
 }
 
-# Compose with the pilot's file, env file and the image tag deploy.sh chose.
+# Compose with the pilot's file, env file and the image tag deploy.sh chose. PILOT_COMPOSE_OVERRIDE layers one more file
+# on top; only the local rehearsal sets it (dry-run/compose.override.yml), never the VM.
 dc() {
-  docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" "$@"
+  local files=(-f "$COMPOSE_FILE")
+  [ -z "${PILOT_COMPOSE_OVERRIDE:-}" ] || files+=(-f "$PILOT_COMPOSE_OVERRIDE")
+  docker compose "${files[@]}" --env-file "$ENV_FILE" "$@"
 }
 
 # The pinned image of one service. (`docker compose config --images <service>` ignores the service and lists them all.)
