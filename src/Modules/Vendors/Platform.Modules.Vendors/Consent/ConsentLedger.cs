@@ -229,7 +229,9 @@ internal sealed class ConsentLedger(
         }
 
         var result = new ConsentCheckResult(grantId is not null, grantId);
-        await platformAudit.WriteAsync(
+        try
+        {
+            await platformAudit.WriteAsync(
             new PlatformAuditEntry(actingUser.UserId, "vendor.consent_check", "vendor_company", companyId.ToString(), new Dictionary<string, string?>
             {
                 ["tenant_id"] = tenants.Current?.TenantId.ToString(),
@@ -239,6 +241,12 @@ internal sealed class ConsentLedger(
                 ["scope"] = scopeCode,
             }),
             cancellationToken);
+        }
+        catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.InsufficientPrivilege)
+        {
+            throw new InvalidOperationException(
+                "A consent check is audited as the acting user: an application session needs one; only the worker checks without.", ex);
+        }
         return result;
     }
 
