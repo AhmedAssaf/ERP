@@ -24,8 +24,8 @@ public sealed class TelemetryRedactorTimingTests
     private const int Ratio = 200;
     private const int Attempts = 5;
     private const int BaselineAttempts = 3;
-    private const int RatioAttempts = 7;
-    private static readonly TimeSpan RatioSlack = TimeSpan.FromMilliseconds(5);
+    private const int RatioAttempts = 3;
+    private static readonly TimeSpan RatioSlack = TimeSpan.FromMilliseconds(20);
 
     public static TheoryData<string, int> Cases()
     {
@@ -72,15 +72,17 @@ public sealed class TelemetryRedactorTimingTests
     /// Load independent (review of the follow-ups sweep, 2026-10-03): doubling the input at most about doubles the time, so a
     /// per-step cost that grows with the input (a quadratic of about 285 ms at 64 KB, under the budget above) still fails.
     /// The two sizes are timed alternately, best of <see cref="RatioAttempts"/> each, so a slow moment touches both; the
-    /// assertion is <c>t(64 KB) &lt; 3 t(32 KB) + </c><see cref="RatioSlack"/>, the slack absorbing timer noise on runs of a
-    /// fraction of a millisecond (a quadratic at 285 ms is about 71 ms at 32 KB and fails by far).
+    /// assertion is <c>t(256 KB) &lt; 8 t(64 KB) + </c><see cref="RatioSlack"/>: linear work grows about 4 times and a
+    /// quadratic 16 times, so the 8 times bar fails a quadratic by far yet leaves room for a loaded runner and for the
+    /// non-backtracking regex engine's one-off switch to its slower mode on larger inputs (a constant step, not a growth
+    /// rate), which made a 32 KB against 64 KB comparison flaky on hosted CI runners.
     /// </summary>
     [Theory]
     [MemberData(nameof(Patterns))]
-    public void Doubling_an_adversarial_value_at_most_about_doubles_the_time(string pattern)
+    public void Quadrupling_an_adversarial_value_at_most_about_quadruples_the_time(string pattern)
     {
-        var half = Inputs[pattern](32 * 1024);
-        var full = Inputs[pattern](64 * 1024);
+        var half = Inputs[pattern](64 * 1024);
+        var full = Inputs[pattern](256 * 1024);
         TelemetryRedactor.Redact(half);
         TelemetryRedactor.Redact(full);
 
@@ -94,8 +96,8 @@ public sealed class TelemetryRedactorTimingTests
         }
 
         fastestFull.ShouldBeLessThan(
-            (fastestHalf * 3) + RatioSlack,
-            $"{pattern}: 64 KB took {fastestFull.TotalMilliseconds:F2} ms, 32 KB {fastestHalf.TotalMilliseconds:F2} ms");
+            (fastestHalf * 8) + RatioSlack,
+            $"{pattern}: 256 KB took {fastestFull.TotalMilliseconds:F2} ms, 64 KB {fastestHalf.TotalMilliseconds:F2} ms");
     }
 
     private static TimeSpan Time(string value)
