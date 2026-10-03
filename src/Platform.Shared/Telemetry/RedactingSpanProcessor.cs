@@ -125,7 +125,9 @@ internal sealed class RedactingSpanProcessor : BaseProcessor<Activity>
             return (!ReferenceEquals(masked, url), masked);
         }
 
-        return Mask(value);
+        return NumericRedaction.IsLongNumber(value) && !NumericRedaction.IsSpanMeasurement(key)
+            ? (true, TelemetryRedactor.DigitsMarker)
+            : Mask(value);
     }
 
     private static (bool Changed, object? Value) Mask(object? value)
