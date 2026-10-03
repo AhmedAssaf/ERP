@@ -26,7 +26,7 @@ namespace Platform.Shared.Telemetry;
 /// <item>a run of ten or more decimal digits of any script becomes <c>[digits]</c>: CR, national id, iqama, phone, VAT and
 /// IBAN numbers all have ten or more. Digit groups joined as people write phones and IBANs count as one run
 /// (<c>055 123 4567</c>, <c>055-123 4567</c>, <c>(011) 465 1234</c>, <c>+966 5 5123 4567</c>, <c>055.123.4567</c>,
-/// <c>SA03-8000-0000-6080-1016-7519</c>), while a date and time (<c>2026-10-02 12:34:56</c>), an IP address, a version, a
+/// <c>SA03-8000-0000-6080-1016-7519</c>, <c>055–123–4567</c>, <c>055_123_4567</c>, <c>055,123,4567</c>), while a date and time (<c>2026-10-02 12:34:56</c>), an IP address, a version, a
 /// list of single digits, a platform reference (<c>RFP-2026-000045</c>) and a date with a short suffix (<c>2026-10-02-15</c>)
 /// are kept;
 /// the rules are on <see cref="MaskDigitRuns"/>. A run inside a hexadecimal identifier (a span, trace or GUID "N" id:
@@ -268,7 +268,9 @@ public static partial class TelemetryRedactor
     /// Masks the runs of ten or more digits (W-10 follow-ups 2026-10-02: phones as people group them, references and dates
     /// kept). One pass collects the digit groups (maximal runs of digits) token by token (a token is a maximal run of ASCII
     /// letters and digits); a group in a hexadecimal identifier or a GUID is kept and breaks any chain. A second pass, left to
-    /// right, takes at each group the first of these that applies:
+    /// right, takes at each group the first of these that applies. Wherever a hyphen joins groups below, an underscore or another
+    /// dash (en dash, em dash, the Unicode hyphens and minus, <see cref="IsHyphenLike"/>) joins them too, and wherever a dot
+    /// starts a dotted run, so does a comma or the Arabic thousands separator U+066C (review follow-ups sweep, 2026-10-03):
     /// <list type="number">
     /// <item>a date, three groups joined by the same <c>-</c> or <c>.</c>, <c>yyyy-mm-dd</c> or <c>dd-mm-yyyy</c> with a year
     /// from 1900 to 2099: kept, and it breaks any chain (<c>2026-10-02 12:34</c>). Only a <c>yyyy-mm-dd</c> date joined by
@@ -278,13 +280,14 @@ public static partial class TelemetryRedactor
     /// a hyphen, a year from 2000 to 2049, a hyphen and one sequence number of up to six digits from which no chain and no
     /// dotted run goes on: kept (<c>RFP-2026-000045</c>). Any other word (<c>ID-2012-345678</c>), a longer number or a
     /// sequence that goes on (<c>RFP-2026-055-123-4567</c>, <c>RFP-2026-055 123 4567</c>) is a chain;</item>
-    /// <item>a dotted run, groups joined by single dots: masked whole when it has three or more groups, every group after the
-    /// first of two or more digits (any, after a <c>+</c>), ten digits or more in all, and is not an IPv4 address (four groups
+    /// <item>a dotted run, groups joined by single dots or by single commas (never the two mixed): masked whole when it has
+    /// three or more groups, every group after the first of two or more digits for dots and three or more for commas (any,
+    /// after a <c>+</c>; so <c>055,123,4567</c> and <c>1,234,567,890</c> are masked and <c>12,34,56,78,90</c> is kept), ten digits or more in all, and is not an IPv4 address (four groups
     /// of up to three digits, each at most 255, no leading zero); kept otherwise (<c>055.123.4567</c>, <c>966.551.234.567</c>,
     /// <c>+1.212.555.1234</c> masked; <c>192.168.100.200</c>, <c>10.0.26100.4061</c>, <c>12345678.90</c> kept). A run kept
     /// whole whose last group goes on into a chain hands that group to it (<c>step 1.055 123 4567</c>);</item>
     /// <item>otherwise a chain: groups joined by a phone separator (an optional <c>)</c>, up to two spaces or tabs, an
-    /// optional <c>-</c>, up to two spaces or tabs, an optional <c>(</c>; spaces and hyphens may mix: <c>055-123 4567</c>,
+    /// optional dash, up to two spaces or tabs, an optional <c>(</c>; spaces and hyphens may mix: <c>055-123 4567</c>,
     /// <c>(011) 465 1234</c>), where a group of one digit joins only as a token of its own and never next to another
     /// single digit (<c>+966 5 5123 4567</c> and <c>0 55 123 4567</c> join; <c>1 2 3 4 5 6 7 8 9 10</c> does not). The
     /// chain stops before a date and before a group that starts a dotted run, but takes that group when it then reaches ten
@@ -407,8 +410,22 @@ public static partial class TelemetryRedactor
         None,
         Hyphen,
         Dot,
+        Comma,
         Phone,
     }
+
+    /// <summary>
+    /// A dash read as a hyphen between digit groups (review follow-ups sweep, 2026-10-03): the hyphen-minus, the Unicode
+    /// hyphens U+2010 and U+2011, the figure dash, en dash, em dash and horizontal bar (U+2012 to U+2015) and the minus sign
+    /// U+2212. NFKC leaves these apart (it maps only U+2011 to U+2010).
+    /// </summary>
+    private static bool IsDash(char c) => c is '-' or (>= '‐' and <= '―') or '−';
+
+    /// <summary>A single character that joins two digit groups as a hyphen does: a dash (<see cref="IsDash"/>) or an underscore.</summary>
+    private static bool IsHyphenLike(char c) => IsDash(c) || c == '_';
+
+    /// <summary>A single character that joins digit groups as a list does: a comma or the Arabic thousands separator U+066C.</summary>
+    private static bool IsCommaLike(char c) => c is ',' or '٬';
 
     /// <summary>The masking pass over the digit groups of one value, and the masked copy, if any (<see cref="MaskDigitRuns"/>).</summary>
     private sealed class DigitChains(string value, List<DigitGroup> groups)
@@ -418,6 +435,12 @@ public static partial class TelemetryRedactor
 
         /// <summary>The most digits a date's suffix has (<c>2026-10-02-15</c>).</summary>
         private const int MaxDateSuffixDigits = 2;
+
+        /// <summary>The fewest digits of each group after the first in a dotted run that is masked whole (<c>055.123.45.67</c>).</summary>
+        private const int MinDotGroupDigits = 2;
+
+        /// <summary>The same for a run joined by commas or U+066C (<c>055,123,4567</c>, <c>1,234,567,890</c>).</summary>
+        private const int MinCommaGroupDigits = 3;
 
         private StringBuilder? _builder;
         private int _copied;
@@ -439,7 +462,7 @@ public static partial class TelemetryRedactor
                 {
                     i = reference;
                 }
-                else if (Between(i, i + 1) == Separator.Dot)
+                else if (StartsDottedRun(i))
                 {
                     i = DottedRun(i);
                 }
@@ -500,13 +523,18 @@ public static partial class TelemetryRedactor
             return (before.Length > 1 || before.Whole) && (after.Length > 1 || after.Whole) && (before.Length > 1 || after.Length > 1);
         }
 
-        private bool StartsDottedRun(int index) => Between(index, index + 1) == Separator.Dot;
+        /// <summary>True when group <paramref name="index"/> starts a dotted run: a dot, a comma or U+066C after it.</summary>
+        private bool StartsDottedRun(int index) => Between(index, index + 1) is Separator.Dot or Separator.Comma;
 
-        /// <summary>The index after the dotted run that starts at group <paramref name="first"/>.</summary>
+        /// <summary>
+        /// The index after the dotted run that starts at group <paramref name="first"/>: its groups are joined by the separator
+        /// after the first group, a dot or a comma (U+066C counting as a comma), never the two mixed (<c>12,345,678.90</c>).
+        /// </summary>
         private int DottedRunEnd(int first)
         {
+            var separator = Between(first, first + 1);
             var end = first + 1;
-            while (end < groups.Count && !groups[end].Kept && Between(end - 1, end) == Separator.Dot)
+            while (end < groups.Count && !groups[end].Kept && Between(end - 1, end) == separator)
             {
                 end++;
             }
@@ -536,7 +564,10 @@ public static partial class TelemetryRedactor
 
             var plus = groups[first].Start > 0 && value[groups[first].Start - 1] == '+';
             var ipv4 = IsIPv4(first, end);
-            if (count >= 3 && (shortestAfterFirst >= 2 || plus) && digits >= DigitRunLength && !ipv4)
+            // A comma run needs groups of three or more after the first (thousands, 055,123,4567), so a list of short numbers
+            // (12,34,56,78,90) stays a list; a dotted run, groups of two or more.
+            var shortest = Between(first, first + 1) == Separator.Comma ? MinCommaGroupDigits : MinDotGroupDigits;
+            if (count >= 3 && (shortestAfterFirst >= shortest || plus) && digits >= DigitRunLength && !ipv4)
             {
                 Replace(groups[first].Start, groups[end - 1].End);
                 return end;
@@ -671,7 +702,8 @@ public static partial class TelemetryRedactor
         }
 
         /// <summary>
-        /// The separator between groups <paramref name="previous"/> and <paramref name="next"/>: one <c>-</c>, one <c>.</c>,
+        /// The separator between groups <paramref name="previous"/> and <paramref name="next"/>: one hyphen-like character
+        /// (<see cref="IsHyphenLike"/>), one <c>.</c>, one comma-like character (<see cref="IsCommaLike"/>),
         /// a phone separator (<see cref="MaskDigitRuns"/>), or none of them. At most seven characters are read.
         /// </summary>
         public Separator Between(int previous, int next)
@@ -682,9 +714,23 @@ public static partial class TelemetryRedactor
             }
 
             var gap = value.AsSpan(groups[previous].End, groups[next].Start - groups[previous].End);
-            if (gap.Length == 1 && gap[0] is '-' or '.')
+            if (gap.Length == 1)
             {
-                return gap[0] == '-' ? Separator.Hyphen : Separator.Dot;
+                var single = gap[0];
+                if (IsHyphenLike(single))
+                {
+                    return Separator.Hyphen;
+                }
+
+                if (single == '.')
+                {
+                    return Separator.Dot;
+                }
+
+                if (IsCommaLike(single))
+                {
+                    return Separator.Comma;
+                }
             }
 
             var k = 0;
@@ -694,7 +740,7 @@ public static partial class TelemetryRedactor
             }
 
             k = SkipBlanks(gap, k);
-            if (k < gap.Length && gap[k] == '-')
+            if (k < gap.Length && IsDash(gap[k]))
             {
                 k++;
             }

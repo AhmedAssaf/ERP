@@ -7,14 +7,23 @@ namespace Platform.UnitTests.Shared;
 /// <summary>
 /// W-10, plan task 3, fix round 1: the redactor runs on every log property and span tag, client-controlled ones included
 /// (<c>user_agent.original</c>, <c>url.path</c>), so it must take linear time. Each case is an input crafted against one
-/// pattern (a long run that a backtracking search would rescan from every start); 32 and 64 KB must each take under
-/// 500 ms. Linear patterns take a few to about 15 ms locally and up to about 80 ms on a hosted CI runner; the quadratic
-/// pattern this guards against took about 15 s at 32 KB and about 60 s at 64 KB, so the budget leaves room for a slow
-/// runner and still catches it by two orders of magnitude.
+/// pattern (a long run that a backtracking search would rescan from every start), at 32 and 64 KB. Linear patterns take a
+/// few to about 15 ms locally and up to about 80 ms on a hosted CI runner; the quadratic pattern this guards against took
+/// about 15 s at 32 KB and about 60 s at 64 KB.
 /// </summary>
+/// <remarks>
+/// Load tolerant (review follow-ups sweep, 2026-10-03): the budget is not a fixed wall-clock figure but the larger of
+/// <see cref="Floor"/> and <see cref="Ratio"/> times a baseline, the same-length benign text redacted in the same moment, so a
+/// machine slowed by a parallel build or test run slows both and the case still passes, while a quadratic pattern, about a
+/// thousand times the baseline and more at these lengths, still fails by an order of magnitude. Each figure is the fastest of
+/// up to five attempts.
+/// </remarks>
 public sealed class TelemetryRedactorTimingTests
 {
-    private static readonly TimeSpan Budget = TimeSpan.FromMilliseconds(500);
+    private static readonly TimeSpan Floor = TimeSpan.FromSeconds(1);
+    private const int Ratio = 200;
+    private const int Attempts = 5;
+    private const int BaselineAttempts = 3;
 
     public static TheoryData<string, int> Cases()
     {
@@ -33,10 +42,24 @@ public sealed class TelemetryRedactorTimingTests
     public void An_adversarial_value_is_redacted_in_linear_time(string pattern, int length)
     {
         var value = Inputs[pattern](length);
+        var benign = Repeat("Request finished in 12 ms; ", length);
         TelemetryRedactor.Redact(Inputs[pattern](256));
+        TelemetryRedactor.Redact(benign);
 
+        var baseline = Fastest(benign, BaselineAttempts, TimeSpan.Zero);
+        var budget = Floor > baseline * Ratio ? Floor : baseline * Ratio;
+        var fastest = Fastest(value, Attempts, budget);
+
+        fastest.ShouldBeLessThan(
+            budget,
+            $"{pattern} at {length} characters took {fastest.TotalMilliseconds:F1} ms (baseline {baseline.TotalMilliseconds:F2} ms)");
+    }
+
+    /// <summary>The fastest of up to <paramref name="attempts"/> runs, stopping early once one is under <paramref name="enough"/>.</summary>
+    private static TimeSpan Fastest(string value, int attempts, TimeSpan enough)
+    {
         var fastest = TimeSpan.MaxValue;
-        for (var attempt = 0; attempt < 3 && fastest >= Budget; attempt++)
+        for (var attempt = 0; attempt < attempts && fastest >= enough; attempt++)
         {
             var watch = Stopwatch.StartNew();
             TelemetryRedactor.Redact(value);
@@ -44,7 +67,7 @@ public sealed class TelemetryRedactorTimingTests
             fastest = watch.Elapsed < fastest ? watch.Elapsed : fastest;
         }
 
-        fastest.ShouldBeLessThan(Budget, $"{pattern} at {length} characters took {fastest.TotalMilliseconds:F1} ms");
+        return fastest;
     }
 
     private static readonly Dictionary<string, Func<int, string>> Inputs = new(StringComparer.Ordinal)
@@ -112,6 +135,18 @@ public sealed class TelemetryRedactorTimingTests
         ["digits, references running into dotted runs"] = n => Repeat("PO-2026-05.1 ", n),
         ["digits, leading-zero dotted quads"] = n => Repeat("055.123.45.67 ", n),
         ["digits, dates with suffixes running into dotted runs"] = n => Repeat("2026-10-02-15.", n),
+        // Review follow-ups sweep (2026-10-03): other dashes and underscores as hyphens, commas and U+066C as dotted runs.
+        ["digits, en dash groups"] = n => Repeat("12–", n),
+        ["digits, em dashes between blanks"] = n => Repeat("12 — ", n),
+        ["digits, underscore groups"] = n => Repeat("12_", n),
+        ["digits, underscore single digits"] = n => Repeat("1_", n),
+        ["digits, comma groups"] = n => Repeat("123,", n),
+        ["digits, comma pairs"] = n => Repeat("12,", n),
+        ["digits, arabic thousands separators"] = n => Repeat("١٢٣٬", n),
+        ["digits, commas and dots alternating"] = n => Repeat("123,45.", n),
+        ["digits, dates with en dashes"] = n => Repeat("2026–10–02–", n),
+        ["digits, references running into comma runs"] = n => Repeat("RFP-2026-055,1 ", n),
+        ["digits, every new separator"] = n => Repeat("12–345_67,890٬1 − ", n),
     };
 
     private static string Repeat(string unit, int length)

@@ -196,6 +196,70 @@ public sealed class TelemetryRedactorTests
         TelemetryRedactor.Redact("call 0 5 5 1 2 3 4 5 6 7 8").ShouldBe("call 0 5 5 1 2 3 4 5 6 7 8");
 
     /// <summary>
+    /// Review follow-ups sweep (2026-10-03; spec 7.1, known gaps): a dash of another kind (en dash, em dash, the Unicode hyphens
+    /// and minus) and an underscore join groups as a hyphen does, alone or between blanks for the dashes; a comma or the Arabic
+    /// thousands separator U+066C joins them as a dot does, with every group after the first of three or more digits (any
+    /// length after a <c>+</c>), so a list of short numbers stays a list. The last three rows are the over-masks accepted with
+    /// them (spec 7.1): a comma list of longer numbers, a compact timestamp after an underscore, a reference with a number
+    /// joined by a comma.
+    /// </summary>
+    [Theory]
+    [InlineData("call 055–123–4567", "call [digits]")]
+    [InlineData("call 055—123—4567", "call [digits]")]
+    [InlineData("call 055‐123‑4567", "call [digits]")]
+    [InlineData("call 055−123−4567", "call [digits]")]
+    [InlineData("call 055 – 123 – 4567 now", "call [digits] now")]
+    [InlineData("call +966–55–123–4567", "call +[digits]")]
+    [InlineData("call 055_123_4567", "call [digits]")]
+    [InlineData("IBAN SA03_8000_0000_6080_1016_7519 refused", "IBAN SA[digits] refused")]
+    [InlineData("mobile_055_123_4567", "mobile_[digits]")]
+    [InlineData("call 055,123,4567", "call [digits]")]
+    [InlineData("call +966,55,123,4567", "call +[digits]")]
+    [InlineData("call 055٬123٬4567", "call [digits]")]
+    [InlineData("اتصل ٠٥٥٬١٢٣٬٤٥٦٧", "اتصل [digits]")]
+    [InlineData("count 1,234,567,890 rows", "count [digits] rows")]
+    [InlineData("call 055 123 4567,89", "call [digits],89")]
+    [InlineData("ports 5432,5433,6379", "ports [digits]")]
+    [InlineData("backup_20261002_123456.zip", "backup_[digits].zip")]
+    [InlineData("RFP-2026-000045,12", "RFP-[digits],12")]
+    public void Phones_grouped_with_other_dashes_underscores_and_commas_are_masked(string value, string expected) =>
+        TelemetryRedactor.Redact(value).ShouldBe(expected);
+
+    [Theory]
+    [InlineData("from 2026–10–02 to 2026–10–03")]
+    [InlineData("export report_2026_10_02.pdf ready")]
+    [InlineData("export 2026_10_02_15 ready")]
+    [InlineData("years 2020–2025 and 2026—2030")]
+    [InlineData("tender RFP-2026–000045 opened")]
+    [InlineData("ids 12,34,56,78,90")]
+    [InlineData("attempts 1,2,3,4,5,6,7,8,9,10")]
+    [InlineData("total 1,234,567 items")]
+    [InlineData("amount 12,345,678.90")]
+    [InlineData("amount ١٢٬٣٤٥٬٦٧٨")]
+    [InlineData("hosts 192.168.0.1,10.0.0.1")]
+    [InlineData("values 100,200,150,250")]
+    [InlineData("see RFP-2026-000045, 12 items")]
+    [InlineData("job_12345678-1234-1234-1234-123456789012_done")]
+    [InlineData("span_00f067aa0ba902b7_trace_4bf92f3577b34da6a3ce929d0e0e4736")]
+    [InlineData("Windows 10.0.26100.4061, SDK 10.0.401")]
+    [InlineData("pages 1–2, 3–4, 5–6, 7–8, 9–10")]
+    public void Dates_references_lists_amounts_and_ids_stay_unmasked_beside_the_new_separators(string value) =>
+        TelemetryRedactor.Redact(value).ShouldBeSameAs(value);
+
+    /// <summary>
+    /// Kept as known gaps (spec 7.1): a slash also writes dates (<c>02/10/2026</c>, <c>10/31/2026 12:34</c>, Hijri
+    /// <c>1448/04/18</c>) and paths with numeric segments, and dots mixed with spaces also write a number beside a version; joining
+    /// them would mask those.
+    /// </summary>
+    [Theory]
+    [InlineData("call 055/123/4567")]
+    [InlineData("call 055 123.4567")]
+    [InlineData("on 10/31/2026 12:34:56")]
+    [InlineData("on 1448/04/18 12:34")]
+    public void Slashes_and_dots_mixed_with_spaces_still_do_not_join_groups(string value) =>
+        TelemetryRedactor.Redact(value).ShouldBeSameAs(value);
+
+    /// <summary>
     /// Fix round 1 (controller ruling, 2026-10-02): only the platform's own reference prefixes (<c>RFP</c>, <c>RFQ</c>,
     /// <c>PO</c>, <c>TND</c>, any case) followed by a year and one sequence number of up to six digits are kept; a date keeps a
     /// suffix of one or two digits only.
